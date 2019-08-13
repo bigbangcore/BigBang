@@ -1,0 +1,337 @@
+{
+    "CBasicConfigOption": [
+        {
+            "name": "fTestNet",
+            "type": "bool",
+            "opt": "testnet",
+            "default": false,
+            "format": "-testnet",
+            "desc": "Use the test network"
+        },
+        {
+            "name": "fWallet",
+            "type": "bool",
+            "opt": "wallet",
+            "default": true,
+            "format": "-nowallet",
+            "desc": "Launch server without wallet"
+        },
+        {
+            "name": "fVersion",
+            "type": "bool",
+            "opt": "version",
+            "default": false,
+            "format": "-version",
+            "desc": "Get bigbang version"
+        },
+        {
+            "name": "fPurge",
+            "type": "bool",
+            "opt": "purge",
+            "default": false,
+            "format": "-purge",
+            "desc": "Purge database and blockfile"
+        }
+    ],
+    "CForkConfigOption": [
+        {
+            "name": "vFork",
+            "type": "vector<string>",
+            "opt": "addfork",
+            "format": "-addfork=<forkid>",
+            "desc": "Add a supported fork"
+        },
+        {
+            "name": "vGroup",
+            "type": "vector<string>",
+            "opt": "addgroup",
+            "format": "-addgroup=<forkid of group leader>",
+            "desc": "Add a supported fork group"
+        }
+    ],
+    "CMintConfigOption": [
+        {
+            "access": "protected",
+            "name": "strAddressVssMP",
+            "type": "string",
+            "opt": "vssmpaddress",
+            "format": "-vssmpaddress=<address>",
+            "desc": "VSSMP address"
+        },
+        {
+            "access": "protected",
+            "name": "strKeyVssMP",
+            "type": "string",
+            "opt": "vssmpkey",
+            "format": "-vssmpkey=<key>",
+            "desc": "VSSMP key"
+        },
+        {
+            "access": "protected",
+            "name": "strAddressCryptonight",
+            "type": "string",
+            "opt": "cryptonightaddress",
+            "format": "-cryptonightaddress=<address>",
+            "desc": "POW cryptonight address"
+        },
+        {
+            "access": "protected",
+            "name": "strkeyCryptonight",
+            "type": "string",
+            "opt": "cryptonightkey",
+            "format": "-cryptonightkey=<key>",
+            "desc": "POW cryptonight key"
+        }
+    ],
+    "CRPCBasicConfigOption": [
+        {
+            "access": "protected",
+            "name": "nRPCPortInt",
+            "type": "int",
+            "opt": "rpcport",
+            "default": 0,
+            "format": "-rpcport=port",
+            "desc": "Listen for JSON-RPC connections on <port> (default: 9902 or testnet: 9904))"
+        },
+        {
+            "name": "fRPCListen",
+            "type": "bool",
+            "opt": "rpclisten",
+            "default": false,
+            "format": "-rpclisten",
+            "desc": "Accept RPC IPv4 and IPv6 connections (default: 0)"
+        },
+        {
+            "name": "fRPCListen4",
+            "type": "bool",
+            "opt": "rpclisten4",
+            "default": false,
+            "format": "-rpclisten4",
+            "desc": "Accept RPC IPv4 connections (default: 0)"
+        },
+        {
+            "name": "fRPCListen6",
+            "type": "bool",
+            "opt": "rpclisten6",
+            "default": false,
+            "format": "-rpclisten6",
+            "desc": "Accept RPC IPv6 connections (default: 0)"
+        },
+        {
+            "name": "strRPCUser",
+            "type": "string",
+            "opt": "rpcuser",
+            "format": "-rpcuser=<user>",
+            "desc": "<user> name for JSON-RPC connections"
+        },
+        {
+            "name": "strRPCPass",
+            "type": "string",
+            "opt": "rpcpassword",
+            "format": "-rpcpassword=<password>",
+            "desc": "<password> for JSON-RPC connections"
+        },
+        {
+            "name": "fRPCSSLEnable",
+            "type": "bool",
+            "opt": "rpcssl",
+            "default": false,
+            "format": "-rpcssl",
+            "desc": "Use OpenSSL (https) for JSON-RPC connections or not (default false)"
+        },
+        {
+            "name": "fRPCSSLVerify",
+            "type": "bool",
+            "opt": "rpcsslverify",
+            "default": false,
+            "format": "-norpcsslverify",
+            "desc": "Verify SSL or not (default yes)"
+        },
+        {
+            "name": "strRPCCAFile",
+            "type": "string",
+            "opt": "rpccafile",
+            "default": "",
+            "format": "-rpccafile=<file.crt>",
+            "desc": "SSL CA file name (default ca.crt)"
+        },
+        {
+            "name": "strRPCCertFile",
+            "type": "string",
+            "opt": "rpccertfile",
+            "default": "",
+            "format": "-rpccertfile=<file.crt>",
+            "desc": "Server certificate file (default: server.crt)"
+        },
+        {
+            "name": "strRPCPKFile",
+            "type": "string",
+            "opt": "rpcpkfile",
+            "default": "",
+            "format": "-rpcpkfile=<file.pem>",
+            "desc": "Server private key (default: server.pem)"
+        },
+        {
+            "name": "strRPCCiphers",
+            "type": "string",
+            "opt": "rpcciphers",
+            "default": "TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH",
+            "format": "-rpcciphers=<ciphers>",
+            "desc": "Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)"
+        },
+        {
+            "name": "fStatDataEnable",
+            "type": "bool",
+            "opt": "statdata",
+            "default": false,
+            "format": "-statdata",
+            "desc": "Enable statistical data or not (default false)"
+        },
+        {
+            "name": "fRPCLogEnable",
+            "type": "bool",
+            "opt": "rpclog",
+            "default": true,
+            "format": "-rpclog",
+            "desc": "Enable write RPC log (default true)"
+        }
+    ],
+    "CRPCClientConfigOption": [
+        {
+            "name": "strRPCConnect",
+            "type": "string",
+            "opt": "rpchost",
+            "default": "127.0.0.1",
+            "format": "-rpchost=<ip>",
+            "desc": "Send commands to node running on <ip> (default: 127.0.0.1)"
+        },
+        {
+            "name": "nRPCConnectTimeout",
+            "type": "unsigned int",
+            "opt": "rpctimeout",
+            "default": "DEFAULT_RPC_CONNECT_TIMEOUT",
+            "format": "-rpctimeout=<time>",
+            "desc": "Connection timeout <time> seconds (default: 120)"
+        }
+    ],
+    "CRPCServerConfigOption": [
+        {
+            "name": "nRPCMaxConnections",
+            "type": "unsigned int",
+            "opt": "rpcmaxconnections",
+            "default": "DEFAULT_RPC_MAX_CONNECTIONS",
+            "format": "-rpcmaxconnections=<num>",
+            "desc": "Set max connections to <num> (default: 5)"
+        },
+        {
+            "name": "vRPCAllowIP",
+            "type": "vector<string>",
+            "opt": "rpcallowip",
+            "format": "-rpcallowip=<ip>",
+            "desc": "Allow JSON-RPC connections from specified <ip> address"
+        }
+    ],
+    "CStorageConfigOption": [
+        {
+            "name": "nCheckLevel",
+            "type": "int",
+            "opt": "chklvl",
+            "default": "0",
+            "format": "-chklvl=<n>",
+            "desc": "Set storage check level (default: 0, range=0-3)"
+        },
+        {
+            "name": "nCheckDepth",
+            "type": "int",
+            "opt": "chkdpth",
+            "default": "1440",
+            "format": "-chkdpth=<n>",
+            "desc": "Set storage check depth (default: 1440, range=0-n)"
+        }
+    ],
+    "CNetworkConfigOption": [
+        {
+            "name": "fListen",
+            "type": "bool",
+            "opt": "listen",
+            "default": false,
+            "format": "-listen",
+            "desc": "Accept IPv4 and IPv6 connections from outside (default: 0)"
+        },
+        {
+            "name": "fListen4",
+            "type": "bool",
+            "opt": "listen4",
+            "default": false,
+            "format": "-listen4",
+            "desc": "Accept IPv4 connections from outside (default: 0)"
+        },
+        {
+            "name": "fListen6",
+            "type": "bool",
+            "opt": "listen6",
+            "default": false,
+            "format": "-listen6",
+            "desc": "Accept IPv6 connections from outside (default: 0)"
+        },
+        {
+            "name": "nPortInt",
+            "type": "int",
+            "opt": "port",
+            "default": 0,
+            "format": "-port=<port>",
+            "desc": "Listen for connections on <port> (default: 9901 or testnet: 9903)"
+        },
+        {
+            "name": "strGateWay",
+            "type": "string",
+            "opt": "gateway",
+            "format": "-gateway=<ip>:<port>",
+            "desc": "The form of <ip>:<port> of address of gateway(<ip> can be IPv4 or IPv6, default <port>: 9901, IPv6 format: [ip]:port)"
+        },
+        {
+            "name": "nMaxConnection",
+            "type": "int",
+            "opt": "maxconnections",
+            "default": "DEFAULT_MAX_OUTBOUNDS + DEFAULT_MAX_INBOUNDS",
+            "format": "-maxconnections=<n>",
+            "desc": "Maintain at most <n> connections to peers (default: 125)"
+        },
+        {
+            "name": "nConnectTimeout",
+            "type": "unsigned int",
+            "opt": "timeout",
+            "default": "DEFAULT_CONNECT_TIMEOUT",
+            "format": "-timeout=<n>",
+            "desc": "Specify connection timeout (in milliseconds)"
+        },
+        {
+            "name": "vNode",
+            "type": "vector<string>",
+            "opt": "addnode",
+            "format": "-addnode=<address>:<port>",
+            "desc": "Add a node to connect to and attempt to keep the connection open(<address> can be IPv4 or IPv6 or domain name, default <port>: 9901, IPv6 format: [ip]:port)"
+        },
+        {
+            "name": "vConnectTo",
+            "type": "vector<string>",
+            "opt": "connect",
+            "format": "-connect=<address>:<port>",
+            "desc": "Connect only to the specified node(<address> can be IPv4 or IPv6 or domain name, default <port>: 9901, IPv6 format: [ip]:port)"
+        },
+        {
+            "name": "strTrustAddress",
+            "type": "string",
+            "opt": "confidentAddress",
+            "format": "-confidentAddress=<address>",
+            "desc": "Trust node address(<address> can be IPv4 or IPv6)"
+        },
+        {
+            "name": "vDNSeed",
+            "type": "vector<string>",
+            "opt": "dnseed",
+            "format": "-dnseed=<address>:<port>",
+            "desc": "DNSeed address list(<address> can be IPv4 or IPv6 or domain name, default <port>: 9906, IPv6 format: [ip]:port)"
+        }
+    ]
+}

@@ -1,0 +1,2872 @@
+{
+    "templatepubkeyweight": {
+        "type": "class",
+        "name": "TemplatePubKeyWeight",
+        "content": {
+            "key": {
+                "type": "string",
+                "desc": "public key"
+            },
+            "weight": {
+                "type": "int",
+                "desc": "weight"
+            }
+        }
+    },
+    "templaterequest": {
+        "type": "class",
+        "name": "TemplateRequest",
+        "content": {
+            "type": {
+                "type": "string",
+                "desc": "template type"
+            },
+            "delegate": {
+                "type": "object",
+                "desc": "a delegate template",
+                "condition": "type=delegate",
+                "content": {
+                    "delegate": {
+                        "type": "string",
+                        "desc": "delegate public key"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
+            },
+            "fork": {
+                "type": "object",
+                "desc": "a new fork template",
+                "condition": "type=fork",
+                "content": {
+                    "redeem": {
+                        "type": "string",
+                        "desc": "redeem address"
+                    },
+                    "fork": {
+                        "type": "string",
+                        "desc": "fork hash"
+                    }
+                }
+            },
+            "mint": {
+                "type": "object",
+                "desc": "a mint template",
+                "condition": "type=mint",
+                "content": {
+                    "mint": {
+                        "type": "string",
+                        "desc": "mint public key"
+                    },
+                    "spent": {
+                        "type": "string",
+                        "desc": "spent address"
+                    }
+                }
+            },
+            "multisig": {
+                "type": "object",
+                "desc": "a multiple sign template",
+                "condition": "type=multisig",
+                "content": {
+                    "required": {
+                        "type": "int",
+                        "desc": "required weight > 0"
+                    },
+                    "pubkeys": {
+                        "type": "array",
+                        "content": {
+                            "key": {
+                                "type": "string",
+                                "desc": "public key"
+                            }
+                        }
+                    }
+                }
+            },
+            "weighted": {
+                "type": "object",
+                "desc": "a weighted multiple sign template",
+                "condition": "type=weighted",
+                "content": {
+                    "required": {
+                        "type": "int",
+                        "desc": "required weight"
+                    },
+                    "pubkeys": {
+                        "type": "array",
+                        "desc": "public keys",
+                        "content": {
+                            "pubkey": {
+                                "type": "templatepubkeyweight",
+                                "desc": "public key"
+                            }
+                        }
+                    }
+                }
+            },
+            "exchange": {
+                "type": "object",
+                "desc": "a exchange template",
+                "condition": "type=exchange",
+                "content": {
+                    "addr_m": {
+                        "type": "string",
+                        "desc": "addr_m"
+                    },
+                    "addr_s": {
+                        "type": "string",
+                        "desc": "addr_s"
+                    },
+                    "height_m": {
+                        "type": "int",
+                        "desc": "height_m"
+                    },
+                    "height_s": {
+                        "type": "int",
+                        "desc": "height_s"
+                    },
+                    "fork_m": {
+                        "type": "string",
+                        "desc": "fork_m hash"
+                    },
+                    "fork_s": {
+                        "type": "string",
+                        "desc": "fork_s hash"
+                    }
+                }
+            }
+        }
+    },
+    "templateresponse": {
+        "type": "class",
+        "name": "TemplateResponse",
+        "content": {
+            "type": {
+                "type": "string",
+                "desc": "template type"
+            },
+            "hex": {
+                "type": "string",
+                "desc": "temtplate data"
+            },
+            "delegate": {
+                "type": "object",
+                "desc": "delegate template struct",
+                "condition": "type=delegate",
+                "content": {
+                    "delegate": {
+                        "type": "string",
+                        "desc": "delegate public key"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
+            },
+            "fork": {
+                "type": "object",
+                "desc": "fork template struct",
+                "condition": "type=fork",
+                "content": {
+                    "redeem": {
+                        "type": "string",
+                        "desc": "redeem address"
+                    },
+                    "fork": {
+                        "type": "string",
+                        "desc": "fork hash"
+                    }
+                }
+            },
+            "mint": {
+                "type": "object",
+                "desc": "mint template struct",
+                "condition": "type=mint",
+                "content": {
+                    "mint": {
+                        "type": "string",
+                        "desc": "mint public key"
+                    },
+                    "spent": {
+                        "type": "string",
+                        "desc": "spent address"
+                    }
+                }
+            },
+            "multisig": {
+                "type": "object",
+                "desc": "multisig template struct",
+                "condition": "type=multisig",
+                "content": {
+                    "required": {
+                        "type": "int",
+                        "desc": "required weight"
+                    },
+                    "addresses": {
+                        "type": "array",
+                        "content": {
+                            "key": {
+                                "type": "string",
+                                "desc": "public key"
+                            }
+                        }
+                    }
+                }
+            },
+            "exchange": {
+                "type": "object",
+                "desc": "exchange template struct",
+                "condition": "type=exchange",
+                "content": {
+                    "spend_m": {
+                        "type": "string",
+                        "desc": "spend_m"
+                    },
+                    "spend_s": {
+                        "type": "string",
+                        "desc": "spend_s"
+                    },
+                    "height_m": {
+                        "type": "int",
+                        "desc": "height m"
+                    },
+                    "height_s": {
+                        "type": "int",
+                        "desc": "height s"
+                    },
+                    "fork_m": {
+                        "type": "string",
+                        "desc": "fork m"
+                    },
+                    "fork_s": {
+                        "type": "string",
+                        "desc": "fork s"
+                    }
+                }
+            },
+            "weighted": {
+                "type": "object",
+                "desc": "weighted template struct",
+                "condition": "type=weighted",
+                "content": {
+                    "required": {
+                        "type": "int",
+                        "desc": "required weight"
+                    },
+                    "addresses": {
+                        "type": "array",
+                        "desc": "public keys",
+                        "content": {
+                            "pubkey": {
+                                "type": "templatepubkeyweight",
+                                "desc": "public key"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "transactiondata": {
+        "type": "class",
+        "name": "TransactionData",
+        "content": {
+            "txid": {
+                "type": "string",
+                "desc": "transaction hash"
+            },
+            "version": {
+                "type": "uint",
+                "desc": "version"
+            },
+            "type": {
+                "type": "string",
+                "desc": "transaction type"
+            },
+            "time": {
+                "type": "uint",
+                "desc": "transaction timestamp"
+            },
+            "lockuntil": {
+                "type": "uint",
+                "desc": "unlock time"
+            },
+            "anchor": {
+                "type": "string",
+                "desc": "anchor hash"
+            },
+            "vin": {
+                "type": "array",
+                "desc": "vin list",
+                "content": {
+                    "vin": {
+                        "type": "object",
+                        "desc": "vin struct",
+                        "content": {
+                            "txid": {
+                                "type": "string",
+                                "desc": "pre-vout transaction hash"
+                            },
+                            "vout": {
+                                "type": "uint",
+                                "desc": "pre-vout number"
+                            }
+                        }
+                    }
+                }
+            },
+            "sendto": {
+                "type": "string",
+                "desc": "send to address"
+            },
+            "amount": {
+                "type": "double",
+                "desc": "amount"
+            },
+            "txfee": {
+                "type": "double",
+                "desc": "transaction fee"
+            },
+            "data": {
+                "type": "string",
+                "desc": "data"
+            },
+            "sig": {
+                "type": "string",
+                "desc": "sign"
+            },
+            "fork": {
+                "type": "string",
+                "desc": "fork hash"
+            },
+            "confirmations": {
+                "type": "int",
+                "desc": "confirmations",
+                "required": false
+            }
+        }
+    },
+    "wallettxdata": {
+        "type": "class",
+        "name": "WalletTxData",
+        "content": {
+            "txid": {
+                "type": "string",
+                "desc": "transaction hash"
+            },
+            "fork": {
+                "type": "string",
+                "desc": "fork hash"
+            },
+            "blockheight": {
+                "type": "int",
+                "desc": "block height",
+                "required": false
+            },
+            "type": {
+                "type": "string",
+                "desc": "transaction type"
+            },
+            "time": {
+                "type": "uint",
+                "desc": "transaction timestamp"
+            },
+            "send": {
+                "type": "bool",
+                "desc": "is from me"
+            },
+            "from": {
+                "type": "string",
+                "desc": "from address",
+                "required": false
+            },
+            "to": {
+                "type": "string",
+                "desc": "to address"
+            },
+            "amount": {
+                "type": "double",
+                "desc": "transaction amount"
+            },
+            "fee": {
+                "type": "double",
+                "desc": "transaction fee"
+            },
+            "lockuntil": {
+                "type": "uint",
+                "desc": "lockuntil"
+            }
+        }
+    },
+    "blockdata": {
+        "type": "class",
+        "name": "BlockData",
+        "content": {
+            "hash": {
+                "type": "string",
+                "desc": "block hash"
+            },
+            "version": {
+                "type": "uint",
+                "desc": "version"
+            },
+            "type": {
+                "type": "string",
+                "desc": "block type"
+            },
+            "time": {
+                "type": "uint",
+                "desc": "block time"
+            },
+            "prev": {
+                "type": "string",
+                "desc": "previous block hash",
+                "required": false
+            },
+            "fork": {
+                "type": "string",
+                "desc": "fork hash"
+            },
+            "height": {
+                "type": "uint",
+                "desc": "block height"
+            },
+            "txmint": {
+                "type": "string",
+                "desc": "transaction mint hash"
+            },
+            "tx": {
+                "type": "array",
+                "desc": "transaction hash list",
+                "content": {
+                    "tx": {
+                        "type": "string",
+                        "desc": "transaction hash"
+                    }
+                }
+            }
+        }
+    },
+    "help": {
+        "type": "command",
+        "name": "Help",
+        "desc": "List commands, or get help for a command.",
+        "request": {
+            "type": "object",
+            "content": {
+                "command": {
+                    "type": "string",
+                    "desc": "command name",
+                    "required": false
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "help",
+            "desc": "help info"
+        },
+        "example": [
+            "bigbang-cli help",
+            "bigbang-cli help getpeercount"
+        ]
+    },
+    "stop": {
+        "type": "command",
+        "name": "Stop",
+        "desc": "Stop bigbang server.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "stop result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli stop",
+                "response": "bigbang server stopping"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"stop\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"bigbang server stopping\"}"
+            }
+        ]
+    },
+    "version": {
+        "type": "command",
+        "name": "Version",
+        "desc": "Get bigbang server version.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "string",
+            "name": "version",
+            "desc": "bigbang version"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli version",
+                "response": "Bigbang server version is v0.1.0"
+            },
+            {
+                "request": "curl -d '{\"id\":0,\"method\":\"version\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"Bigbang server version is v0.1.0\"}"
+            }
+        ]
+    },
+    "getpeercount": {
+        "type": "command",
+        "name": "GetPeerCount",
+        "desc": "Return the number of connections to other nodes.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "int",
+            "name": "count",
+            "desc": "peer count"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getpeercount",
+                "response": "0"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"getpeercount\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":0}"
+            }
+        ]
+    },
+    "listpeer": {
+        "type": "command",
+        "name": "ListPeer",
+        "desc": "Return data about each connected network node.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "array",
+            "name": "peer",
+            "content": {
+                "peer": {
+                    "type": "object",
+                    "content": {
+                        "address": {
+                            "type": "string",
+                            "desc": "peer address"
+                        },
+                        "services": {
+                            "type": "string",
+                            "desc": "service"
+                        },
+                        "lastsend": {
+                            "type": "int",
+                            "desc": "last send time"
+                        },
+                        "lastrecv": {
+                            "type": "int",
+                            "desc": "last receive time"
+                        },
+                        "conntime": {
+                            "type": "int",
+                            "desc": "active time"
+                        },
+                        "version": {
+                            "type": "string",
+                            "desc": "version"
+                        },
+                        "subver": {
+                            "type": "string",
+                            "desc": "sub version"
+                        },
+                        "inbound": {
+                            "type": "bool",
+                            "desc": "accept multiple connection or not"
+                        },
+                        "height": {
+                            "type": "int",
+                            "desc": "starting height"
+                        },
+                        "banscore": {
+                            "type": "int",
+                            "desc": "ban score"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listpeer",
+                "response": "[{\"address\":\"113.105.146.22\",\"services\":\"0000000000000001\",\"lastsend\":1538113861,\"lastrecv\":1538113861,\"conntime\":1538113661,\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.1.0/Protocol:0.1.0/\",\"inbound\":false,\"height\":31028,\"banscore\":true}]"
+            },
+            {
+                "request": "curl -d '{\"id\":40,\"method\":\"listpeer\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":40,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"113.105.146.22\",\"services\":\"0000000000000001\",\"lastsend\":1538113861,\"lastrecv\":1538113861,\"conntime\":1538113661,\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.1.0/Protocol:0.1.0/\",\"inbound\":false,\"height\":31028,\"banscore\":true}]}"
+            }
+        ]
+    },
+    "addnode": {
+        "type": "command",
+        "name": "AddNode",
+        "desc": "Attempt to add a node into the addnode list.",
+        "request": {
+            "type": "object",
+            "content": {
+                "node": {
+                    "type": "string",
+                    "desc": "node host:port"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "add node result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli addnode 113.105.146.22",
+                "response": "Add node successfully: 113.105.146.22"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"addnode\",\"jsonrpc\":\"2.0\",\"params\":{\"node\":\"113.105.146.22:9901\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"Add node successfully: 113.105.146.22:9901\"}"
+            }
+        ],
+        "error": "{\"code\":-206,\"message\":\"Failed to add node.\"}"
+    },
+    "removenode": {
+        "type": "command",
+        "name": "RemoveNode",
+        "desc": "Attempt to remove a node from the addnode list.",
+        "request": {
+            "type": "object",
+            "content": {
+                "node": {
+                    "type": "string",
+                    "desc": "node host:port"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "remove node result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli removenode 113.105.146.22",
+                "response": "Remove node successfully: 113.105.146.22"
+            },
+            {
+                "request": "curl -d '{\"id\":67,\"method\":\"removenode\",\"jsonrpc\":\"2.0\",\"params\":{\"node\":\"113.105.146.22:9901\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":67,\"jsonrpc\":\"2.0\",\"result\":\"Remove node successfully: 113.105.146.22:9901\"}"
+            }
+        ],
+        "error": "{\"code\":-206,\"message\":\"Failed to remove node.\"}"
+    },
+    "getforkcount": {
+        "type": "command",
+        "name": "GetForkCount",
+        "desc": "Return the number of forks.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "int",
+            "name": "count",
+            "desc": "fork count"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getforkcount",
+                "response": "1"
+            },
+            {
+                "request": "curl -d '{\"id\":69,\"method\":\"getforkcount\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":69,\"jsonrpc\":\"2.0\",\"result\":1}"
+            }
+        ]
+    },
+    "listfork": {
+        "type": "command",
+        "name": "ListFork",
+        "desc": "If true, list of all forks, or subscribed forks",
+        "request": {
+            "type": "object",
+            "content": {
+                "all": {
+                    "type": "bool",
+                    "desc": "list all forks or not",
+                    "opt": "a",
+                    "default": false,
+                    "required": false
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "profile",
+            "desc": "fork profile list",
+            "content": {
+                "profile": {
+                    "type": "object",
+                    "desc": "fork profile info",
+                    "content": {
+                        "fork": {
+                            "type": "string",
+                            "desc": "fork id with hex system"
+                        },
+                        "name": {
+                            "type": "string",
+                            "desc": "fork name"
+                        },
+                        "symbol": {
+                            "type": "string",
+                            "desc": "fork symbol"
+                        },
+                        "amount": {
+                            "type": "double",
+                            "desc": "amount"
+                        },
+                        "reward": {
+                            "type": "double",
+                            "desc": "mint reward"
+                        },
+                        "halvecycle": {
+                            "type": "uint",
+                            "desc": "halve cycle: 0: fixed reward, >0: blocks of halve cycle"
+                        },
+                        "isolated": {
+                            "type": "bool",
+                            "desc": "is isolated"
+                        },
+                        "private": {
+                            "type": "bool",
+                            "desc": "is private"
+                        },
+                        "enclosed": {
+                            "type": "bool",
+                            "desc": "is enclosed"
+                        },
+                        "owner": {
+                            "type": "string",
+                            "desc": "owner's address"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listfork",
+                "response": "[{\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"name\":\"BigBang Network\",\"symbol\":\"BIG\",\"amount\":100000000.000000,\"reward\":15,\"halvecycle\":0,\"isolated\":true,\"private\":false,\"enclosed\":false,\"owner\":\"1mjw7aa0s7v9sv7x3thvcexxzjz4tq82j5qc12dy29ktqy84haa0j7dwb\"}]"
+            },
+            {
+                "request": "{\"id\":69,\"method\":\"listfork\",\"jsonrpc\":\"2.0\",\"params\":{}}",
+                "response": "{\"id\":69,\"jsonrpc\":\"2.0\",\"result\":[{\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"name\":\"BigBang Network\",\"symbol\":\"BIG\",\"amount\":100000000.000000,\"reward\":15,\"halvecycle\":0,\"isolated\":true,\"private\":false,\"enclosed\":false,\"owner\":\"1mjw7aa0s7v9sv7x3thvcexxzjz4tq82j5qc12dy29ktqy84haa0j7dwb\"}]}"
+            }
+        ]
+    },
+    "getgenealogy": {
+        "type": "command",
+        "name": "GetGenealogy",
+        "desc": "Return the list of ancestry and subline.",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "ancestry",
+            "content": {
+                "ancestry": {
+                    "type": "array",
+                    "desc": "ancestry info",
+                    "content": {
+                        "ancestry": {
+                            "type": "object",
+                            "desc": "ancestry",
+                            "content": {
+                                "parent": {
+                                    "type": "string",
+                                    "desc": "parent fork hash"
+                                },
+                                "height": {
+                                    "type": "int",
+                                    "desc": "parent origin height"
+                                }
+                            }
+                        }
+                    }
+                },
+                "subline": {
+                    "type": "array",
+                    "desc": "subline info",
+                    "content": {
+                        "subline": {
+                            "type": "object",
+                            "desc": "subline",
+                            "content": {
+                                "sub": {
+                                    "type": "string",
+                                    "desc": "sub fork hash"
+                                },
+                                "height": {
+                                    "type": "int",
+                                    "desc": "sub origin height"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getgenealogy",
+                "response": "{\"ancestry\":[],\"subline\":[]}"
+            },
+            {
+                "request": "curl -d '{\"id\":75,\"method\":\"getgenealogy\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":75,\"jsonrpc\":\"2.0\",\"result\":{\"ancestry\":[],\"subline\":[]}}"
+            },
+            {
+                "request": "bigbang-cli getgenealogy 1",
+                "response": "{\"code\":-6,\"message\":\"Unknown fork\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getgenealogy\",\"jsonrpc\":\"2.0\",\"params\":{\"fork\":\"1\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"error\":{\"code\":-6,\"message\":\"Unknown fork\"}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
+        ]
+    },
+    "getblocklocation": {
+        "type": "command",
+        "name": "GetBlockLocation",
+        "desc": "Return the location with given block.",
+        "request": {
+            "type": "object",
+            "content": {
+                "block": {
+                    "type": "string",
+                    "desc": "block hash"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "location",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash"
+                },
+                "height": {
+                    "type": "int",
+                    "desc": "block height"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getblocklocation 609a797ca28042d562b11355038c516d65ba30b91c7033d83c61b81aa8c538e3",
+                "response": "{\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":1}"
+            },
+            {
+                "request": "curl -d '{\"id\":6,\"method\":\"getblocklocation\",\"jsonrpc\":\"2.0\",\"params\":{\"block\":\"609a797ca28042d562b11355038c516d65ba30b91c7033d83c61b81aa8c538e3\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":6,\"jsonrpc\":\"2.0\",\"result\":{\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":1}}"
+            }
+        ],
+        "error": "{\"code\":-6,\"message\":\"Unknown block.\"}"
+    },
+    "getblockcount": {
+        "type": "command",
+        "name": "GetBlockCount",
+        "desc": "Return the number of blocks in the given fork, includes extended block and vacant block",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "int",
+            "name": "count",
+            "desc": "block count"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getblockcount",
+                "response": "32081"
+            },
+            {
+                "request": "curl -d '{\"id\":4,\"method\":\"getblockcount\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":32081}"
+            },
+            {
+                "request": "bigbang-cli getblockcount -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0",
+                "response": "32081"
+            },
+            {
+                "request": "curl -d '{\"id\":5,\"method\":\"getblockcount\",\"jsonrpc\":\"2.0\",\"params\":{\"fork\":\"0\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":5,\"jsonrpc\":\"2.0\",\"result\":32081}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
+        ]
+    },
+    "getblockhash": {
+        "type": "command",
+        "name": "GetBlockHash",
+        "introduction": "Return a list of block hash in the fork at a specific height.",
+        "desc": [
+            "Return a list of block hash in fork at specific height.",
+            "First of the list is the main block hash, others are extended blocks hash in order."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "height": {
+                    "type": "int",
+                    "desc": "block height"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "hash",
+            "content": {
+                "hash": {
+                    "type": "string",
+                    "desc": "one block hash"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getblockhash 0",
+                "response": "[\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"]"
+            },
+            {
+                "request": "curl -d '{\"id\":37,\"method\":\"getblockhash\",\"jsonrpc\":\"2.0\",\"params\":{\"height\":0}}' http://127.0.0.1:9902",
+                "response": "{\"id\":37,\"jsonrpc\":\"2.0\",\"result\":[\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"]}"
+            },
+            "bigbang-cli getblockhash 0 -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-6,\"message\":\"Block number out of range.\"}"
+        ]
+    },
+    "getblock": {
+        "type": "command",
+        "name": "GetBlock",
+        "desc": "Return details of a block with given block-hash.",
+        "request": {
+            "type": "object",
+            "content": {
+                "block": {
+                    "type": "string",
+                    "desc": "block hash"
+                }
+            }
+        },
+        "response": {
+            "type": "blockdata",
+            "name": "block",
+            "desc": "block data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getblock ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c",
+                "response": "{\"hash\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\",\"version\":1,\"type\":\"primary-pow\",\"time\":1538138566,\"prev\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":31296,\"txmint\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"tx\":[]}"
+            },
+            {
+                "request": "curl -d '{\"id\":10,\"method\":\"getblock\",\"jsonrpc\":\"2.0\",\"params\":{\"block\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":10,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\",\"version\":1,\"type\":\"primary-pow\",\"time\":1538138566,\"prev\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":31296,\"txmint\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"tx\":[]}}"
+            }
+        ],
+        "error": "{\"code\":-6,\"message\":\"Unknown block.\"}"
+    },
+    "gettxpool": {
+        "type": "command",
+        "name": "GetTxPool",
+        "introduction": "Get transaction pool information",
+        "desc": [
+            "If detail==0, return the count and total size of txs for given fork.",
+            "Otherwise,return all transaction ids and sizes in memory pool for given fork."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "detail": {
+                    "type": "bool",
+                    "desc": "get detail or not",
+                    "default": false,
+                    "required": false,
+                    "opt": "d"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "data",
+            "content": {
+                "count": {
+                    "type": "uint",
+                    "desc": "transaction pool count",
+                    "required": false,
+                    "condition": "detail=false"
+                },
+                "size": {
+                    "type": "uint",
+                    "desc": "transaction total size",
+                    "required": false,
+                    "condition": "detail=false"
+                },
+                "list": {
+                    "type": "array",
+                    "desc": "transaction pool list",
+                    "required": false,
+                    "condition": "detail=true",
+                    "content": {
+                        "pool": {
+                            "type": "object",
+                            "desc": "pool struct",
+                            "content": {
+                                "hex": {
+                                    "type": "string",
+                                    "desc": "tx pool hex"
+                                },
+                                "size": {
+                                    "type": "uint",
+                                    "desc": "tx pool size"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli gettxpool",
+                "response": "{\"count\":0,\"size\":0}"
+            },
+            {
+                "request": "curl -d '{\"id\":11,\"method\":\"gettxpool\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":11,\"jsonrpc\":\"2.0\",\"result\":{\"count\":0,\"size\":0}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
+        ]
+    },
+    "gettransaction": {
+        "type": "command",
+        "name": "GetTransaction",
+        "desc": "Get transaction information",
+        "request": {
+            "type": "object",
+            "content": {
+                "txid": {
+                    "type": "string",
+                    "desc": "transaction hash"
+                },
+                "serialized": {
+                    "type": "bool",
+                    "desc": [
+                        "If serialized=0, return an Object with information about <txid>.",
+                        "If serialized is non-zero, return a string that is",
+                        "serialized, hex-encoded data for <txid>."
+                    ],
+                    "opt": "s",
+                    "default": false,
+                    "required": false
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "data",
+            "content": {
+                "serialization": {
+                    "type": "string",
+                    "desc": "transaction hex data",
+                    "required": false,
+                    "condition": "serialized=true"
+                },
+                "transaction": {
+                    "type": "transactiondata",
+                    "desc": "transaction data",
+                    "required": false,
+                    "condition": "serialized=false"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli gettransaction 3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29",
+                "response": "{\"transaction\":{\"txid\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"version\":1,\"type\":\"work\",\"time\":1547916097,\"lockuntil\":0,\"anchor\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"vin\":[],\"sendto\":\"20g00k7pe4krdbbxpn5swgbxc0w4a54w054stt1z107d9n3sk6q7js9gw\",\"amount\":15.00000000,\"txfee\":0.00000000,\"data\":\"\",\"sig\":\"\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"confirmations\":785}}"
+            },
+            {
+                "request": "curl -d '{\"id\":13,\"method\":\"gettransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txid\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"serialized\":false}}' http://127.0.0.1:9902",
+                "response": "{\"id\":13,\"jsonrpc\":\"2.0\",\"result\":{\"transaction\":{\"txid\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"version\":1,\"type\":\"work\",\"time\":1547916097,\"lockuntil\":0,\"anchor\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"vin\":[],\"sendto\":\"20g00k7pe4krdbbxpn5swgbxc0w4a54w054stt1z107d9n3sk6q7js9gw\",\"amount\":15.00000000,\"txfee\":0.00000000,\"data\":\"\",\"sig\":\"\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"confirmations\":785}}}"
+            },
+            {
+                "request": "bigbang-cli gettransaction -s 3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29",
+                "response": "{\"serialization\":\"01000003000000008a1fb55ae490ae15bd76e6ee7ec89fccd9583d60e34fef6d54e07c4e796eb84700020400099ece24f0d5afb6a973c82fac0708a293802933ad07e101da9a8f3335cfc0e1e4000000000000000000000000000000\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":13,\"method\":\"gettransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txid\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"serialized\":false}}' http://127.0.0.1:9902",
+                "response": "{\"id\":14,\"method\":\"gettransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txid\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"serialized\":true}}"
+            }
+        ],
+        "error": "{\"code\":-6,\"message\":\"No information available about transaction.\"}"
+    },
+    "sendtransaction": {
+        "type": "command",
+        "name": "SendTransaction",
+        "desc": "Submit raw transaction (serialized, hex-encoded) to local node and network.",
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "transaction binary data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "data",
+            "desc": "transaction raw data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli sendtransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03",
+                "response": "0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6"
+            },
+            {
+                "request": "curl -d '{\"id\":9,\"method\":\"sendtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":9,\"jsonrpc\":\"2.0\",\"result\":\"0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
+        ]
+    },
+    "getforkheight": {
+        "type": "command",
+        "name": "GetForkHeight",
+        "desc": "Return the number of height in the given fork.",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "int",
+            "name": "height",
+            "desc": "fork height"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getforkheight",
+                "response": "32081"
+            },
+            {
+                "request": "curl -d '{\"id\":4,\"method\":\"getforkheight\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":32081}"
+            },
+            "bigbang-cli getforkheight -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
+        ]        
+    },
+    "listkey": {
+        "type": "command",
+        "name": "ListKey",
+        "desc": "Return Object that has pubkey as keys, associated status as values.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "array",
+            "name": "pubkey",
+            "desc": "public key list",
+            "content": {
+                "pubkey": {
+                    "type": "object",
+                    "desc": "public key info",
+                    "content": {
+                        "key": {
+                            "type": "string",
+                            "desc": "public key with hex system"
+                        },
+                        "version": {
+                            "type": "int",
+                            "desc": "public key version"
+                        },
+                        "locked": {
+                            "type": "bool",
+                            "desc": "public key locked"
+                        },
+                        "timeout": {
+                            "type": "int",
+                            "required": false,
+                            "desc": "public key timeout locked"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listkey",
+                "response": "[{\"key\":\"3d266a564ec85f3385babf615b1d7eeb01b3e4456d35174732bb9ec0fa8c8f4f\",\"version\": 1,\"locked\": true},{\"key\":\"58e148d9e8610a6504c26ed346d15920c4d832cf0f03ecb8a016e0d0ec838b1b\",\"version\": 1,\"locked\": true}]"
+            },
+            {
+                "request": "curl -d '{\"id\":43,\"method\":\"listkey\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":43,\"jsonrpc\":\"2.0\",\"result\":[{\"key\":\"3d266a564ec85f3385babf615b1d7eeb01b3e4456d35174732bb9ec0fa8c8f4f\",\"version\": 1,\"locked\": true},{\"key\":\"58e148d9e8610a6504c26ed346d15920c4d832cf0f03ecb8a016e0d0ec838b1b\",\"version\": 1,\"locked\": true}]}"
+            }
+        ]
+    },
+    "getnewkey": {
+        "type": "command",
+        "name": "GetNewKey",
+        "desc": "Return a new pubkey for receiving payments.",
+        "request": {
+            "type": "object",
+            "content": {
+                "passphrase": {
+                    "type": "string",
+                    "desc": "passphrase"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "pubkey",
+            "desc": "public key"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getnewkey 123",
+                "response": "f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9"
+            },
+            {
+                "request": "curl -d '{\"id\":7,\"method\":\"getnewkey\",\"jsonrpc\":\"2.0\",\"params\":{\"passphrase\":\"123\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":7,\"jsonrpc\":\"2.0\",\"result\":\"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
+            "{\"code\":-401,\"message\":\"Failed add new key.\"}"
+        ]
+    },
+    "encryptkey": {
+        "type": "command",
+        "name": "EncryptKey",
+        "desc": "Changes the passphrase for <oldpassphrase> to <passphrase>",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                },
+                "passphrase": {
+                    "type": "string",
+                    "desc": "passphrase of key",
+                    "opt": "new"
+                },
+                "oldpassphrase": {
+                    "type": "string",
+                    "desc": "old passphrase of key",
+                    "opt": "old"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "encrypt key result"
+        },
+        "example": [
+            {
+                "request": "encryptkey f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add -new=456 -old=123",
+                "response": "Encrypt key successfully: f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add"
+            },
+            {
+                "request": "curl -d '{\"id\":5,\"method\":\"encryptkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add\",\"passphrase\":\"456\",\"oldpassphrase\":\"123\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":5,\"jsonrpc\":\"2.0\",\"result\":\"Encrypt key successfully: f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
+            "{\"code\":-6,\"message\":\"Old passphrase must be nonempty\"}",
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-406,\"message\":\"The passphrase entered was incorrect.\"}"
+        ]
+    },
+    "lockkey": {
+        "type": "command",
+        "name": "LockKey",
+        "introduction": "Removes the encryption key from memory, locking the key.",
+        "desc": [
+            "Removes the encryption key from memory, locking the key.",
+            "After calling this method, you will need to call unlockkey again.",
+            "before being able to call any methods which require the key to be unlocked."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "pubkey or pubkey address"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "lock key result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli lockkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882",
+                "response": "Lock key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"lockkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"Lock key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-6,\"message\":\"This method only accepts pubkey or pubkey address as parameter rather than template address you supplied.\"}",
+            "{\"code\":-401,\"message\":\"Failed to lock key\"}"
+        ]
+    },
+    "unlockkey": {
+        "type": "command",
+        "name": "UnlockKey",
+        "introduction": "Unlock the key.",
+        "desc": [
+            "If (timeout) > 0,stores the wallet decryption key in memory for (timeout) seconds.",
+            "before being able to call any methods which require the key to be locked."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "pubkey or pubkey address"
+                },
+                "passphrase": {
+                    "type": "string",
+                    "desc": "passphrase"
+                },
+                "timeout": {
+                    "type": "int",
+                    "desc": "auto unlock timeout",
+                    "required": false,
+                    "opt": "t"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "unlock key result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli unlockkey d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07 1234",
+                "response": "Unlock key successfully: d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07"
+            },
+            {
+                "request": "curl -d '{\"id\":13,\"method\":\"unlockkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07\",\"passphrase\":\"1234\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":13,\"jsonrpc\":\"2.0\",\"result\":\"Unlock key successfully: d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07\"}"
+            },
+            {
+                "request": "bigbang-cli unlockkey f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9 123 10",
+                "response": "Unlock key successfully: f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9"
+            },
+            {
+                "request": "curl -d '{\"id\":15,\"method\":\"unlockkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\",\"passphrase\":\"123\",\"timeout\":10}}' http://127.0.0.1:9902",
+                "response": "{\"id\":15,\"jsonrpc\":\"2.0\",\"result\":\"Unlock key successfully: f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-409,\"message\":\"Key is already unlocked\"}",
+            "{\"code\":-406,\"message\":\"The passphrase entered was incorrect.\"}"
+        ]
+    },
+    "importprivkey": {
+        "type": "command",
+        "name": "ImportPrivKey",
+        "desc": "Adds a private key (as returned by dumpprivkey) to your wallet.",
+        "request": {
+            "type": "object",
+            "content": {
+                "privkey": {
+                    "type": "string",
+                    "desc": "private key"
+                },
+                "passphrase": {
+                    "type": "string",
+                    "desc": "passphrase"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "pubkey",
+            "desc": "public key with hex number system"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importprivkey feb51e048380c0ade1cdb60b25e9f3e05cd4507553a97faadc8a94771fcb1a5b 123",
+                "response": "d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07"
+            },
+            {
+                "request": "curl -d '{\"id\":9,\"method\":\"importprivkey\",\"jsonrpc\":\"2.0\",\"params\":{\"privkey\":\"feb51e048380c0ade1cdb60b25e9f3e05cd4507553a97faadc8a94771fcb1a5b\",\"passphrase\":\"123\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":9,\"jsonrpc\":\"2.0\",\"result\":\"d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid private key\"}",
+            "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
+            "{\"code\":-401,\"message\":\"Already have key\"}",
+            "{\"code\":-401,\"message\":\"Failed to add key\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
+        ]
+    },
+    "importkey": {
+        "type": "command",
+        "name": "ImportKey",
+        "desc": "Reveal the serialized key corresponding to <pubkey>.",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "pubkey",
+            "desc": "public key with hex number system"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importkey 642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0",
+                "response": "de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"importkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-32602,\"message\":\"Failed to verify serialized key\"}",
+            "{\"code\":-32602,\"message\":\"Can't import the key with empty passphrase\"}",
+            "{\"code\":-401,\"message\":\"Already have key\"}",
+            "{\"code\":-401,\"message\":\"Failed to add key\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
+        ]
+    },
+    "exportkey": {
+        "type": "command",
+        "name": "ExportKey",
+        "desc": "Reveal the serialized key corresponding to <pubkey>.",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "pubkey",
+            "desc": "public key with binary system"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli exportkey de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64",
+                "response": "642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0"
+            },
+            {
+                "request": "curl -d '{\"id\":13,\"method\":\"exportkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":13,\"jsonrpc\":\"2.0\",\"result\":\"642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-401,\"message\":\"Failed to export key\"}"
+        ]
+    },
+    "addnewtemplate": {
+        "type": "command",
+        "name": "AddNewTemplate",
+        "desc": "Return encoded address for the given template id.",
+        "request": {
+            "type": "templaterequest",
+            "fork": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "address of template"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli addnewtemplate mint '{\"mint\": \"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\", \"spent\": \"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}'",
+                "response": "20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"addnewtemplate\",\"jsonrpc\":\"2.0\",\"params\":{\"type\":\"mint\",\"mint\":{\"mint\":\"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\",\"spent\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25\"}"
+            },
+            "bigbang-cli addnewtemplate delegate '{\"delegate\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"owner\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\"}'",
+            "bigbang-cli addnewtemplate fork '{\"redeem\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}'",
+            "bigbang-cli addnewtemplate multisig '{\"required\": 1, \"pubkeys\": [\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\", \"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\"]}'",
+            "bigbang-cli addnewtemplate weighted '{\"required\": 1, \"pubkeys\": [{\"key\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\", \"weight\": 1},{\"key\": \"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\", \"weight\": 2}]}'"
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
+            "{\"code\":-401,\"message\":\"Failed to add template\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing weight\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing redeem address\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing spent address\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing owner address\"}",
+            "{\"code\":-6,\"message\":\"template type error. type: xxx\"}"
+        ]
+    },
+    "importtemplate": {
+        "type": "command",
+        "name": "ImportTemplate",
+        "desc": "Return encoded address for the given template.",
+        "request": {
+            "type": "object",
+            "content": {
+                "data": {
+                    "type": "string",
+                    "desc": "template data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "address of template"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importtemplate 0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402",
+                "response": "21w2040000000000000000000000000000000000000000000000epcek"
+            },
+            {
+                "request": "curl -d '{\"id\":52,\"method\":\"importtemplate\",\"jsonrpc\":\"2.0\",\"params\":{\"data\":\"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":52,\"jsonrpc\":\"2.0\",\"result\":\"21w2040000000000000000000000000000000000000000000000epcek\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
+            "{\"code\":-401,\"message\":\"Already have this template\"}",
+            "{\"code\":-401,\"message\":\"Failed to add template\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
+        ]
+    },
+    "exporttemplate": {
+        "type": "command",
+        "name": "ExportTemplate",
+        "desc": "Return encoded address for the given template.",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "template address"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "data",
+            "desc": "data of template"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli exporttemplate 2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m",
+                "response": "0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402"
+            },
+            {
+                "request": "curl -d '{\"id\":25,\"method\":\"exporttemplate\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":25,\"jsonrpc\":\"2.0\",\"result\":\"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid address\"}",
+            "{\"code\":-401,\"message\":\"Unkown template\"}"
+        ]
+    },
+    "validateaddress": {
+        "type": "command",
+        "name": "ValidateAddress",
+        "desc": "Return information about <address>.",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "wallet address"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "data",
+            "content": {
+                "isvalid": {
+                    "type": "bool",
+                    "desc": "is valid"
+                },
+                "addressdata": {
+                    "type": "object",
+                    "desc": "address data",
+                    "condition": "isvalid=true",
+                    "content": {
+                        "address": {
+                            "type": "string",
+                            "desc": "wallet address"
+                        },
+                        "ismine": {
+                            "type": "bool",
+                            "desc": "is mine"
+                        },
+                        "type": {
+                            "type": "string",
+                            "desc": "type, pubkey or template"
+                        },
+                        "pubkey": {
+                            "type": "string",
+                            "desc": "public key",
+                            "condition": "type=pubkey"
+                        },
+                        "template": {
+                            "type": "string",
+                            "desc": "template type name",
+                            "condition": "type=template"
+                        },
+                        "templatedata": {
+                            "type": "templateresponse",
+                            "desc": "template data",
+                            "condition": "type=template && ismine=true"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli validateaddress 20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26",
+                "response": "{\"isvalid\":true,\"addressdata\":{\"address\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"ismine\":true,\"type\":\"template\",\"template\":\"mint\"}}"
+            },
+            {
+                "request": "curl -d '{\"id\":2,\"method\":\"validateaddress\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":{\"isvalid\":true,\"addressdata\":{\"address\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"ismine\":true,\"type\":\"template\",\"template\":\"mint\"}}}"
+            },
+            {
+                "request": "bigbang-cli validateaddress 123",
+                "response": "{\"isvalid\":false}"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"validateaddress\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"123\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"isvalid\":false}}"
+            }
+        ]
+    },
+    "resyncwallet": {
+        "type": "command",
+        "name": "ResyncWallet",
+        "introduction": "Resync wallet's transactions.",
+        "desc": [
+            "If (address) is not specified, resync wallet's tx for each address.",
+            "If (address) is specified, resync wallet's tx for the address."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "tx address",
+                    "required": false
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "resync wallet result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli resyncwallet",
+                "response": "Resync wallet successfully."
+            },
+            {
+                "request": "curl -d '{\"id\":38,\"method\":\"resyncwallet\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":38,\"jsonrpc\":\"2.0\",\"result\":\"Resync wallet successfully.\"}"
+            },
+            {
+                "request": "bigbang-cli resyncwallet 1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid address\"}",
+            "{\"code\":-401,\"message\":\"Failed to resync wallet tx\"}"
+        ]
+    },
+    "getbalance": {
+        "type": "command",
+        "name": "GetBalance",
+        "introduction": "Get balance of an address.",
+        "desc": [
+            "Get balance of address.",
+            "If (address) is not specified, return the balance for wallet's each address.",
+            "If (address) is specified, return the balance in the address."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "address": {
+                    "type": "string",
+                    "desc": "wallet address",
+                    "required": false,
+                    "opt": "a"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "balance",
+            "content": {
+                "balance": {
+                    "type": "object",
+                    "desc": "balance info",
+                    "content": {
+                        "address": {
+                            "type": "string",
+                            "desc": "wallet address"
+                        },
+                        "avail": {
+                            "type": "double",
+                            "desc": "balance available amount"
+                        },
+                        "locked": {
+                            "type": "double",
+                            "desc": "locked amount"
+                        },
+                        "unconfirmed": {
+                            "type": "double",
+                            "desc": "unconfirmed amount"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getbalance",
+                "response": "[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]}"
+            },
+            {
+                "request": "bigbang-cli getbalance -a=20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm",
+                "response": "[{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"avail\":58.99990000,\"locked\":0.00000000,\"unconfirmed\":13.99990000}]"
+            },
+            {
+                "request": "curl -d '{\"id\":20,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":20,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"avail\":58.99990000,\"locked\":0.00000000,\"unconfirmed\":13.99990000}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-6,\"message\":\"Invalid address\"}"
+        ]
+    },
+    "listtransaction": {
+        "type": "command",
+        "name": "ListTransaction",
+        "introduction": "Return transactions list.",
+        "desc": [
+            "If (offset) < 0,return last (count) transactions,",
+            "If (offset) >= 0,return up to (count) most recent transactions skipping the first (offset) transactions."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "count": {
+                    "type": "uint",
+                    "desc": "transaction count. If not set, return 10 tx",
+                    "required": false,
+                    "opt": "n"
+                },
+                "offset": {
+                    "type": "int",
+                    "desc": "query offset. If not set, from 0",
+                    "required": false,
+                    "opt": "o"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "transaction",
+            "content": {
+                "transaction": {
+                    "type": "wallettxdata",
+                    "desc": "wallet transaction data"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listtransaction",
+                "response": "[{\"txid\":\"4a8e6035b575699cdb25d45beadd49f18fb1303f57ec55493139e65d811e74ff\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":31296,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0},{\"txid\":\"0aa6954236382a6c1c46cce7fa3165b4d1718f5e03ca67cd5fe831616a9000da\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":31297,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0}]"
+            },
+            {
+                "request": "curl -d '{\"id\":2,\"method\":\"listtransaction\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":[{\"txid\":\"4a8e6035b575699cdb25d45beadd49f18fb1303f57ec55493139e65d811e74ff\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":31296,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0},{\"txid\":\"0aa6954236382a6c1c46cce7fa3165b4d1718f5e03ca67cd5fe831616a9000da\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":31297,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0}]}"
+            },
+            {
+                "request": "bigbang-cli listtransaction 1 -1",
+                "response": "[{\"txid\":\"5a1b7bf5e32a77ecb3c53782a8e06f2b12bdcb73b677d6f89b6f82f85f14373a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":32086,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0}]"
+            },
+            {
+                "request": "curl -d '{\"id\":0,\"method\":\"listtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"count\":1,\"offset\":-1}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[{\"txid\":\"5a1b7bf5e32a77ecb3c53782a8e06f2b12bdcb73b677d6f89b6f82f85f14373a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"blockheight\":32086,\"type\":\"work\",\"time\":1547916097,\"send\":false,\"to\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"amount\":15.00000000,\"fee\":0.00000000,\"lockuntil\":0}]}"
+            },
+            {
+                "request": "listtransaction -n=1 -o=-1"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Negative, zero or out of range count\"}",
+            "{\"code\":-401,\"message\":\"Failed to list transactions\"}"
+        ]
+    },
+    "sendfrom": {
+        "type": "command",
+        "name": "SendFrom",
+        "introduction": "Send a transaction.",
+        "desc": [
+            "<amount> and <txfee> are real and rounded to the nearest 0.000001",
+            "Return transaction id"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "from": {
+                    "type": "string",
+                    "desc": "from address"
+                },
+                "to": {
+                    "type": "string",
+                    "desc": "to address"
+                },
+                "amount": {
+                    "type": "double",
+                    "desc": "amount"
+                },
+                "txfee": {
+                    "type": "double",
+                    "desc": "transaction fee",
+                    "required": false
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "data": {
+                    "type": "string",
+                    "desc": "output data",
+                    "required": false,
+                    "opt": "d"
+                },
+                "sign_m": {
+                    "type": "string",
+                    "desc": "exchange sign m",
+                    "required": false,
+                    "opt": "sm"
+                },
+                "sign_s": {
+                    "type": "string",
+                    "desc": "exchange sign s",
+                    "required": false,
+                    "opt": "ss"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "transaction",
+            "desc": "transaction hash"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli sendfrom 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q 1",
+                "response": "01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038"
+            },
+            {
+                "request": "curl -d '{\"id\":18,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000}}' http://127.0.0.1:9902",
+                "response": "{\"id\":18,\"jsonrpc\":\"2.0\",\"result\":\"01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038\"}"
+            },
+            {
+                "request": "bigbang sendfrom 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 100 0.1 -d=1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q -l=15",
+                "response": "01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038"
+            },
+            {
+                "request": "curl -d '{\"id\":18,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":1,\"data\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"lockutxo\":15}}' http://127.0.0.1:9902",
+                "response": "{\"id\":18,\"jsonrpc\":\"2.0\",\"result\":\"01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038\"}"
+            },
+            {
+                "request": "bigbang-cli sendfrom 20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26 1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q 1 0.1 -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0",
+                "response": "8f92969642024234481e104481f36145736b465ead2d52a6657cf38bd52bdf59"
+            },
+            {
+                "request": "curl -d '{\"id\":53,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":53,\"jsonrpc\":\"2.0\",\"result\":\"8f92969642024234481e104481f36145736b465ead2d52a6657cf38bd52bdf59\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid from address\"}",
+            "{\"code\":-6,\"message\":\"Invalid to address\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-401,\"message\":\"Failed to create transaction\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}",
+            "{\"code\":-401,\"message\":\"The signature is not completed\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
+        ]
+    },
+    "createtransaction": {
+        "type": "command",
+        "name": "CreateTransaction",
+        "introduction": "Create a transaction.",
+        "desc": [
+            "<amount> and <txfee> are real and rounded to the nearest 0.000001.",
+            "Return serialized tx."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "from": {
+                    "type": "string",
+                    "desc": "from address"
+                },
+                "to": {
+                    "type": "string",
+                    "desc": "to address"
+                },
+                "amount": {
+                    "type": "double",
+                    "desc": "amount"
+                },
+                "txfee": {
+                    "type": "double",
+                    "desc": "transaction fee",
+                    "required": false
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "data": {
+                    "type": "string",
+                    "desc": "output data",
+                    "required": false,
+                    "opt": "d"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "transaction",
+            "desc": "transaction data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli createtransaction 20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26 1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q 1 0.1 -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 -d=12345",
+                "response": "01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400"
+            },
+            {
+                "request": "curl -d '{\"id\":59,\"method\":\"createtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"data\":\"12345\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":59,\"jsonrpc\":\"2.0\",\"result\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid from address\"}",
+            "{\"code\":-6,\"message\":\"Invalid to address\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-401,\"message\":\"Failed to create transaction\"}"
+        ]
+    },
+    "signtransaction": {
+        "type": "command",
+        "name": "SignTransaction",
+        "introduction": "Sign a transaction.",
+        "desc": [
+            "Return json object with keys:",
+            "  hex : raw transaction with signature(s) (hex-encoded string)",
+            "  completed : true if transaction has a completed set of signature (false if not)"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "transaction data(hex string)"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "signature",
+            "content": {
+                "hex": {
+                    "type": "string",
+                    "desc": "hex of transaction data"
+                },
+                "completed": {
+                    "type": "bool",
+                    "desc": "transaction completed or not"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli signtransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400",
+                "response": "{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}"
+        ]
+    },
+    "signmessage": {
+        "type": "command",
+        "name": "SignMessage",
+        "desc": "Sign a message with the private key of an pubkey",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                },
+                "message": {
+                    "type": "string",
+                    "desc": "message to be signed"
+                },
+                "addr": {
+                    "type": "string",
+                    "desc": "address signed",
+                    "required": false,
+                    "opt": "a"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "signature",
+            "desc": "signature of message"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli signmessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123456",
+                "response": "045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"
+            },
+            {
+                "request": "curl -d '{\"id\":4,\"method\":\"signmessage\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"message\":\"123456\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":\"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-405,\"message\":\"Key is locked\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign message\"}"
+        ]
+    },
+    "listaddress": {
+        "type": "command",
+        "name": "ListAddress",
+        "desc": "List all of the addresses from pub keys and template ids",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "array",
+            "name": "addressdata",
+            "content": {
+                "addressdata": {
+                    "type": "object",
+                    "desc": "address data",
+                    "content": {
+                        "type": {
+                            "type": "string",
+                            "desc": "type, pubkey or template"
+                        },
+                        "address": {
+                            "type": "string",
+                            "desc": "public key or template address"
+                        },
+                        "pubkey": {
+                            "type": "string",
+                            "desc": "public key",
+                            "condition": "type=pubkey"
+                        },
+                        "template": {
+                            "type": "string",
+                            "desc": "template type name",
+                            "condition": "type=template"
+                        },
+                        "templatedata": {
+                            "type": "templateresponse",
+                            "desc": "template data",
+                            "condition": "type=template"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listaddress",
+                "response": "[{\"type\":\"pubkey\",\"address\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"pubkey\":\"182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e\"},{\"type\":\"template\",\"address\":\"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55\",\"template\":\"multisig\",\"templatedata\":{\"type\":\"multisig\",\"hex\":\"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4\",\"multisig\":{\"sigsrequired\":1,\"addresses\":[\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\"]}}},{\"type\":\"template\",\"address\":\"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25\",\"template\":\"mint\",\"templatedata\":{\"type\":\"mint\",\"hex\":\"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8\",\"mint\":{\"mint\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\",\"spent\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}}}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listaddress\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[{\"type\":\"pubkey\",\"address\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"pubkey\":\"182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e\"},{\"type\":\"template\",\"address\":\"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55\",\"template\":\"multisig\",\"templatedata\":{\"type\":\"multisig\",\"hex\":\"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4\",\"multisig\":{\"sigsrequired\":1,\"addresses\":[\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\"]}}},{\"type\":\"template\",\"address\":\"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25\",\"template\":\"mint\",\"templatedata\":{\"type\":\"mint\",\"hex\":\"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8\",\"mint\":{\"mint\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\",\"spent\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}}}]}"
+            }
+        ]
+    },
+    "exportwallet": {
+        "type": "command",
+        "name": "ExportWallet",
+        "desc": "Export all of keys and templates from wallet to a specified file in JSON format.",
+        "request": {
+            "type": "object",
+            "content": {
+                "path": {
+                    "type": "string",
+                    "desc": "save file path"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "export result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli exportwallet /Users/Loading/a.txt",
+                "response": "Wallet file has been saved at: /Users/Loading/a.txt"
+            },
+            {
+                "request": "{\"id\":4,\"method\":\"exportwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"path\":\"/Users/Loading/a.txt\"}}",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":\"Wallet file has been saved at: /Users/Loading/a.txt\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid template address\"}",
+            "{\"code\":-401,\"message\":\"Must be an absolute path.\"}",
+            "{\"code\":-401,\"message\":\"Cannot export to a folder.\"}",
+            "{\"code\":-401,\"message\":\"File has been existed.\"}",
+            "{\"code\":-401,\"message\":\"Failed to create directories.\"}",
+            "{\"code\":-401,\"message\":\"Failed to export key\"}",
+            "{\"code\":-401,\"message\":\"Unkown template\"}",
+            "{\"code\":-401,\"message\":\"filesystem_error\"}"
+        ]
+    },
+    "importwallet": {
+        "type": "command",
+        "name": "ImportWallet",
+        "desc": "Import keys and templates from an archived file to the wallet in JSON format.",
+        "request": {
+            "type": "object",
+            "content": {
+                "path": {
+                    "type": "string",
+                    "desc": "save file path"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "export result"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importwallet /Users/Loading/a.txt",
+                "response": "Imported 0 keys and 0 templates."
+            },
+            {
+                "request": "{\"id\":5,\"method\":\"importwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"path\":\"/Users/Loading/a.txt\"}}",
+                "response": "{\"id\":5,\"jsonrpc\":\"2.0\",\"result\":\"Imported 0 keys and 0 templates.\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
+            "{\"code\":-401,\"message\":\"Must be an absolute path.\"}",
+            "{\"code\":-401,\"message\":\"File has been existed.\"}",
+            "{\"code\":-401,\"message\":\"Filesystem_error - failed to read.\"}",
+            "{\"code\":-401,\"message\":\"Wallet file exported is invalid, check it and try again.\"}",
+            "{\"code\":-401,\"message\":\"Data format is not correct, check it and try again.\"}",
+            "{\"code\":-401,\"message\":\"Failed to add key\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}",
+            "{\"code\":-401,\"message\":\"Failed to add template\"}",
+            "{\"code\":-32602,\"message\":\"Failed to verify serialized key\"}",
+            "{\"code\":-32602,\"message\":\"Can't import the key with empty passphrase\"}"
+        ]
+    },
+    "makeorigin": {
+        "type": "command",
+        "name": "MakeOrigin",
+        "desc": "Return hex-encoded block.",
+        "request": {
+            "type": "object",
+            "content": {
+                "prev": {
+                    "type": "string",
+                    "desc": "prev block hash"
+                },
+                "owner": {
+                    "type": "string",
+                    "desc": "owner address"
+                },
+                "amount": {
+                    "type": "double",
+                    "desc": "amount"
+                },
+                "name": {
+                    "type": "string",
+                    "desc": "unique fork name"
+                },
+                "symbol": {
+                    "type": "string",
+                    "desc": "fork symbol"
+                },
+                "reward": {
+                    "type": "double",
+                    "desc": "mint reward"
+                },
+                "halvecycle": {
+                    "type": "uint",
+                    "desc": "halve cycle: 0: fixed reward, >0: blocks of halve cycle"
+                },
+                "isolated": {
+                    "type": "bool",
+                    "desc": "is isolated",
+                    "default": true,
+                    "required": false,
+                    "opt": "i"
+                },
+                "private": {
+                    "type": "bool",
+                    "desc": "is private",
+                    "default": false,
+                    "required": false,
+                    "opt": "p"
+                },
+                "enclosed": {
+                    "type": "bool",
+                    "desc": "is enclosed",
+                    "default": false,
+                    "required": false,
+                    "opt": "e"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "block",
+            "desc": "hex-encoded block",
+            "content": {
+                "hash": {
+                    "type": "string",
+                    "desc": "block hash"
+                },
+                "hex": {
+                    "type": "string",
+                    "desc": "block data hex"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0",
+                "response": "{\"hash\" : \"327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a\",\"hex\" : \"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":4,\"method\":\"makeorigin\",\"jsonrpc\":\"2.0\",\"params\":{\"prev\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"owner\":\"1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs\",\"amount\":1500,\"name\":\"test-fork\",\"symbol\":\"POW\",\"reward\":1,\"halvecycle\":0,\"isolated\":true,\"private\":false,\"enclosed\":false}}' http://127.0.0.1:9902",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a\",\"hex\":\"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05\"}}"
+            },
+            {
+                "request": "bigbang-cli makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0 -i -nop -e",
+                "response": "{\"hash\":\"ade2a8f61082cc0b8e98581e013c52126989d5c15e5c4c6b882f76c98bc68025\",\"hex\":\"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574305a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b00004078bbc21e237d727a58de54e14a19d0244e9dd27ce7d55dfca891158913068185f3dc5b98d4e11500b7512bc8d0e8aa136b34f22f16c16be45e9650e15253980e\"}"
+            },
+            {
+                "request": "{\"id\":2,\"method\":\"makeorigin\",\"jsonrpc\":\"2.0\",\"params\":{\"prev\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"owner\":\"1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs\",\"amount\":1500,\"name\":\"test-fork\",\"symbol\":\"POW\",\"reward\":1,\"halvecycle\":0,\"isolated\":true,\"private\":false,\"enclosed\":true}}",
+                "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ade2a8f61082cc0b8e98581e013c52126989d5c15e5c4c6b882f76c98bc68025\",\"hex\":\"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574305a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b00004078bbc21e237d727a58de54e14a19d0244e9dd27ce7d55dfca891158913068185f3dc5b98d4e11500b7512bc8d0e8aa136b34f22f16c16be45e9650e15253980e\"}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-4,\"message\":\"Owner' address should be pubkey address\"}",
+            "{\"code\":-4,\"message\":\"Unknown key\"}",
+            "{\"code\":-6,\"message\":\"Unknown prev block\"}",
+            "{\"code\":-6,\"message\":\"Invalid owner\"}",
+            "{\"code\":-6,\"message\":\"Invalid amount\"}",
+            "{\"code\":-6,\"message\":\"Invalid name or symbol\"}",
+            "{\"code\":-6,\"message\":\"Prev block should not be extended/vacant block\"}",
+            "{\"code\":-405,\"message\":\"Key is locked\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign message\"}"
+        ]
+    },
+    "verifymessage": {
+        "type": "command",
+        "name": "VerifyMessage",
+        "desc": "Verify a signed message",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                },
+                "message": {
+                    "type": "string",
+                    "desc": "message to be verified"
+                },
+                "sig": {
+                    "type": "string",
+                    "desc": "sign"
+                },
+                "addr": {
+                    "type": "string",
+                    "desc": "address signed",
+                    "required": false,
+                    "opt": "a"
+                }
+            }
+        },
+        "response": {
+            "type": "bool",
+            "name": "result",
+            "desc": "message verified result."
+        },
+        "example": [
+            {
+                "request": "bigbang-cli verifymessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123456 045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707",
+                "response": "true"
+            },
+            {
+                "request": "curl -d '{\"id\":5,\"method\":\"verifymessage\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"message\":\"123456\",\"sig\":\"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":5,\"jsonrpc\":\"2.0\",\"result\":true}"
+            },
+            {
+                "request": "bigbang-cli verifymessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 12345 045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707",
+                "response": "false"
+            },
+            {
+                "request": "curl -d '{\"id\":6,\"method\":\"verifymessage\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"message\":\"12345\",\"sig\":\"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":6,\"jsonrpc\":\"2.0\",\"result\":false}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid pubkey\"}",
+            "{\"code\":-6,\"message\":\"Invalid message\"}",
+            "{\"code\":-6,\"message\":\"Invalid sig\"}"
+        ]
+    },
+    "makekeypair": {
+        "type": "command",
+        "name": "MakeKeyPair",
+        "desc": "Make a public/private key pair.",
+        "request": {
+            "type": "object",
+            "content": {}
+        },
+        "response": {
+            "type": "object",
+            "name": "keypair",
+            "content": {
+                "privkey": {
+                    "type": "string",
+                    "desc": "private key"
+                },
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli makekeypair",
+                "response": "{\"privkey\":\"833a5d51d2db84debc0eb3a40d7d41b2723452d211d7e81ce489a95ef48b2324\",\"pubkey\":\"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":42,\"method\":\"makekeypair\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":42,\"jsonrpc\":\"2.0\",\"result\":{\"privkey\":\"833a5d51d2db84debc0eb3a40d7d41b2723452d211d7e81ce489a95ef48b2324\",\"pubkey\":\"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\"}}"
+            }
+        ]
+    },
+    "getpubkeyaddress": {
+        "type": "command",
+        "name": "GetPubkeyAddress",
+        "desc": "Return encoded address for the given public key.",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "public key"
+                },
+                "reversal": {
+                    "type": "string",
+                    "desc": "reversal get address pubkey",
+	                "required": false,
+	                "opt": "r"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "address of public key"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getpubkeyaddress e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9",
+                "response": "1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"
+            },
+            {
+                "request": "curl -d '{\"id\":44,\"method\":\"getpubkeyaddress\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":44,\"jsonrpc\":\"2.0\",\"result\":\"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid pubkey\"}"
+        ]
+    },
+    "gettemplateaddress": {
+        "type": "command",
+        "name": "GetTemplateAddress",
+        "desc": "Return encoded address for the given template id.",
+        "request": {
+            "type": "object",
+            "content": {
+                "tid": {
+                    "type": "string",
+                    "desc": "template id"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "address of template"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli gettemplateaddress 2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4",
+                "response": "21w2040000000000000000000000000000000000000000000000epcek"
+            },
+            {
+                "request": "curl -d '{\"id\":53,\"method\":\"gettemplateaddress\",\"jsonrpc\":\"2.0\",\"params\":{\"tid\":\"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":53,\"jsonrpc\":\"2.0\",\"result\":\"21w2040000000000000000000000000000000000000000000000epcek\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid tid\"}"
+        ]
+    },
+    "maketemplate": {
+        "type": "command",
+        "name": "MakeTemplate",
+        "desc": "Return encoded address for the given template id.",
+        "request": {
+            "type": "templaterequest"
+        },
+        "response": {
+            "type": "object",
+            "name": "address",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "address of template"
+                },
+                "hex": {
+                    "type": "string",
+                    "desc": "template data hex string"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli maketemplate multisig '{\"required\": 1, \"pubkeys\": [\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\", \"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\"]}'",
+                "response": "{\"address\":\"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55\",\"hex\":\"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":54,\"method\":\"maketemplate\",\"jsonrpc\":\"2.0\",\"params\":{\"type\":\"multisig\",\"multisig\":{\"required\":1,\"pubkeys\":[\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\"]}}}' http://127.0.0.1:9902",
+                "response": "{\"id\":54,\"jsonrpc\":\"2.0\",\"result\":{\"address\":\"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55\",\"hex\":\"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4\"}}"
+            },
+            "bigbang-cli maketemplate delegate '{\"delegate\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"owner\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\"}'",
+            "bigbang-cli maketemplate fork '{\"redeem\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}'",
+            "bigbang-cli maketemplate mint '{\"mint\": \"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\", \"spent\": \"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}'",
+            "bigbang-cli maketemplate weighted '{\"required\": 1, \"pubkeys\": [{\"key\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\", \"weight\": 1},{\"key\": \"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9\", \"weight\": 2}]}'"
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parameters, failed to make template\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing weight\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing redeem address\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing spent address\"}",
+            "{\"code\":-6,\"message\":\"Invalid parameter, missing owner address\"}",
+            "{\"code\":-6,\"message\":\"template type error. type: xxx\"}"
+        ]
+    },
+    "decodetransaction": {
+        "type": "command",
+        "name": "DecodeTransaction",
+        "desc": "Return a JSON object representing the serialized, hex-encoded transaction.",
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "transaction raw data"
+                }
+            }
+        },
+        "response": {
+            "type": "transactiondata",
+            "name": "transaction",
+            "desc": "transaction decoded data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli decodetransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400",
+                "response": "{\"txid\":\"b492ea1de2d540288f6e45fd21bc4ac2cd2fcfeb63ec43c50acdb69debfad10a\",\"version\":1,\"type\":\"token\",\"time\":1547916097,\"lockuntil\":0,\"anchor\":\"25439b778af5e310a13f2310b48ecb329674ba1dc2054affccef8b73247e742b\",\"vin\":[{\"txid\":\"8119097ebc65abd55889e90be6de69c218082d05299951573a455701e55bf40e\",\"vout\":0}],\"sendto\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"data\":\"1234\",\"sig\":\"\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"decodetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"txid\":\"b492ea1de2d540288f6e45fd21bc4ac2cd2fcfeb63ec43c50acdb69debfad10a\",\"version\":1,\"type\":\"token\",\"time\":1547916097,\"lockuntil\":0,\"anchor\":\"25439b778af5e310a13f2310b48ecb329674ba1dc2054affccef8b73247e742b\",\"vin\":[{\"txid\":\"8119097ebc65abd55889e90be6de69c218082d05299951573a455701e55bf40e\",\"vout\":0}],\"sendto\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"data\":\"1234\",\"sig\":\"\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-6,\"message\":\"Unknown anchor block\"}"
+        ]
+    },
+    "getwork": {
+        "type": "command",
+        "name": "GetWork",
+        "introduction": "Get mint work",
+        "desc": [
+            "If (prev hash) is matched with the current primary chain,return true",
+            "If next block is not generated by proof-of-work,return false",
+            "Otherwise, return formatted proof-of-work parameters to work on:",
+            "  \"prevblockheight\" : prevblock height",
+            "  \"prevblockhash\" : prevblock hash",
+            "  \"prevblocktime\" : prevblock timestamp",
+            "  \"algo\" : proof-of-work algorithm: cryptonight=1,...",
+            "  \"bits\" : proof-of-work difficulty nbits",
+            "  \"data\" : work data"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "spent": {
+                    "type": "string",
+                    "desc": "spent address"
+                },
+                "privkey": {
+                    "type": "string",
+                    "desc": "private key"
+                },
+                "prev": {
+                    "type": "string",
+                    "desc": "prev block hash",
+                    "required": false
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "data",
+            "content": {
+                "result": {
+                    "type": "bool",
+                    "desc": "result",
+                    "required": false,
+                    "condition": "prev is matched or block is not generated by POW"
+                },
+                "work": {
+                    "type": "object",
+                    "desc": "work data",
+                    "required": false,
+                    "condition": "next block is generated by POW",
+                    "content": {
+                        "prevblockheight": {
+                            "type": "int",
+                            "desc": "prev block height"
+                        },
+                        "prevblockhash": {
+                            "type": "string",
+                            "desc": "prev block hash"
+                        },
+                        "prevblocktime": {
+                            "type": "uint",
+                            "desc": "prev block time"
+                        },
+                        "algo": {
+                            "type": "int",
+                            "desc": "algo"
+                        },
+                        "bits": {
+                            "type": "int",
+                            "desc": "bits"
+                        },
+                        "data": {
+                            "type": "string",
+                            "desc": "work data"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getwork 1pdr1knaaa4fzr846v89g3q2tzb8pbvbavbbft8xppkky0mqnmsq8gn5y ceae964a1119f110b0cff3614426dd692f8467a95cc2c276e523efc63c5e5031 7ee748e9a827d476d1b4ddb77dc8f9bad779f7b71593d5c5bf73b535e1cc2446",
+                "response": "{\"work\":{\"prevblockheight\":23,\"prevblockhash\":\"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de\",\"prevblocktime\":1538142032,\"algo\":1,\"bits\":25,\"data\":\"01000100822fae5bde746efcef171bee970af625ae6e03d112346afe3c11328505b42ac16bbb34f74300000000000000000000000000000000000000000000000000000000000000000001190000000000000000000000000000000000000000000000000000000000000000\"}}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getwork\",\"jsonrpc\":\"2.0\",\"params\":{\"spent\":\"1pdr1knaaa4fzr846v89g3q2tzb8pbvbavbbft8xppkky0mqnmsq8gn5y\",\"privkey\":\"ceae964a1119f110b0cff3614426dd692f8467a95cc2c276e523efc63c5e5031\",\"prev\":\"7ee748e9a827d476d1b4ddb77dc8f9bad779f7b71593d5c5bf73b535e1cc2446\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"work\":{\"prevblockheight\":23,\"prevblockhash\":\"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de\",\"prevblocktime\":1538142032,\"algo\":1,\"bits\":25,\"data\":\"01000100822fae5bde746efcef171bee970af625ae6e03d112346afe3c11328505b42ac16bbb34f74300000000000000000000000000000000000000000000000000000000000000000001190000000000000000000000000000000000000000000000000000000000000000\"}}}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -32603, \"message\" : \"The primary chain is invalid.\"}"
+        ]
+    },
+    "submitwork": {
+        "type": "command",
+        "name": "SubmitWork",
+        "introduction": "Submit mint work",
+        "desc": [
+            "Attempt to construct and submit new block to network",
+            "Return hash of new block."
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "data": {
+                    "type": "string",
+                    "desc": "work data"
+                },
+                "spent": {
+                    "type": "string",
+                    "desc": "spent address"
+                },
+                "privkey": {
+                    "type": "string",
+                    "desc": "private key"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "hash",
+            "desc": "block hash"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli submitwork 01000100502fae5b4624cce135b573bfc5d59315b7f779d7baf9c87db7ddb4d176d427a8e948e77e43000000000000000000000000000000000000000000000000000000000000000000011acfff020000000000000000000000000000000000000000000000000000000000 1dj5qcjst7eh4tems36n1m500hhyba3vx436t4a8hgdm7r7jrdbf2yqp9 41a9f94395ced97d5066e2d099df4f1e2bd96057f9c38e8ea3f8a02eccd0a98e",
+                "response": "f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de"
+            },
+            {
+                "request": "curl -d '{\"id\":2,\"method\":\"submitwork\",\"jsonrpc\":\"2.0\",\"params\":{\"data\":\"01000100502fae5b4624cce135b573bfc5d59315b7f779d7baf9c87db7ddb4d176d427a8e948e77e43000000000000000000000000000000000000000000000000000000000000000000011acfff020000000000000000000000000000000000000000000000000000000000\",\"spent\":\"1dj5qcjst7eh4tems36n1m500hhyba3vx436t4a8hgdm7r7jrdbf2yqp9\",\"privkey\":\"41a9f94395ced97d5066e2d099df4f1e2bd96057f9c38e8ea3f8a02eccd0a98e\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":\"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de\"}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -4, \"message\" : \"Invalid spent address\"}",
+            "{\"code\" : -4, \"message\" : \"Invalid private key\"}",
+            "{\"code\" : -4, \"message\" : \"Invalid mint template\"}",
+            "{\"code\" : -6, \"message\" : \"Block rejected : operation failed\"}",
+            "{\"code\" : -6, \"message\" : \"Block rejected : block proof-of-work is invalid\"}"
+        ]
+    },
+    "querystat": {
+        "type": "command",
+        "name": "QueryStat",
+        "desc": "Query statistical data",
+        "request": {
+            "type": "object",
+            "content": {
+                "type": {
+                    "type": "string",
+                    "desc": "statistical type: maker: block maker, p2psyn: p2p synchronization"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash (default all fork)",
+                    "required": false,
+                    "opt": "f"
+                },
+                "begin": {
+                    "type": "string",
+                    "desc": "begin time(HH:MM:SS) (default last count records)",
+                    "required": false,
+                    "opt": "b"
+                },
+                "count": {
+                    "type": "uint",
+                    "desc": "get record count (default 20)",
+                    "required": false,
+                    "opt": "n"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "stattable",
+            "desc": [
+                "statistical data table",
+                "1) maker: block maker",
+                "-- time: statistical time, format: hh:mm:ss",
+                "-- powblocks: number of POW blocks produced in one minute",
+                "-- dposblocks: number of DPOS blocks produced in one minute",
+                "-- tps: number of TX produced in one second",
+                "2) p2psyn: p2p synchronization",
+                "-- time: statistical time, format: hh:mm:ss",
+                "-- recvblocks: number of synchronized receiving blocks in one minute",
+                "-- recvtps: number of synchronized receiving TX in one second",
+                "-- sendblocks: number of synchronized sending blocks in one minute",
+                "-- sendtps: number of synchronized sending TX in one second"
+            ]
+        },
+        "example": [
+            {
+                "request": "bigbang-cli querystat maker -b=09:11:00 -n=2",
+                "response": "time      blocktps  tps  \\r\\n09:11:59  1       12     \\r\\n09:12:59  1       22     "
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"querystat\",\"jsonrpc\":\"2.0\",\"params\":{\"type\":\"maker\",\"begin\":\"09:11:00\",\"count\":2}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"time      blocktps  tps  \\r\\n09:11:59  1       12     \\r\\n09:12:59  1       22     \"}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -6, \"message\" : \"Invalid type: is empty\"}",
+            "{\"code\" : -6, \"message\" : \"Invalid type\"}",
+            "{\"code\" : -6, \"message\" : \"Invalid fork\"}",
+            "{\"code\" : -6, \"message\" : \"Invalid count\"}",
+            "{\"code\" : -32603, \"message\" : \"query error\"}"
+        ]
+    }
+}

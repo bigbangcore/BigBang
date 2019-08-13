@@ -1,0 +1,28 @@
+# Please refer to https://docs.travis-ci.com/
+language: cpp
+
+sudo: required
+
+dist: bionic # ubuntu 18.04
+
+#os:
+ # - linux
+
+compiler:
+- clang
+- gcc
+
+before_script:
+- ulimit -c unlimited -S       # enable core dumps
+
+before_install:
+- sudo apt-get update -qq
+
+install:
+- sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev
+- sudo apt install -y cppcheck valgrind clang-format-8
+
+script:
+- sh INSTALL.sh
+- ./build/test/test_big
+- cppcheck --error-exitcode=1 --enable=all -i src/leveldb -i build -i src/snappy -i src/crypto .

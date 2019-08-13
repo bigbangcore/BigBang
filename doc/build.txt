@@ -1,0 +1,28 @@
+
+BUILD NOTES
+================
+
+To Build
+--------
+
+Macosx, Ubuntu16.04/18.04, Centos7:
+./INSTALL.sh
+
+Install debug archive:
+./INSTALL.sh debug
+
+Dependencies
+------------
+build-essential
+pkg-config
+gcc/g++           4.8.5
+cmake             3.5.1
+libboost          1.58.0
+libssl            1.0.0
+libsodium         1.0.8
+libmysqlclient    5.7.20
+libreadline       5.0
+
+References
+----------
+Source Installation: https://gitlab.lomocoin.com//BigBang/BigBangCoreWallet/wiki/source-installation

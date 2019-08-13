@@ -1,0 +1,15 @@
+
+Proof of work minting
+========
+1) run core wallet
+./bigbang
+
+2) get wallet address
+./bigbang listkey
+./bigbang getpubkeyaddress
+
+3) create mintkey and get privkey
+./bigbang makekeypair
+
+4) start miner
+./bigbang miner <wallet address> <mintkey priv>

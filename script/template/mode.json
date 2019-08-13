@@ -1,0 +1,14 @@
+{
+    "EModeType::SERVER": {
+        "usage": "bigbang-server (OPTIONS)",
+        "desc": "Run bigbang server"
+    },
+    "EModeType::CONSOLE": {
+        "usage": "bigbang-cli (OPTIONS) COMMAND",
+        "desc": "Run bigbang RPC client"
+    },
+    "EModeType::MINER": {
+        "usage": "bigbang-miner (OPTIONS)",
+        "desc": "Run bigbang miner"
+    }
+}
