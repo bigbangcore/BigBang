@@ -46,10 +46,8 @@ else
         exit 1 
     fi 
 
-    if [ $? == 0 ]; then
-        echo "sudo make install"
-        sudo make install
-    fi
+    echo "sudo make install"
+    sudo make install
 fi
 
 cd $origin_path
