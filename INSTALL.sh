@@ -42,6 +42,10 @@ else
     echo "make -j${cores}"
     make -j${cores}
 
+    if [ $? -ne 0 ]; then   
+        exit 1 
+    fi 
+
     if [ $? == 0 ]; then
         echo "sudo make install"
         sudo make install
