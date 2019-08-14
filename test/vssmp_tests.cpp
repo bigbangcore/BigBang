@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(interpolation)
 BOOST_AUTO_TEST_CASE(mpvss)
 {
     srand(time(0));
-    for (size_t count = 50; count <= 50; count++)
+    for (size_t count = 30; count <= 30; count++)
     {
         uint256 nInitValue;
         std::vector<uint256> vID;
