@@ -9,7 +9,6 @@ dist: bionic # ubuntu 18.04
  # - linux
 
 compiler:
-- clang
 - gcc
 
 before_script:
