@@ -2,15 +2,16 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "mpvss.h"
+
 #include <boost/test/unit_test.hpp>
 
 #include "mpinterpolation.h"
-#include "mpvss.h"
 #include "test_big.h"
 
 using curve25519::Print32;
 
-BOOST_FIXTURE_TEST_SUITE(vssmp_tests, BasicUtfSetup)
+BOOST_FIXTURE_TEST_SUITE(mpvss_tests, BasicUtfSetup)
 
 void RandGeneretor(uint8_t* p)
 {
