@@ -28,7 +28,7 @@ namespace bigbang
 static char** RPCCommand_Completion(const char* text, int start, int end);
 static void ReadlineCallback(char* line);
 
-static string LocalCommandUsage(string command = "")
+static string LocalCommandUsage(const string& command = "")
 {
     ostringstream oss;
     if (command == "")

@@ -31,6 +31,7 @@ CMiner::CMiner(const vector<string>& vArgsIn)
 {
     nNonceGetWork = 1;
     nNonceSubmitWork = 2;
+    nMinerStatus = -1;
     pHttpGet = NULL;
     if (vArgsIn.size() >= 3)
     {

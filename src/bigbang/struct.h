@@ -85,6 +85,8 @@ public:
     void SetNull()
     {
         hashFork = 0;
+        nOriginHeight = -1;
+        nLastBlockHeight = -1;
     }
     bool IsNull() const
     {

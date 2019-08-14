@@ -120,6 +120,7 @@ CTxPool::CTxPool()
 {
     pCoreProtocol = NULL;
     pBlockChain = NULL;
+    nLastSequenceNumber = 0;
 }
 
 CTxPool::~CTxPool()

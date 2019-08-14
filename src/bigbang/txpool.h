@@ -44,7 +44,7 @@ class CPooledTxLink
 {
 public:
     CPooledTxLink()
-      : nSequenceNumber(0) {}
+      : nSequenceNumber(0), ptx(NULL) {}
     CPooledTxLink(CPooledTx* ptxin)
       : ptx(ptxin)
     {

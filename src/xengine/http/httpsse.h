@@ -133,6 +133,15 @@ public:
     CHttpEventStream();
     CHttpEventStream(const std::string& strEntryIn);
     CHttpEventStream(const CHttpEventStream& es);
+    CHttpEventStream& operator=(const CHttpEventStream& es)
+    {
+        if (this != &es)
+        {
+            CHttpEventStream temp(es);
+            std::swap(*this, temp);
+        }
+        return *this;
+    }
     virtual ~CHttpEventStream();
     const std::string& GetEntry();
     void RegisterEvent(const std::string& strEventName, CHttpSSEGenerator* pGenerator);
@@ -143,7 +152,7 @@ public:
 
 protected:
     boost::mutex mtxEvent;
-    const std::string strEntry;
+    std::string strEntry;
     uint64 nEventId;
     //boost::ptr_map<std::string,CHttpSSEGenerator> mapGenerator;
     std::map<std::string, std::unique_ptr<CHttpSSEGenerator>> mapGenerator;

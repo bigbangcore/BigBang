@@ -316,7 +316,7 @@ void CDataStat::StatTimerProc()
 void CDataStat::BlockMakerTimerStat(uint32 nTimeValue)
 {
     map<uint256, CStatBlockMakerFork>::iterator it = mapStatBlockMaker.begin();
-    for (; it != mapStatBlockMaker.end(); it++)
+    for (; it != mapStatBlockMaker.end(); ++it)
     {
         (*it).second.TimerStatData(nTimeValue);
     }
@@ -325,7 +325,7 @@ void CDataStat::BlockMakerTimerStat(uint32 nTimeValue)
 void CDataStat::P2pSynTimerStat(uint32 nTimeValue)
 {
     map<uint256, CStatP2pSynFork>::iterator it = mapStatP2pSyn.begin();
-    for (; it != mapStatP2pSyn.end(); it++)
+    for (; it != mapStatP2pSyn.end(); ++it)
     {
         (*it).second.TimerStatData(nTimeValue);
     }
@@ -422,7 +422,7 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
         {
             bool fGetFirst = false;
             map<uint256, CStatBlockMakerFork>::iterator it = mapStatBlockMaker.begin();
-            for (; it != mapStatBlockMaker.end(); it++)
+            for (; it != mapStatBlockMaker.end(); ++it)
             {
                 if (!fGetFirst)
                 {
@@ -477,7 +477,7 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
         {
             bool fGetFirst = false;
             map<uint256, CStatP2pSynFork>::iterator it = mapStatP2pSyn.begin();
-            for (; it != mapStatP2pSyn.end(); it++)
+            for (; it != mapStatP2pSyn.end(); ++it)
             {
                 if (!fGetFirst)
                 {

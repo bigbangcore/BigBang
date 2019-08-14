@@ -23,7 +23,7 @@ namespace xengine
 // CPeerNet
 
 CPeerNet::CPeerNet(const string& ownKeyIn)
-  : CIOProc(ownKeyIn)
+  : CIOProc(ownKeyIn), confNetwork{}
 {
 }
 

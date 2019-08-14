@@ -410,7 +410,7 @@ bool CRPCMod::CheckVersion(string& strVersion)
     return true;
 }
 
-string CRPCMod::GetWidthString(string strIn, int nWidth)
+string CRPCMod::GetWidthString(const string& strIn, int nWidth)
 {
     string str = strIn;
     int nCurLen = str.size();

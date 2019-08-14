@@ -28,8 +28,8 @@ CLevelDBArguments::~CLevelDBArguments()
 }
 
 CLevelDBEngine::CLevelDBEngine(CLevelDBArguments& arguments)
+  : path(arguments.path)
 {
-    path = arguments.path;
     options.block_cache = leveldb::NewLRUCache(arguments.cache / 2);
     options.write_buffer_size = arguments.cache / 4;
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
