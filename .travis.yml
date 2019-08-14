@@ -19,6 +19,9 @@ before_install:
 - sudo apt-get update -qq
 
 install:
+- wget https://github.com/protocolbuffers/protobuf/releases/download/v3.3.0/protobuf-cpp-3.3.0.tar.gz
+- tar -xzvf protobuf-cpp-3.3.0.tar.gz
+- cd protobuf-3.3.0 && ./configure --prefix=/usr && make -j4 && sudo make install && cd ..
 - sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev
 - sudo apt install -y cppcheck valgrind clang-format-8
 
