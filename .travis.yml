@@ -27,4 +27,4 @@ install:
 script:
 - sh INSTALL.sh
 - ./build/test/test_big
-- cppcheck --error-exitcode=1 --enable=all -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json .
+- cppcheck --error-exitcode=1 --enable=all -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker .
