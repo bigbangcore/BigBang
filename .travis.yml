@@ -24,10 +24,15 @@ matrix:
     - compiler: clang
       os: linux
 
+env:
+  global:
+    - CACHE_DIR1=$([ $TRAVIS_OS_NAME = 'osx' ] && echo "$HOME/Library/Caches/Homebrew" || echo "$HOME/apt")
+    - CACHE_DIR1=$([ $TRAVIS_OS_NAME = 'osx' ] && echo "/usr/local/Homebrew" || echo "/usr/local/apt")
+
 cache:
   directories:
-    - $HOME/Library/Caches/Homebrew
-    - /usr/local/Homebrew
+    - $CACHE_DIR1
+    - $CACHE_DIR2
 
 before_cache:
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew cleanup; fi
