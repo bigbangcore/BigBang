@@ -18,7 +18,7 @@ namespace xengine
 // CConnAttempt
 
 CConnAttempt::CConnAttempt()
-  : nAttempts(0), nStartIndex(0), nStartTime(0)
+  : nAttempts(0), nStartIndex(0), nStartTime(0), arrayAttempt{ 0 }
 {
 }
 

@@ -238,15 +238,15 @@ public:
     CTxOut(const CDestination destToIn, int64 nAmountIn, uint32 nTxTimeIn, uint32 nLockUntilIn)
       : destTo(destToIn), nAmount(nAmountIn), nTxTime(nTxTimeIn), nLockUntil(nLockUntilIn) {}
     CTxOut(const CTransaction& tx)
+      : destTo(tx.sendTo)
     {
-        destTo = tx.sendTo;
         nAmount = tx.nAmount;
         nTxTime = tx.nTimeStamp;
         nLockUntil = tx.nLockUntil;
     }
     CTxOut(const CTransaction& tx, const CDestination& destToIn, int64 nValueIn)
+      : destTo(destToIn)
     {
-        destTo = destToIn;
         nAmount = tx.GetChange(nValueIn);
         nTxTime = tx.nTimeStamp;
         nLockUntil = 0;

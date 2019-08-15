@@ -9,7 +9,6 @@ dist: bionic # ubuntu 18.04
  # - linux
 
 compiler:
-- clang
 - gcc
 
 before_script:
@@ -19,10 +18,13 @@ before_install:
 - sudo apt-get update -qq
 
 install:
+- wget https://github.com/protocolbuffers/protobuf/releases/download/v3.3.0/protobuf-cpp-3.3.0.tar.gz
+- tar -xzvf protobuf-cpp-3.3.0.tar.gz
+- cd protobuf-3.3.0 && ./configure --prefix=/usr && make -j4 && sudo make install && cd .. && rm -rf ./protobuf-3.3.0
 - sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev
 - sudo apt install -y cppcheck valgrind clang-format-8
 
 script:
 - sh INSTALL.sh
 - ./build/test/test_big
-- cppcheck --error-exitcode=1 --enable=all -i src/leveldb -i build -i src/snappy -i src/crypto .
+- cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker .

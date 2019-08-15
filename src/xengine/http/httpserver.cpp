@@ -19,7 +19,7 @@ namespace xengine
 CHttpClient::CHttpClient(CHttpServer* pServerIn, CHttpProfile* pProfileIn,
                          CIOClient* pClientIn, uint64 nNonceIn)
   : pServer(pServerIn), pProfile(pProfileIn), pClient(pClientIn),
-    nNonce(nNonceIn), fKeepAlive(false)
+    nNonce(nNonceIn), fKeepAlive(false), fEventStream(false)
 {
 }
 

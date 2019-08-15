@@ -39,7 +39,7 @@ class CHttpProfile
 {
 public:
     CHttpProfile()
-      : pIOModule(NULL), pSSLContext(NULL) {}
+      : pIOModule(NULL), pSSLContext(NULL), nMaxConnections(0) {}
 
 public:
     IIOModule* pIOModule;

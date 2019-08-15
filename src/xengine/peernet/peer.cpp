@@ -18,7 +18,7 @@ namespace xengine
 // CPeer
 
 CPeer::CPeer(CPeerNet* pPeerNetIn, CIOClient* pClientIn, uint64 nNonceIn, bool fInBoundIn)
-  : pPeerNet(pPeerNetIn), pClient(pClientIn), nNonce(nNonceIn), fInBound(fInBoundIn)
+  : pPeerNet(pPeerNetIn), pClient(pClientIn), nNonce(nNonceIn), fInBound(fInBoundIn), indexStream(0), indexWrite(0)
 {
 }
 

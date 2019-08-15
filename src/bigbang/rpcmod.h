@@ -65,7 +65,7 @@ protected:
     bigbang::crypto::CPubKey GetPubKey(const std::string& addr);
     void ListDestination(std::vector<CDestination>& vDestination);
     bool CheckVersion(std::string& strVersion);
-    std::string GetWidthString(std::string strIn, int nWidth);
+    std::string GetWidthString(const std::string& strIn, int nWidth);
     std::string GetWidthString(uint64 nCount, int nWidth);
 
 private:

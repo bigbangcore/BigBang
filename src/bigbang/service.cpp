@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(NULL), pBlockChain(NULL), pTxPool(NULL), pDispatcher(NULL), pWallet(NULL), pNetwork(NULL)
+  : pCoreProtocol(NULL), pBlockChain(NULL), pTxPool(NULL), pDispatcher(NULL), pWallet(NULL), pNetwork(NULL), pForkManager(NULL)
 {
 }
 

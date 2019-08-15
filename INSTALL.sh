@@ -42,10 +42,12 @@ else
     echo "make -j${cores}"
     make -j${cores}
 
-    if [ $? == 0 ]; then
-        echo "sudo make install"
-        sudo make install
-    fi
+    if [ $? -ne 0 ]; then   
+        exit 1 
+    fi 
+
+    echo "sudo make install"
+    sudo make install
 fi
 
 cd $origin_path

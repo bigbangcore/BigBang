@@ -228,6 +228,7 @@ CDelegatedChannel::CDelegatedChannel()
     pCoreProtocol = NULL;
     pBlockChain = NULL;
     pDispatcher = NULL;
+    fBulletin = false;
 }
 
 CDelegatedChannel::~CDelegatedChannel()
