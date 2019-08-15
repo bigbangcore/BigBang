@@ -10,21 +10,47 @@ dist: bionic # ubuntu 18.04
 
 compiler:
 - gcc
+- clang
+
+os:
+- linux
+- osx
+
+matrix:
+  exclude:
+    # Use clang in osx, and gcc in linux
+    - compiler: gcc
+      os: osx
+    - compiler: clang
+      os: linux
+
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
+    - /usr/local/Homebrew
+
+before_cache:
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew cleanup; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then find /usr/local/Homebrew \! -regex ".+\.git.+" -delete; fi
+
+install:
+- if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew update;
+    brew install cmake pkg-config openssl boost libsodium readline protobuf;
+    export OPENSSL_ROOT_DIR=`brew --prefix openssl`;
+    brew link --force readline;
+  else
+    sudo apt-get update -qq;
+    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler;
+    sudo apt install -y cppcheck valgrind clang-format-8;
+  fi
 
 before_script:
 - ulimit -c unlimited -S       # enable core dumps
 
-before_install:
-- sudo apt-get update -qq
-
-install:
-- wget https://github.com/protocolbuffers/protobuf/releases/download/v3.3.0/protobuf-cpp-3.3.0.tar.gz
-- tar -xzvf protobuf-cpp-3.3.0.tar.gz
-- cd protobuf-3.3.0 && ./configure --prefix=/usr && make -j4 && sudo make install && cd .. && rm -rf ./protobuf-3.3.0
-- sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev
-- sudo apt install -y cppcheck valgrind clang-format-8
-
 script:
-- sh INSTALL.sh
+- ./INSTALL.sh
 - ./build/test/test_big
-- cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker .
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+    cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker .;
+  fi
