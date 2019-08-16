@@ -429,7 +429,8 @@ Status Version::Get(const ReadOptions& options,
 }
 
 bool Version::UpdateStats(const GetStats& stats) {
-  FileMetaData* f = stats.seek_file;
+  FileMetaData* f = nullptr;
+  f = stats.seek_file;
   if (f != nullptr) {
     f->allowed_seeks--;
     if (f->allowed_seeks <= 0 && file_to_compact_ == nullptr) {
@@ -461,6 +462,12 @@ bool Version::RecordReadSample(Slice internal_key) {
       }
       // We can stop iterating once we have a second match.
       return state->matches < 2;
+    }
+
+    State() {
+      stats.seek_file = nullptr;
+      stats.seek_file_level = 0;
+      matches = 0;
     }
   };
 

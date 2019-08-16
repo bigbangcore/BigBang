@@ -313,34 +313,4 @@ BOOST_AUTO_TEST_CASE(mpvss)
     }
 }
 
-BOOST_AUTO_TEST_CASE(generate_pow_code)
-{
-    std::cout << "{" << std::endl;
-    for (int i = 1; i <= 51; i++)
-    {
-        std::cout << "    // " << i << "^1 ... " << i << "^26" << std::endl;
-        std::cout << "    {" << std::endl;
-        CSC25519 base(1);
-        uint256 ret;
-        for (int j = 1; j <= 26; j++)
-        {
-            base *= i;
-            base.Pack(ret.begin());
-            const uint64* p = (const uint64*)ret.begin();
-            std::cout << "        CSC25519({";
-            for (int k = 0; k < 4; k++)
-            {
-                std::cout << "0x" << std::hex << *p++ << std::resetiosflags(std::ios_base::basefield);
-                if (k < 3)
-                {
-                    std::cout << ",";
-                }
-            }
-            std::cout << "})," << std::endl;
-        }
-        std::cout << "    }," << std::endl;
-    }
-    std::cout << "};" << std::endl;
-}
-
 BOOST_AUTO_TEST_SUITE_END()
