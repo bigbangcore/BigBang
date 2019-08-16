@@ -108,9 +108,9 @@ bool CHttpCookie::LoadFromResp(const string& strFromResp)
             }
             else if (strAttrKey == "max-age")
             {
-                char* endptr = NULL;
+                char* endptr = nullptr;
                 long off = strtol(strAttrValue.c_str(), &endptr, 10);
-                if (endptr != NULL)
+                if (endptr != nullptr)
                 {
                     ptExpires = second_clock::universal_time() + seconds(off);
                 }

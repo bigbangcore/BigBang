@@ -34,7 +34,7 @@ public:
     }
     CEvent* Fetch()
     {
-        CEvent* p = NULL;
+        CEvent* p = nullptr;
         boost::unique_lock<boost::mutex> lock(mutex);
         while (!fAbort && que.empty())
         {

@@ -23,13 +23,13 @@ class CLog
 {
 public:
     CLog()
-      : pFile(NULL), fNewLine(false)
+      : pFile(nullptr), fNewLine(false)
     {
     }
 
     ~CLog()
     {
-        if (pFile != NULL)
+        if (pFile != nullptr)
         {
             fclose(pFile);
         }
@@ -37,18 +37,18 @@ public:
 
     bool SetLogFilePath(const std::string& strPathLog)
     {
-        if (pFile != NULL)
+        if (pFile != nullptr)
         {
             fclose(pFile);
         }
         pFile = fopen(strPathLog.c_str(), "a");
         fNewLine = true;
-        return (pFile != NULL);
+        return (pFile != nullptr);
     }
 
     virtual void operator()(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
     {
-        if (pFile != NULL)
+        if (pFile != nullptr)
         {
             boost::mutex::scoped_lock scoped_lock(mutex);
             if (fNewLine && pszFormat[0] != '\n')

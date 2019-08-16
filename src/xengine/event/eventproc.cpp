@@ -41,8 +41,8 @@ void CEventProc::PostEvent(CEvent* pEvent)
 
 void CEventProc::EventThreadFunc()
 {
-    CEvent* pEvent = NULL;
-    while ((pEvent = queEvent.Fetch()) != NULL)
+    CEvent* pEvent = nullptr;
+    while ((pEvent = queEvent.Fetch()) != nullptr)
     {
         if (!pEvent->Handle(*this))
         {

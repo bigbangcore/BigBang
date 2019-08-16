@@ -55,7 +55,7 @@ public:
 
     // create
     CRPCReq(const json_spirit::Value& id, const std::string& strMethod,
-            CRPCParamPtr param = NULL, const std::string& jsonrpc = "2.0");
+            CRPCParamPtr param = nullptr, const std::string& jsonrpc = "2.0");
 
     CRPCReq(const json_spirit::Value& id, CRPCParamPtr param, const std::string& jsonrpc = "2.0");
 

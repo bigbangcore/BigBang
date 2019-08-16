@@ -188,7 +188,7 @@ bool CHttpServer::CreateProfile(const CHttpHostConfig& confHost)
     if (confHost.optSSL.fEnable)
     {
         profile.pSSLContext = new boost::asio::ssl::context(boost::asio::ssl::context::sslv23);
-        if (profile.pSSLContext == NULL)
+        if (profile.pSSLContext == nullptr)
         {
             Error("Failed to alloc ssl context for %s:%u\n", confHost.epHost.address().to_string().c_str(),
                   confHost.epHost.port());
@@ -272,7 +272,7 @@ CIOClient* CHttpServer::CreateIOClient(CIOContainer* pContainer)
 {
     map<tcp::endpoint, CHttpProfile>::iterator it;
     it = mapProfile.find(pContainer->GetServiceEndpoint());
-    if (it != mapProfile.end() && (*it).second.pSSLContext != NULL)
+    if (it != mapProfile.end() && (*it).second.pSSLContext != nullptr)
     {
         return new CSSLClient(pContainer, GetIoService(), *(*it).second.pSSLContext);
     }
@@ -285,7 +285,7 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
 {
     CHttpProfile* pHttpProfile = pHttpClient->GetProfile();
     CEventHttpReq* pEventHttpReq = new CEventHttpReq(pHttpClient->GetNonce());
-    if (pEventHttpReq == NULL)
+    if (pEventHttpReq == nullptr)
     {
         RespondError(pHttpClient, 500);
         return;
@@ -352,7 +352,7 @@ bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pCli
     {
         return false;
     }
-    return (AddNewClient(pClient, &(*it).second) != NULL);
+    return (AddNewClient(pClient, &(*it).second) != nullptr);
 }
 
 CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile)
@@ -365,7 +365,7 @@ CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpPr
     }
 
     CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, nNonce);
-    if (pHttpClient != NULL)
+    if (pHttpClient != nullptr)
     {
         mapClient.insert(make_pair(nNonce, pHttpClient));
         pHttpClient->Activate();
@@ -377,7 +377,7 @@ void CHttpServer::RemoveClient(CHttpClient* pHttpClient)
 {
     mapClient.erase(pHttpClient->GetNonce());
     CEventHttpBroken* pEventHttpBroken = new CEventHttpBroken(pHttpClient->GetNonce());
-    if (pEventHttpBroken != NULL)
+    if (pEventHttpBroken != nullptr)
     {
         pEventHttpBroken->data.fEventStream = pHttpClient->IsEventStream();
         pHttpClient->GetProfile()->pIOModule->PostEvent(pEventHttpBroken);

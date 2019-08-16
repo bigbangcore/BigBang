@@ -218,7 +218,7 @@ CHttpGet::~CHttpGet()
 void CHttpGet::HandleClientCompleted(CHttpGetClient* pGetClient)
 {
     CEventHttpGetRsp* pEventGetRsp = new CEventHttpGetRsp(pGetClient->GetNonce());
-    if (pEventGetRsp != NULL)
+    if (pEventGetRsp != nullptr)
     {
         CHttpRsp& rsp = pEventGetRsp->data;
         pGetClient->GetResponse(rsp);
@@ -330,7 +330,7 @@ int CHttpGet::ActivateConn(CIOClient* pClient, CEventHttpGet& eventGet)
     CHttpReqData& httpReqData = eventGet.data;
 
     CHttpGetClient* pGetClient = new CHttpGetClient(httpReqData.strIOModule, nNonce, this, pClient);
-    if (pGetClient == NULL)
+    if (pGetClient == nullptr)
     {
         return HTTPGET_ACTIVATE_FAILED;
     }
@@ -370,7 +370,7 @@ bool CHttpGet::PostResponse(const string& strIOModule, CEventHttpGetRsp* pEventR
 void CHttpGet::PostError(const string& strIOModule, uint64 nNonce, int nErrCode)
 {
     CEventHttpGetRsp* pEventResp = new CEventHttpGetRsp(nNonce);
-    if (pEventResp != NULL)
+    if (pEventResp != nullptr)
     {
         pEventResp->data.nStatusCode = nErrCode;
         if (!PostResponse(strIOModule, pEventResp))

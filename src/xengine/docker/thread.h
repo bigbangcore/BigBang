@@ -21,7 +21,7 @@ class CThread
 public:
     typedef boost::function<void()> ThreadFunc;
     CThread(const std::string& strNameIn, ThreadFunc fnCallbackIn)
-      : strThreadName(strNameIn), pThread(NULL), fnCallback(fnCallbackIn), fRunning(false)
+      : strThreadName(strNameIn), pThread(nullptr), fnCallback(fnCallbackIn), fRunning(false)
     {
     }
 
@@ -49,7 +49,7 @@ public:
         {
             pThread->join();
             delete pThread;
-            pThread = NULL;
+            pThread = nullptr;
         }
     }
 

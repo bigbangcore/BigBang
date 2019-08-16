@@ -247,10 +247,10 @@ public:
 public:
     CBlockIndex()
     {
-        phashBlock = NULL;
+        phashBlock = nullptr;
         pOrigin = this;
-        pPrev = NULL;
-        pNext = NULL;
+        pPrev = nullptr;
+        pNext = nullptr;
         txidMint = 0;
         nMintType = 0;
         nVersion = 0;
@@ -267,10 +267,10 @@ public:
     }
     CBlockIndex(const CBlock& block, uint32 nFileIn, uint32 nOffsetIn)
     {
-        phashBlock = NULL;
+        phashBlock = nullptr;
         pOrigin = this;
-        pPrev = NULL;
-        pNext = NULL;
+        pPrev = nullptr;
+        pNext = nullptr;
         txidMint = (block.IsVacant() ? uint64(0) : block.txMint.GetHash());
         nMintType = block.txMint.nType;
         nVersion = block.nVersion;
@@ -341,7 +341,7 @@ public:
     }
     bool IsEquivalent(const CBlockIndex* pIndexCompare) const
     {
-        if (pIndexCompare != NULL)
+        if (pIndexCompare != nullptr)
         {
             const CBlockIndex* pIndex = this;
             while (pIndex)
@@ -368,7 +368,7 @@ public:
     {
         std::ostringstream oss;
         oss << "CBlockIndex : hash=" << GetBlockHash().ToString()
-            << " prev=" << (pPrev ? pPrev->GetBlockHash().ToString() : "NULL")
+            << " prev=" << (pPrev ? pPrev->GetBlockHash().ToString() : "nullptr")
             << " height=" << nHeight
             << " type=" << GetBlockType()
             << " time=" << nTimeStamp;

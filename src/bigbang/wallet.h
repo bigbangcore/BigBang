@@ -267,7 +267,7 @@ public:
     }
     virtual CTemplatePtr GetTemplate(const CTemplateId& tid) const override
     {
-        return NULL;
+        return nullptr;
     }
     /* Wallet Tx */
     virtual std::size_t GetTxCount() override

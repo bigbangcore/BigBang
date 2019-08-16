@@ -96,10 +96,10 @@ public:
     // to string
     std::string Serialize(bool indent = false) const;
 
-    // spError != NULL
+    // spError != nullptr
     bool IsError() const;
 
-    // spResult != NULL
+    // spResult != nullptr
     bool IsSuccessful() const;
 
 public:

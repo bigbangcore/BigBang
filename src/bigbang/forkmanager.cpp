@@ -19,8 +19,8 @@ namespace bigbang
 
 CForkManager::CForkManager()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
     fAllowAnyFork = false;
 }
 
@@ -47,8 +47,8 @@ bool CForkManager::HandleInitialize()
 
 void CForkManager::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
 }
 
 bool CForkManager::HandleInvoke()

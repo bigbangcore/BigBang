@@ -22,7 +22,7 @@ namespace bigbang
 {
 
 CConfig::CConfig()
-  : emMode(EModeType::ERROR), pImpl(NULL) {}
+  : emMode(EModeType::ERROR), pImpl(nullptr) {}
 
 CConfig::~CConfig()
 {

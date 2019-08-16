@@ -503,7 +503,7 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
 
     const CBlockIndex* pIndex = pIndexPrev;
-    while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != NULL)
+    while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
     {
         pIndex = pIndex->pPrev;
     }
@@ -528,7 +528,7 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
             break;
         }
         pIndex = pIndex->pPrev;
-        while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != NULL)
+        while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
         {
             pIndex = pIndex->pPrev;
         }

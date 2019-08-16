@@ -419,7 +419,7 @@ path CBbEntry::GetDefaultDataDir()
 #ifdef WIN32
     // Windows
     char pszPath[MAX_PATH] = "";
-    if (SHGetSpecialFolderPathA(NULL, pszPath, CSIDL_LOCAL_APPDATA, true))
+    if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
     {
         return path(pszPath) / "Bigbang";
     }
@@ -427,7 +427,7 @@ path CBbEntry::GetDefaultDataDir()
 #else
     path pathRet;
     char* pszHome = getenv("HOME");
-    if (pszHome == NULL || strlen(pszHome) == 0)
+    if (pszHome == nullptr || strlen(pszHome) == 0)
     {
         pathRet = path("/");
     }
@@ -452,7 +452,7 @@ bool CBbEntry::SetupEnvironment()
 #ifdef _MSC_VER
     // Turn off microsoft heap dump noise
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-    _CrtSetReportFile(_CRT_WARN, CreateFileA("NUL", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0));
+    _CrtSetReportFile(_CRT_WARN, CreateFileA("NUL", GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0));
 #endif
 #if _MSC_VER >= 1400
     // Disable confusing "helpful" text message on abort, ctrl-c

@@ -224,10 +224,10 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 
 CDelegatedChannel::CDelegatedChannel()
 {
-    pPeerNet = NULL;
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pDispatcher = NULL;
+    pPeerNet = nullptr;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pDispatcher = nullptr;
     fBulletin = false;
 }
 
@@ -265,10 +265,10 @@ bool CDelegatedChannel::HandleInitialize()
 
 void CDelegatedChannel::HandleDeinitialize()
 {
-    pPeerNet = NULL;
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pDispatcher = NULL;
+    pPeerNet = nullptr;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pDispatcher = nullptr;
 }
 
 bool CDelegatedChannel::HandleInvoke()
@@ -339,7 +339,7 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerBulletin& eventBulletin)
         DispatchGetDelegated();
 
         std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-        if (spPeer != NULL)
+        if (spPeer != nullptr)
         {
             spPeer->Renew(hashAnchor, eventBulletin.data);
         }
@@ -588,7 +588,7 @@ void CDelegatedChannel::PushBulletin()
         for (const uint64& nNonce : vPeer)
         {
             std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-            if (spPeer != NULL && spPeer->HaveUnknown(hashAnchor, eventBulletin.data))
+            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, eventBulletin.data))
             {
                 spPeer->Update(hashAnchor, eventBulletin.data);
                 eventBulletin.nNonce = nNonce;

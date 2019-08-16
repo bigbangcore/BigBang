@@ -28,7 +28,7 @@ class CDocker
 public:
     CDocker();
     ~CDocker();
-    bool Initialize(CConfig* pConfigIn, CLog* pLogIn = NULL);
+    bool Initialize(CConfig* pConfigIn, CLog* pLogIn = nullptr);
 
     bool Attach(IBase* pBase);
     void Detach(std::string& key);

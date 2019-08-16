@@ -130,7 +130,7 @@ void IBase::FatalError()
 
 void IBase::Log(const char* pszFormat, ...)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         va_list ap;
         va_start(ap, pszFormat);
@@ -141,7 +141,7 @@ void IBase::Log(const char* pszFormat, ...)
 
 void IBase::Debug(const char* pszFormat, ...)
 {
-    if (pDocker != NULL && pDocker->GetConfig()->fDebug)
+    if (pDocker != nullptr && pDocker->GetConfig()->fDebug)
     {
         va_list ap;
         va_start(ap, pszFormat);
@@ -152,7 +152,7 @@ void IBase::Debug(const char* pszFormat, ...)
 
 void IBase::VDebug(const char* pszFormat, va_list ap)
 {
-    if (pDocker != NULL && pDocker->GetConfig()->fDebug)
+    if (pDocker != nullptr && pDocker->GetConfig()->fDebug)
     {
         pDocker->LogOutput(ownKey.c_str(), "[DEBUG]", pszFormat, ap);
     }
@@ -160,7 +160,7 @@ void IBase::VDebug(const char* pszFormat, va_list ap)
 
 void IBase::Warn(const char* pszFormat, ...)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         va_list ap;
         va_start(ap, pszFormat);
@@ -171,7 +171,7 @@ void IBase::Warn(const char* pszFormat, ...)
 
 void IBase::Error(const char* pszFormat, ...)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         va_list ap;
         va_start(ap, pszFormat);
@@ -182,7 +182,7 @@ void IBase::Error(const char* pszFormat, ...)
 
 bool IBase::ThreadStart(CThread& thr)
 {
-    if (pDocker == NULL)
+    if (pDocker == nullptr)
     {
         return false;
     }
@@ -191,7 +191,7 @@ bool IBase::ThreadStart(CThread& thr)
 
 bool IBase::ThreadDelayStart(CThread& thr)
 {
-    if (pDocker == NULL)
+    if (pDocker == nullptr)
     {
         return false;
     }
@@ -200,7 +200,7 @@ bool IBase::ThreadDelayStart(CThread& thr)
 
 void IBase::ThreadExit(CThread& thr)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         pDocker->ThreadExit(thr);
     }
@@ -208,7 +208,7 @@ void IBase::ThreadExit(CThread& thr)
 
 uint32 IBase::SetTimer(int64 nMilliSeconds, TimerCallback fnCallback)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         return pDocker->SetTimer(ownKey, nMilliSeconds, fnCallback);
     }
@@ -217,7 +217,7 @@ uint32 IBase::SetTimer(int64 nMilliSeconds, TimerCallback fnCallback)
 
 void IBase::CancelTimer(uint32 nTimerId)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         pDocker->CancelTimer(nTimerId);
     }
@@ -225,17 +225,17 @@ void IBase::CancelTimer(uint32 nTimerId)
 
 int64 IBase::GetTime()
 {
-    return (pDocker != NULL ? pDocker->GetSystemTime() : 0);
+    return (pDocker != nullptr ? pDocker->GetSystemTime() : 0);
 }
 
 int64 IBase::GetNetTime()
 {
-    return (pDocker != NULL ? pDocker->GetNetTime() : 0);
+    return (pDocker != nullptr ? pDocker->GetNetTime() : 0);
 }
 
 void IBase::UpdateNetTime(const boost::asio::ip::address& address, int64 nTimeDelta)
 {
-    if (pDocker != NULL)
+    if (pDocker != nullptr)
     {
         pDocker->UpdateNetTime(address, nTimeDelta);
     }
@@ -243,12 +243,12 @@ void IBase::UpdateNetTime(const boost::asio::ip::address& address, int64 nTimeDe
 
 const CConfig* IBase::Config()
 {
-    return (pDocker != NULL ? pDocker->GetConfig() : NULL);
+    return (pDocker != nullptr ? pDocker->GetConfig() : nullptr);
 }
 
 const string IBase::GetWarnings()
 {
-    return (pDocker != NULL ? pDocker->GetWarnings() : "");
+    return (pDocker != nullptr ? pDocker->GetWarnings() : "");
 }
 
 } // namespace xengine

@@ -42,7 +42,7 @@ static string LocalCommandUsage(const string& command = "")
     return oss.str();
 }
 
-static CRPCClient* pClient = NULL;
+static CRPCClient* pClient = nullptr;
 static const char* prompt = "bigbang> ";
 
 ///////////////////////////////
@@ -53,7 +53,7 @@ CRPCClient::CRPCClient(bool fConsole)
     thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this))
 {
     nLastNonce = 0;
-    pHttpGet = NULL;
+    pHttpGet = nullptr;
 }
 
 CRPCClient::~CRPCClient()
@@ -72,7 +72,7 @@ bool CRPCClient::HandleInitialize()
 
 void CRPCClient::HandleDeinitialize()
 {
-    pHttpGet = NULL;
+    pHttpGet = nullptr;
 }
 
 bool CRPCClient::HandleInvoke()
@@ -89,7 +89,7 @@ void CRPCClient::HandleHalt()
 {
     IIOModule::HandleHalt();
 
-    pClient = NULL;
+    pClient = nullptr;
     if (thrDispatch.IsRunning())
     {
         CancelCommand();
@@ -272,7 +272,7 @@ void CRPCClient::LaunchConsole()
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 100000;
-        int ret = select(1, &fs, NULL, NULL, &timeout);
+        int ret = select(1, &fs, nullptr, nullptr, &timeout);
         if (ret == -1)
         {
             cerr << "select error" << endl;
@@ -300,7 +300,7 @@ void CRPCClient::LaunchConsole()
 void CRPCClient::LaunchCommand()
 {
     const CRPCParam* param = dynamic_cast<const CRPCParam*>(IBase::Config());
-    if (param != NULL)
+    if (param != nullptr)
     {
         // avoid delete global pointer
         CRPCParamPtr spParam(const_cast<CRPCParam*>(param), [](CRPCParam* p) {});
@@ -407,7 +407,7 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
 
                 // call rpc
                 CRPCParam* param = dynamic_cast<CRPCParam*>(config.GetConfig());
-                if (param != NULL)
+                if (param != nullptr)
                 {
                     // avoid delete global point
                     CRPCParamPtr spParam(param, [](CRPCParam* p) {});
@@ -454,13 +454,13 @@ static char* RPCCommand_Generator(const char* text, int state)
             return r;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 static char** RPCCommand_Completion(const char* text, int start, int end)
 {
     (void)end;
-    char** matches = NULL;
+    char** matches = nullptr;
     if (start == 0)
     {
         matches = rl_completion_matches(text, RPCCommand_Generator);
