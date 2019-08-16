@@ -28,8 +28,8 @@ protected:
                               uint256& privkey);
 
 public:
-    CDestination destVssMP;
-    uint256 keyVssMP;
+    CDestination destMpvss;
+    uint256 keyMpvss;
     CDestination destCryptonight;
     uint256 keyCryptonight;
 };

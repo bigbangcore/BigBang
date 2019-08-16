@@ -52,19 +52,19 @@
     "CMintConfigOption": [
         {
             "access": "protected",
-            "name": "strAddressVssMP",
+            "name": "strAddressMpvss",
             "type": "string",
-            "opt": "vssmpaddress",
-            "format": "-vssmpaddress=<address>",
-            "desc": "VSSMP address"
+            "opt": "mpvssaddress",
+            "format": "-mpvssaddress=<address>",
+            "desc": "mpvss address"
         },
         {
             "access": "protected",
-            "name": "strKeyVssMP",
+            "name": "strKeyMpvss",
             "type": "string",
-            "opt": "vssmpkey",
-            "format": "-vssmpkey=<key>",
-            "desc": "VSSMP key"
+            "opt": "mpvsskey",
+            "format": "-mpvsskey=<key>",
+            "desc": "mpvss key"
         },
         {
             "access": "protected",

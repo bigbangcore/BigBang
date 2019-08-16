@@ -30,7 +30,7 @@ static const unsigned int DELEGATE_THRESH = 50;
 
 enum ConsensusMethod
 {
-    CM_VSSMP = 0,
+    CM_MPVSS = 0,
     CM_CRYPTONIGHT = 1,
     CM_MAX
 };
