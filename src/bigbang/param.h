@@ -20,7 +20,7 @@ static const unsigned int MAX_BLOCK_SIZE = 2000000;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);
 
 static const unsigned int BLOCK_TARGET_SPACING = 60; // 1-minute block spacing
-static const unsigned int EXTENDED_BLOCK_SPACING = 1;
+static const unsigned int EXTENDED_BLOCK_SPACING = 2;
 static const unsigned int PROOF_OF_WORK_DECAY_STEP = BLOCK_TARGET_SPACING;
 
 static const unsigned int MINT_MATURITY = 120; // 120 blocks about 2 hours
