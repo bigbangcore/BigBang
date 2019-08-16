@@ -30,8 +30,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 endif()
 
-# Remove -O3 flag
-string(REPLACE "-O3" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 if(MSVC)
     string(APPEND CMAKE_CXX_FLAGS " /WX")
