@@ -42,7 +42,7 @@ bool CBlockMakerProfile::BuildTemplate()
     {
         return false;
     }
-    if (nAlgo == CM_VSSMP)
+    if (nAlgo == CM_MPVSS)
     {
         templMint = CTemplateMint::CreateTemplatePtr(new CTemplateDelegate(keyMint.GetPubKey(), destMint));
     }
@@ -118,9 +118,9 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!MintConfig()->destVssMP.IsNull() && MintConfig()->keyVssMP != 0)
+    if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
     {
-        CBlockMakerProfile profile(CM_VSSMP, MintConfig()->destVssMP, MintConfig()->keyVssMP);
+        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
         if (profile.IsValid())
         {
             mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
@@ -604,7 +604,7 @@ void CBlockMaker::BlockMakerThreadFunc()
     {
         CBlockMakerProfile& profile = (*it).second;
         Log("Profile [%s] : dest=%s,pubkey=%s\n",
-            ConsensusMethodName[CM_VSSMP],
+            ConsensusMethodName[CM_MPVSS],
             CAddress(profile.destMint).ToString().c_str(),
             profile.keyMint.GetPubKey().GetHex().c_str());
     }

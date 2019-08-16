@@ -204,12 +204,12 @@ bool CConsensus::HandleInitialize()
         return false;
     }
 
-    if (!MintConfig()->destVssMP.IsNull() && MintConfig()->keyVssMP != 0)
+    if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
     {
         crypto::CKey key;
-        key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyVssMP.begin(), MintConfig()->keyVssMP.end()));
+        key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyMpvss.begin(), MintConfig()->keyMpvss.end()));
 
-        CDelegateContext ctxt(key, MintConfig()->destVssMP);
+        CDelegateContext ctxt(key, MintConfig()->destMpvss);
         mapContext.insert(make_pair(ctxt.GetDestination(), ctxt));
 
         delegate.AddNewDelegate(ctxt.GetDestination());
