@@ -3,6 +3,13 @@
 
 [![Build Status](https://travis-ci.com/bigbangcore/BigBang.svg?branch=master)](https://travis-ci.com/bigbangcore/BigBang)
 
+
+Website : [BigBang Website](https://www.bigbangcore.com)
+
+Wiki: [BigBang Wiki](https://github.com/bigbangcore/BigBang/wiki)
+
+Whitepaper: [BigBang Whitepaper(中文)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper.pdf)
+
 ## License
 
 BigBangCoreWallet is released under the terms of the MIT license. See COPYING for more information or see <https://opensource.org/licenses/MIT>.
