@@ -69,7 +69,9 @@ else()
         date_time
         regex
         unit_test_framework
-        timer)
+        timer
+        log
+        locale)
     find_package(OpenSSL 1.0.0 REQUIRED) 
     find_package(sodium 1.0.8 REQUIRED)
     find_package(Readline 5.0 REQUIRED)

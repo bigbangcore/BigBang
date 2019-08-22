@@ -62,6 +62,8 @@ if (CYGWIN)
 		Boost_thread
 		Boost_date_time
 		Boost_regex
+		Boost_log
+		Boost_locale
 		OpenSSL::SSL
 		OpenSSL::Crypto
 		${Readline_LIBRARY})
@@ -73,6 +75,8 @@ else()
 		Boost::thread
 		Boost::date_time
 		Boost::regex
+		Boost::log
+		Boost::locale
 		OpenSSL::SSL
 		OpenSSL::Crypto
 		${Readline_LIBRARY})
