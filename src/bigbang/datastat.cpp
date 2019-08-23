@@ -203,7 +203,7 @@ bool CStatP2pSynFork::CumulativeStatData(uint32 nBeginTime, uint32 nGetCount, st
 CDataStat::CDataStat()
   : fRunFlag(false), thrStatTimer("stattimer", boost::bind(&CDataStat::StatTimerProc, this)), fStatWork(false)
 {
-    pCoreProtocol = NULL;
+    pCoreProtocol = nullptr;
 }
 
 CDataStat::~CDataStat()
@@ -233,7 +233,7 @@ bool CDataStat::HandleInitialize()
 
 void CDataStat::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
+    pCoreProtocol = nullptr;
     Clear();
 }
 

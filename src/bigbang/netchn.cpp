@@ -101,12 +101,12 @@ void CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
 
 CNetChannel::CNetChannel()
 {
-    pPeerNet = NULL;
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
-    pService = NULL;
-    pDispatcher = NULL;
+    pPeerNet = nullptr;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
+    pService = nullptr;
+    pDispatcher = nullptr;
 }
 
 CNetChannel::~CNetChannel()
@@ -156,12 +156,12 @@ bool CNetChannel::HandleInitialize()
 
 void CNetChannel::HandleDeinitialize()
 {
-    pPeerNet = NULL;
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
-    pService = NULL;
-    pDispatcher = NULL;
+    pPeerNet = nullptr;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
+    pService = nullptr;
+    pDispatcher = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()
@@ -736,7 +736,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
         uint256 hashBlock = vBlockHash[i];
         uint64 nNonceSender = 0;
         CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
-        if (pBlock != NULL)
+        if (pBlock != nullptr)
         {
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
@@ -781,7 +781,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
         uint256 hashTx = vtx[i];
         uint64 nNonceSender = 0;
         CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
-        if (pTx != NULL)
+        if (pTx != nullptr)
         {
             if (pBlockChain->ExistsTx(txid))
             {

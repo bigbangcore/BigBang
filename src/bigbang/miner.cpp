@@ -32,7 +32,7 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nNonceGetWork = 1;
     nNonceSubmitWork = 2;
     nMinerStatus = -1;
-    pHttpGet = NULL;
+    pHttpGet = nullptr;
     if (vArgsIn.size() >= 3)
     {
         strAddrSpent = vArgsIn[1];
@@ -56,7 +56,7 @@ bool CMiner::HandleInitialize()
 
 void CMiner::HandleDeinitialize()
 {
-    pHttpGet = NULL;
+    pHttpGet = nullptr;
 }
 
 bool CMiner::HandleInvoke()

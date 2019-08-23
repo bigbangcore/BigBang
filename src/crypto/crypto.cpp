@@ -97,7 +97,7 @@ void CryptoGetRand256(uint256& u)
 uint256 CryptoHash(const void* msg, size_t len)
 {
     uint256 hash;
-    crypto_generichash_blake2b((uint8*)&hash, sizeof(hash), (const uint8*)msg, len, NULL, 0);
+    crypto_generichash_blake2b((uint8*)&hash, sizeof(hash), (const uint8*)msg, len, nullptr, 0);
     return hash;
 }
 
@@ -105,7 +105,7 @@ uint256 CryptoHash(const uint256& h1, const uint256& h2)
 {
     uint256 hash;
     crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, NULL, 0, sizeof(hash));
+    crypto_generichash_blake2b_init(&state, nullptr, 0, sizeof(hash));
     crypto_generichash_blake2b_update(&state, h1.begin(), sizeof(h1));
     crypto_generichash_blake2b_update(&state, h2.begin(), sizeof(h2));
     crypto_generichash_blake2b_final(&state, hash.begin(), sizeof(hash));
@@ -153,7 +153,7 @@ uint256 CryptoImportKey(CCryptoKey& key, const uint256& secret)
 void CryptoSign(CCryptoKey& key, const void* md, size_t len, vector<uint8>& vchSig)
 {
     vchSig.resize(64);
-    crypto_sign_ed25519_detached(&vchSig[0], NULL, (const uint8*)md, len, (uint8*)&key);
+    crypto_sign_ed25519_detached(&vchSig[0], nullptr, (const uint8*)md, len, (uint8*)&key);
 }
 
 bool CryptoVerify(const uint256& pubkey, const void* md, size_t len, const vector<uint8>& vchSig)
@@ -209,7 +209,7 @@ static CSC25519 MultiSignHash(const uint8* pX, const size_t lenX, const uint8* p
     uint8 hash[32];
 
     crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, NULL, 0, 32);
+    crypto_generichash_blake2b_init(&state, nullptr, 0, 32);
     crypto_generichash_blake2b_update(&state, pX, lenX);
     crypto_generichash_blake2b_update(&state, pApk, lenApk);
     crypto_generichash_blake2b_update(&state, pM, lenM);
@@ -224,7 +224,7 @@ static CSC25519 MultiSignR(const CCryptoKey& key, const uint8* pM, const size_t 
     uint8 hash[32];
 
     crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, NULL, 0, 32);
+    crypto_generichash_blake2b_init(&state, nullptr, 0, 32);
     uint256 keyHash = CryptoHash((uint8*)&key, 64);
     crypto_generichash_blake2b_update(&state, (uint8*)&keyHash, 32);
     crypto_generichash_blake2b_update(&state, pM, lenM);
@@ -445,10 +445,10 @@ bool CryptoEncryptSecret(int version, const CCryptoString& passphrase, const CCr
     CryptoKeyFromPassphrase(version, passphrase, key.pubkey, ek);
     randombytes_buf(&cipher.nonce, sizeof(cipher.nonce));
 
-    return (crypto_aead_chacha20poly1305_encrypt(cipher.encrypted, NULL,
+    return (crypto_aead_chacha20poly1305_encrypt(cipher.encrypted, nullptr,
                                                  (const uint8*)&key.secret, 32,
                                                  (const uint8*)&key.pubkey, 32,
-                                                 NULL, (uint8*)&cipher.nonce, &ek[0])
+                                                 nullptr, (uint8*)&cipher.nonce, &ek[0])
             == 0);
 }
 
@@ -456,7 +456,7 @@ bool CryptoDecryptSecret(int version, const CCryptoString& passphrase, const CCr
 {
     CCryptoKeyData ek;
     CryptoKeyFromPassphrase(version, passphrase, key.pubkey, ek);
-    return (crypto_aead_chacha20poly1305_decrypt((uint8*)&key.secret, NULL, NULL,
+    return (crypto_aead_chacha20poly1305_decrypt((uint8*)&key.secret, nullptr, nullptr,
                                                  cipher.encrypted, 48,
                                                  (const uint8*)&key.pubkey, 32,
                                                  (const uint8*)&cipher.nonce, &ek[0])

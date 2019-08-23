@@ -37,7 +37,7 @@ public:
 
     bool IsValid() const
     {
-        return (templMint != NULL);
+        return (templMint != nullptr);
     }
     bool BuildTemplate();
     std::size_t GetSignatureSize() const

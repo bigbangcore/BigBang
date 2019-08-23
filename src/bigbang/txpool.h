@@ -44,7 +44,7 @@ class CPooledTxLink
 {
 public:
     CPooledTxLink()
-      : nSequenceNumber(0), ptx(NULL) {}
+      : nSequenceNumber(0), ptx(nullptr) {}
     CPooledTxLink(CPooledTx* ptxin)
       : ptx(ptxin)
     {
@@ -111,7 +111,7 @@ public:
         CPooledTxLinkSetByTxHash::iterator mi = idxTx.find(txid);
         if (mi == idxTx.end())
         {
-            return NULL;
+            return nullptr;
         }
         return (*mi).ptx;
     }
@@ -147,7 +147,7 @@ public:
     void SetUnspent(const CTxOutPoint& out)
     {
         CPooledTx* pTx = Get(out.hash);
-        if (pTx != NULL)
+        if (pTx != nullptr)
         {
             mapSpent[out].SetUnspent(pTx->GetOutput(out.n));
         }
@@ -188,7 +188,7 @@ public:
     void Remove(const uint256& txid)
     {
         CPooledTx* pTx = Get(txid);
-        if (pTx != NULL)
+        if (pTx != nullptr)
         {
             for (std::size_t i = 0; i < pTx->vInput.size(); i++)
             {

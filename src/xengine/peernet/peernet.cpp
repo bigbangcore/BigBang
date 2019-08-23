@@ -117,7 +117,7 @@ void CPeerNet::HeartBeat()
 void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId)
 {
     CPeer* pPeer = GetPeer(nNonce);
-    if (pPeer != NULL)
+    if (pPeer != nullptr)
     {
         RemovePeer(pPeer, CEndpointManager::RESPONSE_FAILURE);
     }
@@ -133,7 +133,7 @@ bool CPeerNet::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient
     if (epMngr.AcceptInBound(pClient->GetRemote()))
     {
         CPeer* pPeer = AddNewPeer(pClient, true);
-        if (pPeer != NULL)
+        if (pPeer != nullptr)
         {
             return true;
         }
@@ -145,7 +145,7 @@ bool CPeerNet::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient
 bool CPeerNet::ClientConnected(CIOClient* pClient)
 {
     CPeer* pPeer = AddNewPeer(pClient, false);
-    if (pPeer != NULL)
+    if (pPeer != nullptr)
     {
         localIP = pClient->GetLocal().address();
         return true;
@@ -187,7 +187,7 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
     }
 
     CPeer* pPeer = CreatePeer(pClient, nNonce, fInBound);
-    if (pPeer != NULL)
+    if (pPeer != nullptr)
     {
         pPeer->Activate();
         mapPeer.insert(make_pair(nNonce, pPeer));
@@ -225,7 +225,7 @@ CPeer* CPeerNet::GetPeer(uint64 nNonce)
     {
         return (*it).second;
     }
-    return NULL;
+    return nullptr;
 }
 
 CPeer* CPeerNet::GetPeer(const boost::asio::ip::tcp::endpoint& epNode)
@@ -238,7 +238,7 @@ CPeer* CPeerNet::GetPeer(const boost::asio::ip::tcp::endpoint& epNode)
             return pPeer;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void CPeerNet::AddNewNode(const CNetHost& host)
@@ -328,12 +328,12 @@ void CPeerNet::DestroyPeer(CPeer* pPeer)
 
 CPeerInfo* CPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
 {
-    if (pInfo == NULL)
+    if (pInfo == nullptr)
     {
         pInfo = new CPeerInfo();
     }
 
-    if (pInfo != NULL)
+    if (pInfo != nullptr)
     {
         tcp::endpoint ep = pPeer->GetRemote();
 
@@ -374,7 +374,7 @@ bool CPeerNet::HandleEvent(CEventPeerNetGetPeers& eventGetPeers)
     for (map<uint64, CPeer*>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
     {
         CPeerInfo* pInfo = GetPeerInfo((*it).second);
-        if (pInfo != NULL)
+        if (pInfo != nullptr)
         {
             eventGetPeers.result.push_back(pInfo);
         }
@@ -439,7 +439,7 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
 bool CPeerNet::HandleEvent(CEventPeerNetReward& eventReward)
 {
     CPeer* pPeer = GetPeer(eventReward.nNonce);
-    if (pPeer == NULL)
+    if (pPeer == nullptr)
     {
         return false;
     }
@@ -450,7 +450,7 @@ bool CPeerNet::HandleEvent(CEventPeerNetReward& eventReward)
 bool CPeerNet::HandleEvent(CEventPeerNetClose& eventClose)
 {
     CPeer* pPeer = GetPeer(eventClose.nNonce);
-    if (pPeer == NULL)
+    if (pPeer == nullptr)
     {
         return false;
     }

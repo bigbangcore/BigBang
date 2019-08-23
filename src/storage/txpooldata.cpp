@@ -60,7 +60,7 @@ bool CTxPoolData::Remove()
 bool CTxPoolData::Save(const vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
 {
     FILE* fp = fopen(pathTxPoolFile.c_str(), "w");
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         return false;
     }

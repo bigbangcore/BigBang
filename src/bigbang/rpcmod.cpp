@@ -131,10 +131,10 @@ namespace bigbang
 CRPCMod::CRPCMod()
   : IIOModule("rpcmod")
 {
-    pHttpServer = NULL;
-    pCoreProtocol = NULL;
-    pService = NULL;
-    pDataStat = NULL;
+    pHttpServer = nullptr;
+    pCoreProtocol = nullptr;
+    pService = nullptr;
+    pDataStat = nullptr;
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
@@ -192,10 +192,10 @@ bool CRPCMod::HandleInitialize()
 
 void CRPCMod::HandleDeinitialize()
 {
-    pHttpServer = NULL;
-    pCoreProtocol = NULL;
-    pService = NULL;
-    pDataStat = NULL;
+    pHttpServer = nullptr;
+    pCoreProtocol = nullptr;
+    pService = nullptr;
+    pDataStat = nullptr;
 }
 
 bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
@@ -1033,7 +1033,7 @@ CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CAddNewTemplateParam>(param);
     CTemplatePtr ptr = CTemplate::CreateTemplatePtr(spParam->data, CAddress());
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
@@ -1054,7 +1054,7 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
     auto spParam = CastParamPtr<CImportTemplateParam>(param);
     vector<unsigned char> vchTemplate = ParseHexString(spParam->strData);
     CTemplatePtr ptr = CTemplate::Import(vchTemplate);
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
@@ -1127,7 +1127,7 @@ CRPCResultPtr CRPCMod::RPCValidateAddress(CRPCParamPtr param)
             CTemplateId tid = address.GetTemplateId();
             uint16 nType = tid.GetType();
             CTemplatePtr ptr = pService->GetTemplate(tid);
-            addressData.fIsmine = (ptr != NULL);
+            addressData.fIsmine = (ptr != nullptr);
             addressData.strType = "template";
             addressData.strTemplate = CTemplate::GetTypeName(nType);
             if (ptr)
@@ -1701,7 +1701,7 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
         {
             vector<unsigned char> vchTemplate = ParseHexString(sHex);
             CTemplatePtr ptr = CTemplate::Import(vchTemplate);
-            if (ptr == NULL)
+            if (ptr == nullptr)
             {
                 throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
             }
@@ -1910,7 +1910,7 @@ CRPCResultPtr CRPCMod::RPCMakeTemplate(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeTemplateParam>(param);
     CTemplatePtr ptr = CTemplate::CreateTemplatePtr(spParam->data, CAddress());
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
@@ -1971,7 +1971,7 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid spent address or private key");
     }
     CTemplateMintPtr ptr = CTemplateMint::CreateTemplatePtr(new CTemplateProof(key.GetPubKey(), static_cast<CDestination&>(addrSpent)));
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid mint template");
     }
@@ -2018,7 +2018,7 @@ CRPCResultPtr CRPCMod::RPCSubmitWork(CRPCParamPtr param)
     }
 
     CTemplateMintPtr ptr = CTemplateMint::CreateTemplatePtr(new CTemplateProof(key.GetPubKey(), static_cast<CDestination&>(addrSpent)));
-    if (ptr == NULL)
+    if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid mint template");
     }

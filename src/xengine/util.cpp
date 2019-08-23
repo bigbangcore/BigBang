@@ -45,7 +45,7 @@ void PrintTrace()
 {
 #ifndef __CYGWIN__
     void* stack_trace[DUMP_STACK_DEPTH_MAX] = { 0 };
-    char** stack_strings = NULL;
+    char** stack_strings = nullptr;
     int stack_depth = 0;
     int i = 0;
 

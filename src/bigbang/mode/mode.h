@@ -120,7 +120,7 @@ public:
         {
         case EModeType::ERROR:
         {
-            return NULL;
+            return nullptr;
         }
         case EModeType::SERVER:
         {

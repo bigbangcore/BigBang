@@ -198,7 +198,7 @@ CBlock* CSchedule::GetBlock(const uint256& hash, uint64& nNonceSender)
             return &(boost::get<CBlock>(state.objReceived));
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 CTransaction* CSchedule::GetTransaction(const uint256& txid, uint64& nNonceSender)
@@ -213,7 +213,7 @@ CTransaction* CSchedule::GetTransaction(const uint256& txid, uint64& nNonceSende
             return &(boost::get<CTransaction>(state.objReceived));
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void CSchedule::AddOrphanBlockPrev(const uint256& hash, const uint256& prev)

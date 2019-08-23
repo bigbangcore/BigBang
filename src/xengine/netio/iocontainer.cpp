@@ -65,7 +65,7 @@ size_t CIOCachedContainer::GetIdleCount()
 
 CIOClient* CIOCachedContainer::ClientAlloc()
 {
-    CIOClient* pClient = NULL;
+    CIOClient* pClient = nullptr;
     if (!queIdleClient.empty())
     {
         pClient = queIdleClient.front();
@@ -89,7 +89,7 @@ bool CIOCachedContainer::PrepareClient(size_t nPrepare)
     while (queIdleClient.size() < nPrepare)
     {
         CIOClient* pClient = pIOProc->CreateIOClient(this);
-        if (pClient != NULL)
+        if (pClient != nullptr)
         {
             queIdleClient.push(pClient);
         }
@@ -288,7 +288,7 @@ void CIOOutBound::Halt()
 bool CIOOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout)
 {
     CIOClient* pClient = ClientAlloc();
-    if (pClient == NULL)
+    if (pClient == nullptr)
     {
         return false;
     }
@@ -433,7 +433,7 @@ CIOClient* CIOSSLOutBound::ClientAlloc(const CIOSSLOption& optSSL)
         catch (exception& e)
         {
             StdError(__PRETTY_FUNCTION__, e.what());
-            return NULL;
+            return nullptr;
         }
     }
     return new CSocketClient(this, ioService);
@@ -478,7 +478,7 @@ bool CIOSSLOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout, co
     }
 
     CIOClient* pClient = ClientAlloc(optSSL);
-    if (pClient == NULL)
+    if (pClient == nullptr)
     {
         return false;
     }

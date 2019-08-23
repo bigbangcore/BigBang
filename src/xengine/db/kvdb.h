@@ -39,17 +39,17 @@ public:
     typedef boost::function<bool(CBufStream&, CBufStream&)> WalkerFunc;
 
     CKVDB()
-      : dbEngine(NULL) {}
+      : dbEngine(nullptr) {}
     CKVDB(CKVDBEngine* engine)
       : dbEngine(engine)
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             if (!dbEngine->Open())
             {
                 delete dbEngine;
-                dbEngine = NULL;
+                dbEngine = nullptr;
             }
         }
     }
@@ -57,7 +57,7 @@ public:
     virtual ~CKVDB()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             dbEngine->Close();
             delete dbEngine;
@@ -66,7 +66,7 @@ public:
 
     bool Open(CKVDBEngine* engine)
     {
-        if (dbEngine == NULL && engine != NULL && engine->Open())
+        if (dbEngine == nullptr && engine != nullptr && engine->Open())
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
             dbEngine = engine;
@@ -79,18 +79,18 @@ public:
     void Close()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             dbEngine->Close();
             delete dbEngine;
-            dbEngine = NULL;
+            dbEngine = nullptr;
         }
     }
 
     bool TxnBegin()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             return dbEngine->TxnBegin();
         }
@@ -100,7 +100,7 @@ public:
     bool TxnCommit()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             return dbEngine->TxnCommit();
         }
@@ -110,7 +110,7 @@ public:
     void TxnAbort()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             dbEngine->TxnAbort();
         }
@@ -119,7 +119,7 @@ public:
     bool RemoveAll()
     {
         boost::recursive_mutex::scoped_lock lock(mtx);
-        if (dbEngine != NULL)
+        if (dbEngine != nullptr)
         {
             if (dbEngine->RemoveAll())
             {
@@ -132,7 +132,7 @@ public:
 
     bool IsValid() const
     {
-        return (dbEngine != NULL);
+        return (dbEngine != nullptr);
     }
 
 protected:
@@ -150,7 +150,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
 
             if (dbEngine->Get(ssKey, ssValue))
@@ -182,7 +182,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
             return dbEngine->Put(ssKey, ssValue, fOverwrite);
         }
@@ -208,7 +208,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
             return dbEngine->Remove(ssKey);
         }
@@ -230,7 +230,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
 
             if (!dbEngine->MoveFirst())
@@ -261,7 +261,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
 
             if (!dbEngine->MoveFirst())
@@ -293,7 +293,7 @@ protected:
         {
             boost::recursive_mutex::scoped_lock lock(mtx);
 
-            if (dbEngine == NULL)
+            if (dbEngine == nullptr)
                 return false;
 
             CBufStream ssKeyBegin;

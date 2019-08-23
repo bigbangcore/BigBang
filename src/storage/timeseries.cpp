@@ -80,7 +80,7 @@ bool CTimeSeriesBase::GetLastFilePath(uint32& nFile, std::string& strPath)
         if (!exists(last))
         {
             FILE* fp = fopen(last.string().c_str(), "w+");
-            if (fp == NULL)
+            if (fp == nullptr)
             {
                 break;
             }

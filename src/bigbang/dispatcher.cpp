@@ -20,17 +20,17 @@ namespace bigbang
 
 CDispatcher::CDispatcher()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
-    pForkManager = NULL;
-    pConsensus = NULL;
-    pWallet = NULL;
-    pService = NULL;
-    pBlockMaker = NULL;
-    pNetChannel = NULL;
-    pDelegatedChannel = NULL;
-    pDataStat = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
+    pForkManager = nullptr;
+    pConsensus = nullptr;
+    pWallet = nullptr;
+    pService = nullptr;
+    pBlockMaker = nullptr;
+    pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
+    pDataStat = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -110,17 +110,17 @@ bool CDispatcher::HandleInitialize()
 
 void CDispatcher::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
-    pForkManager = NULL;
-    pConsensus = NULL;
-    pWallet = NULL;
-    pService = NULL;
-    pBlockMaker = NULL;
-    pNetChannel = NULL;
-    pDelegatedChannel = NULL;
-    pDataStat = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
+    pForkManager = nullptr;
+    pConsensus = nullptr;
+    pWallet = nullptr;
+    pService = nullptr;
+    pBlockMaker = nullptr;
+    pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
+    pDataStat = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -312,7 +312,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
-    if (pBlockMakerUpdate != NULL)
+    if (pBlockMakerUpdate != nullptr)
     {
         CProofOfSecretShare proof;
         proof.Load(block.vchProof);

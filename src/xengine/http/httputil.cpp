@@ -299,7 +299,7 @@ bool CHttpUtil::ParseChunked(std::istream& is, string& strContent, string& strRe
         }
         strResidue = line + "\n";
         size_t len = strtoul(line.c_str(), &endptr, 16);
-        if (endptr == NULL || strcmp("\r", endptr) != 0 || !isxdigit(line[0]))
+        if (endptr == nullptr || strcmp("\r", endptr) != 0 || !isxdigit(line[0]))
         {
             return false;
         }

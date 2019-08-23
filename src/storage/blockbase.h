@@ -82,19 +82,19 @@ public:
     }
     void UpdateNext()
     {
-        if (pIndexLast != NULL)
+        if (pIndexLast != nullptr)
         {
             CBlockIndex* pIndexNext = pIndexLast;
-            pIndexLast->pNext = NULL;
+            pIndexLast->pNext = nullptr;
             while (!pIndexNext->IsOrigin() && pIndexNext->pPrev->pNext != pIndexNext)
             {
                 CBlockIndex* pIndex = pIndexNext->pPrev;
-                if (pIndex->pNext != NULL)
+                if (pIndex->pNext != nullptr)
                 {
                     CBlockIndex* p = pIndex->pNext;
-                    while (p != NULL)
+                    while (p != nullptr)
                     {
-                        p->pPrev->pNext = NULL;
+                        p->pPrev->pNext = nullptr;
                         p = p->pNext;
                     }
                 }
