@@ -86,8 +86,7 @@ enum severity_level
     debug,
     info,
     warn,
-    error,
-    critical
+    error
 };
 
 namespace src = boost::log::sources;

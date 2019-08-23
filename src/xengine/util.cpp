@@ -92,8 +92,7 @@ inline std::basic_ostream< CharT, TraitsT >& operator<< (
         "debug",
         "info",
         "warn",
-        "error",
-        "critical"
+        "error"
     };
     if (static_cast< std::size_t >(lvl) < (sizeof(str) / sizeof(*str)))
         strm << str[lvl];
@@ -108,9 +107,15 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(channel, "Channel", std::string)
 static void console_formatter(logging::record_view const& rec, logging::formatting_ostream& strm) 
 {
     logging::value_ref< severity_level > level = logging::extract< severity_level >("Severity", rec);
+    
+    auto date_time_formatter = expr::stream << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%H:%M:%S.%f");
+    date_time_formatter(rec, strm);
+    strm << "|" << logging::extract< std::string >("Channel", rec);
     switch(level.get()) 
     {
         case debug:
+            strm << "\033[0m";
+            break;
         case info:
             strm << "\033[32m";
             break;
@@ -118,16 +123,12 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
             strm << "\033[33m";
             break;
         case error:
-        case critical:
             strm << "\033[31m";
             break;
         default:
             break;
     }
-    auto date_time_formatter = expr::stream << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%H:%M:%S.%f");
-    date_time_formatter(rec, strm);
-    strm << "|" << logging::extract< std::string >("Channel", rec);
-    strm << "|" << logging::extract< severity_level >("Severity", rec);
+    strm << ":" << logging::extract< severity_level >("Severity", rec);
     strm << "|" << logging::extract< std::string >("ThreadName", rec);
     strm << "|" <<  rec[expr::smessage];
     strm << "\033[0m";
@@ -174,10 +175,10 @@ public:
 
         typedef expr::channel_severity_filter_actor< std::string, severity_level > min_severity_filter;
         min_severity_filter min_severity = expr::channel_severity_filter(channel, severity);
-        severity_level sl = debug_ ? debug : warn;
-        min_severity["bigbang"] = error;
-        min_severity["CDelegate"] = error;
-        min_severity["storage"] = error;
+        severity_level sl = debug_ ? debug : info;
+        min_severity["bigbang"] = warn;
+        min_severity["CDelegate"] = warn;
+        min_severity["storage"] = warn;
         auto filter = min_severity || sl <= severity;
         sink->set_filter(filter);
         if (!daemon)
