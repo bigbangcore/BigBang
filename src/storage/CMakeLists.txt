@@ -26,36 +26,20 @@ add_library(storage ${sources})
 
 include_directories(../xengine ../crypto ../common ../leveldb/include ../snappy)
 
-if (CYGWIN)
-    target_link_libraries(storage
-        Boost_system
-        Boost_filesystem
-        Boost_program_options
-        Boost_thread
-        Boost_date_time
-        Boost_timer
-        Boost_regex
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        xengine
-        crypto
-        common
-        leveldb	
-        snappy)
-else()
-    target_link_libraries(storage
-        Boost::system
-        Boost::filesystem
-        Boost::program_options
-        Boost::thread
-        Boost::date_time
-        Boost::timer
-        Boost::regex
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        xengine
-        crypto
-        common
-        leveldb	
-        snappy)
-endif()
+target_link_libraries(storage
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_TIMER_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    xengine
+    crypto
+    common
+    leveldb	
+    snappy
+)
