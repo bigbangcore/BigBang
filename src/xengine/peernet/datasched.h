@@ -101,7 +101,7 @@ public:
     CDataPeerPtr GetPeer(uint64 nNonce)
     {
         typename std::map<uint64, CDataPeerPtr>::iterator it = mapPeer.find(nNonce);
-        return (it != mapPeer.end() ? (*it).second : NULL);
+        return (it != mapPeer.end() ? (*it).second : nullptr);
     }
     void ActivatePeer(CDataPeerPtr spPeer)
     {

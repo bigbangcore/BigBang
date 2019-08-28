@@ -22,7 +22,7 @@ namespace xengine
 ///////////////////////////////
 // CConsole
 
-CConsole* CConsole::pCurrentConsole = NULL;
+CConsole* CConsole::pCurrentConsole = nullptr;
 boost::mutex CConsole::mutexConsole;
 
 CConsole::CConsole(const string& ownKeyIn, const string& strPromptIn)
@@ -101,7 +101,7 @@ void CConsole::HandleHalt()
 bool CConsole::InstallReadline(const string& strPrompt)
 {
     boost::unique_lock<boost::mutex> lock(CConsole::mutexConsole);
-    if (pCurrentConsole != NULL && pCurrentConsole != this)
+    if (pCurrentConsole != nullptr && pCurrentConsole != this)
     {
         return false;
     }
@@ -116,7 +116,7 @@ void CConsole::UninstallReadline()
     boost::unique_lock<boost::mutex> lock(CConsole::mutexConsole);
     if (pCurrentConsole == this)
     {
-        pCurrentConsole = NULL;
+        pCurrentConsole = nullptr;
         rl_callback_handler_remove();
         cout << endl;
     }
@@ -138,7 +138,7 @@ bool CConsole::HandleLine(const string& strLine)
 void CConsole::ReadlineCallback(char* line)
 {
     boost::unique_lock<boost::mutex> lock(CConsole::mutexConsole);
-    if (pCurrentConsole != NULL)
+    if (pCurrentConsole != nullptr)
     {
         pCurrentConsole->DispatchLine(line);
     }

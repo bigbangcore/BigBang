@@ -22,7 +22,7 @@ namespace xengine
 
 CDocker::CDocker()
 {
-    pThreadTimer = NULL;
+    pThreadTimer = nullptr;
     fActived = false;
     fShutdown = false;
 }
@@ -40,7 +40,7 @@ bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
     pConfig = pConfigIn;
     pLog = pLogIn;
 
-    if (pConfig == NULL)
+    if (pConfig == nullptr)
     {
         return false;
     }
@@ -48,7 +48,7 @@ bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
     mapTimerById.clear();
     mapTimerByExpiry.clear();
     pThreadTimer = new boost::thread(boost::bind(&CDocker::TimerProc, this));
-    if (pThreadTimer == NULL)
+    if (pThreadTimer == nullptr)
     {
         return false;
     }
@@ -66,7 +66,7 @@ bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
 
 bool CDocker::Attach(IBase* pBase)
 {
-    if (pBase == NULL)
+    if (pBase == nullptr)
     {
         return false;
     }
@@ -87,7 +87,7 @@ bool CDocker::Attach(IBase* pBase)
 
 void CDocker::Detach(string& key)
 {
-    IBase* pBase = NULL;
+    IBase* pBase = nullptr;
     {
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         map<string, IBase*>::iterator mi = mapObj.find(key);
@@ -99,7 +99,7 @@ void CDocker::Detach(string& key)
         }
     }
 
-    if (pBase != NULL)
+    if (pBase != nullptr)
     {
         if (pBase->GetStatus() == STATUS_INVOKED)
         {
@@ -172,7 +172,7 @@ bool CDocker::Run()
 
 bool CDocker::Run(string key)
 {
-    IBase* pBase = NULL;
+    IBase* pBase = nullptr;
     {
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         map<string, IBase*>::iterator mi = mapObj.find(key);
@@ -182,7 +182,7 @@ bool CDocker::Run(string key)
         }
     }
 
-    if (pBase == NULL)
+    if (pBase == nullptr)
     {
         return false;
     }
@@ -228,7 +228,7 @@ void CDocker::Halt()
 
 void CDocker::Halt(string key)
 {
-    IBase* pBase = NULL;
+    IBase* pBase = nullptr;
     {
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         map<string, IBase*>::iterator mi = mapObj.find(key);
@@ -305,7 +305,7 @@ void CDocker::Exit()
         }
         pThreadTimer->join();
         delete pThreadTimer;
-        pThreadTimer = NULL;
+        pThreadTimer = nullptr;
     }
 
     Log("WALL-E is deactivatied.\n");
@@ -321,7 +321,7 @@ IBase* CDocker::GetObject(const string& key)
             return (*mi).second;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void CDocker::FatalError(const std::string& key)
@@ -330,7 +330,7 @@ void CDocker::FatalError(const std::string& key)
 
 void CDocker::LogOutput(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
 {
-    if (pLog != NULL)
+    if (pLog != nullptr)
     {
         (*pLog)(key, strPrefix, pszFormat, ap);
     }
@@ -343,7 +343,7 @@ bool CDocker::ThreadStart(CThread& thr)
         boost::thread::attributes attr;
         attr.set_stack_size(16 * 1024 * 1024);
         thr.pThread = new boost::thread(attr, boost::bind(&CDocker::ThreadRun, this, boost::ref(thr)));
-        return (thr.pThread != NULL);
+        return (thr.pThread != nullptr);
     }
     catch (exception& e)
     {
@@ -357,7 +357,7 @@ bool CDocker::ThreadDelayStart(CThread& thr)
     try
     {
         thr.pThread = new boost::thread(boost::bind(&CDocker::ThreadDelayRun, this, boost::ref(thr)));
-        return (thr.pThread != NULL);
+        return (thr.pThread != nullptr);
     }
     catch (exception& e)
     {
@@ -547,7 +547,7 @@ void CDocker::Log(const char* pszFormat, ...)
 void CDocker::LogException(const char* pszThread, std::exception* pex)
 {
     ostringstream oss;
-    oss << "(" << (pszThread != NULL ? pszThread : "") << "): " << ((pex != NULL) ? pex->what() : "unknown") << '\n';
+    oss << "(" << (pszThread != nullptr ? pszThread : "") << "): " << ((pex != nullptr) ? pex->what() : "unknown") << '\n';
     va_list ap;
     LogOutput("docker", "[ERROR]", oss.str().c_str(), ap);
 }
@@ -590,7 +590,7 @@ void CDocker::TimerProc()
             {
                 break;
             }
-            TimerCallback fnCallback = NULL;
+            TimerCallback fnCallback;
             {
                 boost::unique_lock<boost::mutex> lock(mtxTimer);
                 map<uint32, CTimer>::iterator it = mapTimerById.find(nTimerId);
@@ -600,7 +600,7 @@ void CDocker::TimerProc()
                     mapTimerById.erase(it);
                 }
             }
-            if (fnCallback != NULL)
+            if (fnCallback)
             {
                 fnCallback(nTimerId);
             }

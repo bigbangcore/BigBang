@@ -37,9 +37,9 @@ CLevelDBEngine::CLevelDBEngine(CLevelDBArguments& arguments)
     options.compression = leveldb::kNoCompression;
     options.max_open_files = arguments.files;
 
-    pdb = NULL;
-    piter = NULL;
-    pbatch = NULL;
+    pdb = nullptr;
+    piter = nullptr;
+    pbatch = nullptr;
 
     readoptions.verify_checksums = true;
 
@@ -50,15 +50,15 @@ CLevelDBEngine::CLevelDBEngine(CLevelDBArguments& arguments)
 CLevelDBEngine::~CLevelDBEngine()
 {
     delete pbatch;
-    pbatch = NULL;
+    pbatch = nullptr;
     delete piter;
-    piter = NULL;
+    piter = nullptr;
     delete pdb;
-    pdb = NULL;
+    pdb = nullptr;
     delete options.filter_policy;
-    options.filter_policy = NULL;
+    options.filter_policy = nullptr;
     delete options.block_cache;
-    options.block_cache = NULL;
+    options.block_cache = nullptr;
 }
 
 bool CLevelDBEngine::Open()
@@ -75,31 +75,31 @@ bool CLevelDBEngine::Open()
 void CLevelDBEngine::Close()
 {
     delete pbatch;
-    pbatch = NULL;
+    pbatch = nullptr;
     delete piter;
-    piter = NULL;
+    piter = nullptr;
     delete pdb;
-    pdb = NULL;
+    pdb = nullptr;
 }
 
 bool CLevelDBEngine::TxnBegin()
 {
-    if (pbatch != NULL)
+    if (pbatch != nullptr)
     {
         return false;
     }
-    return ((pbatch = new leveldb::WriteBatch()) != NULL);
+    return ((pbatch = new leveldb::WriteBatch()) != nullptr);
 }
 
 bool CLevelDBEngine::TxnCommit()
 {
-    if (pbatch != NULL)
+    if (pbatch != nullptr)
     {
         leveldb::WriteOptions batchoption;
 
         leveldb::Status status = pdb->Write(batchoptions, pbatch);
         delete pbatch;
-        pbatch = NULL;
+        pbatch = nullptr;
         return status.ok();
     }
     return false;
@@ -108,7 +108,7 @@ bool CLevelDBEngine::TxnCommit()
 void CLevelDBEngine::TxnAbort()
 {
     delete pbatch;
-    pbatch = NULL;
+    pbatch = nullptr;
 }
 
 bool CLevelDBEngine::Get(CBufStream& ssKey, CBufStream& ssValue)
@@ -138,7 +138,7 @@ bool CLevelDBEngine::Put(CBufStream& ssKey, CBufStream& ssValue, bool fOverwrite
     }
 
     leveldb::Slice slValue(ssValue.GetData(), ssValue.GetSize());
-    if (pbatch != NULL)
+    if (pbatch != nullptr)
     {
         pbatch->Put(slKey, slValue);
         return true;
@@ -153,7 +153,7 @@ bool CLevelDBEngine::Remove(CBufStream& ssKey)
 {
     leveldb::Slice slKey(ssKey.GetData(), ssKey.GetSize());
 
-    if (pbatch != NULL)
+    if (pbatch != nullptr)
     {
         pbatch->Delete(slKey);
         return true;
@@ -181,7 +181,7 @@ bool CLevelDBEngine::MoveFirst()
 {
     delete piter;
 
-    if ((piter = pdb->NewIterator(readoptions)) == NULL)
+    if ((piter = pdb->NewIterator(readoptions)) == nullptr)
     {
         return false;
     }
@@ -197,7 +197,7 @@ bool CLevelDBEngine::MoveTo(CBufStream& ssKey)
 
     leveldb::Slice slKey(ssKey.GetData(), ssKey.GetSize());
 
-    if ((piter = pdb->NewIterator(readoptions)) == NULL)
+    if ((piter = pdb->NewIterator(readoptions)) == nullptr)
     {
         return false;
     }
@@ -209,7 +209,7 @@ bool CLevelDBEngine::MoveTo(CBufStream& ssKey)
 
 bool CLevelDBEngine::MoveNext(CBufStream& ssKey, CBufStream& ssValue)
 {
-    if (piter == NULL || !piter->Valid())
+    if (piter == nullptr || !piter->Valid())
         return false;
 
     leveldb::Slice slKey = piter->key();

@@ -46,6 +46,7 @@ public:
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
         str.append(arg_buffer);
 
+
         if (strcmp(strPrefix,"[INFO]") == 0)
         {
             StdLog(modNmae.c_str(),str.c_str());

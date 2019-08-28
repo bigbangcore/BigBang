@@ -175,9 +175,9 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
 
 CConsensus::CConsensus()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
 }
 
 CConsensus::~CConsensus()
@@ -224,9 +224,9 @@ void CConsensus::HandleDeinitialize()
 {
     mapContext.clear();
 
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pTxPool = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
 }
 
 bool CConsensus::HandleInvoke()

@@ -73,8 +73,8 @@ private:
 template <typename T>
 bool IBase::GetObject(const std::string& key, T*& pObj)
 {
-    pObj = NULL;
-    if (pDocker != NULL)
+    pObj = nullptr;
+    if (pDocker != nullptr)
     {
         try
         {
@@ -84,7 +84,7 @@ bool IBase::GetObject(const std::string& key, T*& pObj)
         {
         }
     }
-    return (pObj != NULL);
+    return (pObj != nullptr);
 }
 
 } // namespace xengine

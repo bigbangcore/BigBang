@@ -59,8 +59,8 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, vector<uint256>& vInvo
         uint256 txidNextTx;
         if (GetSpent(vOutPoint[i], txidNextTx))
         {
-            CPooledTx* pNextTx = NULL;
-            if ((pNextTx = Get(txidNextTx)) != NULL)
+            CPooledTx* pNextTx = nullptr;
+            if ((pNextTx = Get(txidNextTx)) != nullptr)
             {
                 for (const CTxIn& txin : pNextTx->vInput)
                 {
@@ -118,8 +118,8 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 
 CTxPool::CTxPool()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
     nLastSequenceNumber = 0;
 }
 
@@ -146,8 +146,8 @@ bool CTxPool::HandleInitialize()
 
 void CTxPool::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
 }
 
 bool CTxPool::HandleInvoke()
@@ -226,7 +226,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     if (err == OK)
     {
         CPooledTx* pPooledTx = txView.Get(txid);
-        if (pPooledTx == NULL)
+        if (pPooledTx == nullptr)
         {
             return ERR_NOT_FOUND;
         }

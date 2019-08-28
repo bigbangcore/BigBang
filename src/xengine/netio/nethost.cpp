@@ -179,7 +179,7 @@ bool CNetHost::SplitHostPort(const char* pAddr, char* pHost, int iHostBufSize, u
     char *pos, *findpos;
     int len;
 
-    if (pAddr == NULL || pHost == NULL || iHostBufSize <= 0 || pPort == NULL)
+    if (pAddr == nullptr || pHost == nullptr || iHostBufSize <= 0 || pPort == nullptr)
     {
         return false;
     }
@@ -194,7 +194,7 @@ bool CNetHost::SplitHostPort(const char* pAddr, char* pHost, int iHostBufSize, u
     {
         pos++;
         findpos = strchr(pos, ']');
-        if (findpos == NULL)
+        if (findpos == nullptr)
             return false;
         len = findpos - pos;
         if (len <= 0 || len >= iHostBufSize)
@@ -224,7 +224,7 @@ bool CNetHost::SplitHostPort(const char* pAddr, char* pHost, int iHostBufSize, u
     else
     {
         findpos = strchr(pos, ':');
-        if (findpos == NULL)
+        if (findpos == nullptr)
         {
             len = strlen(pos);
             if (len <= 0 || len >= iHostBufSize)

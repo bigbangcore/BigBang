@@ -23,7 +23,7 @@ typename std::enable_if<std::is_pointer<T>::value, T>::type
 CastConfigPtr(xengine::CConfig* ptr)
 {
     if (!ptr)
-        return NULL;
+        return nullptr;
 
     T p = dynamic_cast<T>(ptr);
     if (!p)

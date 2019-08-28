@@ -167,11 +167,11 @@ protected:
 class CWalletTxOut
 {
 public:
-    CWalletTxOut(const std::shared_ptr<CWalletTx>& spWalletTxIn = NULL, int nIn = -1)
+    CWalletTxOut(const std::shared_ptr<CWalletTx>& spWalletTxIn = nullptr, int nIn = -1)
       : spWalletTx(spWalletTxIn), n(nIn) {}
     bool IsNull() const
     {
-        return (spWalletTx == NULL || spWalletTx->GetOutput(n).IsNull());
+        return (spWalletTx == nullptr || spWalletTx->GetOutput(n).IsNull());
     }
     bool IsLocked(int nHeight) const
     {

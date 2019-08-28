@@ -42,7 +42,7 @@ public:
 // CBlockView
 
 CBlockView::CBlockView()
-  : pBlockBase(NULL), hashFork(uint64(0)), fCommittable(false)
+  : pBlockBase(nullptr), hashFork(uint64(0)), fCommittable(false)
 {
 }
 
@@ -89,9 +89,9 @@ void CBlockView::Deinitialize()
             {
                 spFork->ReadUnlock();
             }
-            spFork = NULL;
+            spFork = nullptr;
         }
-        pBlockBase = NULL;
+        pBlockBase = nullptr;
         hashFork = 0;
         mapTx.clear();
         mapUnspent.clear();
@@ -334,7 +334,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     {
         CWriteLock wlock(rwAccess);
         CBlockIndex* pIndexNew = AddNewIndex(hashGenesis, blockGenesis, nFile, nOffset);
-        if (pIndexNew == NULL)
+        if (pIndexNew == nullptr)
         {
             return false;
         }
@@ -368,7 +368,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
         }
 
         boost::shared_ptr<CBlockFork> spFork = AddNewFork(profile, pIndexNew);
-        if (spFork != NULL)
+        if (spFork != nullptr)
         {
             CWriteLock wForkLock(spFork->GetRWAccess());
 
@@ -404,7 +404,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         CWriteLock wlock(rwAccess);
 
         CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset);
-        if (pIndexNew == NULL)
+        if (pIndexNew == nullptr)
         {
             return false;
         }
@@ -512,7 +512,7 @@ bool CBlockBase::RetrieveIndex(const uint256& hash, CBlockIndex** ppIndex)
     CReadLock rlock(rwAccess);
 
     *ppIndex = GetIndex(hash);
-    return (*ppIndex != NULL);
+    return (*ppIndex != nullptr);
 }
 
 bool CBlockBase::RetrieveFork(const uint256& hash, CBlockIndex** ppIndex)
@@ -520,7 +520,7 @@ bool CBlockBase::RetrieveFork(const uint256& hash, CBlockIndex** ppIndex)
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hash);
-    if (spFork != NULL)
+    if (spFork != nullptr)
     {
         CReadLock rForkLock(spFork->GetRWAccess());
 
@@ -537,7 +537,7 @@ bool CBlockBase::RetrieveFork(const string& strName, CBlockIndex** ppIndex)
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(strName);
-    if (spFork != NULL)
+    if (spFork != nullptr)
     {
         CReadLock rForkLock(spFork->GetRWAccess());
 
@@ -554,7 +554,7 @@ bool CBlockBase::RetrieveProfile(const uint256& hash, CProfile& profile)
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hash);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
@@ -727,21 +727,21 @@ bool CBlockBase::GetBlockView(CBlockView& view)
 
 bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     uint256 hashOrigin;
     boost::shared_ptr<CBlockFork> spFork;
 
     {
         CReadLock rlock(rwAccess);
         pIndex = GetIndex(hash);
-        if (pIndex == NULL)
+        if (pIndex == nullptr)
         {
             return false;
         }
 
         hashOrigin = pIndex->GetOriginHash();
         spFork = GetFork(hashOrigin);
-        if (spFork == NULL)
+        if (spFork == nullptr)
         {
             return false;
         }
@@ -796,7 +796,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
 {
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
@@ -864,7 +864,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
 bool CBlockBase::LoadIndex(CBlockOutline& outline)
 {
     uint256 hash = outline.GetBlockHash();
-    CBlockIndex* pIndexNew = NULL;
+    CBlockIndex* pIndexNew = nullptr;
 
     map<uint256, CBlockIndex*>::iterator mi = mapIndex.find(hash);
     if (mi != mapIndex.end())
@@ -875,7 +875,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
     else
     {
         pIndexNew = new CBlockIndex(static_cast<CBlockIndex&>(outline));
-        if (pIndexNew == NULL)
+        if (pIndexNew == nullptr)
         {
             return false;
         }
@@ -883,7 +883,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
     }
 
     pIndexNew->phashBlock = &((*mi).first);
-    pIndexNew->pPrev = NULL;
+    pIndexNew->pPrev = nullptr;
     pIndexNew->pOrigin = pIndexNew;
 
     if (outline.hashPrev != 0)
@@ -907,7 +907,7 @@ bool CBlockBase::LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint
         return false;
     }
     CBlockIndex* pIndex = (tx.hashAnchor != 0 ? GetIndex(tx.hashAnchor) : GetOriginIndex(tx.GetHash()));
-    if (pIndex == NULL)
+    if (pIndex == nullptr)
     {
         return false;
     }
@@ -920,14 +920,14 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
 
     CReadLock rForkLock(spFork->GetRWAccess());
 
-    for (CBlockIndex* pIndex = spFork->GetOrigin(); pIndex != NULL; pIndex = pIndex->pNext)
+    for (CBlockIndex* pIndex = spFork->GetOrigin(); pIndex != nullptr; pIndex = pIndex->pNext)
     {
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
@@ -964,7 +964,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
@@ -972,7 +972,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     CReadLock rForkLock(spFork->GetRWAccess());
 
     int nCount = 0;
-    for (CBlockIndex* pIndex = spFork->GetLast(); pIndex != NULL && nCount++ < nDepth; pIndex = pIndex->pPrev)
+    for (CBlockIndex* pIndex = spFork->GetLast(); pIndex != nullptr && nCount++ < nDepth; pIndex = pIndex->pPrev)
     {
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
@@ -1014,12 +1014,12 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
 
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
 
     {
         CReadLock rForkLock(spFork->GetRWAccess());
@@ -1050,18 +1050,18 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == NULL)
+    if (spFork == nullptr)
     {
         return false;
     }
 
     CReadLock rForkLock(spFork->GetRWAccess());
     CBlockIndex* pIndexLast = spFork->GetLast();
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     for (const uint256& hash : locator.vBlockHash)
     {
         pIndex = GetIndex(hash);
-        if (pIndex != NULL && (pIndex == pIndexLast || pIndex->pNext != NULL))
+        if (pIndex != nullptr && (pIndex == pIndexLast || pIndex->pNext != nullptr))
         {
             if (pIndex->GetOriginHash() != hashFork)
             {
@@ -1071,13 +1071,13 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
         }
     }
 
-    pIndex = (pIndex != NULL ? pIndex->pNext : spFork->GetOrigin()->pNext);
-    while (pIndex != NULL && vBlockHash.size() < nMaxCount - 1)
+    pIndex = (pIndex != nullptr ? pIndex->pNext : spFork->GetOrigin()->pNext);
+    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
     {
         vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pNext;
     }
-    if (pIndex != NULL && pIndex != pIndexLast)
+    if (pIndex != nullptr && pIndex != pIndexLast)
     {
         vBlockHash.push_back(pIndexLast->GetBlockHash());
     }
@@ -1135,13 +1135,13 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         }
 
         boost::shared_ptr<CBlockFork> spFork = GetFork(fork.first);
-        if (NULL == spFork)
+        if (nullptr == spFork)
         {
             Error("B", "Get fork failed.\n");
             return false;
         }
         CBlockIndex* pLastBlock = spFork->GetLast();
-        if (NULL == pLastBlock)
+        if (nullptr == pLastBlock)
         {
             Error("B", "Get last block index of current fork failed.\n");
             return false;
@@ -1519,7 +1519,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
-    return (mi != mapIndex.end() ? (*mi).second : NULL);
+    return (mi != mapIndex.end() ? (*mi).second : nullptr);
 }
 
 CBlockIndex* CBlockBase::GetOrCreateIndex(const uint256& hash)
@@ -1566,13 +1566,13 @@ CBlockIndex* CBlockBase::GetOriginIndex(const uint256& txidMint) const
             return pIndex;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset)
 {
     CBlockIndex* pIndexNew = new CBlockIndex(block, nFile, nOffset);
-    if (pIndexNew != NULL)
+    if (pIndexNew != nullptr)
     {
         map<uint256, CBlockIndex*>::iterator mi = mapIndex.insert(make_pair(hash, pIndexNew)).first;
         pIndexNew->phashBlock = &((*mi).first);
@@ -1580,7 +1580,7 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         int64 nMoneySupply = block.GetBlockMint();
         uint64 nChainTrust = block.GetBlockTrust();
         uint64 nRandBeacon = block.GetBlockBeacon();
-        CBlockIndex* pIndexPrev = NULL;
+        CBlockIndex* pIndexPrev = nullptr;
         map<uint256, CBlockIndex*>::iterator miPrev = mapIndex.find(block.hashPrev);
         if (miPrev != mapIndex.end())
         {
@@ -1605,7 +1605,7 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
 boost::shared_ptr<CBlockFork> CBlockBase::GetFork(const uint256& hash)
 {
     map<uint256, boost::shared_ptr<CBlockFork>>::iterator mi = mapFork.find(hash);
-    return (mi != mapFork.end() ? (*mi).second : NULL);
+    return (mi != mapFork.end() ? (*mi).second : nullptr);
 }
 
 boost::shared_ptr<CBlockFork> CBlockBase::GetFork(const std::string& strName)
@@ -1618,13 +1618,13 @@ boost::shared_ptr<CBlockFork> CBlockBase::GetFork(const std::string& strName)
             return ((*mi).second);
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 boost::shared_ptr<CBlockFork> CBlockBase::AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast)
 {
     boost::shared_ptr<CBlockFork> spFork = boost::shared_ptr<CBlockFork>(new CBlockFork(profileIn, pIndexLast));
-    if (spFork != NULL)
+    if (spFork != nullptr)
     {
         spFork->UpdateNext();
         mapFork.insert(make_pair(pIndexLast->GetOriginHash(), spFork));
@@ -1706,7 +1706,7 @@ bool CBlockBase::GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut
 bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<pair<uint256, CTxIndex>>& vTxNew)
 {
     vector<CBlockIndex*> vPath;
-    if (view.GetFork() != NULL && view.GetFork()->GetLast() != NULL)
+    if (view.GetFork() != nullptr && view.GetFork()->GetLast() != nullptr)
     {
         GetBranch(view.GetFork()->GetLast(), pIndexNew, vPath);
     }
@@ -1780,7 +1780,7 @@ bool CBlockBase::LoadDB()
     for (int i = 0; i < vFork.size(); i++)
     {
         CBlockIndex* pIndex = GetIndex(vFork[i].second);
-        if (pIndex == NULL)
+        if (pIndex == nullptr)
         {
             ClearCache();
             return false;
@@ -1791,7 +1791,7 @@ bool CBlockBase::LoadDB()
             return false;
         }
         boost::shared_ptr<CBlockFork> spFork = AddNewFork(profile, pIndex);
-        if (spFork == NULL)
+        if (spFork == nullptr)
         {
             return false;
         }

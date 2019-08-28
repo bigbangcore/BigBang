@@ -50,7 +50,7 @@ bool CBlockMakerProfile::BuildTemplate()
     {
         templMint = CTemplateMint::CreateTemplatePtr(new CTemplateProof(keyMint.GetPubKey(), destMint));
     }
-    return (templMint != NULL);
+    return (templMint != nullptr);
 }
 
 //////////////////////////////
@@ -62,12 +62,12 @@ CBlockMaker::CBlockMaker()
     nMakerStatus(MAKER_HOLD), hashLastBlock(uint64(0)), nLastBlockTime(0),
     nLastBlockHeight(uint64(0)), nLastAgreement(uint64(0)), nLastWeight(0)
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pForkManager = NULL;
-    pTxPool = NULL;
-    pDispatcher = NULL;
-    pConsensus = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pForkManager = nullptr;
+    pTxPool = nullptr;
+    pDispatcher = nullptr;
+    pConsensus = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
 }
 
@@ -141,12 +141,12 @@ bool CBlockMaker::HandleInitialize()
 
 void CBlockMaker::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
-    pBlockChain = NULL;
-    pForkManager = NULL;
-    pTxPool = NULL;
-    pDispatcher = NULL;
-    pConsensus = NULL;
+    pCoreProtocol = nullptr;
+    pBlockChain = nullptr;
+    pForkManager = nullptr;
+    pTxPool = nullptr;
+    pDispatcher = nullptr;
+    pConsensus = nullptr;
 
     mapWorkProfile.clear();
     mapDelegatedProfile.clear();
@@ -384,7 +384,7 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
     {
         int nIndex = (nTime - nPrimaryBlockTime) / EXTENDED_BLOCK_SPACING;
         const CBlockMakerProfile* pProfile = vProfile[nIndex % vProfile.size()];
-        if (pProfile != NULL)
+        if (pProfile != nullptr)
         {
             if (!Wait(nTime - GetNetTime(), hashPrimaryBlock))
             {
@@ -562,7 +562,7 @@ bool CBlockMaker::GetAvailiableDelegatedProfile(const vector<CDestination>& vBal
         }
         else
         {
-            vProfile.push_back((CBlockMakerProfile*)NULL);
+            vProfile.push_back((CBlockMakerProfile*)nullptr);
         }
     }
 

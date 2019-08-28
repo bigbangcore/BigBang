@@ -37,13 +37,13 @@ namespace config_type
 {
 // config type class template
 static const auto ___ConfigTypeTemplate = std::make_tuple(
-    (CBasicConfig*)NULL,
-    (CForkConfig*)NULL,
-    (CMintConfig*)NULL,
-    (CNetworkConfig*)NULL,
-    (CRPCServerConfig*)NULL,
-    (CRPCClientConfig*)NULL,
-    (CStorageConfig*)NULL);
+    (CBasicConfig*)nullptr,
+    (CForkConfig*)nullptr,
+    (CMintConfig*)nullptr,
+    (CNetworkConfig*)nullptr,
+    (CRPCServerConfig*)nullptr,
+    (CRPCClientConfig*)nullptr,
+    (CStorageConfig*)nullptr);
 } // namespace config_type
 
 } // namespace bigbang

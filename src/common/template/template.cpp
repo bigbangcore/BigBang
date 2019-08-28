@@ -52,14 +52,14 @@ static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
 {
     const auto& idxType = setTypeInfo.get<0>();
     auto it = idxType.find(nTypeIn);
-    return (it == idxType.end()) ? NULL : &(*it);
+    return (it == idxType.end()) ? nullptr : &(*it);
 }
 
 const CTypeInfo* GetTypeInfoByName(std::string strNameIn)
 {
     const auto& idxName = setTypeInfo.get<1>();
     auto it = idxName.find(strNameIn);
-    return (it == idxName.end()) ? NULL : &(*it);
+    return (it == idxName.end()) ? nullptr : &(*it);
 }
 
 //////////////////////////////
@@ -71,7 +71,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(CTemplate* ptr)
         if (!ptr->ValidateParam())
         {
             delete ptr;
-            return NULL;
+            return nullptr;
         }
         ptr->BuildTemplateData();
         ptr->BuildTemplateId();
@@ -94,7 +94,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(uint16 nTypeIn, const vector<uin
     const CTypeInfo* pTypeInfo = GetTypeInfoByType(nTypeIn);
     if (!pTypeInfo)
     {
-        return NULL;
+        return nullptr;
     }
 
     CTemplate* ptr = pTypeInfo->ptr->clone();
@@ -103,7 +103,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(uint16 nTypeIn, const vector<uin
         if (!ptr->SetTemplateData(vchDataIn) || !ptr->ValidateParam())
         {
             delete ptr;
-            return NULL;
+            return nullptr;
         }
         ptr->BuildTemplateData();
         ptr->BuildTemplateId();
@@ -116,7 +116,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(const CTemplateRequest& obj, CDe
     const CTypeInfo* pTypeInfo = GetTypeInfoByName(obj.strType);
     if (!pTypeInfo)
     {
-        return NULL;
+        return nullptr;
     }
 
     CTemplate* ptr = pTypeInfo->ptr->clone();
@@ -125,7 +125,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(const CTemplateRequest& obj, CDe
         if (!ptr->SetTemplateData(obj, move(destInstance)) || !ptr->ValidateParam())
         {
             delete ptr;
-            return NULL;
+            return nullptr;
         }
         ptr->BuildTemplateData();
         ptr->BuildTemplateId();
@@ -137,7 +137,7 @@ const CTemplatePtr CTemplate::Import(const vector<uint8>& vchTemplateIn)
 {
     if (vchTemplateIn.size() < 2)
     {
-        return NULL;
+        return nullptr;
     }
 
     uint16 nTemplateTypeIn = vchTemplateIn[0] | (((uint16)vchTemplateIn[1]) << 8);
@@ -187,7 +187,7 @@ bool CTemplate::IsTxSpendable(const CDestination& dest)
         const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
         if (pTypeInfo)
         {
-            return (dynamic_cast<CSpendableTemplate*>(pTypeInfo->ptr) != NULL);
+            return (dynamic_cast<CSpendableTemplate*>(pTypeInfo->ptr) != nullptr);
         }
     }
     return false;
@@ -201,7 +201,7 @@ bool CTemplate::IsDestInRecorded(const CDestination& dest)
         const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
         if (pTypeInfo)
         {
-            return (dynamic_cast<CDestInRecordedTemplate*>(pTypeInfo->ptr) != NULL);
+            return (dynamic_cast<CDestInRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
         }
     }
     return false;
@@ -215,7 +215,7 @@ bool CTemplate::IsLockedCoin(const CDestination& dest)
         const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
         if (pTypeInfo)
         {
-            return (dynamic_cast<CLockedCoinTemplate*>(pTypeInfo->ptr) != NULL);
+            return (dynamic_cast<CLockedCoinTemplate*>(pTypeInfo->ptr) != nullptr);
         }
     }
     return false;

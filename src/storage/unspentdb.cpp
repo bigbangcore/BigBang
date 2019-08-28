@@ -273,7 +273,7 @@ bool CForkUnspentDB::Flush()
 
 CUnspentDB::CUnspentDB()
 {
-    pThreadFlush = NULL;
+    pThreadFlush = nullptr;
     fStopFlush = true;
 }
 
@@ -293,7 +293,7 @@ bool CUnspentDB::Initialize(const boost::filesystem::path& pathData)
 
     fStopFlush = false;
     pThreadFlush = new boost::thread(boost::bind(&CUnspentDB::FlushProc, this));
-    if (pThreadFlush == NULL)
+    if (pThreadFlush == nullptr)
     {
         fStopFlush = true;
         return false;
@@ -313,7 +313,7 @@ void CUnspentDB::Deinitialize()
         condFlush.notify_all();
         pThreadFlush->join();
         delete pThreadFlush;
-        pThreadFlush = NULL;
+        pThreadFlush = nullptr;
     }
 
     {
@@ -342,7 +342,7 @@ bool CUnspentDB::AddNewFork(const uint256& hashFork)
     }
 
     std::shared_ptr<CForkUnspentDB> spUnspent(new CForkUnspentDB(pathUnspent / hashFork.GetHex()));
-    if (spUnspent == NULL || !spUnspent->IsValid())
+    if (spUnspent == nullptr || !spUnspent->IsValid())
     {
         return false;
     }

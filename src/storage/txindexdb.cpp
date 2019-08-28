@@ -20,7 +20,7 @@ namespace storage
 
 CTxIndexDB::CTxIndexDB()
 {
-    pThreadFlush = NULL;
+    pThreadFlush = nullptr;
     fStopFlush = true;
 }
 
@@ -40,7 +40,7 @@ bool CTxIndexDB::Initialize(const boost::filesystem::path& pathData)
 
     fStopFlush = false;
     pThreadFlush = new boost::thread(boost::bind(&CTxIndexDB::FlushProc, this));
-    if (pThreadFlush == NULL)
+    if (pThreadFlush == nullptr)
     {
         fStopFlush = true;
         return false;
@@ -60,7 +60,7 @@ void CTxIndexDB::Deinitialize()
         condFlush.notify_all();
         pThreadFlush->join();
         delete pThreadFlush;
-        pThreadFlush = NULL;
+        pThreadFlush = nullptr;
     }
 
     {
@@ -90,7 +90,7 @@ bool CTxIndexDB::LoadFork(const uint256& hashFork)
     }
 
     std::shared_ptr<CForkTxDB> spTxDB(new CForkTxDB());
-    if (spTxDB == NULL || !spTxDB->Initialize(pathTxIndex / hashFork.GetHex()))
+    if (spTxDB == nullptr || !spTxDB->Initialize(pathTxIndex / hashFork.GetHex()))
     {
         return false;
     }

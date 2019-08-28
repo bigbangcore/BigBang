@@ -83,7 +83,7 @@ protected:
     virtual std::string GetLocalIP();
     virtual CPeer* CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound);
     virtual void DestroyPeer(CPeer* pPeer);
-    virtual CPeerInfo* GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo = NULL);
+    virtual CPeerInfo* GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo = nullptr);
     bool HandleEvent(CEventPeerNetGetIP& eventGetIP) override;
     bool HandleEvent(CEventPeerNetGetCount& eventGetCount) override;
     bool HandleEvent(CEventPeerNetGetPeers& eventGetPeers) override;

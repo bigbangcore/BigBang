@@ -22,8 +22,8 @@ namespace bigbang
 CBlockChain::CBlockChain()
   : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
 {
-    pCoreProtocol = NULL;
-    pTxPool = NULL;
+    pCoreProtocol = nullptr;
+    pTxPool = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -49,8 +49,8 @@ bool CBlockChain::HandleInitialize()
 
 void CBlockChain::HandleDeinitialize()
 {
-    pCoreProtocol = NULL;
-    pTxPool = NULL;
+    pCoreProtocol = nullptr;
+    pTxPool = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -139,10 +139,10 @@ bool CBlockChain::GetForkAncestry(const uint256& hashFork, vector<pair<uint256, 
 int CBlockChain::GetBlockCount(const uint256& hashFork)
 {
     int nCount = 0;
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (cntrBlock.RetrieveFork(hashFork, &pIndex))
     {
-        while (pIndex != NULL)
+        while (pIndex != nullptr)
         {
             pIndex = pIndex->pPrev;
             ++nCount;
@@ -153,7 +153,7 @@ int CBlockChain::GetBlockCount(const uint256& hashFork)
 
 bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
     {
         return false;
@@ -165,35 +165,35 @@ bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, 
 
 bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
     {
         return false;
     }
-    while (pIndex != NULL && pIndex->GetBlockHeight() > nHeight)
+    while (pIndex != nullptr && pIndex->GetBlockHeight() > nHeight)
     {
         pIndex = pIndex->pPrev;
     }
-    while (pIndex != NULL && pIndex->GetBlockHeight() == nHeight && pIndex->IsExtended())
+    while (pIndex != nullptr && pIndex->GetBlockHeight() == nHeight && pIndex->IsExtended())
     {
         pIndex = pIndex->pPrev;
     }
     hashBlock = !pIndex ? uint64(0) : pIndex->GetBlockHash();
-    return (pIndex != NULL);
+    return (pIndex != nullptr);
 }
 
 bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
     {
         return false;
     }
-    while (pIndex != NULL && pIndex->GetBlockHeight() > nHeight)
+    while (pIndex != nullptr && pIndex->GetBlockHeight() > nHeight)
     {
         pIndex = pIndex->pPrev;
     }
-    while (pIndex != NULL && pIndex->GetBlockHeight() == nHeight)
+    while (pIndex != nullptr && pIndex->GetBlockHeight() == nHeight)
     {
         vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pPrev;
@@ -204,7 +204,7 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
 
 bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
     {
         return false;
@@ -217,14 +217,14 @@ bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int&
 
 bool CBlockChain::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<int64>& vTime)
 {
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
     {
         return false;
     }
 
     vTime.clear();
-    while (nDepth > 0 && pIndex != NULL)
+    while (nDepth > 0 && pIndex != nullptr)
     {
         vTime.push_back(pIndex->GetBlockTime());
         if (!pIndex->IsExtended())
@@ -459,7 +459,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Debug("New Block %s tx : %s\n", hash.ToString().c_str(), view.ToString().c_str());
     }
 
-    CBlockIndex* pIndexFork = NULL;
+    CBlockIndex* pIndexFork = nullptr;
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
@@ -693,7 +693,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return true;
     }
 
-    CBlockIndex* pIndex = NULL;
+    CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
     {
         Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
@@ -910,7 +910,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        CBlockIndex* pIndexRef = NULL;
+        CBlockIndex* pIndexRef = nullptr;
         if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
