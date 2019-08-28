@@ -116,6 +116,7 @@ else()
 		OpenSSL::Crypto
 		${Protobuf_LIBRARIES}
 		${Readline_LIBRARY}
+		${Ncurses_LIBRARY}
 		xengine
 		crypto	
 		storage	
