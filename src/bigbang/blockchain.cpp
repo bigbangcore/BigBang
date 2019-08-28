@@ -894,6 +894,10 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         {
             return ERR_BLOCK_INVALID_FORK;
         }
+        if (pCoreProtocol->CheckFirstPow(pIndexPrev->GetBlockHeight()+1))
+        {
+            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+        }
 
         CProofOfPiggyback proof;
         proof.Load(block.vchProof);

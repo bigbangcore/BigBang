@@ -614,6 +614,17 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     }
 }
 
+bool CCoreProtocol::CheckFirstPow(int nBlockHeight)
+{
+#ifndef BBCP_FIRST_POW_NO
+    if (nBlockHeight <= BBCP_END_BLOCK_HEIGHT_POW)
+    {
+        return true;
+    }
+#endif
+    return false;
+}
+
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
