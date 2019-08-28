@@ -104,7 +104,28 @@ if (CYGWIN)
 		jsonrpc
 		common)
 else()
-	target_link_libraries(bigbang
+	if(UNIX AND NOT APPLE)
+		target_link_libraries(bigbang
+		Boost::system
+		Boost::filesystem
+		Boost::program_options
+		Boost::thread
+		Boost::date_time
+		Boost::regex
+		OpenSSL::SSL
+		OpenSSL::Crypto
+		${Protobuf_LIBRARIES}
+		${Readline_LIBRARY}
+		xengine
+		crypto	
+		storage	
+		network
+		delegate	
+		jsonrpc
+		common
+		-ldl)
+	else()
+		target_link_libraries(bigbang
 		Boost::system
 		Boost::filesystem
 		Boost::program_options
@@ -122,6 +143,7 @@ else()
 		delegate	
 		jsonrpc
 		common)
+	endif()
 endif()
 
 # create symbol link

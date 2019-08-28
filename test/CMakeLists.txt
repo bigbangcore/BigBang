@@ -21,18 +21,51 @@ add_executable(test_big ${sources})
 
 include_directories(../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss)
 
-target_link_libraries(test_big
-	Boost::unit_test_framework
-	Boost::system
-	Boost::thread
-	mpvss
-	crypto
-)
+
+if(UNIX AND NOT APPLE)
+	target_link_libraries(test_big
+		Boost::unit_test_framework
+		Boost::system
+		Boost::thread
+		OpenSSL::SSL
+		OpenSSL::Crypto
+		mpvss
+		crypto
+		-ldl
+	)
+else()
+	target_link_libraries(test_big
+		Boost::unit_test_framework
+		Boost::system
+		Boost::thread
+		OpenSSL::SSL
+		OpenSSL::Crypto
+		mpvss
+		crypto
+	)
+endif()
 
 add_executable(test_ctsdb test_big_main.cpp test_big.h test_big.cpp ctsdb_test.cpp)
-target_link_libraries(test_ctsdb
-        Boost::unit_test_framework
-        Boost::system
-        Boost::thread
-        storage
-)
+
+if(UNIX AND NOT APPLE)	
+	target_link_libraries(test_ctsdb
+		Boost::unit_test_framework
+		Boost::system
+		Boost::thread
+		OpenSSL::SSL
+		OpenSSL::Crypto
+		mpvss
+		crypto
+		storage
+		-ldl
+	)
+else()
+	target_link_libraries(test_ctsdb
+		Boost::unit_test_framework
+		Boost::system
+		Boost::thread
+		mpvss
+		crypto
+		storage
+	)
+endif()
