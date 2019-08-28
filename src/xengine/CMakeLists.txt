@@ -75,5 +75,6 @@ else()
 		Boost::regex
 		OpenSSL::SSL
 		OpenSSL::Crypto
-		${Readline_LIBRARY})
+		${Readline_LIBRARY}
+		${Ncurses_LIBRARY})
 endif()
