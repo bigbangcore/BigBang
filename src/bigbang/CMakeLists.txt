@@ -117,6 +117,7 @@ else()
 		${Protobuf_LIBRARIES}
 		${Readline_LIBRARY}
 		${Ncurses_LIBRARY}
+		${Tinfo_LIBRARY}
 		xengine
 		crypto	
 		storage	
