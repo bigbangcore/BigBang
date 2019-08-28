@@ -7,34 +7,34 @@
 #------------------------------------------------------------------------------
 
 set(pow_hash
-	pow_hash/common/int-util.h
-	pow_hash/aesb.c          
-	pow_hash/hash.c  
-	pow_hash/hash-extra-skein.c
-	pow_hash/jh.h     
-	pow_hash/slow-hash.c
-	pow_hash/variant4_random_math.h
-	pow_hash/blake256.c
-	pow_hash/groestl.c
-	pow_hash/hash-extra-blake.c
-	pow_hash/hash.h
-	pow_hash/keccak.c
-	pow_hash/oaes_config.h
-	pow_hash/skein.c 
-	pow_hash/warnings.h
-	pow_hash/blake256.h
-	pow_hash/groestl.h
-	pow_hash/hash-extra-groestl.c
-	pow_hash/hash-ops.h
-	pow_hash/keccak.h
-	pow_hash/oaes_lib.c
-	pow_hash/skein.h
-	pow_hash/groestl_tables.h  
-	pow_hash/hash-extra-jh.c
-	pow_hash/jh.c
-	pow_hash/oaes_lib.h
-	pow_hash/skein_port.h
-	pow_hash/variant2_int_sqrt.h
+    pow_hash/common/int-util.h
+    pow_hash/aesb.c          
+    pow_hash/hash.c  
+    pow_hash/hash-extra-skein.c
+    pow_hash/jh.h     
+    pow_hash/slow-hash.c
+    pow_hash/variant4_random_math.h
+    pow_hash/blake256.c
+    pow_hash/groestl.c
+    pow_hash/hash-extra-blake.c
+    pow_hash/hash.h
+    pow_hash/keccak.c
+    pow_hash/oaes_config.h
+    pow_hash/skein.c 
+    pow_hash/warnings.h
+    pow_hash/blake256.h
+    pow_hash/groestl.h
+    pow_hash/hash-extra-groestl.c
+    pow_hash/hash-ops.h
+    pow_hash/keccak.h
+    pow_hash/oaes_lib.c
+    pow_hash/skein.h
+    pow_hash/groestl_tables.h  
+    pow_hash/hash-extra-jh.c
+    pow_hash/jh.c
+    pow_hash/oaes_lib.h
+    pow_hash/skein_port.h
+    pow_hash/variant2_int_sqrt.h
 )
 
 set(curve25519
@@ -46,14 +46,14 @@ set(curve25519
 )
 
 set(sources
-	uint256.h
-	crc24q.cpp crc24q.h
-	base32.cpp base32.h
-	crypto.cpp crypto.h
-	key.cpp key.h
-	keystore.cpp keystore.h
+    uint256.h
+    crc24q.cpp crc24q.h
+    base32.cpp base32.h
+    crypto.cpp crypto.h
+    key.cpp key.h
+    keystore.cpp keystore.h
     ${curve25519}
-	${pow_hash}
+    ${pow_hash}
 )
 
 set(CMAKE_C_FLAGS "-msse2 -maes")
@@ -62,29 +62,15 @@ add_library(crypto ${sources})
 
 include_directories(../xengine ./ ${sodium_INCLUDE_DIR})
 
-if (CYGWIN)
-	target_link_libraries(crypto
-		Boost_system
-		Boost_filesystem
-		Boost_program_options
-		Boost_thread
-		Boost_date_time
-		Boost_regex
-    	OpenSSL::SSL
-    	OpenSSL::Crypto
-		${sodium_LIBRARY_RELEASE}
-		xengine)
-else()
-	target_link_libraries(crypto
-		Boost::system
-		Boost::filesystem
-		Boost::program_options
-		Boost::thread
-		Boost::date_time
-		Boost::regex
-    	OpenSSL::SSL
-    	OpenSSL::Crypto
-		${sodium_LIBRARY_RELEASE}
-		xengine)
-endif()
-
+target_link_libraries(crypto
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${sodium_LIBRARY_RELEASE}
+    xengine
+)

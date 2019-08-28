@@ -41,12 +41,11 @@ before_cache:
 install:
 - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew update;
-    brew install cmake pkg-config openssl boost libsodium readline protobuf;
+    brew install cmake pkg-config openssl boost libsodium readline protobuf ncurses;
     export OPENSSL_ROOT_DIR=`brew --prefix openssl`;
-    brew link --force readline;
   else
     sudo apt-get update -qq;
-    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev libncurses5-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler;
+    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler libncurses5-dev;
     sudo apt install -y cppcheck valgrind clang-format-8;
   fi
 

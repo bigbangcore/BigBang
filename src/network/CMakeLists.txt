@@ -7,42 +7,27 @@
 #------------------------------------------------------------------------------
 
 set(sources
-	proto.cpp proto.h
-	peerevent.h
-	peer.cpp peer.h
-	peernet.cpp peernet.h
+    proto.cpp proto.h
+    peerevent.h
+    peer.cpp peer.h
+    peernet.cpp peernet.h
 )
 
 add_library(network ${sources})
 
 include_directories(../xengine ../common ../crypto ../storage)
 
-if (CYGWIN)
-	target_link_libraries(network
-		Boost_system
-		Boost_filesystem
-		Boost_program_options
-		Boost_thread
-		Boost_date_time
-		Boost_regex
-        OpenSSL::SSL
-        OpenSSL::Crypto
-		${sodium_LIBRARY_RELEASE}
-		xengine
-		crypto
-		storage)
-else()
-	target_link_libraries(network
-		Boost::system
-		Boost::filesystem
-		Boost::program_options
-		Boost::thread
-		Boost::date_time
-		Boost::regex
-        OpenSSL::SSL
-        OpenSSL::Crypto
-		${sodium_LIBRARY_RELEASE}
-		xengine
-		crypto
-		storage)
-endif()
+target_link_libraries(network
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${sodium_LIBRARY_RELEASE}
+    xengine
+    crypto
+    storage
+)

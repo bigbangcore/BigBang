@@ -39,22 +39,25 @@ FIND_LIBRARY(Readline_LIBRARY
     HINTS ${Readline_ROOT_DIR}/lib
 )
 
-FIND_PATH(Ncurses_ROOT_DIR
-    NAMES include/ncurses.h
-    PATHS /opt/local/ /usr/ /usr/local/ /usr/local/opt
-    PATH_SUFFIXES ncurses
-    NO_DEFAULT_PATH
-)
+if(Readline_USE_STATIC_LIBS)
+  FIND_PATH(Ncurses_ROOT_DIR
+      NAMES include/ncurses.h
+      PATHS /opt/local/ /usr/ /usr/local/ /usr/local/opt
+      PATH_SUFFIXES ncurses
+      NO_DEFAULT_PATH
+  )
 
-FIND_LIBRARY(Ncurses_LIBRARY
-  NAMES ncurses
-  HINTS ${Ncurses_ROOT_DIR}/lib
-)
+  FIND_LIBRARY(Ncurses_LIBRARY
+    NAMES tinfo termcap ncursesw ncurses cursesw curses
+    HINTS ${Ncurses_ROOT_DIR}/lib
+  )
 
-FIND_LIBRARY(Tinfo_LIBRARY
-  NAMES tinfo
-  HINTS ${Ncurses_ROOT_DIR}/lib
-)
+  if(NOT Ncurses_LIBRARY)
+    message(FATAL_ERROR "ncurses library not found")
+  endif()
+
+  set(Readline_LIBRARY ${Readline_LIBRARY} ${Ncurses_LIBRARY})
+endif()
 
 if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")
   file(STRINGS "${Readline_INCLUDE_DIR}/readline/readline.h" readline_h_content
@@ -63,7 +66,7 @@ if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")
                         READLINE_VERSION ${readline_h_content})
   string(REGEX REPLACE "^0" "" READLINE_VERSION ${READLINE_VERSION})
   string(REPLACE ".0" "." READLINE_VERSION ${READLINE_VERSION})
-endif ()
+endif()
 
 if(Readline_USE_STATIC_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${_CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -76,8 +79,6 @@ find_package_handle_standard_args(Readline
         Readline_ROOT_DIR
         Readline_INCLUDE_DIR
         Readline_LIBRARY
-        Ncurses_LIBRARY
-        Tinfo_LIBRARY
     VERSION_VAR
         READLINE_VERSION
 )
@@ -94,5 +95,3 @@ message(STATUS "Readline info:")
 message(STATUS "  Readline_ROOT_DIR                  : ${Readline_ROOT_DIR}")
 message(STATUS "  Readline_INCLUDE_DIR               : ${Readline_INCLUDE_DIR}")
 message(STATUS "  Readline_LIBRARY                   : ${Readline_LIBRARY}")
-message(STATUS "  Ncurses_LIBRARY                    : ${Ncurses_LIBRARY}")
-message(STATUS "  Tinfo_LIBRARY                    : ${Tinfo_LIBRARY}")

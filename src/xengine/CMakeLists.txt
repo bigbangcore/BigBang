@@ -54,27 +54,14 @@ add_library(xengine ${sources})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(./)
 
-if (CYGWIN)
-	target_link_libraries(xengine
-		Boost_system
-		Boost_filesystem
-		Boost_program_options
-		Boost_thread
-		Boost_date_time
-		Boost_regex
-		OpenSSL::SSL
-		OpenSSL::Crypto
-		${Readline_LIBRARY})
-else()
-	target_link_libraries(xengine
-		Boost::system
-		Boost::filesystem
-		Boost::program_options
-		Boost::thread
-		Boost::date_time
-		Boost::regex
-		OpenSSL::SSL
-		OpenSSL::Crypto
-		${Readline_LIBRARY}
-		${Ncurses_LIBRARY})
-endif()
+target_link_libraries(xengine
+	${Boost_SYSTEM_LIBRARY}
+	${Boost_FILESYSTEM_LIBRARY}
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	${Boost_THREAD_LIBRARY}
+	${Boost_DATE_TIME_LIBRARY}
+	${Boost_REGEX_LIBRARY}
+	OpenSSL::SSL
+	OpenSSL::Crypto
+	${Readline_LIBRARY}
+)
