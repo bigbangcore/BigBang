@@ -73,6 +73,7 @@ else()
         regex
         unit_test_framework
         timer)
+        set(OPENSSL_USE_STATIC_LIBS ON)
         find_package(OpenSSL 1.0.0 REQUIRED) 
         set(sodium_USE_STATIC_LIBS ON)
         find_package(sodium 1.0.8 REQUIRED)
