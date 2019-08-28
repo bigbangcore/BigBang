@@ -51,6 +51,11 @@ FIND_LIBRARY(Ncurses_LIBRARY
   HINTS ${Ncurses_ROOT_DIR}/lib
 )
 
+FIND_LIBRARY(Tinfo_LIBRARY
+  NAMES tinfo
+  HINTS ${Ncurses_ROOT_DIR}/lib
+)
+
 if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")
   file(STRINGS "${Readline_INCLUDE_DIR}/readline/readline.h" readline_h_content
                 REGEX "#define RL_READLINE_VERSION" )
@@ -72,6 +77,7 @@ find_package_handle_standard_args(Readline
         Readline_INCLUDE_DIR
         Readline_LIBRARY
         Ncurses_LIBRARY
+        Tinfo_LIBRARY
     VERSION_VAR
         READLINE_VERSION
 )
@@ -89,3 +95,4 @@ message(STATUS "  Readline_ROOT_DIR                  : ${Readline_ROOT_DIR}")
 message(STATUS "  Readline_INCLUDE_DIR               : ${Readline_INCLUDE_DIR}")
 message(STATUS "  Readline_LIBRARY                   : ${Readline_LIBRARY}")
 message(STATUS "  Ncurses_LIBRARY                    : ${Ncurses_LIBRARY}")
+message(STATUS "  Tinfo_LIBRARY                    : ${Tinfo_LIBRARY}")
