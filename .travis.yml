@@ -46,7 +46,7 @@ install:
     brew link --force readline;
   else
     sudo apt-get update -qq;
-    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler;
+    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev libncurses5-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler;
     sudo apt install -y cppcheck valgrind clang-format-8;
   fi
 
