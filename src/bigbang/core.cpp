@@ -583,9 +583,15 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight,
-                                       const map<CDestination, size_t>& mapBallot, vector<CDestination>& vBallot)
+                                       const map<CDestination, size_t>& mapBallot, vector<CDestination>& vBallot, int nBlockHeight)
 {
     vBallot.clear();
+
+    if (CheckFirstPow(nBlockHeight))
+    {
+        return;
+    }
+
     int nSelected = 0;
     for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
     {
