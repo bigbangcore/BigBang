@@ -17,30 +17,53 @@
 #  Readline_INCLUDE_DIR      The readline include directories. 
 #  Readline_LIBRARY          The readline library.
 
-find_path(Readline_ROOT_DIR
+if(Readline_USE_STATIC_LIBS)
+  set(_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif()
+
+if(UNIX AND NOT APPLE)
+  set(root_path "/opt/local/" "/usr/" "/usr/local/")
+else()
+  set(root_path "/usr/local/" "/usr/local/opt")
+endif()
+
+FIND_PATH(Readline_ROOT_DIR
     NAMES include/readline/readline.h
-    PATHS /opt/local/ /usr/local/ /usr/
+    PATHS ${root_path}
+    PATH_SUFFIXES readline
     NO_DEFAULT_PATH
 )
 
-find_path(Readline_INCLUDE_DIR
+FIND_PATH(Readline_INCLUDE_DIR
     NAMES readline/readline.h
     HINTS ${Readline_ROOT_DIR}/include
 )
 
-find_library(Readline_LIBRARY
+FIND_LIBRARY(Readline_LIBRARY
     NAMES readline
     HINTS ${Readline_ROOT_DIR}/lib
 )
 
-if(Readline_INCLUDE_DIR AND Readline_LIBRARY AND Ncurses_LIBRARY)
-  set(READLINE_FOUND TRUE)
-else(Readline_INCLUDE_DIR AND Readline_LIBRARY AND Ncurses_LIBRARY)
-  FIND_LIBRARY(Readline_LIBRARY NAMES readline)
-  include(FindPackageHandleStandardArgs)
-  FIND_PACKAGE_HANDLE_STANDARD_ARGS(Readline DEFAULT_MSG Readline_INCLUDE_DIR Readline_LIBRARY )
-  MARK_AS_ADVANCED(Readline_INCLUDE_DIR Readline_LIBRARY)
-endif(Readline_INCLUDE_DIR AND Readline_LIBRARY AND Ncurses_LIBRARY)
+if(Readline_USE_STATIC_LIBS)
+  FIND_PATH(Ncurses_ROOT_DIR
+      NAMES include/ncurses.h
+      PATHS ${root_path}
+      PATH_SUFFIXES ncurses
+      NO_DEFAULT_PATH
+  )
+  
+  FIND_LIBRARY(Ncurses_LIBRARY
+    NAMES tinfo termcap ncursesw ncurses cursesw curses
+    HINTS ${Ncurses_ROOT_DIR}/lib
+  )
+
+  if(NOT Ncurses_LIBRARY)
+    message(FATAL_ERROR "ncurses library not found")
+  endif()
+
+  set(Readline_LIBRARY ${Readline_LIBRARY} ${Ncurses_LIBRARY})
+endif()
 
 if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")
   file(STRINGS "${Readline_INCLUDE_DIR}/readline/readline.h" readline_h_content
@@ -49,7 +72,11 @@ if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")
                         READLINE_VERSION ${readline_h_content})
   string(REGEX REPLACE "^0" "" READLINE_VERSION ${READLINE_VERSION})
   string(REPLACE ".0" "." READLINE_VERSION ${READLINE_VERSION})
-endif ()
+endif()
+
+if(Readline_USE_STATIC_LIBS)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_CMAKE_FIND_LIBRARY_SUFFIXES})
+endif()
 
 # communicate results
 include(FindPackageHandleStandardArgs)
