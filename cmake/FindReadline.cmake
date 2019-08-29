@@ -46,11 +46,13 @@ if(Readline_USE_STATIC_LIBS)
       PATH_SUFFIXES ncurses
       NO_DEFAULT_PATH
   )
-
+  message("Ncurses_ROOT_DIR : ${Ncurses_ROOT_DIR}")
+  
   FIND_LIBRARY(Ncurses_LIBRARY
     NAMES tinfo termcap ncursesw ncurses cursesw curses
     HINTS ${Ncurses_ROOT_DIR}/lib
   )
+  message("Ncurses_LIBRARY : ${Ncurses_LIBRARY}")
 
   if(NOT Ncurses_LIBRARY)
     message(FATAL_ERROR "ncurses library not found")
