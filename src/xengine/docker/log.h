@@ -23,50 +23,54 @@ class CLog
 {
 public:
     CLog()
-      : pFile(nullptr), fNewLine(false)
     {
     }
 
     ~CLog()
     {
-        if (pFile != nullptr)
-        {
-            fclose(pFile);
-        }
     }
 
     bool SetLogFilePath(const std::string& strPathLog)
     {
-        if (pFile != nullptr)
-        {
-            fclose(pFile);
-        }
-        pFile = fopen(strPathLog.c_str(), "a");
-        fNewLine = true;
-        return (pFile != nullptr);
+        boost::filesystem::path p = strPathLog;
+        modNmae = p.filename().replace_extension().string();
+        return true;
     }
 
     virtual void operator()(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
     {
-        if (pFile != nullptr)
+        std::string str("<");
+        str.append(key);
+        str.append(">");
+        char arg_buffer[256] = {0};
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        str.append(arg_buffer);
+
+
+        if (strcmp(strPrefix,"[INFO]") == 0)
         {
-            boost::mutex::scoped_lock scoped_lock(mutex);
-            if (fNewLine && pszFormat[0] != '\n')
-            {
-                fprintf(pFile, "%s %s <%s> {%s} ", GetLocalTime().c_str(), strPrefix, key, GetThreadName().c_str());
-            }
-
-            fNewLine = (pszFormat[strlen(pszFormat) - 1] == '\n');
-
-            vfprintf(pFile, pszFormat, ap);
-            fflush(pFile);
+            StdLog(modNmae.c_str(),str.c_str());
+        }
+        else if (strcmp(strPrefix,"[DEBUG]") == 0)
+        {
+            StdDebug(modNmae.c_str(),str.c_str());
+        }
+        else if (strcmp(strPrefix,"[WARN]") == 0)
+        {
+            StdWarn(modNmae.c_str(),str.c_str());
+        }
+        else if (strcmp(strPrefix,"[ERROR]") == 0)
+        {
+            StdError(modNmae.c_str(),str.c_str());
+        }
+        else
+        {
+            StdLog(modNmae.c_str(),str.c_str());
         }
     }
 
 protected:
-    FILE* pFile;
-    boost::mutex mutex;
-    bool fNewLine;
+    std::string modNmae;
 };
 
 } // namespace xengine

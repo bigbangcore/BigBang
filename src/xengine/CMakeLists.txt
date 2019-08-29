@@ -63,6 +63,8 @@ target_link_libraries(xengine
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     ${Boost_LIBRARIES}
+    Boost::log
+		Boost::locale
     OpenSSL::SSL
     OpenSSL::Crypto
     ${Readline_LIBRARY}
