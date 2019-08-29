@@ -37,7 +37,7 @@ else()
 endif()
 
 # warnings
-if(UNIX)
+if(UNIX AND NOT CYGWIN)
     string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing")
     if (APPLE)
         string(APPEND CMAKE_CXX_FLAGS " -fvisibility-inlines-hidden -fvisibility=hidden")
@@ -47,11 +47,13 @@ endif()
 # libs & linkings
 if(UNIX AND NOT APPLE)
     string(APPEND CMAKE_CXX_FLAGS " -lrt")
-    link_libraries(-ldl)
+    if(NOT CYGWIN)
+        link_libraries(-ldl)
+    endif()
 endif()
 
 # packages
-if(UNIX)
+if(UNIX AND NOT CYGWIN)
     set(Boost_USE_STATIC_LIBS ON)
     set(OPENSSL_USE_STATIC_LIBS ON)
     set(sodium_USE_STATIC_LIBS ON)
@@ -82,6 +84,10 @@ find_package(Protobuf 3.0.0 REQUIRED)
 if(OPENSSL_VERSION VERSION_EQUAL 1.1.0 OR 
     (OPENSSL_VERSION VERSION_GREATER 1.1.0 AND OPENSSL_VERSION VERSION_LESS 1.2.0))
     add_definitions(-DUSE_SSL_110)
+endif()
+
+if(CYGWIN)
+    add_definitions(-DBOOST_LOG_DYN_LINK)
 endif()
 
 # sub directories
