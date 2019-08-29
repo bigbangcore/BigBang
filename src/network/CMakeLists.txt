@@ -7,9 +7,9 @@
 #------------------------------------------------------------------------------
 
 set(sources
-    proto.cpp proto.h
+    proto.cpp   proto.h
     peerevent.h
-    peer.cpp peer.h
+    peer.cpp    peer.h
     peernet.cpp peernet.h
 )
 
@@ -22,6 +22,7 @@ target_link_libraries(network
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL

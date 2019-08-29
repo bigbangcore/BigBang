@@ -36,18 +36,18 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 endif()
 
-# libs & linkings
-if(UNIX AND NOT APPLE)
-    string(APPEND CMAKE_CXX_FLAGS " -lrt")
-    string(APPEND CMAKE_CXX_LINK_FLAGS " -ldl")
-endif()
-
 # warnings
 if(UNIX)
     string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing")
     if (APPLE)
         string(APPEND CMAKE_CXX_FLAGS " -fvisibility-inlines-hidden -fvisibility=hidden")
     endif()
+endif()
+
+# libs & linkings
+if(UNIX AND NOT APPLE)
+    string(APPEND CMAKE_CXX_FLAGS " -lrt")
+    link_libraries(-ldl)
 endif()
 
 # packages
