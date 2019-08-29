@@ -22,9 +22,15 @@ if(Readline_USE_STATIC_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 endif()
 
+if(UNIX AND NOT APPLE)
+  set(root_path "/opt/local/" "/usr/" "/usr/local/")
+else()
+  set(root_path "/usr/local/" "/usr/local/opt")
+endif()
+
 FIND_PATH(Readline_ROOT_DIR
     NAMES include/readline/readline.h
-    PATHS /opt/local/ /usr/ /usr/local/ /usr/local/opt
+    PATHS ${root_path}
     PATH_SUFFIXES readline
     NO_DEFAULT_PATH
 )
@@ -42,17 +48,15 @@ FIND_LIBRARY(Readline_LIBRARY
 if(Readline_USE_STATIC_LIBS)
   FIND_PATH(Ncurses_ROOT_DIR
       NAMES include/ncurses.h
-      PATHS /opt/local/ /usr/ /usr/local/ /usr/local/opt
+      PATHS ${root_path}
       PATH_SUFFIXES ncurses
       NO_DEFAULT_PATH
   )
-  message("Ncurses_ROOT_DIR : ${Ncurses_ROOT_DIR}")
   
   FIND_LIBRARY(Ncurses_LIBRARY
     NAMES tinfo termcap ncursesw ncurses cursesw curses
     HINTS ${Ncurses_ROOT_DIR}/lib
   )
-  message("Ncurses_LIBRARY : ${Ncurses_LIBRARY}")
 
   if(NOT Ncurses_LIBRARY)
     message(FATAL_ERROR "ncurses library not found")
