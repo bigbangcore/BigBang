@@ -62,9 +62,8 @@ target_link_libraries(xengine
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${Boost_LIBRARIES}
-    Boost::log
-		Boost::locale
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOCALE_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
     ${Readline_LIBRARY}
