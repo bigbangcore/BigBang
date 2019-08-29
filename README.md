@@ -9,6 +9,16 @@ Wiki: [BigBang Wiki](https://github.com/bigbangcore/BigBang/wiki)
 
 Whitepaper: [BigBang Whitepaper(中文)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper.pdf)
 
+## Installation
+
+### ubuntu 18.04
+
+Run one command to install the BigBang
+
+```bash
+curl https://raw.githubusercontent.com/bigbangcore/BigBang/master/install/ubuntu1804.sh -sSf | sh
+```
+
 ## License
 
 BigBangCoreWallet is released under the terms of the MIT license. See COPYING for more information or see <https://opensource.org/licenses/MIT>.
