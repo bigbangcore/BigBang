@@ -34,7 +34,8 @@ public:
     virtual int GetProofOfWorkRunTimeBits(int nBits, int64 nTime, int64 nPrevTime) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
-                                    const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot) override;
+                                    const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight) override;
+    virtual bool CheckFirstPow(int nBlockHeight) override;
 
 protected:
     bool HandleInitialize() override;

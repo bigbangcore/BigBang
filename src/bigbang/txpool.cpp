@@ -221,6 +221,11 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         return ERR_TRANSACTION_INVALID;
     }
 
+    if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nHeight))
+    {
+        return ERR_TRANSACTION_INVALID;
+    }
+
     CTxPoolView& txView = mapPoolView[hashFork];
     Errno err = AddNew(txView, txid, tx, hashFork, nHeight);
     if (err == OK)

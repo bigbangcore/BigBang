@@ -300,15 +300,19 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
     CDelegateRoutine routineDelegate;
-    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
-    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
-
-    for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    if (!pCoreProtocol->CheckFirstPow(updateBlockChain.nLastBlockHeight))
     {
-        Errno err = AddNewTx(tx, nNonce);
-        Log("Send DelegateTx %s (%s)\n", ErrorString(err), tx.GetHash().GetHex().c_str());
+        pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+
+        pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+                                        routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+
+        for (const CTransaction& tx : routineDelegate.vEnrollTx)
+        {
+            Errno err = AddNewTx(tx, nNonce);
+            Log("Send DelegateTx %s (%s)\n", ErrorString(err), tx.GetHash().GetHex().c_str());
+        }
     }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);

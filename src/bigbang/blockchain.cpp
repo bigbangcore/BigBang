@@ -411,13 +411,23 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     vTxContxt.reserve(block.vtx.size());
 
     int nForkHeight;
-    uint256 fork;
-    GetBlockLocation(block.hashPrev, fork, nForkHeight);
-    ++nForkHeight;
+    if (block.nType == block.BLOCK_EXTENDED)
+    {
+        nForkHeight = pIndexPrev->nHeight;
+    }
+    else
+    {
+        nForkHeight = pIndexPrev->nHeight + 1;
+    }
 
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
+        if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nForkHeight))
+        {
+            Log("AddNewBlock Verify tx Error(first pow) : %s \n", txid.ToString().c_str());
+            return ERR_TRANSACTION_INVALID;
+        }
         CTxContxt txContxt;
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
@@ -427,7 +437,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         }
         if (!pTxPool->Exists(txid))
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, fork);
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)
             {
                 Log("AddNewBlock Verify BlockTx Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
@@ -699,6 +709,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
         return false;
     }
+    CBlockIndex* pIndexRef = pIndex;
 
     if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL)
     {
@@ -731,7 +742,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot);
+    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexRef->GetBlockHeight());
 
     cacheAgreement.AddNew(hashBlock, agreement);
 
@@ -846,7 +857,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
         return false;
     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot);
+    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight()+1);
 
     cacheAgreement.AddNew(hashBlock, agreement);
 

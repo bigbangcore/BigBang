@@ -376,7 +376,7 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
     boost::unique_lock<boost::mutex> lock(mutex);
     map<CDestination, size_t> mapBallot;
     delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
-    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot);
+    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot, nTargetHeight);
 }
 
 void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)
