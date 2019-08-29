@@ -7,23 +7,23 @@
 #------------------------------------------------------------------------------
 
 set(template
-    template/templateid.h template/templateid.cpp 
-    template/template.h template/template.cpp
-    template/weighted.h template/weighted.cpp 
-    template/multisig.h template/multisig.cpp 
-    template/fork.h template/fork.cpp 
-    template/mint.h template/mint.cpp 
-    template/proof.h template/proof.cpp 
-    template/delegate.h template/delegate.cpp 
-    template/exchange.h template/exchange.cpp 
+    template/templateid.h   template/templateid.cpp 
+    template/template.h     template/template.cpp
+    template/weighted.h     template/weighted.cpp 
+    template/multisig.h     template/multisig.cpp 
+    template/fork.h         template/fork.cpp 
+    template/mint.h         template/mint.cpp 
+    template/proof.h        template/proof.cpp 
+    template/delegate.h     template/delegate.cpp 
+    template/exchange.h     template/exchange.cpp 
 )
 
 set(sources
-    destination.h destination.cpp 
+    destination.h   destination.cpp 
     transaction.h 
     wallettx.h 
     proof.h
-    profile.h profile.cpp
+    profile.h       profile.cpp
     block.h
     forkcontext.h
     ${template}
@@ -39,6 +39,7 @@ target_link_libraries(common
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL

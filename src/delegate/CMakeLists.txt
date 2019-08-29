@@ -8,9 +8,9 @@
 
 set(sources
     delegatecomm.h
-    delegatevote.cpp delegatevote.h
-    delegate.cpp delegate.h
-    delegateverify.cpp delegateverify.h
+    delegatevote.cpp    delegatevote.h
+    delegate.cpp        delegate.h
+    delegateverify.cpp  delegateverify.h
 )
 
 add_library(delegate ${sources})
@@ -22,6 +22,7 @@ target_link_libraries(delegate
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL

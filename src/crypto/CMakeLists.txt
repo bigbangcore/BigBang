@@ -38,20 +38,20 @@ set(pow_hash
 )
 
 set(curve25519
-    curve25519/base25519.cpp curve25519/base25519.h
-    curve25519/fp25519.cpp curve25519/fp25519.h
-    curve25519/sc25519.cpp curve25519/sc25519.h
-    curve25519/ed25519.cpp curve25519/ed25519.h
+    curve25519/base25519.cpp    curve25519/base25519.h
+    curve25519/fp25519.cpp      curve25519/fp25519.h
+    curve25519/sc25519.cpp      curve25519/sc25519.h
+    curve25519/ed25519.cpp      curve25519/ed25519.h
     curve25519/curve25519.h
 )
 
 set(sources
     uint256.h
-    crc24q.cpp crc24q.h
-    base32.cpp base32.h
-    crypto.cpp crypto.h
-    key.cpp key.h
-    keystore.cpp keystore.h
+    crc24q.cpp      crc24q.h
+    base32.cpp      base32.h
+    crypto.cpp      crypto.h
+    key.cpp         key.h
+    keystore.cpp    keystore.h
     ${curve25519}
     ${pow_hash}
 )
@@ -67,6 +67,7 @@ target_link_libraries(crypto
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL

@@ -25,30 +25,30 @@ add_custom_command(OUTPUT ${auto_files}
 
 set(src
     bigbang.cpp
-    address.cpp address.h
-    blockmaker.cpp blockmaker.h
-    config.cpp config.h
-    core.cpp core.h
-    dispatcher.cpp dispatcher.h
-    entry.cpp entry.h
-    error.cpp error.h
-    miner.cpp miner.h
-    netchn.cpp netchn.h
-    delegatedchn.cpp delegatedchn.h
-    network.cpp network.h
-    rpcclient.cpp rpcclient.h
-    rpcmod.cpp rpcmod.h
-    consensus.cpp consensus.h
-    blockmaker.cpp blockmaker.h
-    rpcclient.cpp rpcclient.h
-    miner.cpp miner.h
-    schedule.cpp schedule.h
-    service.cpp service.h
-    txpool.cpp txpool.h
-    wallet.cpp wallet.h
-    blockchain.cpp blockchain.h
-    forkmanager.cpp forkmanager.h
-    datastat.cpp datastat.h
+    address.cpp         address.h
+    blockmaker.cpp      blockmaker.h
+    config.cpp          config.h
+    core.cpp            core.h
+    dispatcher.cpp      dispatcher.h
+    entry.cpp           entry.h
+    error.cpp           error.h
+    miner.cpp           miner.h
+    netchn.cpp          netchn.h
+    delegatedchn.cpp    delegatedchn.h
+    network.cpp         network.h
+    rpcclient.cpp       rpcclient.h
+    rpcmod.cpp          rpcmod.h
+    consensus.cpp       consensus.h
+    blockmaker.cpp      blockmaker.h
+    rpcclient.cpp       rpcclient.h
+    miner.cpp           miner.h
+    schedule.cpp        schedule.h
+    service.cpp         service.h
+    txpool.cpp          txpool.h
+    wallet.cpp          wallet.h
+    blockchain.cpp      blockchain.h
+    forkmanager.cpp     forkmanager.h
+    datastat.cpp        datastat.h
     event.h
     base.h
     struct.h
@@ -57,11 +57,11 @@ set(src
     version.h
 )
 set(mode_src
-    mode/basic_config.cpp mode/basic_config.h
-    mode/fork_config.cpp mode/fork_config.h
-    mode/mint_config.cpp mode/mint_config.h
+    mode/basic_config.cpp   mode/basic_config.h
+    mode/fork_config.cpp    mode/fork_config.h
+    mode/mint_config.cpp    mode/mint_config.h
     mode/network_config.cpp mode/network_config.h
-    mode/rpc_config.cpp mode/rpc_config.h
+    mode/rpc_config.cpp     mode/rpc_config.h
     mode/storage_config.cpp mode/storage_config.h
     mode/config_macro.h
     mode/config_type.h
@@ -89,6 +89,7 @@ target_link_libraries(bigbang
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL
@@ -96,10 +97,10 @@ target_link_libraries(bigbang
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
     xengine
-    crypto	
-    storage	
+    crypto    
+    storage    
     network
-    delegate	
+    delegate    
     jsonrpc
     common
 )

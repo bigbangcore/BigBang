@@ -7,19 +7,19 @@
 #------------------------------------------------------------------------------
 
 set(sources
-    timeseries.cpp timeseries.h
-    blockdb.cpp blockdb.h
-    blockbase.cpp blockbase.h
-    blockindexdb.cpp blockindexdb.h
-    walletdb.cpp walletdb.h
-    txpooldata.cpp txpooldata.h
-    unspentdb.cpp unspentdb.h
-    delegatedb.cpp delegatedb.h
-    forkdb.cpp forkdb.h
-    purger.cpp purger.h
-    leveldbeng.cpp leveldbeng.h
-    txindexdb.cpp txindexdb.h
-    ctsdb.cpp ctsdb.h
+    timeseries.cpp      timeseries.h
+    blockdb.cpp         blockdb.h
+    blockbase.cpp       blockbase.h
+    blockindexdb.cpp    blockindexdb.h
+    walletdb.cpp        walletdb.h
+    txpooldata.cpp      txpooldata.h
+    unspentdb.cpp       unspentdb.h
+    delegatedb.cpp      delegatedb.h
+    forkdb.cpp          forkdb.h
+    purger.cpp          purger.h
+    leveldbeng.cpp      leveldbeng.h
+    txindexdb.cpp       txindexdb.h
+    ctsdb.cpp           ctsdb.h
 )
 
 add_library(storage ${sources})
@@ -31,6 +31,7 @@ target_link_libraries(storage
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_TIMER_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
@@ -40,6 +41,6 @@ target_link_libraries(storage
     xengine
     crypto
     common
-    leveldb	
+    leveldb    
     snappy
 )
