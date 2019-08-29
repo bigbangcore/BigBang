@@ -57,20 +57,6 @@ if(UNIX)
     set(sodium_USE_STATIC_LIBS ON)
     set(Readline_USE_STATIC_LIBS ON)
     set(Boost_USE_MULTITHREADED ON)
-    find_package(Boost 1.58.0 REQUIRED COMPONENTS
-        program_options
-        filesystem
-        system
-        thread
-        date_time
-        regex
-        unit_test_framework
-        timer
-        log
-        locale)
-    find_package(OpenSSL 1.0.0 REQUIRED) 
-    find_package(sodium 1.0.8 REQUIRED)
-    find_package(Readline 5.0 REQUIRED)
     set(Protobuf_USE_STATIC_LIBS ON)
 endif()
 
@@ -85,6 +71,8 @@ find_package(Boost 1.58.0 REQUIRED COMPONENTS
     unit_test_framework
     timer
     chrono
+    log
+    locale
 )
 find_package(OpenSSL 1.0.0 REQUIRED) 
 find_package(sodium 1.0.8 REQUIRED)
