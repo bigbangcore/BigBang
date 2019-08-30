@@ -150,14 +150,12 @@ public:
     void Init(const boost::filesystem::path &pathData,bool debug_, bool daemon)
     {
         sink = boost::shared_ptr< sink_t >(new sink_t(
-            keywords::file_name = "bigbang.log",      
-            keywords::rotation_size = 1024 * 1024));
+            keywords::file_name = "bigbang_%N.log",      
+            keywords::rotation_size = 10 * 1024 * 1024));
             
         sink->locked_backend()->set_file_collector(sinks::file::make_collector(
             keywords::target = pathData / "logs",
-            keywords::max_size = 50 * 1024 * 1024,
-            keywords::min_free_space = 100 * 1024 * 1024,
-            keywords::max_files = 2
+            keywords::max_size = 50 * 1024 * 1024
         ));
         sink->locked_backend()->scan_for_files();
         sink->set_formatter
@@ -205,53 +203,84 @@ public:
 };
 
 
+static CBoostLog g_log;
+static bool volatile g_log_init = false;
+
 void StdDebug(const char* pszName, const char* pszErr)
 {
-    std::string str(pszErr);
-    if (str[str.length()-1] == '\n')
+    if (g_log_init)
     {
-        str.resize(str.length() - 1);
+        std::string str(pszErr);
+        if (str[str.length()-1] == '\n')
+        {
+            str.resize(str.length() - 1);
+        }
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
     }
-    BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-    BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
+    else
+    {
+        std::cout << pszName << pszErr;
+    }
 }
 
 void StdLog(const char* pszName, const char* pszErr)
 {
-    std::string str(pszErr);
-    if (str[str.length()-1] == '\n')
+    if (g_log_init)
     {
-        str.resize(str.length() - 1);
+        std::string str(pszErr);
+        if (str[str.length()-1] == '\n')
+        {
+            str.resize(str.length() - 1);
+        }
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
     }
-    BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-    BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
+    else
+    {
+        std::cout << pszName << pszErr;
+    }
 }
 
 void StdWarn(const char* pszName, const char* pszErr)
 {
-    std::string str(pszErr);
-    if (str[str.length()-1] == '\n')
+    if (g_log_init)
     {
-        str.resize(str.length() - 1);
+        std::string str(pszErr);
+        if (str[str.length()-1] == '\n')
+        {
+            str.resize(str.length() - 1);
+        }
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
     }
-    BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-    BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
+    else
+    {
+        std::cout << pszName << pszErr;
+    }
 }
 
 void StdError(const char* pszName, const char* pszErr)
 {
-    std::string str(pszErr);
-    if (str[str.length()-1] == '\n')
+    if (g_log_init)
     {
-        str.resize(str.length() - 1);
+        std::string str(pszErr);
+        if (str[str.length()-1] == '\n')
+        {
+            str.resize(str.length() - 1);
+        }
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
     }
-    BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-    BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
+    else
+    {
+        std::cout << pszName << pszErr;
+    }
 }
 
-static CBoostLog g_log;
 void InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon)
 {
+    g_log_init = true;
     g_log.Init(pathData,debug,daemon);
 }
 

@@ -135,7 +135,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    InitLog(pathData,config.GetConfig()->fDebug, config.GetConfig()->fDaemon);
+    InitLog(pathData,config.GetConfig()->fDebug, (config.GetConfig()->fDaemon || config.GetModeType() == EModeType::CONSOLE));
     if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER) && !log.SetLogFilePath((pathData / "bigbang.log").string()))
     {
         cerr << "Failed to open log file : " << (pathData / "bigbang.log") << "\n";
