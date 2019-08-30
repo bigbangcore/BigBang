@@ -99,7 +99,7 @@ void StdLog(const char* pszName, const char* pszErr);
 void StdWarn(const char* pszName, const char* pszErr);
 void StdError(const char* pszName, const char* pszErr);
 
-void InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon);
+bool InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon);
 
 inline std::string PulsFileLine(const char *file,int line,const char *info)
 {
