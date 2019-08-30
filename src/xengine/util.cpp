@@ -212,11 +212,6 @@ void StdDebug(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
-        g_log.sink->flush();
-    }
-    else
-    {
-        std::cout << pszName << pszErr;
     }
 }
 
@@ -231,11 +226,6 @@ void StdLog(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
-        g_log.sink->flush();
-    }
-    else
-    {
-        std::cout << pszName << pszErr;
     }
 }
 
@@ -250,11 +240,6 @@ void StdWarn(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
-        g_log.sink->flush();
-    }
-    else
-    {
-        std::cout << pszName << pszErr;
     }
 }
 
@@ -269,18 +254,14 @@ void StdError(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
-        g_log.sink->flush();
-    }
-    else
-    {
-        std::cout << pszName << pszErr;
     }
 }
 
-void InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
 {
     g_log_init = true;
     g_log.Init(pathData, debug, daemon);
+    return true;
 }
 
 } // namespace xengine
