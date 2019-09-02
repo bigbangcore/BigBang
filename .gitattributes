@@ -9,8 +9,6 @@
 *.h     text diff=c
 
 # end of line
-*           text=auto
-*.txt		text
 *.vcproj	text eol=crlf
 *.sh		text eol=lf
 *.py		eol=lf
