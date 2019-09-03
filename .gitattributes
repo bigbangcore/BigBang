@@ -12,6 +12,10 @@
 *.vcproj	text eol=crlf
 *.sh		text eol=lf
 *.py		eol=lf
+*.txt       text eol=lf
+*.md        text eol=lf
+*.cmake     text eol=lf
+*.json      text eol=lf
 
 
 # Compiled Object files
