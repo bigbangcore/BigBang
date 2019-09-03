@@ -5,6 +5,7 @@
 #ifndef CRYPTO_UINT256_H
 #define CRYPTO_UINT256_H
 
+#include <boost/functional/hash.hpp>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -733,6 +734,16 @@ public:
             memcpy(pn, &vch[0], sizeof(pn));
         else
             *this = 0;
+    }
+
+    std::size_t operator()(const uint256& key) const
+    {
+        std::size_t seed = 0;
+        for (int i = 0; i < key.size(); ++i)
+        {
+            boost::hash_combine(seed, key[i]);
+        }
+        return seed;
     }
 };
 
