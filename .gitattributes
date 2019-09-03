@@ -1,17 +1,18 @@
 *.cpp linguist-language=cpp
 
 # Sources
-*.c     text diff=c
-*.cc    text diff=cpp
-*.cxx   text diff=cpp
-*.cpp   text diff=cpp
-*.hpp   text diff=cpp
-*.h     text diff=c
+*.c     text diff=c eol=lf
+*.cc    text diff=cpp eol=lf
+*.cxx   text diff=cpp eol=lf
+*.cpp   text diff=cpp eol=lf
+*.hpp   text diff=cpp eol=lf
+*.h     text diff=c   eol=lf
 
 # end of line
 *.vcproj	text eol=crlf
 *.sh		text eol=lf
 *.py		eol=lf
+
 
 # Compiled Object files
 *.slo   binary
