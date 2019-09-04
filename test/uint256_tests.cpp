@@ -5,6 +5,7 @@
 #include "uint256.h"
 
 #include <boost/test/unit_test.hpp>
+#include <unordered_map>
 
 #include "test_big.h"
 //#include <stdint.h>
@@ -245,6 +246,34 @@ BOOST_AUTO_TEST_CASE(methods) // GetHex SetHex begin() end() size() GetLow64 Get
     ss >> TmpS;
     BOOST_CHECK(MaxS == TmpS);
     ss.Clear();
+}
+
+BOOST_AUTO_TEST_CASE(uint256_hash)
+{
+    std::unordered_map<uint256, std::string> test_map;
+    test_map[R1L] = "R1L";
+    test_map[R2L] = "R2L";
+
+    BOOST_CHECK(test_map.size() == 2);
+    BOOST_CHECK(test_map[R1L] == "R1L");
+    BOOST_CHECK(test_map[R2L] == "R2L");
+
+    uint256 r1l_copy = R1L;
+    BOOST_CHECK(r1l_copy == R1L);
+    BOOST_CHECK(test_map[r1l_copy] == "R1L");
+
+    std::unordered_map<std::string, std::string> test_str_map;
+    std::string strR1L = "R1L";
+    std::string strR2L = "R2L";
+    test_str_map[strR1L] = "R1L_VALUE";
+    test_str_map[strR2L] = "R2L_VALUE";
+
+    BOOST_CHECK(test_str_map.size() == 2);
+    BOOST_CHECK(test_str_map[strR1L] == "R1L_VALUE");
+    BOOST_CHECK(test_str_map[strR1L] == "R1L_VALUE");
+
+    std::string r1l_str_copy = strR1L;
+    BOOST_CHECK(test_str_map[r1l_str_copy] == "R1L_VALUE");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

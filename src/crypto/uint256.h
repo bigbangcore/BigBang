@@ -27,7 +27,7 @@ protected:
     {
         WIDTH = BITS / 32
     };
-    unsigned int pn[WIDTH];
+    uint32 pn[WIDTH];
 
 public:
     bool operator!() const
@@ -57,8 +57,8 @@ public:
 
     base_uint& operator=(uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
         return *this;
@@ -87,15 +87,15 @@ public:
 
     base_uint& operator^=(uint64 b)
     {
-        pn[0] ^= (unsigned int)b;
-        pn[1] ^= (unsigned int)(b >> 32);
+        pn[0] ^= (uint32)b;
+        pn[1] ^= (uint32)(b >> 32);
         return *this;
     }
 
     base_uint& operator|=(uint64 b)
     {
-        pn[0] |= (unsigned int)b;
-        pn[1] |= (unsigned int)(b >> 32);
+        pn[0] |= (uint32)b;
+        pn[1] |= (uint32)(b >> 32);
         return *this;
     }
 
@@ -201,12 +201,12 @@ public:
         return ret;
     }
 
-    unsigned int& operator[](size_t pos)
+    uint32& operator[](size_t pos)
     {
         return pn[pos];
     }
 
-    const unsigned int& operator[](size_t pos) const
+    const uint32& operator[](size_t pos) const
     {
         return pn[pos];
     }
@@ -269,9 +269,9 @@ public:
 
     friend inline bool operator==(const base_uint& a, uint64 b)
     {
-        if (a.pn[0] != (unsigned int)b)
+        if (a.pn[0] != (uint32)b)
             return false;
-        if (a.pn[1] != (unsigned int)(b >> 32))
+        if (a.pn[1] != (uint32)(b >> 32))
             return false;
         for (int i = 2; i < base_uint::WIDTH; i++)
             if (a.pn[i] != 0)
@@ -364,7 +364,7 @@ public:
         return (unsigned char*)&pn[WIDTH];
     }
 
-    static unsigned int size()
+    static uint32 size()
     {
         return sizeof(pn);
     }
@@ -449,16 +449,16 @@ public:
 
     uint160(uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
     }
 
     uint160& operator=(uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
         return *this;
@@ -698,8 +698,8 @@ public:
 
     uint256(const uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
     }
@@ -708,15 +708,15 @@ public:
     {
         for (int i = 0; i < 4; i++)
         {
-            pn[2 * i] = (unsigned int)b[i];
-            pn[2 * i + 1] = (unsigned int)(b[i] >> 32);
+            pn[2 * i] = (uint32)b[i];
+            pn[2 * i + 1] = (uint32)(b[i] >> 32);
         }
     }
 
     uint256& operator=(uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
         return *this;
@@ -735,6 +735,23 @@ public:
             *this = 0;
     }
 };
+
+namespace std
+{
+
+template <>
+struct hash<uint256>
+{
+    std::size_t operator()(const uint256& key) const
+    {
+        std::size_t nSeed = 0;
+        std::string strKeyData(key.begin(), key.end());
+        nSeed = std::hash<std::string>()(strKeyData);
+        return nSeed;
+    }
+};
+
+} // namespace std
 
 inline bool operator==(const uint256& a, uint64 b)
 {
@@ -955,16 +972,16 @@ public:
 
     uint224(const uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
     }
 
     uint224& operator=(uint64 b)
     {
-        pn[0] = (unsigned int)b;
-        pn[1] = (unsigned int)(b >> 32);
+        pn[0] = (uint32)b;
+        pn[1] = (uint32)(b >> 32);
         for (int i = 2; i < WIDTH; i++)
             pn[i] = 0;
         return *this;
