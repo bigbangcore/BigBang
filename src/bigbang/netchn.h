@@ -27,7 +27,7 @@ class CNetChannelPeer
         void AddKnownTx(const std::vector<uint256>& vTxHash);
         bool IsKnownTx(const uint256& txid) const
         {
-            return (!!setKnownTx.get<0>().count(txid));
+            return setKnownTx.get<0>().count(txid) != 0;
         }
 
     protected:
@@ -58,7 +58,7 @@ public:
     }
     bool IsSubscribed(const uint256& hashFork) const
     {
-        return (!!mapSubscribedFork.count(hashFork));
+        return mapSubscribedFork.count(hashFork) != 0;
     }
     void MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool,
                    std::vector<network::CInv>& vInv, std::size_t nMaxCount);

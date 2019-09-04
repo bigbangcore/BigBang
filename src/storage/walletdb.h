@@ -125,7 +125,7 @@ class CWalletTxCache
 public:
     bool Exists(const uint256& txid)
     {
-        return (!!listWalletTx.get<1>().count(txid));
+        return listWalletTx.get<1>().count(txid) != 0;
     }
     std::size_t Count()
     {

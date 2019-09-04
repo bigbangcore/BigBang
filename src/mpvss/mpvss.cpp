@@ -292,7 +292,7 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
             return false;
         }
 
-        vecPartShare.push_back(make_tuple(&it->second, &vShare));
+        vecPartShare.emplace_back(&it->second, &vShare);
     }
 
     if (!computer.ExecuteUntil(vecPartShare.begin(), vecPartShare.end(),
@@ -309,7 +309,7 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
         vector<pair<uint32_t, uint256>>& vOpenedShare = mapOpenedShare[(*mi).first];
         for (size_t i = 0; i < nWeightFrom && vOpenedShare.size() < nThresh; i++)
         {
-            vOpenedShare.push_back(make_pair(nIndexFrom + i, (*mi).second[i]));
+            vOpenedShare.emplace_back(nIndexFrom + i, (*mi).second[i]);
         }
         if (vOpenedShare.size() == nThresh)
         {
@@ -329,7 +329,7 @@ void CMPSecretShare::Reconstruct(map<uint256, pair<uint256, size_t>>& mapSecret)
     map<uint256, vector<pair<uint32_t, uint256>>>::iterator it;
     for (it = mapOpenedShare.begin(); it != mapOpenedShare.end(); ++it)
     {
-        vOpenedShare.push_back(ShareType(&it->first, &it->second));
+        vOpenedShare.emplace_back(&it->first, &it->second);
     }
 
     // parallel compute

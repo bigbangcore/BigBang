@@ -103,7 +103,7 @@ public:
     }
     bool Exists(const uint256& txid) const
     {
-        return (!!setTxLinkIndex.count(txid));
+        return setTxLinkIndex.count(txid) != 0;
     }
     CPooledTx* Get(uint256 txid)
     {

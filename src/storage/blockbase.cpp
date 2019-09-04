@@ -105,7 +105,7 @@ bool CBlockView::ExistsTx(const uint256& txid) const
     {
         return (!(*it).second.IsNull());
     }
-    return (!!(pBlockBase->ExistsTx(txid)));
+    return pBlockBase->ExistsTx(txid);
 }
 
 bool CBlockView::RetrieveTx(const uint256& txid, CTransaction& tx)
@@ -178,7 +178,7 @@ void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoi
         {
             if (!unspent.IsNull())
             {
-                vAddNew.push_back(CTxUnspent(out, unspent));
+                vAddNew.emplace_back(out, unspent);
             }
             else
             {
@@ -285,7 +285,7 @@ bool CBlockBase::Exists(const uint256& hash) const
 {
     CReadLock rlock(rwAccess);
 
-    return (!!mapIndex.count(hash));
+    return mapIndex.count(hash) != 0;
 }
 
 bool CBlockBase::ExistsTx(const uint256& txid)
@@ -326,10 +326,10 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     uint256 txidMintTx = blockGenesis.txMint.GetHash();
 
     vector<pair<uint256, CTxIndex>> vTxNew;
-    vTxNew.push_back(make_pair(txidMintTx, CTxIndex(0, nFile, nTxOffset)));
+    vTxNew.emplace_back(txidMintTx, CTxIndex(0, nFile, nTxOffset));
 
     vector<CTxUnspent> vAddNew;
-    vAddNew.push_back(CTxUnspent(CTxOutPoint(txidMintTx, 0), CTxOut(blockGenesis.txMint)));
+    vAddNew.emplace_back(CTxOutPoint(txidMintTx, 0), CTxOut(blockGenesis.txMint));
 
     {
         CWriteLock wlock(rwAccess);
@@ -458,22 +458,14 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
             return false;
         }
     }
-    if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false))
-    {
-        return false;
-    }
-    return true;
+    return tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false);
 }
 
 bool CBlockBase::Retrieve(const CBlockIndex* pIndex, CBlock& block)
 {
     block.SetNull();
 
-    if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false))
-    {
-        return false;
-    }
-    return true;
+    return tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false);
 }
 
 bool CBlockBase::Retrieve(const uint256& hash, CBlockEx& block)
@@ -489,22 +481,14 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlockEx& block)
             return false;
         }
     }
-    if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
-    {
-        return false;
-    }
-    return true;
+
+    return tsBlock.Read(block, pIndex->nFile, pIndex->nOffset);
 }
 
 bool CBlockBase::Retrieve(const CBlockIndex* pIndex, CBlockEx& block)
 {
     block.SetNull();
-
-    if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
-    {
-        return false;
-    }
-    return true;
+    return tsBlock.Read(block, pIndex->nFile, pIndex->nOffset);
 }
 
 bool CBlockBase::RetrieveIndex(const uint256& hash, CBlockIndex** ppIndex)
@@ -579,7 +563,7 @@ bool CBlockBase::RetrieveAncestry(const uint256& hash, vector<pair<uint256, uint
 
     while (ctxt.hashParent != 0)
     {
-        vAncestry.push_back(make_pair(ctxt.hashParent, ctxt.hashJoint));
+        vAncestry.emplace_back(ctxt.hashParent, ctxt.hashJoint);
         if (!dbBlock.RetrieveForkContext(ctxt.hashParent, ctxt))
         {
             return false;
@@ -630,11 +614,7 @@ bool CBlockBase::RetrieveTx(const uint256& txid, CTransaction& tx)
         return false;
     }
 
-    if (!tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset))
-    {
-        return false;
-    }
-    return true;
+    return tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset);
 }
 
 bool CBlockBase::RetrieveTx(const uint256& hashFork, const uint256& txid, CTransaction& tx)
@@ -647,11 +627,7 @@ bool CBlockBase::RetrieveTx(const uint256& hashFork, const uint256& txid, CTrans
         return false;
     }
 
-    if (!tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset))
-    {
-        return false;
-    }
-    return true;
+    return tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset);
 }
 
 bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int& nHeight)
@@ -1643,12 +1619,8 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
         return false;
     }
 
-    if (!profile.Load(block.vchProof))
-    {
-        return false;
-    }
+    return profile.Load(block.vchProof);
 
-    return true;
 }
 
 bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock)
@@ -1730,18 +1702,18 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
         if (!block.txMint.IsNull())
         {
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
-            vTxNew.push_back(make_pair(block.txMint.GetHash(), txIndex));
+            vTxNew.emplace_back(block.txMint.GetHash(), txIndex);
         }
         nOffset += ss.GetSerializeSize(block.txMint);
 
         CVarInt var(block.vtx.size());
         nOffset += ss.GetSerializeSize(var);
-        for (int i = 0; i < block.vtx.size(); i++)
+        for (int j = 0; j < block.vtx.size(); i++)
         {
-            CTransaction& tx = block.vtx[i];
+            CTransaction& tx = block.vtx[j];
             uint256 txid = tx.GetHash();
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
-            vTxNew.push_back(make_pair(txid, txIndex));
+            vTxNew.emplace_back(txid, txIndex);
             nOffset += ss.GetSerializeSize(tx);
         }
     }

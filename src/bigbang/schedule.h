@@ -45,11 +45,11 @@ public:
     {
         for (const uint256& hash : invKnown[1].listKnown)
         {
-            vInv.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
+            vInv.emplace_back(network::CInv::MSG_BLOCK, hash);
         }
         for (const uint256& hash : invKnown[0].listKnown)
         {
-            vInv.push_back(network::CInv(network::CInv::MSG_TX, hash));
+            vInv.emplace_back(network::CInv::MSG_TX, hash);
         }
     }
     void AddNewInv(const network::CInv& inv)
