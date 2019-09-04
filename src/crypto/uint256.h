@@ -744,10 +744,10 @@ struct hash<uint256>
 {
     std::size_t operator()(const uint256& key) const
     {
-        std::size_t seed = 0;
-        std::string vBin(key.begin(), key.end());
-        seed = std::hash<std::string>()(vBin);
-        return seed;
+        std::size_t nSeed = 0;
+        std::string strKeyData(key.begin(), key.end());
+        nSeed = std::hash<std::string>()(strKeyData);
+        return nSeed;
     }
 };
 
