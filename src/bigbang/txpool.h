@@ -253,7 +253,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     std::map<uint256, CTxPoolView> mapPoolView;
-    std::map<uint256, CPooledTx> mapTx;
+    std::unordered_map<uint256, CPooledTx> mapTx;
     std::size_t nLastSequenceNumber;
 };
 
