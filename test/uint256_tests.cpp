@@ -262,18 +262,12 @@ BOOST_AUTO_TEST_CASE(uint256_hash)
     BOOST_CHECK(r1l_copy == R1L);
     BOOST_CHECK(test_map[r1l_copy] == "R1L");
 
-    std::unordered_map<std::string, std::string> test_str_map;
-    std::string strR1L = "R1L";
-    std::string strR2L = "R2L";
-    test_str_map[strR1L] = "R1L_VALUE";
-    test_str_map[strR2L] = "R2L_VALUE";
+    test_map[r1l_copy] = "R1L_COPY";
+    BOOST_CHECK(test_map[R1L] == "R1L_COPY");
 
-    BOOST_CHECK(test_str_map.size() == 2);
-    BOOST_CHECK(test_str_map[strR1L] == "R1L_VALUE");
-    BOOST_CHECK(test_str_map[strR1L] == "R1L_VALUE");
-
-    std::string r1l_str_copy = strR1L;
-    BOOST_CHECK(test_str_map[r1l_str_copy] == "R1L_VALUE");
+    test_map.erase(r1l_copy);
+    BOOST_CHECK(test_map.count(R1L) == 0);
+    BOOST_CHECK(test_map.size() == 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
