@@ -185,10 +185,10 @@ BOOST_AUTO_TEST_CASE(basic)
 
     int nA = 5000, nB = 5000, nC = 5000, nD = 5000;
     auto begin = boost::chrono::steady_clock::now();
-    thread th1(Publish, nA, nB, nC, nD);
-    thread th2(Publish, nA, nB, nC, nD);
-    thread th3(Publish, nA, nB, nC, nD);
-    thread th4(Publish, nA, nB, nC, nD);
+    std::thread th1(Publish, nA, nB, nC, nD);
+    std::thread th2(Publish, nA, nB, nC, nD);
+    std::thread th3(Publish, nA, nB, nC, nD);
+    std::thread th4(Publish, nA, nB, nC, nD);
     th1.join();
     th2.join();
     th3.join();
