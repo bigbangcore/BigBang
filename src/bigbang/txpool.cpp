@@ -34,7 +34,7 @@ public:
     }
     bool Have(const uint256& txid) const
     {
-        return (!!mapPoolTx.count(txid));
+        return mapPoolTx.count(txid) != 0;
     }
     int64 GetTxFeePerKB() const
     {
@@ -179,7 +179,7 @@ void CTxPool::HandleHalt()
 bool CTxPool::Exists(const uint256& txid)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    return (!!mapTx.count(txid));
+    return mapTx.count(txid) != 0;
 }
 
 void CTxPool::Clear()
@@ -289,7 +289,7 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTx
         CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
         for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
-            vTxPool.push_back(make_pair((*mi).hashTX, (*mi).ptx->nSerializeSize));
+            vTxPool.emplace_back((*mi).hashTX, (*mi).ptx->nSerializeSize);
         }
     }
 }
@@ -317,7 +317,7 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, uint256>>& vT
         CPooledTxLinkSetBySequenceNumber& idxTx = it->second.setTxLinkIndex.get<1>();
         for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
-            vTxPool.push_back(make_pair(mi->hashTX, mi->ptx->hashAnchor));
+            vTxPool.emplace_back(mi->hashTX, mi->ptx->hashAnchor);
         }
     }
 }
@@ -411,7 +411,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     {
         if (block.txMint.nAmount != 0)
         {
-            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nHeight));
+            change.vTxAddNew.emplace_back(block.txMint, nHeight);
         }
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -432,7 +432,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     {
                         txView.InvalidateSpent(txin.prevout, vInvalidTx);
                     }
-                    change.vTxAddNew.push_back(CAssembledTx(tx, nHeight, txContxt.destIn, txContxt.GetValueIn()));
+                    change.vTxAddNew.emplace_back(tx, nHeight, txContxt.destIn, txContxt.GetValueIn());
                 }
             }
             else
@@ -469,7 +469,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     txView.InvalidateSpent(CTxOutPoint(txid, 0), vInvalidTx);
                     txView.InvalidateSpent(CTxOutPoint(txid, 1), vInvalidTx);
-                    vTxRemove.push_back(make_pair(txid, tx.vInput));
+                    vTxRemove.emplace_back(txid, tx.vInput);
                 }
             }
         }
@@ -479,7 +479,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             CTxOutPoint outMint(txidMint, 0);
             txView.InvalidateSpent(outMint, vInvalidTx);
 
-            vTxRemove.push_back(make_pair(txidMint, block.txMint.vInput));
+            vTxRemove.emplace_back(txidMint, block.txMint.vInput);
         }
     }
 
@@ -489,7 +489,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         unordered_map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
         if (it != mapTx.end())
         {
-            change.vTxRemove.push_back(make_pair(txid, (*it).second.vInput));
+            change.vTxRemove.emplace_back(txid, (*it).second.vInput);
             mapTx.erase(it);
         }
     }

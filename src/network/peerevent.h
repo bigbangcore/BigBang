@@ -142,7 +142,7 @@ public:
 public:
     void AddBitmap(const uint256& hash, uint64 bitmap)
     {
-        vBitmap.push_back(CDelegatedBitmap(hash, bitmap));
+        vBitmap.emplace_back(hash, bitmap);
     }
 
 protected:

@@ -44,7 +44,7 @@ public:
     bool Exists(const K& key) const
     {
         CReadLock rlock(rwAccess);
-        return (!!cntrCache.count(key));
+        return cntrCache.count(key) != 0;
     }
     bool Retrieve(const K& key, V& value) const
     {

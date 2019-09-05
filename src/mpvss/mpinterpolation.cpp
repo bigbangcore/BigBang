@@ -158,7 +158,7 @@ const uint256 MPNewton(vector<pair<uint32_t, uint256>>& vShare)
     {
         vector<CSC25519> vDiff;
         vDiff.reserve(i + 1);
-        vDiff.push_back(CSC25519(vShare[i].second.begin()));
+        vDiff.emplace_back(vShare[i].second.begin());
 
         for (size_t j = 0; j < i; j++)
         {

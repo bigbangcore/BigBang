@@ -216,11 +216,11 @@ bool CWallet::IsMine(const CDestination& dest)
     CTemplateId nTemplateId;
     if (dest.GetPubKey(pubkey))
     {
-        return (!!mapKeyStore.count(pubkey));
+        return mapKeyStore.count(pubkey) != 0;
     }
     else if (dest.GetTemplateId(nTemplateId))
     {
-        return (!!mapTemplatePtr.count(nTemplateId));
+        return mapTemplatePtr.count(nTemplateId) != 0;
     }
     return false;
 }
@@ -267,7 +267,7 @@ void CWallet::GetPubKeys(set<crypto::CPubKey>& setPubKey) const
 bool CWallet::Have(const crypto::CPubKey& pubkey) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
-    return (!!mapKeyStore.count(pubkey));
+    return mapKeyStore.count(pubkey) != 0;
 }
 
 bool CWallet::Export(const crypto::CPubKey& pubkey, vector<unsigned char>& vchKey) const
@@ -429,7 +429,7 @@ void CWallet::GetTemplateIds(set<CTemplateId>& setTemplateId) const
 bool CWallet::Have(const CTemplateId& tid) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
-    return (!!mapTemplatePtr.count(tid));
+    return mapTemplatePtr.count(tid) != 0;
 }
 
 bool CWallet::AddTemplate(CTemplatePtr& ptr)

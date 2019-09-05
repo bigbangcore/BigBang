@@ -146,7 +146,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         {
             continue;
         }
-        tx.vInput.push_back(CTxIn(txout));
+        tx.vInput.emplace_back(txout);
         nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
         if (nValueIn > nTxFee)
         {
@@ -295,7 +295,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
         }
 
-        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+        routine.vEnrolledWeight.emplace_back(hash, enrolled.mapWeight);
 
         nBlockHeight++;
     }
@@ -343,7 +343,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             }
             routine.mapPublishData = result.mapPublishData;
         }
-        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+        routine.vEnrolledWeight.emplace_back(hash, enrolled.mapWeight);
     }
 }
 

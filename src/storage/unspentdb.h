@@ -120,7 +120,7 @@ public:
     void Deinitialize();
     bool Exists(const uint256& hashFork)
     {
-        return (!!mapUnspentDB.count(hashFork));
+        return mapUnspentDB.count(hashFork) != 0;
     }
     bool AddNewFork(const uint256& hashFork);
     bool RemoveFork(const uint256& hashFork);
