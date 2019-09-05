@@ -147,13 +147,14 @@ public:
 
     void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
     {
-        sink = boost::shared_ptr<sink_t>(new sink_t(
-            keywords::file_name = "bigbang_%N.log",
+        sink = boost::make_shared<sink_t>(
+            keywords::open_mode = std::ios::app,
+            keywords::file_name = pathData / "logs" / "bigbang_%N.log",
             keywords::rotation_size = 10 * 1024 * 1024,
-            keywords::auto_flush = true));
+            keywords::auto_flush = true);
 
         sink->locked_backend()->set_file_collector(sinks::file::make_collector(
-            keywords::target = pathData / "logs",
+            keywords::target = pathData / "logs-collector",
             keywords::max_size = 50 * 1024 * 1024,
             keywords::auto_flush = true));
         sink->locked_backend()->scan_for_files();
@@ -164,8 +165,6 @@ public:
             % severity
             % expr::attr<std::string>("ThreadName")
             % expr::smessage);
-        logging::core::get()->add_sink(sink);
-        logging::add_common_attributes();
 
         typedef expr::channel_severity_filter_actor<std::string, severity_level> min_severity_filter;
         min_severity_filter min_severity = expr::channel_severity_filter(channel, severity);
@@ -175,6 +174,9 @@ public:
         min_severity["storage"] = warn;
         auto filter = min_severity || sl <= severity;
         sink->set_filter(filter);
+
+        logging::core::get()->add_sink(sink);
+
         if (!daemon)
         {
             typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
@@ -185,6 +187,8 @@ public:
             sink_console->set_filter(filter);
             logging::core::get()->add_sink(sink_console);
         }
+
+        logging::add_common_attributes();
     }
 
     ~CBoostLog()
