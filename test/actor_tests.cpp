@@ -7,6 +7,7 @@
 #include <atomic>
 #include <boost/chrono/system_clocks.hpp>
 #include <boost/test/unit_test.hpp>
+#include <thread>
 
 #include "docker/config.h"
 #include "docker/docker.h"
