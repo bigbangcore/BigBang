@@ -8,6 +8,7 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 #include <map>
+#include <unordered_map>
 #include <numeric>
 
 #include "block.h"
@@ -198,7 +199,7 @@ protected:
     boost::shared_ptr<CBlockFork> spFork;
     uint256 hashFork;
     bool fCommittable;
-    std::map<uint256, CTransaction> mapTx;
+    std::unordered_map<uint256, CTransaction> mapTx;
     std::map<CTxOutPoint, CUnspent> mapUnspent;
     std::vector<uint256> vTxRemove;
     std::vector<uint256> vTxAddNew;
@@ -307,7 +308,7 @@ protected:
     bool fDebugLog;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;
-    std::map<uint256, CBlockIndex*> mapIndex;
+    std::unordered_map<uint256, CBlockIndex*> mapIndex;
     std::map<uint256, boost::shared_ptr<CBlockFork>> mapFork;
 };
 

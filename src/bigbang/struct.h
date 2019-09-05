@@ -9,7 +9,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <vector>
 
@@ -110,7 +110,7 @@ class CTxSetChange
 {
 public:
     uint256 hashFork;
-    std::map<uint256, int> mapTxUpdate;
+    std::unordered_map<uint256, int> mapTxUpdate;
     std::vector<CAssembledTx> vTxAddNew;
     std::vector<std::pair<uint256, std::vector<CTxIn>>> vTxRemove;
 };

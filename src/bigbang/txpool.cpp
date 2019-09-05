@@ -245,7 +245,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
 void CTxPool::Pop(const uint256& txid)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-    map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
+    unordered_map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
     if (it == mapTx.end())
     {
         return;
@@ -271,7 +271,7 @@ void CTxPool::Pop(const uint256& txid)
 bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
+    unordered_map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
     if (it != mapTx.end())
     {
         tx = (*it).second;
@@ -486,7 +486,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     change.vTxRemove.reserve(vInvalidTx.size() + vTxRemove.size());
     for (const uint256& txid : boost::adaptors::reverse(vInvalidTx))
     {
-        map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
+        unordered_map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
         if (it != mapTx.end())
         {
             change.vTxRemove.push_back(make_pair(txid, (*it).second.vInput));
@@ -514,7 +514,7 @@ bool CTxPool::LoadData()
         const uint256& txid = vTx[i].second.first;
         const CAssembledTx& tx = vTx[i].second.second;
 
-        map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
+        unordered_map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
         mapPoolView[hashFork].AddNew(txid, (*mi).second);
     }
     return true;
@@ -580,7 +580,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     }
 
     CDestination destIn = vPrevOutput[0].destTo;
-    map<uint256, CPooledTx>::iterator mi;
+    unordered_map<uint256, CPooledTx>::iterator mi;
     mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
     txView.AddNew(txid, (*mi).second);
 

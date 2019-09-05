@@ -100,7 +100,7 @@ void CBlockView::Deinitialize()
 
 bool CBlockView::ExistsTx(const uint256& txid) const
 {
-    map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
+    unordered_map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
     if (it != mapTx.end())
     {
         return (!(*it).second.IsNull());
@@ -110,7 +110,7 @@ bool CBlockView::ExistsTx(const uint256& txid) const
 
 bool CBlockView::RetrieveTx(const uint256& txid, CTransaction& tx)
 {
-    map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
+    unordered_map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
     if (it != mapTx.end())
     {
         tx = (*it).second;
@@ -285,7 +285,7 @@ bool CBlockBase::Exists(const uint256& hash) const
 {
     CReadLock rlock(rwAccess);
 
-    return (!!mapIndex.count(hash));
+    return mapIndex.count(hash) != 0;
 }
 
 bool CBlockBase::ExistsTx(const uint256& txid)
@@ -866,7 +866,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
     uint256 hash = outline.GetBlockHash();
     CBlockIndex* pIndexNew = nullptr;
 
-    map<uint256, CBlockIndex*>::iterator mi = mapIndex.find(hash);
+    unordered_map<uint256, CBlockIndex*>::iterator mi = mapIndex.find(hash);
     if (mi != mapIndex.end())
     {
         pIndexNew = (*mi).second;
@@ -1518,13 +1518,13 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
 
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
-    map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
+    unordered_map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
     return (mi != mapIndex.end() ? (*mi).second : nullptr);
 }
 
 CBlockIndex* CBlockBase::GetOrCreateIndex(const uint256& hash)
 {
-    map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
+    unordered_map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
     if (mi == mapIndex.end())
     {
         mi = mapIndex.insert(make_pair(hash, new CBlockIndex())).first;
@@ -1574,14 +1574,14 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
     CBlockIndex* pIndexNew = new CBlockIndex(block, nFile, nOffset);
     if (pIndexNew != nullptr)
     {
-        map<uint256, CBlockIndex*>::iterator mi = mapIndex.insert(make_pair(hash, pIndexNew)).first;
+        unordered_map<uint256, CBlockIndex*>::iterator mi = mapIndex.insert(make_pair(hash, pIndexNew)).first;
         pIndexNew->phashBlock = &((*mi).first);
 
         int64 nMoneySupply = block.GetBlockMint();
         uint64 nChainTrust = block.GetBlockTrust();
         uint64 nRandBeacon = block.GetBlockBeacon();
         CBlockIndex* pIndexPrev = nullptr;
-        map<uint256, CBlockIndex*>::iterator miPrev = mapIndex.find(block.hashPrev);
+        unordered_map<uint256, CBlockIndex*>::iterator miPrev = mapIndex.find(block.hashPrev);
         if (miPrev != mapIndex.end())
         {
             pIndexPrev = (*miPrev).second;
@@ -1750,7 +1750,7 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
 
 void CBlockBase::ClearCache()
 {
-    map<uint256, CBlockIndex*>::iterator mi;
+    unordered_map<uint256, CBlockIndex*>::iterator mi;
     for (mi = mapIndex.begin(); mi != mapIndex.end(); ++mi)
     {
         delete (*mi).second;
