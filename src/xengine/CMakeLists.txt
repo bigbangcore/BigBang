@@ -36,6 +36,9 @@ set(sources
     http/httputil.cpp       http/httputil.h
     http/httpserver.cpp     http/httpserver.h
     http/httpget.cpp        http/httpget.h
+    message/message.h
+    message/actor.h         message/actor.cpp
+    message/messagecenter.h message/messagecenter.cpp
     db/kvdb.h
     stream/datastream.h
     docker/log.h  
