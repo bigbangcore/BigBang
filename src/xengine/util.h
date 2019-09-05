@@ -7,8 +7,8 @@
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/date_time.hpp>
-#include <boost/log/common.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/log/common.hpp>
 
 #include "type.h"
 
@@ -91,31 +91,31 @@ enum severity_level
 
 namespace src = boost::log::sources;
 
-typedef src::severity_channel_logger_mt< severity_level, std::string > sclmt_type;
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, sclmt_type)
+typedef src::severity_channel_logger_mt<severity_level, std::string> sclmt_type;
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(logger, sclmt_type)
 
 void StdDebug(const char* pszName, const char* pszErr);
 void StdLog(const char* pszName, const char* pszErr);
 void StdWarn(const char* pszName, const char* pszErr);
 void StdError(const char* pszName, const char* pszErr);
 
-bool InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon);
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon);
 
-inline std::string PulsFileLine(const char *file,int line,const char *info)
+inline std::string PulsFileLine(const char* file, int line, const char* info)
 {
     std::stringstream ss;
-    ss  << file << "(" << line << ") " << info;
+    ss << file << "(" << line << ") " << info;
     return ss.str();
 }
 
-#define STD_DEBUG(Mod,Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_DEBUG(Mod, Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_LOG(Mod,Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_LOG(Mod, Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_WARN(Mod,Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_WARN(Mod, Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_Eerror(Mod,Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
- 
+#define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+
 inline bool IsRoutable(const boost::asio::ip::address& address)
 {
     if (address.is_loopback() || address.is_unspecified())

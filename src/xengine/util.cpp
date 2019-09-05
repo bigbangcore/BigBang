@@ -18,10 +18,13 @@
 #include <boost/log/attributes.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -134,15 +137,29 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
 }
 
 typedef sinks::text_file_backend backend_t;
-typedef sinks::asynchronous_sink<
-    backend_t>
-    sink_t;
+typedef sinks::unbounded_fifo_queue queue_t;
+typedef sinks::asynchronous_sink<backend_t> sink_t;
 
-class CBoostLog
+class CBoostLog : public boost::noncopyable
 {
 public:
-    CBoostLog()
+    static CBoostLog& getInstance()
     {
+        static CBoostLog* singleton = new CBoostLog();
+        return *singleton;
+    }
+
+    bool IsInited() const
+    {
+        return fIsInited.load();
+    }
+
+    void Flush()
+    {
+        if (file_sink)
+        {
+            file_sink->locked_backend()->flush();
+        }
     }
 
     void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
@@ -193,21 +210,20 @@ public:
 
     ~CBoostLog()
     {
-        if (sink != nullptr)
+        if (file_sink)
         {
-            sink->stop();
-            sink->flush();
+            file_sink->locked_backend()->flush();
         }
     }
-    boost::shared_ptr<sink_t> sink = nullptr;
-};
 
-static CBoostLog g_log;
-static bool volatile g_log_init = false;
+private:
+    boost::shared_ptr<sink_t> file_sink;
+    std::atomic<bool> fIsInited = { false };
+};
 
 void StdDebug(const char* pszName, const char* pszErr)
 {
-    if (g_log_init)
+    if (CBoostLog::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -215,13 +231,14 @@ void StdDebug(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, debug) << pszErr;
+        CBoostLog::getInstance().Flush();
     }
 }
 
 void StdLog(const char* pszName, const char* pszErr)
 {
-    if (g_log_init)
+    if (CBoostLog::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -229,13 +246,14 @@ void StdLog(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, info) << str;
+        CBoostLog::getInstance().Flush();
     }
 }
 
 void StdWarn(const char* pszName, const char* pszErr)
 {
-    if (g_log_init)
+    if (CBoostLog::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -243,13 +261,14 @@ void StdWarn(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, warn) << pszErr;
+        CBoostLog::getInstance().Flush();
     }
 }
 
 void StdError(const char* pszName, const char* pszErr)
 {
-    if (g_log_init)
+    if (CBoostLog::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -257,14 +276,14 @@ void StdError(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, error) << pszErr;
+        CBoostLog::getInstance().Flush();
     }
 }
 
 bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
 {
-    g_log_init = true;
-    g_log.Init(pathData, debug, daemon);
+    CBoostLog::getInstance().Init(pathData, debug, daemon);
     return true;
 }
 
