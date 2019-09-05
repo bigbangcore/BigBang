@@ -10,7 +10,6 @@ set(sources
     version.h
     type.h
     util.cpp                util.h
-    logger.cpp              logger.h
     rwlock.h
     cache.h
     compacttv.h
