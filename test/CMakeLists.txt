@@ -15,6 +15,7 @@ set(sources
     mpvss_tests.cpp
     ipv6_tests.cpp
     crypto_tests.cpp
+    actor_tests.cpp
 )
 
 add_executable(test_big ${sources})
@@ -26,6 +27,7 @@ target_link_libraries(test_big
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_CHRONO_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
     mpvss
