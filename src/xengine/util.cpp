@@ -154,14 +154,6 @@ public:
         return fIsInited.load();
     }
 
-    void Flush()
-    {
-        if (file_sink)
-        {
-            file_sink->locked_backend()->flush();
-        }
-    }
-
     void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
     {
         sink = boost::make_shared<sink_t>(
@@ -210,14 +202,14 @@ public:
 
     ~CBoostLog()
     {
-        if (file_sink)
+        if (sink)
         {
-            file_sink->locked_backend()->flush();
+            sink->locked_backend()->flush();
         }
     }
 
 private:
-    boost::shared_ptr<sink_t> file_sink;
+    boost::shared_ptr<sink_t> sink;
     std::atomic<bool> fIsInited = { false };
 };
 
@@ -232,7 +224,6 @@ void StdDebug(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, debug) << pszErr;
-        CBoostLog::getInstance().Flush();
     }
 }
 
@@ -247,7 +238,6 @@ void StdLog(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, info) << str;
-        CBoostLog::getInstance().Flush();
     }
 }
 
@@ -262,7 +252,6 @@ void StdWarn(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, warn) << pszErr;
-        CBoostLog::getInstance().Flush();
     }
 }
 
@@ -277,7 +266,6 @@ void StdError(const char* pszName, const char* pszErr)
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, error) << pszErr;
-        CBoostLog::getInstance().Flush();
     }
 }
 
