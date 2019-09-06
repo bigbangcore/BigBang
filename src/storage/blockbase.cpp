@@ -1620,7 +1620,6 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
     }
 
     return profile.Load(block.vchProof);
-
 }
 
 bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock)
@@ -1708,7 +1707,7 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
 
         CVarInt var(block.vtx.size());
         nOffset += ss.GetSerializeSize(var);
-        for (int j = 0; j < block.vtx.size(); i++)
+        for (int j = 0; j < block.vtx.size(); j++)
         {
             CTransaction& tx = block.vtx[j];
             uint256 txid = tx.GetHash();
