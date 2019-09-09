@@ -745,8 +745,7 @@ struct hash<uint256>
     std::size_t operator()(const uint256& key) const
     {
         std::size_t nSeed = 0;
-        std::string strKeyData(key.begin(), key.end());
-        nSeed = std::hash<std::string>()(strKeyData);
+        std::copy_n(key.begin(), sizeof(std::size_t), (uint8_t*)(&nSeed));
         return nSeed;
     }
 };
