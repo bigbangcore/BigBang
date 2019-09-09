@@ -5,8 +5,8 @@
 #ifndef XENGINE_EVENT_EVENT_H
 #define XENGINE_EVENT_EVENT_H
 
+#include "logger.h"
 #include "stream/stream.h"
-#include "util.h"
 
 namespace xengine
 {

@@ -14,7 +14,7 @@
 #include "destination.h"
 #include "stream/datastream.h"
 #include "templateid.h"
-#include "util.h"
+#include "logger.h"
 
 class CSpendableTemplate
 {
@@ -40,7 +40,7 @@ public:
             is >> destIn;
             vchSubSig.assign(vchSig.begin() + CDestination::DESTINATION_SIZE, vchSig.end());
         }
-        catch (std::exception& e)
+        catch (const std::exception& e)
         {
             xengine::StdError(__PRETTY_FUNCTION__, e.what());
             return false;

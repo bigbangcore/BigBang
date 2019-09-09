@@ -8,7 +8,7 @@
 #include <boost/bind.hpp>
 
 #include "iocontainer.h"
-#include "util.h"
+#include "logger.h"
 
 using namespace std;
 using boost::asio::ip::tcp;

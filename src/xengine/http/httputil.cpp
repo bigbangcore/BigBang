@@ -12,7 +12,7 @@
 #include <locale>
 #include <sstream>
 
-#include "util.h"
+#include "logger.h"
 #include "version.h"
 
 using namespace std;

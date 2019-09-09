@@ -4,8 +4,8 @@
 
 #include "key.h"
 
+#include "logger.h"
 #include "stream/datastream.h"
-#include "util.h"
 
 using namespace xengine;
 
@@ -228,7 +228,7 @@ bool CKey::Unlock(const CCryptoString& strPassphrase)
     {
         return CryptoDecryptSecret(nVersion, strPassphrase, cipher, *pCryptoKey);
     }
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
     }
@@ -247,7 +247,7 @@ bool CKey::UpdateCipher(uint32 nVersionIn, const CCryptoString& strPassphrase)
             return true;
         }
     }
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
     }
