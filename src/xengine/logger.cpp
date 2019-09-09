@@ -93,7 +93,7 @@ public:
         return fIsInited.load();
     }
 
-    void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
+    void Init(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
     {
         sink = boost::make_shared<sink_t>(
             keywords::open_mode = std::ios::app,
@@ -111,7 +111,7 @@ public:
 
         typedef expr::channel_severity_filter_actor<std::string, severity_level> min_severity_filter;
         min_severity_filter min_severity = expr::channel_severity_filter(channel, severity);
-        severity_level sl = debug_ ? debug : info;
+        severity_level sl = fDebug ? debug : info;
         min_severity["bigbang"] = warn;
         min_severity["CDelegate"] = warn;
         min_severity["storage"] = warn;
@@ -120,7 +120,7 @@ public:
 
         logging::core::get()->add_sink(sink);
 
-        if (!daemon)
+        if (!fDaemon)
         {
             typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
             boost::shared_ptr<text_sink> sink_console = boost::make_shared<text_sink>();
@@ -204,7 +204,7 @@ void StdError(const char* pszName, const char* pszErr)
     }
 }
 
-bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
+bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
 {
     boost::filesystem::path logPath = pathData / "logs";
     if (!boost::filesystem::exists(logPath))
@@ -215,7 +215,7 @@ bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
         }
     }
 
-    CBoostLog::getInstance().Init(pathData, debug, daemon);
+    CBoostLog::getInstance().Init(pathData, fDebug, fDaemon);
     return true;
 }
 } // namespace xengine

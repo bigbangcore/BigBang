@@ -41,7 +41,7 @@ void StdLog(const char* pszName, const char* pszErr);
 void StdWarn(const char* pszName, const char* pszErr);
 void StdError(const char* pszName, const char* pszErr);
 
-bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon);
+bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon);
 
 } // namespace xengine
 #endif // XENGINE_LOGGER_H
