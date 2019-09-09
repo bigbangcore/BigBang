@@ -15,13 +15,13 @@ namespace xengine
 
 extern bool STD_DEBUG;
 
-#define STD_DEBUG(Mod, Info) StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_DEBUG(Mod, Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_LOG(Mod, Info) StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_LOG(Mod, Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_WARN(Mod, Info) StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_WARN(Mod, Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_Eerror(Mod, Info) StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
 enum severity_level : uint8_t
 {
