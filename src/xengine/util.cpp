@@ -138,7 +138,7 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
 
 typedef sinks::text_file_backend backend_t;
 typedef sinks::unbounded_fifo_queue queue_t;
-typedef sinks::asynchronous_sink<backend_t> sink_t;
+typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
 
 class CBoostLog : public boost::noncopyable
 {
@@ -162,11 +162,6 @@ public:
             keywords::rotation_size = 10 * 1024 * 1024,
             keywords::auto_flush = true);
 
-        sink->locked_backend()->set_file_collector(sinks::file::make_collector(
-            keywords::target = pathData / "logs-collector",
-            keywords::max_size = 50 * 1024 * 1024,
-            keywords::auto_flush = true));
-        sink->locked_backend()->scan_for_files();
         sink->set_formatter(
             expr::format("%1% : [%2%] <%3%> {%4%} - %5%")
             % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f")
@@ -198,6 +193,7 @@ public:
         }
 
         logging::add_common_attributes();
+        fIsInited = true;
     }
 
     ~CBoostLog()
@@ -271,6 +267,15 @@ void StdError(const char* pszName, const char* pszErr)
 
 bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
 {
+    boost::filesystem::path logPath = pathData / "logs";
+    if (!boost::filesystem::exists(logPath))
+    {
+        if (!boost::filesystem::create_directories(logPath))
+        {
+            return false;
+        }
+    }
+
     CBoostLog::getInstance().Init(pathData, debug, daemon);
     return true;
 }
