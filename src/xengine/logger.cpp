@@ -79,12 +79,12 @@ typedef sinks::text_file_backend backend_t;
 typedef sinks::unbounded_fifo_queue queue_t;
 typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
 
-class CBoostLog : public boost::noncopyable
+class CLogger : public boost::noncopyable
 {
 public:
-    static CBoostLog& getInstance()
+    static CLogger& getInstance()
     {
-        static CBoostLog* singleton = new CBoostLog();
+        static CLogger* singleton = new CLogger();
         return *singleton;
     }
 
@@ -135,7 +135,7 @@ public:
         fIsInited = true;
     }
 
-    ~CBoostLog()
+    ~CLogger()
     {
         if (sink)
         {
@@ -150,7 +150,7 @@ private:
 
 void StdDebug(const char* pszName, const char* pszErr)
 {
-    if (CBoostLog::getInstance().IsInited())
+    if (CLogger::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -164,7 +164,7 @@ void StdDebug(const char* pszName, const char* pszErr)
 
 void StdLog(const char* pszName, const char* pszErr)
 {
-    if (CBoostLog::getInstance().IsInited())
+    if (CLogger::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -178,7 +178,7 @@ void StdLog(const char* pszName, const char* pszErr)
 
 void StdWarn(const char* pszName, const char* pszErr)
 {
-    if (CBoostLog::getInstance().IsInited())
+    if (CLogger::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -192,7 +192,7 @@ void StdWarn(const char* pszName, const char* pszErr)
 
 void StdError(const char* pszName, const char* pszErr)
 {
-    if (CBoostLog::getInstance().IsInited())
+    if (CLogger::getInstance().IsInited())
     {
         std::string str(pszErr);
         if (str[str.length() - 1] == '\n')
@@ -215,7 +215,7 @@ bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
         }
     }
 
-    CBoostLog::getInstance().Init(pathData, fDebug, fDaemon);
+    CLogger::getInstance().Init(pathData, fDebug, fDaemon);
     return true;
 }
 } // namespace xengine
