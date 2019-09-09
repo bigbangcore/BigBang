@@ -11,17 +11,9 @@
 #include "util.h"
 
 #ifdef __CYGWIN__
-#ifndef TCP_KEEPIDLE
-#define TCP_KEEPIDLE 4     /* Start keeplives after this period */
-#endif
- 
-#ifndef TCP_KEEPINTVL
-#define TCP_KEEPINTVL 5    /* Interval between keepalives */
-#endif
- 
-#ifndef TCP_KEEPCNT
-#define TCP_KEEPCNT 6      /* Number of keepalives before death */
-#endif
+#define TCP_KEEPIDLE 4
+#define TCP_KEEPINTVL 5
+#define TCP_KEEPCNT 6
 #endif
 
 using namespace std;
@@ -167,6 +159,14 @@ void CSocketClient::AsyncConnect(const tcp::endpoint& epRemote, CallBackConn fnC
 {
     sockClient.async_connect(epRemote, boost::bind(&CSocketClient::HandleConnCompleted, this,
                                                    fnConnected, boost::asio::placeholders::error));
+    int keepAlive = 1;
+    int keepIdle = 60 * 4;
+    int keepInterval = 5;
+    int keepCount = 2;
+    setsockopt(sockClient.native_handle(), SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
+    setsockopt(sockClient.native_handle(), SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));
+    setsockopt(sockClient.native_handle(), SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));
+    setsockopt(sockClient.native_handle(), SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
 }
 
 void CSocketClient::AsyncRead(CBufStream& ssRecv, size_t nLength, CallBackFunc fnCompleted)
