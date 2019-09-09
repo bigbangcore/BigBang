@@ -145,7 +145,7 @@ public:
 
 private:
     boost::shared_ptr<sink_t> sink;
-    std::atomic<bool> fIsInited = { false };
+    std::atomic<bool> fIsInited{ false };
 };
 
 void StdDebug(const char* pszName, const char* pszErr)
