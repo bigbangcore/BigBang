@@ -148,7 +148,7 @@ private:
     std::atomic<bool> fIsInited{ false };
 };
 
-void StdDebug(const char* pszName, const char* pszErr)
+void XLog(const char* pszName, const char* pszErr, severity_level level)
 {
     if (CLogger::getInstance().IsInited())
     {
@@ -158,49 +158,7 @@ void StdDebug(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, DEBUG) << pszErr;
-    }
-}
-
-void StdLog(const char* pszName, const char* pszErr)
-{
-    if (CLogger::getInstance().IsInited())
-    {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, INFO) << str;
-    }
-}
-
-void StdWarn(const char* pszName, const char* pszErr)
-{
-    if (CLogger::getInstance().IsInited())
-    {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, WARN) << pszErr;
-    }
-}
-
-void StdError(const char* pszName, const char* pszErr)
-{
-    if (CLogger::getInstance().IsInited())
-    {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, ERROR) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, level) << str;
     }
 }
 
