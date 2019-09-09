@@ -147,16 +147,17 @@ public:
 
     void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
     {
-        sink = boost::shared_ptr<sink_t>(new sink_t(
-            keywords::file_name = "%Y-%m-%d_%N.log",
+        sink = boost::make_shared<sink_t>(
+            keywords::open_mode = std::ios::app,
+            keywords::file_name = pathData / "logs" / "%Y-%m-%d_%N.log",
             keywords::rotation_size = 10 * 1024 * 1024,
-            keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0),
-            keywords::auto_flush = true));
+            keywords::auto_flush = true);
 
         sink->locked_backend()->set_file_collector(sinks::file::make_collector(
-            keywords::target = pathData / "logs",
+            keywords::target = pathData / "logs-collector",
             keywords::max_size = 50 * 1024 * 1024,
             keywords::auto_flush = true));
+
         sink->locked_backend()->scan_for_files();
         sink->set_formatter(
             expr::format("%1% : [%2%] <%3%> {%4%} - %5%")
