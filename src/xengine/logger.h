@@ -23,12 +23,12 @@ extern bool STD_DEBUG;
 
 #define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-enum severity_level
+enum severity_level : uint8_t
 {
-    debug,
-    info,
-    warn,
-    error
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR
 };
 
 namespace src = boost::log::sources;

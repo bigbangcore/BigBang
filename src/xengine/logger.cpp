@@ -54,16 +54,16 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
     strm << "|" << logging::extract<std::string>("Channel", rec);
     switch (level.get())
     {
-    case debug:
+    case DEBUG:
         strm << "\033[0m";
         break;
-    case info:
+    case INFO:
         strm << "\033[32m";
         break;
-    case warn:
+    case WARN:
         strm << "\033[33m";
         break;
-    case error:
+    case ERROR:
         strm << "\033[31m";
         break;
     default:
@@ -111,10 +111,10 @@ public:
 
         typedef expr::channel_severity_filter_actor<std::string, severity_level> min_severity_filter;
         min_severity_filter min_severity = expr::channel_severity_filter(channel, severity);
-        severity_level sl = fDebug ? debug : info;
-        min_severity["bigbang"] = warn;
-        min_severity["CDelegate"] = warn;
-        min_severity["storage"] = warn;
+        severity_level sl = fDebug ? DEBUG : INFO;
+        min_severity["bigbang"] = WARN;
+        min_severity["CDelegate"] = WARN;
+        min_severity["storage"] = WARN;
         auto filter = min_severity || sl <= severity;
         sink->set_filter(filter);
 
@@ -158,7 +158,7 @@ void StdDebug(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, debug) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, DEBUG) << pszErr;
     }
 }
 
@@ -172,7 +172,7 @@ void StdLog(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, info) << str;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, INFO) << str;
     }
 }
 
@@ -186,7 +186,7 @@ void StdWarn(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, warn) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, WARN) << pszErr;
     }
 }
 
@@ -200,7 +200,7 @@ void StdError(const char* pszName, const char* pszErr)
             str.resize(str.length() - 1);
         }
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, error) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, ERROR) << pszErr;
     }
 }
 
