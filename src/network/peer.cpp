@@ -141,7 +141,7 @@ bool CBbPeer::ParseMessageHeader()
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }
@@ -217,7 +217,7 @@ bool CBbPeer::HandshakeReadCompleted()
         }
         catch (exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            ErrorLog(__PRETTY_FUNCTION__, e.what());
         }
     }
     return false;
@@ -250,7 +250,7 @@ bool CBbPeer::HandleReadCompleted()
         }
         catch (exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            ErrorLog(__PRETTY_FUNCTION__, e.what());
         }
     }
     return false;

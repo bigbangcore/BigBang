@@ -96,7 +96,7 @@ bool CTemplateDelegate::SetTemplateData(const std::vector<uint8>& vchDataIn)
     }
     catch (const std::exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
 

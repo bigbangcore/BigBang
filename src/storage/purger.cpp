@@ -72,7 +72,7 @@ bool CPurger::RemoveBlockFile(const path& pathDataLocation) const
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

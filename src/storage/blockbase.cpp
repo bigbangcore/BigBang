@@ -598,7 +598,7 @@ bool CBlockBase::RetrieveOrigin(const uint256& hash, CBlock& block)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

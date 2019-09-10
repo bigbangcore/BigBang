@@ -45,7 +45,7 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
     }
     catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -119,7 +119,7 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
     }
     catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

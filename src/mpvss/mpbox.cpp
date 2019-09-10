@@ -130,7 +130,7 @@ bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, co
     }
     catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }

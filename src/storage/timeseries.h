@@ -113,7 +113,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         if (fWriteCache)
@@ -146,7 +146,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         if (fWriteCache)
@@ -182,7 +182,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
 
@@ -219,7 +219,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
 
@@ -267,7 +267,7 @@ public:
             }
             catch (std::exception& e)
             {
-                xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                 fRet = false;
             }
             nFile++;
@@ -323,7 +323,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
         }
         return false;
     }
@@ -342,7 +342,7 @@ protected:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                 }
             }
             ResetCache();
@@ -387,7 +387,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         return true;
@@ -422,7 +422,7 @@ public:
             }
             catch (std::exception& e)
             {
-                xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                 return false;
             }
         }
@@ -446,7 +446,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         return true;

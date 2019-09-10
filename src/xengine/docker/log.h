@@ -48,23 +48,23 @@ public:
 
         if (strcmp(strPrefix, "[INFO]") == 0)
         {
-            StdLog(modNmae.c_str(), str.c_str());
+            InfoLog(modNmae.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[DEBUG]") == 0)
         {
-            StdDebug(modNmae.c_str(), str.c_str());
+            DebugLog(modNmae.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[WARN]") == 0)
         {
-            StdWarn(modNmae.c_str(), str.c_str());
+            WarnLog(modNmae.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[ERROR]") == 0)
         {
-            StdError(modNmae.c_str(), str.c_str());
+            ErrorLog(modNmae.c_str(), str.c_str());
         }
         else
         {
-            StdLog(modNmae.c_str(), str.c_str());
+            InfoLog(modNmae.c_str(), str.c_str());
         }
     }
 

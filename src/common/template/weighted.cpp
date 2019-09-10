@@ -98,7 +98,7 @@ bool CTemplateWeighted::SetTemplateData(const vector<uint8>& vchDataIn)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
 

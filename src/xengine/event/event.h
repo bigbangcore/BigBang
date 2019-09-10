@@ -102,7 +102,7 @@ public:
         }
         catch (std::exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            ErrorLog(__PRETTY_FUNCTION__, e.what());
         }
         return false;
     }

@@ -15,13 +15,13 @@ namespace xengine
 
 extern bool STD_DEBUG;
 
-#define STD_DEBUG(Mod, Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_DEBUG(Mod, Info) xengine::DebugLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_LOG(Mod, Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_LOG(Mod, Info) xengine::InfoLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_WARN(Mod, Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_WARN(Mod, Info) xengine::WarnLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+#define STD_ERROR(Mod, Info) xengine::ErrorLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
 enum severity_level : uint8_t
 {
@@ -38,22 +38,22 @@ BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(logger, sclmt_type)
 
 void XLog(const char* pszName, const char* pszErr, severity_level level);
 
-void inline StdDebug(const char* pszName, const char* pszErr)
+void inline DebugLog(const char* pszName, const char* pszErr)
 {
     XLog(pszName, pszErr, severity_level::DEBUG);
 }
 
-void inline StdLog(const char* pszName, const char* pszErr)
+void inline InfoLog(const char* pszName, const char* pszErr)
 {
     XLog(pszName, pszErr, severity_level::INFO);
 }
 
-void inline StdWarn(const char* pszName, const char* pszErr)
+void inline WarnLog(const char* pszName, const char* pszErr)
 {
     XLog(pszName, pszErr, severity_level::WARN);
 }
 
-void inline StdError(const char* pszName, const char* pszErr)
+void inline ErrorLog(const char* pszName, const char* pszErr)
 {
     XLog(pszName, pszErr, severity_level::ERROR);
 }

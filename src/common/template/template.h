@@ -42,7 +42,7 @@ public:
         }
         catch (const std::exception& e)
         {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
 

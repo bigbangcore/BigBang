@@ -157,7 +157,7 @@ bool CRPCClient::HandleEvent(CEventHttpGetRsp& event)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     ioComplt.Completed(false);
     return true;
@@ -224,11 +224,11 @@ bool CRPCClient::CallRPC(CRPCParamPtr spParam, int nReqId)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     catch (...)
     {
-        StdError(__PRETTY_FUNCTION__, "unknown");
+        ErrorLog(__PRETTY_FUNCTION__, "unknown");
     }
     return false;
 }
@@ -420,11 +420,11 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
             }
             catch (CRPCException& e)
             {
-                StdError(__PRETTY_FUNCTION__, (e.strMessage + strHelpTips).c_str());
+                ErrorLog(__PRETTY_FUNCTION__, (e.strMessage + strHelpTips).c_str());
             }
             catch (exception& e)
             {
-                StdError(__PRETTY_FUNCTION__, e.what());
+                ErrorLog(__PRETTY_FUNCTION__, e.what());
             }
         }
     }
