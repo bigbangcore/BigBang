@@ -30,10 +30,13 @@ public:
     {
     }
 
-    bool SetLogFilePath(const std::string& strPathLog)
+    bool SetModeName(const std::string& modName)
     {
-        boost::filesystem::path p = strPathLog;
-        modNmae = p.filename().replace_extension().string();
+        if (modName.empty())
+        {
+            return false;
+        }
+        strModName = modName;
         return true;
     }
 
@@ -48,28 +51,28 @@ public:
 
         if (strcmp(strPrefix, "[INFO]") == 0)
         {
-            InfoLog(modNmae.c_str(), str.c_str());
+            InfoLog(strModName.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[DEBUG]") == 0)
         {
-            DebugLog(modNmae.c_str(), str.c_str());
+            DebugLog(strModName.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[WARN]") == 0)
         {
-            WarnLog(modNmae.c_str(), str.c_str());
+            WarnLog(strModName.c_str(), str.c_str());
         }
         else if (strcmp(strPrefix, "[ERROR]") == 0)
         {
-            ErrorLog(modNmae.c_str(), str.c_str());
+            ErrorLog(strModName.c_str(), str.c_str());
         }
         else
         {
-            InfoLog(modNmae.c_str(), str.c_str());
+            InfoLog(strModName.c_str(), str.c_str());
         }
     }
 
 protected:
-    std::string modNmae;
+    std::string strModName;
 };
 
 } // namespace xengine
