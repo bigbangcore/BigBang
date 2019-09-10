@@ -42,12 +42,12 @@ public:
 
     virtual void operator()(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
     {
-        std::string str("<");
-        str.append(key);
-        str.append(">");
+        std::stringstream ss;
+        ss << "<" << key << "> ";
         char arg_buffer[256] = { 0 };
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
-        str.append(arg_buffer);
+        ss << arg_buffer;
+        std::string str = ss.str();
 
         if (strcmp(strPrefix, "[INFO]") == 0)
         {
