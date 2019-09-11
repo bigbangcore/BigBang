@@ -92,6 +92,7 @@ protected:
                         const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
     bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
     bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
+    void Test();
 
 private:
     enum

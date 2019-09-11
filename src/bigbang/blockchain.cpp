@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "blockchain.h"
-
 #include "delegatecomm.h"
 #include "delegateverify.h"
 
@@ -433,6 +432,9 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         if (err != OK)
         {
             Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
+            std::stringstream ss;
+            ss << txid.GetHex() << ":" << block.hashPrev.GetHex() << ":" << block.GetHash().GetHex();
+            StdDebug("missing previous", ss.str().c_str());
             return err;
         }
         if (!pTxPool->Exists(txid))
@@ -466,7 +468,17 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     Log("AddNew Block : %s\n", pIndexNew->ToString().c_str());
     if (Config()->fDebug)
     {
+        std::set<uint256> txUpdate;
+        view.GetTxUpdated(txUpdate);
+        std::stringstream ss;
+        ss << "txUpdate(";
+        for (auto& obj : txUpdate)
+        {
+            ss << obj.GetHex() << ",";
+        }
+        ss << ")";
         Debug("New Block %s tx : %s\n", hash.ToString().c_str(), view.ToString().c_str());
+        Debug("New Block %s tx : %s\n", hash.ToString().c_str(), ss.str().c_str());
     }
 
     CBlockIndex* pIndexFork = nullptr;
@@ -857,7 +869,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
         return false;
     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight()+1);
+    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight() + 1);
 
     cacheAgreement.AddNew(hashBlock, agreement);
 

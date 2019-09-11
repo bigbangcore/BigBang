@@ -54,7 +54,7 @@ public:
 
 public:
     uint256 hashTX;
-    std::size_t nSequenceNumber;
+    int64_t nSequenceNumber;
     CPooledTx* ptx;
 };
 
@@ -62,7 +62,7 @@ typedef boost::multi_index_container<
     CPooledTxLink,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, std::size_t, &CPooledTxLink::nSequenceNumber>>>>
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, int64_t, &CPooledTxLink::nSequenceNumber>>>>
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
@@ -223,7 +223,6 @@ public:
     bool Get(const uint256& txid, CTransaction& tx) const override;
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
-    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
@@ -237,7 +236,7 @@ protected:
     void HandleHalt() override;
     bool LoadData();
     bool SaveData();
-    Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight);
+    Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight, int index = 0);
     std::size_t GetSequenceNumber()
     {
         if (mapTx.empty())
@@ -255,6 +254,7 @@ protected:
     std::map<uint256, CTxPoolView> mapPoolView;
     std::map<uint256, CPooledTx> mapTx;
     std::size_t nLastSequenceNumber;
+    int64_t nLastSequenceNumberReverse;
 };
 
 } // namespace bigbang

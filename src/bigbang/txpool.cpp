@@ -2,9 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "txpool.h"
-
 #include <boost/range/adaptor/reversed.hpp>
+
+#include "txpool.h"
 
 using namespace std;
 using namespace xengine;
@@ -121,6 +121,7 @@ CTxPool::CTxPool()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     nLastSequenceNumber = 0;
+    nLastSequenceNumberReverse = 0;
 }
 
 CTxPool::~CTxPool()
@@ -308,20 +309,6 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
     }
 }
 
-void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, uint256>>& vTxPool)
-{
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
-    if (it != mapPoolView.end())
-    {
-        CPooledTxLinkSetBySequenceNumber& idxTx = it->second.setTxLinkIndex.get<1>();
-        for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
-        {
-            vTxPool.push_back(make_pair(mi->hashTX, mi->ptx->hashAnchor));
-        }
-    }
-}
-
 bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
@@ -399,6 +386,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
 
 bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
 {
+
     change.hashFork = update.hashFork;
 
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
@@ -444,9 +432,19 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     }
 
     vector<pair<uint256, vector<CTxIn>>> vTxRemove;
+
+    int sum = 0;
     for (const CBlockEx& block : update.vBlockRemove)
     {
-        for (int i = block.vtx.size() - 1; i >= 0; i--)
+        sum += block.vtx.size();
+    }
+    nLastSequenceNumberReverse -= sum;
+    int64_t index = nLastSequenceNumberReverse;
+    std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
+    std::reverse(vBlockRemove.begin(), vBlockRemove.end());
+    for (const CBlockEx& block : vBlockRemove)
+    {
+        for (int i = 0; i < block.vtx.size(); ++i, index++)
         {
             const CTransaction& tx = block.vtx[i];
             uint256 txid = tx.GetHash();
@@ -456,7 +454,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
                 txView.GetSpent(CTxOutPoint(txid, 0), spent0);
                 txView.GetSpent(CTxOutPoint(txid, 1), spent1);
-                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight) == OK)
+                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight, index) == OK)
                 {
                     if (spent0 != 0)
                         txView.SetSpent(CTxOutPoint(txid, 0), spent0);
@@ -494,7 +492,6 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         }
     }
     change.vTxRemove.insert(change.vTxRemove.end(), vTxRemove.begin(), vTxRemove.end());
-
     return true;
 }
 
@@ -545,7 +542,7 @@ bool CTxPool::SaveData()
     return datTxPool.Save(vTx);
 }
 
-Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
+Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight, int index)
 {
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
@@ -581,7 +578,14 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
 
     CDestination destIn = vPrevOutput[0].destTo;
     map<uint256, CPooledTx>::iterator mi;
-    mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
+    if (index == 0)
+    {
+        mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
+    }
+    else
+    {
+        mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, index, destIn, nValueIn))).first;
+    }
     txView.AddNew(txid, (*mi).second);
 
     return OK;

@@ -118,6 +118,7 @@ public:
         }
         else if (IsProofOfWork())
         {
+            //return GetHash().Get32() % 256;
             return 1;
         }
         else

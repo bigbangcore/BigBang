@@ -42,30 +42,30 @@ public:
         std::string str("<");
         str.append(key);
         str.append(">");
-        char arg_buffer[256] = {0};
+        char arg_buffer[2048] = { 0 };
+        memset(arg_buffer, 0, sizeof(arg_buffer));
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
         str.append(arg_buffer);
 
-
-        if (strcmp(strPrefix,"[INFO]") == 0)
+        if (strcmp(strPrefix, "[INFO]") == 0)
         {
-            StdLog(modNmae.c_str(),str.c_str());
+            StdLog(modNmae.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[DEBUG]") == 0)
+        else if (strcmp(strPrefix, "[DEBUG]") == 0)
         {
-            StdDebug(modNmae.c_str(),str.c_str());
+            StdDebug(modNmae.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[WARN]") == 0)
+        else if (strcmp(strPrefix, "[WARN]") == 0)
         {
-            StdWarn(modNmae.c_str(),str.c_str());
+            StdWarn(modNmae.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[ERROR]") == 0)
+        else if (strcmp(strPrefix, "[ERROR]") == 0)
         {
-            StdError(modNmae.c_str(),str.c_str());
+            StdError(modNmae.c_str(), str.c_str());
         }
         else
         {
-            StdLog(modNmae.c_str(),str.c_str());
+            StdLog(modNmae.c_str(), str.c_str());
         }
     }
 

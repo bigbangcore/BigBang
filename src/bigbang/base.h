@@ -116,7 +116,6 @@ public:
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
-    virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vTxPool) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)

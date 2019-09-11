@@ -2,9 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "blockmaker.h"
+#include <thread>
 
 #include "address.h"
+#include "blockmaker.h"
 #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/proof.h"
@@ -266,13 +267,18 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, int64 nPr
     }
 }
 
+static bool txload = true;
+
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-    int64 nTotalTxFee = 0;
-    pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
-    block.hashMerkle = block.CalcMerkleTreeRoot();
-    block.txMint.nAmount += nTotalTxFee;
+    if (txload)
+    {
+        size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+        int64 nTotalTxFee = 0;
+        pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
+        block.hashMerkle = block.CalcMerkleTreeRoot();
+        block.txMint.nAmount += nTotalTxFee;
+    }
 }
 
 bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
@@ -518,6 +524,8 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     while (!Interrupted())
     {
         hashTarget = (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev));
+        if (nHashRate == 0)
+            nHashRate = 1;
         for (int i = 0; i < nHashRate; i++)
         {
             uint256 hash = pHashAlgo->Hash(vchProofOfWork);
@@ -587,6 +595,121 @@ bool CBlockMaker::GetAvailiableExtendedFork(set<uint256>& setFork)
     return (!setFork.empty());
 }
 
+static map<uint256, CForkStatus> mapForkStatus;
+
+static uint256 fork;
+
+static CTransaction Tx(const uint256& prevout_hash, int64 amout)
+{
+    bigbang::crypto::CKey key;
+    uint256 nPrivKey("9df809804369829983150491d1086b99f6493356f91ccc080e661a76a976a4ee");
+    key.SetSecret(crypto::CCryptoKeyData(nPrivKey.begin(), nPrivKey.end()));
+
+    CTransaction txNew;
+    txNew.SetNull();
+    txNew.hashAnchor = fork;
+
+    txNew.nType = CTransaction::TX_TOKEN;
+    txNew.nTimeStamp = mapForkStatus[fork].nLastBlockTime;
+    txNew.nLockUntil = 0;
+    txNew.sendTo = key.GetPubKey();
+    txNew.nAmount = amout - MIN_TX_FEE; //13 * COIN;
+    txNew.nTxFee = MIN_TX_FEE;
+    CTxIn in;
+    in.prevout.hash = prevout_hash;
+    //uint256("5a586f8464249368b4227faedd48d97bff6eb1c9ec0d8fc72cb1db2f705a2fa4");
+    in.prevout.n = 0;
+    txNew.vInput.push_back(in);
+    key.Sign(txNew.GetSignatureHash(), txNew.vchSig);
+    return txNew;
+}
+
+void CBlockMaker::Test()
+{
+    fork = pCoreProtocol->GetGenesisBlockHash();
+
+    pBlockChain->GetForkStatus(mapForkStatus);
+    auto height = mapForkStatus[fork].nLastBlockHeight;
+
+    CTransaction txNew = Tx(uint256("5a586f8464249368b4227faedd48d97bff6eb1c9ec0d8fc72cb1db2f705a2fa4"), 13 * COIN + MIN_TX_FEE);
+
+    CTransaction txNew1 = Tx(txNew.GetHash(), txNew.nAmount);
+
+    CTransaction txNew2 = Tx(txNew1.GetHash(), txNew1.nAmount);
+
+    CTransaction txNew3 = Tx(txNew2.GetHash(), txNew2.nAmount);
+
+    CTransaction txNew4 = Tx(txNew3.GetHash(), txNew3.nAmount);
+    std::stringstream ss;
+    ss << txNew.GetHash().GetHex() << "," << txNew1.GetHash().GetHex() << "," << txNew2.GetHash().GetHex() << "," << txNew3.GetHash().GetHex() << "," << txNew4.GetHash().GetHex();
+    StdLog("==========", ss.str().c_str());
+    //err = pDispatcher->AddNewTx(txNew1);
+    //
+
+    Errno err = pDispatcher->AddNewTx(txNew);
+    err = pDispatcher->AddNewTx(txNew1);
+    if (err == OK)
+    {
+        nMakerStatus = MAKER_RUN;
+        CBlock block;
+        CDelegateAgreement agree;
+        PrepareBlock(block, fork, mapForkStatus[fork].nLastBlockTime, height, agree);
+        CreateProofOfWorkBlock(block);
+        DispatchBlock(block);
+
+        err = pDispatcher->AddNewTx(txNew2);
+        err = pDispatcher->AddNewTx(txNew3);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        nMakerStatus = MAKER_RUN;
+        CBlock blockNext;
+        PrepareBlock(blockNext, block.GetHash(), mapForkStatus[fork].nLastBlockTime, height + 1, agree);
+        CreateProofOfWorkBlock(blockNext);
+        DispatchBlock(blockNext);
+
+        err = pDispatcher->AddNewTx(txNew4);
+        txload = false;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        nMakerStatus = MAKER_RUN;
+        CBlock block_fork1 = block;
+        //PrepareBlock(block_fork1, fork, mapForkStatus[fork].nLastBlockTime, height, agree);
+        //CreateProofOfWorkBlock(block_fork1);
+        block_fork1.nTimeStamp++;
+        block_fork1.vtx[1].nTimeStamp++;
+
+        bigbang::crypto::CKey key;
+        uint256 nPrivKey("9df809804369829983150491d1086b99f6493356f91ccc080e661a76a976a4ee");
+        key.SetSecret(crypto::CCryptoKeyData(nPrivKey.begin(), nPrivKey.end()));
+        key.Sign(block_fork1.vtx[1].GetSignatureHash(), block_fork1.vtx[1].vchSig);
+
+        block_fork1.hashMerkle = block_fork1.CalcMerkleTreeRoot();
+        SignBlock(block_fork1, mapWorkProfile.find(CM_CRYPTONIGHT)->second);
+        DispatchBlock(block_fork1);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        nMakerStatus = MAKER_RUN;
+        CBlock block_fork2;
+        PrepareBlock(block_fork2, block_fork1.GetHash(), mapForkStatus[fork].nLastBlockTime, height + 1, agree);
+        CreateProofOfWorkBlock(block_fork2);
+        DispatchBlock(block_fork2);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        nMakerStatus = MAKER_RUN;
+        CBlock block_fork3;
+        PrepareBlock(block_fork3, block_fork2.GetHash(), mapForkStatus[fork].nLastBlockTime, height + 2, agree);
+        CreateProofOfWorkBlock(block_fork3);
+        DispatchBlock(block_fork3);
+        //txload = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        nMakerStatus = MAKER_RUN;
+        CBlock block_fork4;
+        PrepareBlock(block_fork4, block_fork3.GetHash(), mapForkStatus[fork].nLastBlockTime, height + 3, agree);
+        CreateProofOfWorkBlock(block_fork4);
+        DispatchBlock(block_fork4);
+    }
+}
+
 void CBlockMaker::BlockMakerThreadFunc()
 {
     const char* ConsensusMethodName[CM_MAX] = { "mpvss", "cryptonight" };
@@ -608,7 +731,6 @@ void CBlockMaker::BlockMakerThreadFunc()
             CAddress(profile.destMint).ToString().c_str(),
             profile.keyMint.GetPubKey().GetHex().c_str());
     }
-
     uint256 hashPrimaryBlock = uint64(0);
     int64 nPrimaryBlockTime = 0;
     int nPrimaryBlockHeight = 0;
