@@ -8,7 +8,7 @@
 #include <boost/bind.hpp>
 
 #include "iocontainer.h"
-#include "util.h"
+#include "logger.h"
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -38,7 +38,7 @@ const tcp::endpoint CIOClient::GetRemote()
         }
         catch (exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            ErrorLog(__PRETTY_FUNCTION__, e.what());
         }
     }
     return epRemote;
@@ -52,7 +52,7 @@ const tcp::endpoint CIOClient::GetLocal()
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return (tcp::endpoint());
 }
@@ -333,7 +333,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
 
     if (fPreverified)
     {
-        xengine::StdDebug("SSLVERIFY", (string("SSL verify success, subject: ") + subject_name).c_str());
+        xengine::DebugLog("SSLVERIFY", (string("SSL verify success, subject: ") + subject_name).c_str());
     }
     else
     {
@@ -424,7 +424,9 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
             break;
         }
 
-        xengine::StdDebug("SSLVERIFY", (string("SSL verify fail, subject: ") + subject_name + string(", cts_error: [") + to_string(cts_error) + string("]<") + to_string(depth) + string(">  ") + string(sErrorDesc)).c_str());
+        xengine::DebugLog("SSLVERIFY", (string("SSL verify fail, subject: ") + subject_name + string(", cts_error: [") +
+                                        to_string(cts_error) + string("]<") + to_string(depth) + string(">  ") +
+                                        string(sErrorDesc)).c_str());
     }
 
     return fPreverified;

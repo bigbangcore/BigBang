@@ -12,7 +12,7 @@
 #include <locale>
 #include <sstream>
 
-#include "util.h"
+#include "logger.h"
 #include "version.h"
 
 using namespace std;
@@ -42,7 +42,7 @@ const ptime CHttpUtil::ParseRFC1123DayTime(const string& strDayTime)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return ptime(boost::date_time::not_a_date_time);
 }
@@ -62,7 +62,7 @@ const string CHttpUtil::FormatRFC1123DayTime(const ptime& pt)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return "";
 }
@@ -95,7 +95,7 @@ bool CHttpUtil::Base64Decode(const std::string& strEncoded, std::string& strDeco
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

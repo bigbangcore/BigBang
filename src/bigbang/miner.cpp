@@ -237,11 +237,11 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     catch (...)
     {
-        StdError(__PRETTY_FUNCTION__, "unknown");
+        ErrorLog(__PRETTY_FUNCTION__, "unknown");
     }
     return true;
 }
@@ -300,7 +300,7 @@ bool CMiner::GetWork()
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }
@@ -321,7 +321,7 @@ bool CMiner::SubmitWork(const vector<unsigned char>& vchWorkData)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }

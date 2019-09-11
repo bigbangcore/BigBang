@@ -78,7 +78,7 @@ bool CTxPoolData::Save(const vector<pair<uint256, pair<uint256, CAssembledTx>>>&
     }
     catch (std::exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
 
@@ -101,7 +101,7 @@ bool CTxPoolData::Load(vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
     }
     catch (std::exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
 

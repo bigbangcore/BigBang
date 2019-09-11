@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string>
 
-#include "util.h"
+#include "logger.h"
 
 namespace xengine
 {
@@ -30,47 +30,49 @@ public:
     {
     }
 
-    bool SetLogFilePath(const std::string& strPathLog)
+    bool SetModeName(const std::string& modName)
     {
-        boost::filesystem::path p = strPathLog;
-        modNmae = p.filename().replace_extension().string();
+        if (modName.empty())
+        {
+            return false;
+        }
+        strModName = modName;
         return true;
     }
 
     virtual void operator()(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
     {
-        std::string str("<");
-        str.append(key);
-        str.append(">");
-        char arg_buffer[256] = {0};
+        std::stringstream ss;
+        ss << "<" << key << "> ";
+        char arg_buffer[256] = { 0 };
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
-        str.append(arg_buffer);
+        ss << arg_buffer;
+        std::string str = ss.str();
 
-
-        if (strcmp(strPrefix,"[INFO]") == 0)
+        if (strcmp(strPrefix, "[INFO]") == 0)
         {
-            StdLog(modNmae.c_str(),str.c_str());
+            InfoLog(strModName.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[DEBUG]") == 0)
+        else if (strcmp(strPrefix, "[DEBUG]") == 0)
         {
-            StdDebug(modNmae.c_str(),str.c_str());
+            DebugLog(strModName.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[WARN]") == 0)
+        else if (strcmp(strPrefix, "[WARN]") == 0)
         {
-            StdWarn(modNmae.c_str(),str.c_str());
+            WarnLog(strModName.c_str(), str.c_str());
         }
-        else if (strcmp(strPrefix,"[ERROR]") == 0)
+        else if (strcmp(strPrefix, "[ERROR]") == 0)
         {
-            StdError(modNmae.c_str(),str.c_str());
+            ErrorLog(strModName.c_str(), str.c_str());
         }
         else
         {
-            StdLog(modNmae.c_str(),str.c_str());
+            InfoLog(strModName.c_str(), str.c_str());
         }
     }
 
 protected:
-    std::string modNmae;
+    std::string strModName;
 };
 
 } // namespace xengine

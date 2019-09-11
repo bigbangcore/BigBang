@@ -12,7 +12,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "util.h"
+#include "logger.h"
 
 using namespace std;
 
@@ -78,7 +78,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

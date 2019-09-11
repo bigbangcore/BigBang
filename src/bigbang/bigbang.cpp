@@ -27,11 +27,11 @@ int main(int argc, char** argv)
     }
     catch (std::exception& e)
     {
-        xengine::StdError(__PRETTY_FUNCTION__, e.what());
+        xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     catch (...)
     {
-        xengine::StdError(__PRETTY_FUNCTION__, "unknown");
+        xengine::ErrorLog(__PRETTY_FUNCTION__, "unknown");
     }
 
     entry.Exit();

@@ -8,6 +8,8 @@
 #include <stream/datastream.h>
 #include <util.h>
 
+#include "logger.h"
+
 using namespace std;
 using namespace xengine;
 
@@ -41,9 +43,9 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
 
         encoder.Encode(vchProfile);
     }
-    catch (exception& e)
+    catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -115,9 +117,9 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
             is >> destOwner.prefix >> destOwner.data;
         }
     }
-    catch (exception& e)
+    catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

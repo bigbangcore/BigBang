@@ -411,7 +411,9 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
 {
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
-        StdDebug("STAT", (string("GetBlockMakerStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".\n")).c_str());
+        DebugLog("STAT",
+                 (string("GetBlockMakerStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") +
+                  to_string(nGetCount) + string(".\n")).c_str());
         return false;
     }
     if (fStatWork)
@@ -429,7 +431,7 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
                     fGetFirst = true;
                     if (!(*it).second.GetStatData(nBeginTime, nGetCount, vStatData))
                     {
-                        StdDebug("STAT", "GetBlockMakerStatData: GetStatData fail.");
+                        DebugLog("STAT", "GetBlockMakerStatData: GetStatData fail.");
                         return false;
                     }
                 }
@@ -437,7 +439,7 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
                 {
                     if (!(*it).second.CumulativeStatData(nBeginTime, nGetCount, vStatData))
                     {
-                        StdDebug("STAT", "GetBlockMakerStatData: CumulativeStatData fail.");
+                        DebugLog("STAT", "GetBlockMakerStatData: CumulativeStatData fail.");
                         return false;
                     }
                 }
@@ -454,7 +456,8 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
             }
             else
             {
-                StdDebug("STAT", (string("GetBlockMakerStatData: find fork fail, fork hash: ") + hashFork.ToString()).c_str());
+                DebugLog("STAT",
+                         (string("GetBlockMakerStatData: find fork fail, fork hash: ") + hashFork.ToString()).c_str());
                 return false;
             }
         }
@@ -466,7 +469,9 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
 {
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
-        StdDebug("STAT", (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".\n")).c_str());
+        DebugLog("STAT",
+                 (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") +
+                  to_string(nGetCount) + string(".\n")).c_str());
         return false;
     }
     if (fStatWork)
@@ -484,7 +489,7 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
                     fGetFirst = true;
                     if (!(*it).second.GetStatData(nBeginTime, nGetCount, vStatData))
                     {
-                        StdDebug("STAT", "GetP2pSynStatData: GetStatData fail.");
+                        DebugLog("STAT", "GetP2pSynStatData: GetStatData fail.");
                         return false;
                     }
                 }
@@ -492,7 +497,7 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
                 {
                     if (!(*it).second.CumulativeStatData(nBeginTime, nGetCount, vStatData))
                     {
-                        StdDebug("STAT", "GetP2pSynStatData: CumulativeStatData fail.");
+                        DebugLog("STAT", "GetP2pSynStatData: CumulativeStatData fail.");
                         return false;
                     }
                 }
@@ -509,7 +514,8 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
             }
             else
             {
-                StdDebug("STAT", (string("GetP2pSynStatData: find fork fail, fork hash: ") + hashFork.ToString()).c_str());
+                DebugLog("STAT",
+                         (string("GetP2pSynStatData: find fork fail, fork hash: ") + hashFork.ToString()).c_str());
                 return false;
             }
         }

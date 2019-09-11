@@ -149,7 +149,7 @@ void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
             }
             catch (exception& e)
             {
-                StdError(__PRETTY_FUNCTION__, e.what());
+                ErrorLog(__PRETTY_FUNCTION__, e.what());
             }
         }
     }
@@ -175,7 +175,7 @@ bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned c
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
 
@@ -215,7 +215,7 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }

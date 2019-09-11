@@ -14,7 +14,6 @@ using namespace boost::filesystem;
 using namespace xengine;
 
 #define BLOCKFILE_PREFIX "block"
-#define LOGFILE_NAME "storage.log"
 
 namespace bigbang
 {
@@ -598,7 +597,7 @@ bool CBlockBase::RetrieveOrigin(const uint256& hash, CBlock& block)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -1773,8 +1772,8 @@ bool CBlockBase::LoadDB()
 
 bool CBlockBase::SetupLog(const path& pathLocation, bool fDebug)
 {
-
-    if (!log.SetLogFilePath((pathLocation / LOGFILE_NAME).string()))
+    (void)pathLocation;
+    if (!log.SetModeName("storage"))
     {
         return false;
     }

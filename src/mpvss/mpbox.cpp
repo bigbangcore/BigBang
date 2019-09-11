@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "util.h"
+#include "logger.h"
 
 using namespace std;
 using namespace xengine;
@@ -128,9 +128,9 @@ bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, co
         Signature(nIdent, r, sealed.nR, sealed.nS);
         return true;
     }
-    catch (exception& e)
+    catch (const exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
     }
     return false;
 }

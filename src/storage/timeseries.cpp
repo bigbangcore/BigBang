@@ -156,7 +156,7 @@ bool CTimeSeriesCached::VacateCache(uint32 nNeeded)
         }
         catch (exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            ErrorLog(__PRETTY_FUNCTION__, e.what());
             return false;
         }
 

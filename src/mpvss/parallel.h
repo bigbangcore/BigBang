@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "util.h"
+#include "logger.h"
 
 /**
  * Parallel computer for CPU intensive computing
@@ -69,9 +69,9 @@ public:
                     }
                     return true;
                 }
-                catch (std::exception& e)
+                catch (const std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });
@@ -119,7 +119,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });
@@ -163,7 +163,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });
@@ -209,7 +209,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });
@@ -258,7 +258,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });
@@ -309,7 +309,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
                     return false;
                 }
             });

@@ -134,7 +134,7 @@ bool CForkUnspentDB::Copy(CForkUnspentDB& dbUnspent)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -183,7 +183,7 @@ bool CForkUnspentDB::WalkThroughUnspent(CForkUnspentDBWalker& walker)
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        ErrorLog(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
