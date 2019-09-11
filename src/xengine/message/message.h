@@ -66,7 +66,6 @@ protected:
  * @param cls The name of derived class.
  */
 #define GENERATE_MESSAGE_VIRTUAL_FUNCTION(cls)                                  \
-    virtual ~cls() {}                                                           \
     virtual uint32 Type() const override                                        \
     {                                                                           \
         return cls::nType;                                                      \
@@ -75,14 +74,14 @@ protected:
     {                                                                           \
         boost::any_cast<boost::function<void(const cls& msg)>>(handler)(*this); \
     }                                                                           \
-    static const uint32 nType;
+    static const uint32 nType
 
 /**
  * @brief Initialze the variable 'static const uint32 cls::nType' of cls.
  * @param cls The name of derived class.
  */
 #define INITIALIZE_MESSAGE_TYPE(cls) \
-    const uint32 cls::nType = CMessage::NewMessageType();
+    const uint32 cls::nType = CMessage::NewMessageType()
 
 } // namespace xengine
 

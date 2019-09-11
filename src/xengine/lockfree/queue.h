@@ -26,9 +26,7 @@ public:
     struct CNode
     {
         CNode(T t)
-          : t(t), pNext(nullptr)
-        {
-        }
+          : t(t), pNext(nullptr) {}
 
         T t;
         std::atomic<CNode*> pNext;
@@ -50,66 +48,28 @@ public:
     T Pop()
     {
         CNode* pNode = pHead->pNext.load(std::memory_order_relaxed);
-        if (pNode) {
+        if (pNode)
+        {
             delete pHead;
             pHead = pNode;
             return pNode->t;
         }
-
         return nullptr;
+    }
+
+    void Clear()
+    {
+        while (pHead)
+        {
+            CNode* pNode = pHead->pNext.load(std::memory_order_relaxed);
+            delete pHead;
+            pHead = pNode;
+        }
     }
 
 private:
     CNode* pHead;
     std::atomic<CNode*> pTail;
-};
-
-template <typename T>
-class ListSPSCQueue : public LockFreeQueue<T>
-{
-public:
-    struct CNode
-    {
-        CNode(T t)
-          : t(t), pNext(nullptr)
-        {
-        }
-
-        T t;
-        CNode* pNext;
-    };
-
-    ListSPSCQueue()
-    {
-        pTail = new CNode(nullptr);
-        pHead = pTail;
-    }
-
-    void Push(T t)
-    {
-        CNode* pNode = new CNode(t);
-        CNode* pPrev = pTail;
-        pTail = pNode;
-        pPrev->pNext = pNode;
-        // std::atomic_thread_fence(std::memory_order_release);
-    }
-
-    T Pop()
-    {
-        // std::atomic_thread_fence(std::memory_order_acquire);
-        CNode* pNode = pHead->pNext;
-        if (pNode) {
-            delete pHead;
-            pHead = pNode;
-            return pNode->t;
-        }
-
-        return nullptr;
-    }
-
-private:
-    CNode* pHead;
-    CNode* pTail;
 };
 
 } // namespace xengine
