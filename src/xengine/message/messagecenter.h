@@ -5,40 +5,82 @@
 #ifndef XENGINE_MESSAGE_MESSAGECENTER_H
 #define XENGINE_MESSAGE_MESSAGECENTER_H
 
-#include <boost/thread/shared_mutex.hpp>
+#include <atomic>
+#include <boost/thread/thread.hpp>
 #include <map>
 #include <set>
 
+#include "lockfree/queue.h"
+#include "message/message.h"
 #include "type.h"
 
 namespace xengine
 {
 
+#define PUBLISH_MESSAGE(msg) CMessageCenter::GetInstance().Publish(msg)
+
 class CIOActor;
-class CMessage;
 
 /**
  * @brief Save actor objects and their handling message type.
  */
-class CMessageCenter
+class CMessageCenter final
 {
 public:
     /**
-     * @brief Actor subscribe the message with nType.
-     * @param nType Message type.
-     * @param pActor The pointer of subscriber.
+     * @brief Return the singleton instance of CMessageCenter.
+     * @return The reference of CMessageCenter object.
      */
-    static void Subscribe(const uint32 nType, CIOActor* pActor);
+    static CMessageCenter& GetInstance()
+    {
+        static CMessageCenter messageCenter;
+        return messageCenter;
+    }
 
     /**
-     * @brief Publish message to subscribers set of spMessage->Type().
-     * @param spMessage Message. 
+     * @brief Destructor of CMessageCenter.
      */
-    static void Publish(std::shared_ptr<CMessage> spMessage);
+    ~CMessageCenter();
+
+    /**
+     * @brief Subscribe to the nType message.
+     * @param nType Message type.
+     * @param pActor An Actor pointer as the subscriber.
+     */
+    void Subscribe(const uint32 nType, CIOActor* pActor);
+
+    /**
+     * @brief Unsubscribe the nType of message.
+     * @param nType Message type.
+     * @param pActor An Actor pointer as the unsubscriber.
+     */
+    void Unsubscribe(const uint32 nType, CIOActor* pActor);
+
+    /**
+     * @brief Publish a pMessage->Type() message to subscribers.
+     * @param pMessage The message. 
+     */
+    void Publish(CMessage* pMessage);
+
+    /**
+     * @brief Get the size of undistributed message.
+     * @return The size of undistributed message.
+     */
+    uint64 Size();
+
+protected:
+    CMessageCenter();
+    CMessageCenter(CMessageCenter&) = delete;
+    CMessageCenter(CMessageCenter&&) = delete;
+
+    /// The distribution thread function.
+    void DistributionThreadFunc();
 
 private:
-    static std::map<uint32, std::set<CIOActor*>> mapMessage;
-    static boost::shared_mutex mtxMessage;
+    std::map<uint32, std::set<CIOActor*>> mapMessage;
+    ListMPSCQueue<CMessage*> queue;
+    std::atomic<uint64> nSize;
+    boost::thread* pDistThread;
 };
 
 } // namespace xengine
