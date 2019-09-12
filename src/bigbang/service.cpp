@@ -2,9 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "service.h"
-
 #include "event.h"
+#include "service.h"
 
 using namespace std;
 using namespace xengine;
@@ -496,7 +495,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
             return false;
         }
         nForkHeight = it->second.nLastBlockHeight;
-        txNew.hashAnchor = it->second.hashLastBlock;
+        txNew.hashAnchor = hashFork;
     }
     txNew.nType = CTransaction::TX_TOKEN;
     txNew.nTimeStamp = GetNetTime();

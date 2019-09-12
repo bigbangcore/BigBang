@@ -202,10 +202,10 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
-    {
-        return true;
-    }
+    //if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
+    //{
+    //    return true;
+    //}
 
     if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
     {
