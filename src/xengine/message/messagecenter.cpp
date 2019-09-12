@@ -45,8 +45,6 @@ CMessageCenter::~CMessageCenter()
     pDistThread->interrupt();
     pDistThread->join();
     delete pDistThread;
-
-    queue.Clear();
 }
 
 void CMessageCenter::Subscribe(const uint32 nType, CIOActor* pActor)

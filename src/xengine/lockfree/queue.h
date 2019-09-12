@@ -38,6 +38,11 @@ public:
         pTail.store(pHead);
     }
 
+    ~ListMPSCQueue()
+    {
+        Clear();
+    }
+
     void Push(T t)
     {
         CNode* pNode = new CNode(t);
@@ -57,6 +62,7 @@ public:
         return nullptr;
     }
 
+private:
     void Clear()
     {
         while (pHead)
