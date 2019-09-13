@@ -211,6 +211,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     {
         nMakerStatus = MAKER_RESET;
         hashLastBlock = eventUpdate.data.hashBlock;
+        //StdLog("aaaa", hashLastBlock.GetHex().c_str());
         nLastBlockTime = eventUpdate.data.nBlockTime;
         nLastBlockHeight = eventUpdate.data.nBlockHeight;
         nLastAgreement = eventUpdate.data.nAgreement;
@@ -294,6 +295,18 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 
 bool CBlockMaker::DispatchBlock(CBlock& block)
 {
+    if (block.IsPrimary())
+    {
+        map<uint256, CForkStatus> mapForkStatus;
+        auto fork = pCoreProtocol->GetGenesisBlockHash();
+        pBlockChain->GetForkStatus(mapForkStatus);
+        boost::unique_lock<boost::mutex> lock(mutex);
+        if (block.hashPrev != mapForkStatus[fork].hashLastBlock)
+        {
+            Warn("Aging of added blocks : %s", block.hashPrev.GetHex().c_str());
+            return false;
+        }
+    }
     int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
@@ -807,7 +820,7 @@ void CBlockMaker::BlockMakerThreadFunc()
         try
         {
             int nNextStatus = MAKER_HOLD;
-
+            //StdLog("bbbb", hashPrimaryBlock.GetHex().c_str());
             PrepareBlock(block, hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, agree);
 
             if (agree.IsProofOfWork())

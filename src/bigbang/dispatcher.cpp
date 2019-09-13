@@ -2,11 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "dispatcher.h"
-
 #include <chrono>
 #include <thread>
 
+#include "dispatcher.h"
 #include "event.h"
 
 using namespace std;
@@ -306,7 +305,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
         pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                        routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+                                         routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
 
         for (const CTransaction& tx : routineDelegate.vEnrollTx)
         {
@@ -327,6 +326,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pBlockMakerUpdate->data.nWeight = proof.nWeight;
         pBlockMakerUpdate->data.nMintType = block.txMint.nType;
         pBlockMaker->PostEvent(pBlockMakerUpdate);
+        StdLog("1111", updateBlockChain.hashLastBlock.GetHex().c_str());
     }
 
     SyncForkHeight(updateBlockChain.nLastBlockHeight);
