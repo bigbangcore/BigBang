@@ -2,10 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "core.h"
-
 #include "../common/template/exchange.h"
 #include "address.h"
+#include "core.h"
 #include "wallet.h"
 
 using namespace std;
@@ -19,7 +18,7 @@ static const int PROOF_OF_WORK_BITS_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_INIT = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
-static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING + BLOCK_TARGET_SPACING / 2;
+static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING; // + BLOCK_TARGET_SPACING / 2;
 
 static const int64 BBCP_TOKEN_INIT = 3 * 10000 * 10000;
 static const int64 BBCP_MINT_REWARD_POW = 19841;

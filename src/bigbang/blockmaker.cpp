@@ -274,11 +274,42 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 {
     if (txload)
     {
-        size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-        int64 nTotalTxFee = 0;
-        pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
-        block.hashMerkle = block.CalcMerkleTreeRoot();
-        block.txMint.nAmount += nTotalTxFee;
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+            int64 nTotalTxFee = 0;
+            pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
+            std::set<uint256> setTx;
+            for (const auto& obj : block.vtx)
+            {
+                if (obj.nType == obj.TX_CERT)
+                {
+                    setTx.insert(obj.GetHash());
+                }
+            }
+            for (int i = 0; i < block.vtx.size(); ++i)
+            {
+                if (block.vtx[i].nType == block.vtx[i].TX_CERT)
+                {
+                    if (setTx.count(block.vtx[i].vInput[0].prevout.hash))
+                    {
+                        StdLog("$$$$", "remove dpos tx");
+                        nTotalTxFee -= block.vtx[i].nTxFee;
+                        block.vtx.erase(block.vtx.begin() + i);
+                    }
+                }
+            }
+            block.hashMerkle = block.CalcMerkleTreeRoot();
+            block.txMint.nAmount += nTotalTxFee;
+        }
+        else
+        {
+            size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+            int64 nTotalTxFee = 0;
+            pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
+            block.hashMerkle = block.CalcMerkleTreeRoot();
+            block.txMint.nAmount += nTotalTxFee;
+        }
     }
 }
 
@@ -300,7 +331,6 @@ bool CBlockMaker::DispatchBlock(CBlock& block)
         map<uint256, CForkStatus> mapForkStatus;
         auto fork = pCoreProtocol->GetGenesisBlockHash();
         pBlockChain->GetForkStatus(mapForkStatus);
-        boost::unique_lock<boost::mutex> lock(mutex);
         if (block.hashPrev != mapForkStatus[fork].hashLastBlock)
         {
             Warn("Aging of added blocks : %s", block.hashPrev.GetHex().c_str());
@@ -513,7 +543,6 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 {
     const int64 nTimePrev = block.nTimeStamp - BLOCK_TARGET_SPACING;
     block.nTimeStamp -= 5;
-
     if (GetNetTime() > block.nTimeStamp)
     {
         block.nTimeStamp = GetNetTime();
@@ -523,9 +552,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     proof.Load(block.vchProof);
 
     int nBits = proof.nBits;
-
-    uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
-
+    Log("difficulty : (%d)", nBits);
     vector<unsigned char> vchProofOfWork;
     block.GetSerializedProofOfWorkData(vchProofOfWork);
 
@@ -536,7 +563,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 
     while (!Interrupted())
     {
-        hashTarget = (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev));
+        uint256 hashTarget = (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev));
         if (nHashRate == 0)
             nHashRate = 1;
         for (int i = 0; i < nHashRate; i++)

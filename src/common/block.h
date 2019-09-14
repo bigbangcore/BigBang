@@ -118,12 +118,13 @@ public:
         }
         else if (IsProofOfWork())
         {
-            return GetHash().Get32() % 256;
-            //return 1;
+            CProofOfHashWorkCompact proof;
+            proof.Load(vchProof);
+            return proof.nBits;
         }
         else
         {
-            return (uint64)vchProof[0];
+            return (uint64)vchProof[0] + 256;
         }
         return 0;
     }

@@ -298,19 +298,20 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
-    CDelegateRoutine routineDelegate;
-
     if (!pCoreProtocol->CheckFirstPow(updateBlockChain.nLastBlockHeight))
     {
+        CDelegateRoutine routineDelegate;
         pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
-
         pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                          routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
 
         for (const CTransaction& tx : routineDelegate.vEnrollTx)
         {
-            Errno err = AddNewTx(tx, nNonce);
-            Log("Send DelegateTx %s (%s)\n", ErrorString(err), tx.GetHash().GetHex().c_str());
+            if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
+            {
+                Errno err = AddNewTx(tx, nNonce);
+                Log("Send DelegateTx %s (%s)\n", ErrorString(err), tx.GetHash().GetHex().c_str());
+            }
         }
     }
 

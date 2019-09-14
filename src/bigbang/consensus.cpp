@@ -2,9 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "consensus.h"
-
 #include "address.h"
+#include "consensus.h"
 #include "template/delegate.h"
 
 using namespace std;
@@ -321,7 +320,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                 if (mi != mapContext.end())
                 {
                     CTransaction tx;
-                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), hash, 0, (*it).second))
+                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), 0, (*it).second))
                     {
                         routine.vEnrollTx.push_back(tx);
                     }

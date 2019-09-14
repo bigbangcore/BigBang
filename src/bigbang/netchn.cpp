@@ -2,10 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "netchn.h"
-
 #include <boost/bind.hpp>
 
+#include "netchn.h"
 #include "schedule.h"
 
 using namespace std;
@@ -555,6 +554,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
             if (!GetMissingPrevTx(tx, setMissingPrevTx))
             {
                 AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
+                if (setMisbehavePeer.size() > 0)
+                {
+                    StdWarn("$$$$", txid.GetHex().c_str());
+                    StdWarn("$$$$", tx.vInput[0].prevout.hash.GetHex().c_str());
+                }
             }
             else
             {
@@ -575,7 +579,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         else
         {
             sched.InvalidateTx(txid, setMisbehavePeer);
-            setMisbehavePeer.clear();
         }
         PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
     }
