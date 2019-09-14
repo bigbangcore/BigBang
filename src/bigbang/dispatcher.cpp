@@ -327,7 +327,6 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pBlockMakerUpdate->data.nWeight = proof.nWeight;
         pBlockMakerUpdate->data.nMintType = block.txMint.nType;
         pBlockMaker->PostEvent(pBlockMakerUpdate);
-        StdLog("1111", updateBlockChain.hashLastBlock.GetHex().c_str());
     }
 
     SyncForkHeight(updateBlockChain.nLastBlockHeight);

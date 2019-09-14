@@ -554,11 +554,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
             if (!GetMissingPrevTx(tx, setMissingPrevTx))
             {
                 AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
-                if (setMisbehavePeer.size() > 0)
-                {
-                    StdWarn("$$$$", txid.GetHex().c_str());
-                    StdWarn("$$$$", tx.vInput[0].prevout.hash.GetHex().c_str());
-                }
             }
             else
             {

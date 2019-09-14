@@ -2,11 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "blockbase.h"
-
 #include <boost/timer/timer.hpp>
 #include <cstdio>
 
+#include "blockbase.h"
 #include "template/template.h"
 
 using namespace std;
@@ -666,7 +665,7 @@ bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int&
     return true;
 }
 
-bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, const uint256& hashAnchor, const vector<uint256>& vBlockRange,
+bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
                                        int64 nDelegateWeightRatio,
                                        map<CDestination, size_t>& mapWeight,
                                        map<CDestination, vector<unsigned char>>& mapEnrollData)
@@ -678,7 +677,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, const uint256& hashA
     }
 
     map<CDestination, CDiskPos> mapEnrollTxPos;
-    if (!dbBlock.RetrieveEnroll(hashAnchor, vBlockRange, mapEnrollTxPos))
+    if (!dbBlock.RetrieveEnroll(height, vBlockRange, mapEnrollTxPos))
     {
         return false;
     }
@@ -1330,7 +1329,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 vector<uint256> vBlockRange;
                 vBlockRange.push_back(block.GetHash());
                 map<CDestination, CDiskPos> mapRes;
-                if (!dbBlock.RetrieveEnroll(block.hashPrev, vBlockRange, mapRes))
+                if (!dbBlock.RetrieveEnroll(GetIndex(block.hashPrev)->GetBlockHeight(), vBlockRange, mapRes))
                 {
                     Error("B", "Retrieve enroll tx records from table enroll failed.\n");
                     return false;
@@ -1656,7 +1655,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
     CDelegateContext ctxtDelegate;
 
     map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
-    map<uint256, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
+    map<int, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
 
     if (!dbBlock.RetrieveDelegate(block.hashPrev, mapDelegate))
     {
@@ -1691,7 +1690,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
 
         if (tx.nType == CTransaction::TX_CERT)
         {
-            mapEnrollTx[tx.hashAnchor].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
+            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
         }
         nOffset += ss.GetSerializeSize(tx);
     }

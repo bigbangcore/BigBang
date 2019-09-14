@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "blockdb.h"
-
 #include "stream/datastream.h"
 
 using namespace std;
@@ -213,10 +212,10 @@ bool CBlockDB::RetrieveDelegate(const uint256& hash, map<CDestination, int64>& m
     return dbDelegate.RetrieveDelegatedVote(hash, mapDelegate);
 }
 
-bool CBlockDB::RetrieveEnroll(const uint256& hashAnchor, const vector<uint256>& vBlockRange,
+bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,
                               map<CDestination, CDiskPos>& mapEnrollTxPos)
 {
-    return dbDelegate.RetrieveEnrollTx(hashAnchor, vBlockRange, mapEnrollTxPos);
+    return dbDelegate.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos);
 }
 
 bool CBlockDB::LoadFork()

@@ -124,7 +124,7 @@ public:
         }
         else
         {
-            return (uint64)vchProof[0] + 256;
+            return (uint64)vchProof[0] + 255;
         }
         return 0;
     }

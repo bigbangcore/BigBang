@@ -45,7 +45,7 @@ public:
     bool RetrieveTxUnspent(const uint256& fork, const CTxOutPoint& out, CTxOut& unspent);
     bool WalkThroughUnspent(const uint256& hashFork, CForkUnspentDBWalker& walker);
     bool RetrieveDelegate(const uint256& hash, std::map<CDestination, int64>& mapDelegate);
-    bool RetrieveEnroll(const uint256& hashAnchor, const std::vector<uint256>& vBlockRange,
+    bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
 
 protected:

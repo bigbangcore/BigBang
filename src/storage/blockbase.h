@@ -234,7 +234,7 @@ public:
     bool RetrieveTx(const uint256& txid, CTransaction& tx);
     bool RetrieveTx(const uint256& hashFork, const uint256& txid, CTransaction& tx);
     bool RetrieveTxLocation(const uint256& txid, uint256& hashFork, int& nHeight);
-    bool RetrieveAvailDelegate(const uint256& hash, const uint256& hashAnchor, const std::vector<uint256>& vBlockRange,
+    bool RetrieveAvailDelegate(const uint256& hash, int height, const std::vector<uint256>& vBlockRange,
                                int64 nDelegateWeightRatio,
                                std::map<CDestination, std::size_t>& mapWeight,
                                std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
