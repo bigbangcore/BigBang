@@ -5,6 +5,7 @@
 #ifndef NETWORK_PEERNET_H
 #define NETWORK_PEERNET_H
 
+#include "message/actor.h"
 #include "peerevent.h"
 #include "proto.h"
 #include "xengine.h"
@@ -25,6 +26,13 @@ public:
     virtual void BroadcastTxInv(const uint256& hashFork) = 0;
     virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
+};
+
+class INetChannelActor : public xengine::CIOActor
+{
+public:
+    INetChannelActor()
+      : xengine::CIOActor("netchannel") {}
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
