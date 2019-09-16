@@ -6,6 +6,7 @@
 #define BIGBANG_NETCHN_H
 
 #include "base.h"
+#include "message.h"
 #include "peernet.h"
 #include "schedule.h"
 
@@ -68,17 +69,17 @@ public:
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
-class CNetChannel : public network::INetChannel
+class CNetChannel : public network::INetChannelActor
 {
 public:
     CNetChannel();
     ~CNetChannel();
-    int GetPrimaryChainHeight() override;
+    /*int GetPrimaryChainHeight() override;
     bool IsForkSynchronized(const uint256& hashFork) const override;
     void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) override;
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
-    void UnsubscribeFork(const uint256& hashFork) override;
+    void UnsubscribeFork(const uint256& hashFork) override;*/
 
 protected:
     enum
@@ -95,7 +96,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    bool HandleEvent(network::CEventPeerActive& eventActive) override;
+    /*bool HandleEvent(network::CEventPeerActive& eventActive) override;
     bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
     bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe) override;
@@ -103,7 +104,17 @@ protected:
     bool HandleEvent(network::CEventPeerGetData& eventGetData) override;
     bool HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks) override;
     bool HandleEvent(network::CEventPeerTx& eventTx) override;
-    bool HandleEvent(network::CEventPeerBlock& eventBlock) override;
+    bool HandleEvent(network::CEventPeerBlock& eventBlock) override;*/
+
+    void HandleActive(const CPeerActiveMessage& msg);
+    void HandleDeactive(const CPeerDeactiveMessage& msg);
+    void HandleSubscribe(const CPeerSubscribeMessage& msg);
+    void HandleUnsubscribe(const CPeerUnSubscribeMessage& msg);
+    void HandleInv(const CPeerInvMessage& msg);
+    void HandleGetData(const CPeerGetDataMessage& msg);
+    void HandleGetBlocks(const CPeerGetBlocksMessage& msg);
+    void HandlePeerTx(const CPeerTxMessage& msg);
+    void HandlePeerBlock(const CPeerBlockMessage& msg);
 
     CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
