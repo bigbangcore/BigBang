@@ -4,13 +4,13 @@
 
 #include "message.h"
 
-INITIALIZE_MESSAGE_TYPE(CPeerBasicMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerActiveMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerDeactiveMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerSubscribeMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerUnSubscribeMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerGetBlocksMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerGetDataMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerInvMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerTxMessage);
-INITIALIZE_MESSAGE_TYPE(CPeerBlockMessage);
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerBasicMessage, "BasicMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerActiveMessage, "ActiveMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerDeactiveMessage, "DeactiveMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerSubscribeMessage, "SubscribeMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerUnSubscribeMessage, "UnsubscribeMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerGetBlocksMessage, "GetBlocksMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerGetDataMessage, "GetDataMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerInvMessage, "InvMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerTxMessage, "TxMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerBlockMessage, "BlockMessage");
