@@ -28,7 +28,7 @@ struct CTestMessageA : public CMessage
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_TYPE(CTestMessageA);
+INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageA, "messageA");
 atomic<uint> CTestMessageA::nPublish;
 atomic<uint> CTestMessageA::nHandled;
 
@@ -39,7 +39,7 @@ struct CTestMessageB : public CMessage
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_TYPE(CTestMessageB);
+INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageB, "messageB");
 atomic<uint> CTestMessageB::nPublish;
 atomic<uint> CTestMessageB::nHandled;
 
@@ -50,7 +50,7 @@ struct CTestMessageC : public CTestMessageB
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_TYPE(CTestMessageC);
+INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageC, "messageC");
 atomic<uint> CTestMessageC::nPublish;
 atomic<uint> CTestMessageC::nHandled;
 
@@ -61,7 +61,7 @@ struct CTestMessageD : public CTestMessageB
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_TYPE(CTestMessageD);
+INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageD, "messageD");
 atomic<uint> CTestMessageD::nPublish;
 atomic<uint> CTestMessageD::nHandled;
 
@@ -254,6 +254,11 @@ BOOST_AUTO_TEST_CASE(basic)
     BOOST_CHECK(CTestMessageB::nHandled == CTestMessageB::nPublish && CTestMessageB::nHandled == 4 * nB);
     BOOST_CHECK(CTestMessageC::nHandled == 2 * CTestMessageC::nPublish && CTestMessageC::nHandled == 4 * 2 * nC);
     BOOST_CHECK(CTestMessageD::nHandled == CTestMessageD::nPublish && CTestMessageD::nHandled == 4 * nD);
+    cout << "CTestMessageA::strTag: " << CTestMessageA::strTag << endl;
+    BOOST_CHECK(CTestMessageA::strTag == CTestMessageA().Tag() && CTestMessageA::strTag == "messageA");
+    BOOST_CHECK(CTestMessageB::strTag == CTestMessageB().Tag() && CTestMessageB::strTag == "messageB");
+    BOOST_CHECK(CTestMessageC::strTag == CTestMessageC().Tag() && CTestMessageC::strTag == "messageC");
+    BOOST_CHECK(CTestMessageD::strTag == CTestMessageD().Tag() && CTestMessageD::strTag == "messageD");
 }
 
 template <typename T>

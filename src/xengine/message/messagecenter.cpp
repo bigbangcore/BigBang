@@ -21,7 +21,7 @@ struct CSubscribeMessage : public CMessage
     uint32 nSubType;
     CIOActor* pActor;
 };
-INITIALIZE_MESSAGE_TYPE(CSubscribeMessage);
+INITIALIZE_MESSAGE_STATIC_VAR(CSubscribeMessage, "SubscribeMessage");
 
 // The message type for unsubscribing message from CMessageCenter
 struct CUnsubscribeMessage : public CMessage
@@ -31,7 +31,7 @@ struct CUnsubscribeMessage : public CMessage
     uint32 nUnsubType;
     CIOActor* pActor;
 };
-INITIALIZE_MESSAGE_TYPE(CUnsubscribeMessage);
+INITIALIZE_MESSAGE_STATIC_VAR(CUnsubscribeMessage, "UnsubscribeMessage");
 } // namespace
 
 // CMessageCenter
