@@ -642,8 +642,35 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     return true;
 }*/
 
-void CNetChannel::HandleActive(const CPeerActiveMessage& msg)
+void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
 {
+    uint64 nNonce = activeMsg.nNonce;
+    if ((activeMsg.nService & network::NODE_NETWORK))
+    {
+        DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+
+        network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
+            {
+                if ((*it).first != pCoreProtocol->GetGenesisBlockHash())
+                {
+                    eventSubscribe.data.push_back((*it).first);
+                }
+            }
+        }
+        if (!eventSubscribe.data.empty())
+        {
+            pPeerNet->DispatchEvent(&eventSubscribe);
+        }
+    }
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+        mapPeer[nNonce] = CNetChannelPeer(activeMsg.nService, pCoreProtocol->GetGenesisBlockHash());
+        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+    }
+    NotifyPeerUpdate(nNonce, true, activeMsg.address);
 }
 
 void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& msg)
