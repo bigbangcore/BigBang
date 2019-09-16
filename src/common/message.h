@@ -6,8 +6,9 @@
 #define COMMON_MESSAGE_H
 
 #include <uint256.h>
-#include "message/message.h"
+
 #include "block.h"
+#include "message/message.h"
 #include "proto.h"
 
 using namespace xengine;
@@ -22,6 +23,22 @@ struct CPeerBasicMessage : public CMessage
 
 INITIALIZE_MESSAGE_TYPE(CPeerBasicMessage);
 
+struct CPeerActiveMessage : public CPeerBasicMessage
+{
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerActiveMessage);
+    CAddress address;
+};
+
+INITIALIZE_MESSAGE_TYPE(CPeerActiveMessage);
+
+struct CPeerDeactiveMessage : public CPeerBasicMessage
+{
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerDeactiveMessage);
+    CAddress address;
+};
+
+INITIALIZE_MESSAGE_TYPE(CPeerDeactiveMessage);
+
 struct CPeerSubscribeMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerSubscribeMessage);
@@ -30,9 +47,10 @@ struct CPeerSubscribeMessage : public CPeerBasicMessage
 
 INITIALIZE_MESSAGE_TYPE(CPeerSubscribeMessage);
 
-struct CPeerUnSubscribeMessage : public CPeerSubscribeMessage
+struct CPeerUnSubscribeMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerUnSubscribeMessage);
+    std::vector<uint256> vecForks;
 };
 
 INITIALIZE_MESSAGE_TYPE(CPeerUnSubscribeMessage);
