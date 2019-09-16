@@ -80,7 +80,7 @@ private:
     void LaunchMiner();
 
 protected:
-    xengine::IIOProc* pHttpGet;
+    xengine::CIOProc* pHttpGet;
     xengine::CThread thrFetcher;
     xengine::CThread thrMiner;
     boost::mutex mutex;

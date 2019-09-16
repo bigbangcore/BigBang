@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-#include "base/base.h"
+#include "message/actor.h"
 #include "netio/ioclient.h"
 #include "netio/iocontainer.h"
 #include "netio/nethost.h"
@@ -48,14 +48,14 @@ protected:
     bool fAborted;
 };
 
-class CIOProc : public IIOProc
+class CIOProc : public CIOActor
 {
     friend class CIOOutBound;
     friend class CIOSSLOutBound;
     friend class CIOInBound;
 
 public:
-    CIOProc(const std::string& ownKeyIn);
+    CIOProc(const std::string& ownKeyIn = "");
     virtual ~CIOProc();
     boost::asio::io_service& GetIoService();
     boost::asio::io_service::strand& GetIoStrand();
@@ -79,8 +79,8 @@ protected:
                     const CIOSSLOption& optSSL = CIOSSLOption());
     std::size_t GetOutBoundIdleCount();
     void ResolveHost(const CNetHost& host);
-    virtual void EnterLoop();
-    virtual void LeaveLoop();
+    virtual void EnterLoop() override;
+    virtual void LeaveLoop() override;
     virtual void HeartBeat();
     virtual void Timeout(uint64 nNonce, uint32 nTimerId);
     virtual std::size_t GetMaxOutBoundCount();
@@ -91,7 +91,6 @@ protected:
     virtual void HostFailToResolve(const CNetHost& host);
 
 private:
-    void IOThreadFunc();
     void IOProcHeartBeat(const boost::system::error_code& err);
     void IOProcPollTimer();
     void IOProcHandleEvent(CEvent* pEvent, std::shared_ptr<CIOCompletion> spComplt);
@@ -99,9 +98,6 @@ private:
                               boost::asio::ip::tcp::resolver::iterator endpoint_iterator);
 
 private:
-    CThread thrIOProc;
-    boost::asio::io_service ioService;
-    boost::asio::io_service::strand ioStrand;
     boost::asio::ip::tcp::resolver resolverHost;
     std::map<boost::asio::ip::tcp::endpoint, CIOInBound*> mapService;
     CIOOutBound ioOutBound;
