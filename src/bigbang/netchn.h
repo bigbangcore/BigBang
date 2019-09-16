@@ -96,24 +96,15 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    /*
-    bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
-    bool HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe) override;
-    bool HandleEvent(network::CEventPeerInv& eventInv) override;
-    bool HandleEvent(network::CEventPeerGetData& eventGetData) override;
-    bool HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks) override;
-    bool HandleEvent(network::CEventPeerTx& eventTx) override;
-    bool HandleEvent(network::CEventPeerBlock& eventBlock) override;*/
-
     void HandleActive(const CPeerActiveMessage& activeMsg);
     void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
-    void HandleSubscribe(const CPeerSubscribeMessage& msg);
-    void HandleUnsubscribe(const CPeerUnSubscribeMessage& msg);
-    void HandleInv(const CPeerInvMessage& msg);
-    void HandleGetData(const CPeerGetDataMessage& msg);
-    void HandleGetBlocks(const CPeerGetBlocksMessage& msg);
-    void HandlePeerTx(const CPeerTxMessage& msg);
-    void HandlePeerBlock(const CPeerBlockMessage& msg);
+    void HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg);
+    void HandleUnsubscribe(const CPeerUnSubscribeMessage& unsubscribeMsg);
+    void HandleInv(const CPeerInvMessage& invMsg);
+    void HandleGetData(const CPeerGetDataMessage& getDataMsg);
+    void HandleGetBlocks(const CPeerGetBlocksMessage& getBlocksMsg);
+    void HandlePeerTx(const CPeerTxMessage& txMsg);
+    void HandlePeerBlock(const CPeerBlockMessage& blockMsg);
 
     CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
@@ -121,7 +112,7 @@ protected:
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
     void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched);
-    bool GetMissingPrevTx(CTransaction& tx, std::set<uint256>& setMissingPrevTx);
+    bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
                      std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
