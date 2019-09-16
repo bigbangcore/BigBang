@@ -309,73 +309,7 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
     }
 }*/
 
-/*bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
-{
-    uint64 nNonce = eventActive.nNonce;
-    if ((eventActive.data.nService & network::NODE_NETWORK))
-    {
-        DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
-
-        network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
-        {
-            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-            for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
-            {
-                if ((*it).first != pCoreProtocol->GetGenesisBlockHash())
-                {
-                    eventSubscribe.data.push_back((*it).first);
-                }
-            }
-        }
-        if (!eventSubscribe.data.empty())
-        {
-            pPeerNet->DispatchEvent(&eventSubscribe);
-        }
-    }
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, pCoreProtocol->GetGenesisBlockHash());
-        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
-    }
-    NotifyPeerUpdate(nNonce, true, eventActive.data);
-    return true;
-}
-
-bool CNetChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
-{
-    uint64 nNonce = eventDeactive.nNonce;
-    {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-        for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
-        {
-            CSchedule& sched = (*it).second;
-            set<uint64> setSchedPeer;
-            sched.RemovePeer(nNonce, setSchedPeer);
-
-            for (const uint64 nNonceSched : setSchedPeer)
-            {
-                SchedulePeerInv(nNonceSched, (*it).first, sched);
-            }
-        }
-    }
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-
-        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
-        if (it != mapPeer.end())
-        {
-            for (auto& subFork : (*it).second.mapSubscribedFork)
-            {
-                mapUnsync[subFork.first].erase(nNonce);
-            }
-            mapPeer.erase(nNonce);
-        }
-    }
-    NotifyPeerUpdate(nNonce, false, eventDeactive.data);
-
-    return true;
-}
-
+/*
 bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
 {
     uint64 nNonce = eventSubscribe.nNonce;
@@ -673,8 +607,37 @@ void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
     NotifyPeerUpdate(nNonce, true, activeMsg.address);
 }
 
-void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& msg)
+void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
 {
+    uint64 nNonce = deactiveMsg.nNonce;
+    {
+        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
+        {
+            CSchedule& sched = (*it).second;
+            set<uint64> setSchedPeer;
+            sched.RemovePeer(nNonce, setSchedPeer);
+
+            for (const uint64 nNonceSched : setSchedPeer)
+            {
+                SchedulePeerInv(nNonceSched, (*it).first, sched);
+            }
+        }
+    }
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+
+        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        if (it != mapPeer.end())
+        {
+            for (auto& subFork : (*it).second.mapSubscribedFork)
+            {
+                mapUnsync[subFork.first].erase(nNonce);
+            }
+            mapPeer.erase(nNonce);
+        }
+    }
+    NotifyPeerUpdate(nNonce, false, deactiveMsg.address);
 }
 
 void CNetChannel::HandleSubscribe(const CPeerSubscribeMessage& msg)

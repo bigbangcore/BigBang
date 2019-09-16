@@ -96,8 +96,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    /*bool HandleEvent(network::CEventPeerActive& eventActive) override;
-    bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
+    /*
     bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(network::CEventPeerInv& eventInv) override;
@@ -106,8 +105,8 @@ protected:
     bool HandleEvent(network::CEventPeerTx& eventTx) override;
     bool HandleEvent(network::CEventPeerBlock& eventBlock) override;*/
 
-    void HandleActive(const CPeerActiveMessage& msg);
-    void HandleDeactive(const CPeerDeactiveMessage& msg);
+    void HandleActive(const CPeerActiveMessage& activeMsg);
+    void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
     void HandleSubscribe(const CPeerSubscribeMessage& msg);
     void HandleUnsubscribe(const CPeerUnSubscribeMessage& msg);
     void HandleInv(const CPeerInvMessage& msg);
