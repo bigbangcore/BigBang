@@ -10,7 +10,7 @@ namespace xengine
 {
 
 CIOActor::CIOActor(const std::string& ownKeyIn)
-  : IBase(ownKeyIn),
+  : IController(ownKeyIn),
     thrIOActor(ownKeyIn, boost::bind(&CIOActor::HandlerThreadFunc, this)),
     ioStrand(ioService), ioWork(ioService)
 {

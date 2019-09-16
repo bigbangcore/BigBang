@@ -10,7 +10,7 @@
 #include <map>
 #include <memory>
 
-#include "base/base.h"
+#include "base/controller.h"
 #include "message/messagecenter.h"
 
 namespace xengine
@@ -21,7 +21,7 @@ class CMessage;
 /**
  * @brief CIOActor object can handle message.
  */
-class CIOActor : public IBase
+class CIOActor : public IController
 {
     typedef std::function<void(const CMessage&)> HandlerFunction;
 
