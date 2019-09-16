@@ -20,6 +20,8 @@ set(sources
     stream/circular.cpp     stream/circular.h
     stream/stream.cpp       stream/stream.h
     base/base.cpp           base/base.h
+    base/model.h
+    base/controller.h
     docker/config.cpp       docker/config.h
     docker/docker.cpp       docker/docker.h
     netio/nethost.cpp       netio/nethost.h
