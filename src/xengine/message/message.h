@@ -44,6 +44,12 @@ public:
     virtual uint32 Type() const = 0;
 
     /**
+     * @brief Return message tag.
+     * @return The message tag.
+     */
+    virtual std::string Tag() const = 0;
+
+    /**
      * @brief Handle self by handler
      * @param handler The handler function
      */
@@ -70,18 +76,24 @@ protected:
     {                                                                           \
         return cls::nType;                                                      \
     }                                                                           \
+    virtual std::string Tag() const override                                    \
+    {                                                                           \
+        return cls::strTag;                                                     \
+    }                                                                           \
     virtual void Handle(boost::any handler) override                            \
     {                                                                           \
         boost::any_cast<boost::function<void(const cls& msg)>>(handler)(*this); \
     }                                                                           \
-    static const uint32 nType
+    static const uint32 nType;                                                  \
+    static const std::string strTag
 
 /**
  * @brief Initialze the variable 'static const uint32 cls::nType' of cls.
  * @param cls The name of derived class.
  */
-#define INITIALIZE_MESSAGE_TYPE(cls) \
-    const uint32 cls::nType = CMessage::NewMessageType()
+#define INITIALIZE_MESSAGE_STATIC_VAR(cls, tag)           \
+    const uint32 cls::nType = CMessage::NewMessageType(); \
+    const std::string cls::strTag = tag
 
 } // namespace xengine
 
