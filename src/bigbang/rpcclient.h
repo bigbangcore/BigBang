@@ -44,7 +44,7 @@ protected:
     void LeaveLoop();
 
 protected:
-    xengine::IIOProc* pHttpGet;
+    xengine::CIOProc* pHttpGet;
     xengine::CThread thrDispatch;
     std::vector<std::string> vArgs;
     uint64 nLastNonce;

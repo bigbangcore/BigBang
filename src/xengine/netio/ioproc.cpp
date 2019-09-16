@@ -72,9 +72,8 @@ void CIOCompletion::Reset()
 // CIOProc
 
 CIOProc::CIOProc(const string& ownKeyIn)
-  : IIOProc(ownKeyIn),
-    thrIOProc(ownKeyIn, boost::bind(&CIOProc::IOThreadFunc, this)),
-    ioStrand(ioService), resolverHost(ioService), ioOutBound(this), ioSSLOutBound(this),
+  : CIOActor(ownKeyIn),
+    resolverHost(ioService), ioOutBound(this), ioSSLOutBound(this),
     timerHeartbeat(ioService, IOPROC_HEARTBEAT)
 {
 }
@@ -117,6 +116,8 @@ CIOClient* CIOProc::CreateIOClient(CIOContainer* pContainer)
 
 bool CIOProc::HandleInvoke()
 {
+    CIOActor::HandleInvoke();
+
     if (!ioOutBound.Invoke(GetMaxOutBoundCount()))
     {
         Error("Failed to invoke IOOutBound\n");
@@ -125,24 +126,11 @@ bool CIOProc::HandleInvoke()
 
     ioSSLOutBound.Invoke(GetMaxOutBoundCount());
 
-    if (!ThreadDelayStart(thrIOProc))
-    {
-        Error("Failed to start iothread\n");
-        return false;
-    }
-
     return true;
 }
 
 void CIOProc::HandleHalt()
 {
-    if (!ioService.stopped())
-    {
-        ioService.stop();
-    }
-    thrIOProc.Interrupt();
-    ThreadExit(thrIOProc);
-
     ioOutBound.Halt();
     ioSSLOutBound.Halt();
 
@@ -152,6 +140,8 @@ void CIOProc::HandleHalt()
         delete ((*it).second);
     }
     mapService.clear();
+
+    CIOActor::HandleHalt();
 }
 
 uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)
@@ -263,10 +253,18 @@ void CIOProc::ResolveHost(const CNetHost& host)
 
 void CIOProc::EnterLoop()
 {
+    CIOActor::EnterLoop();
+
+    timerHeartbeat.async_wait(boost::bind(&CIOProc::IOProcHeartBeat, this, _1));
 }
 
 void CIOProc::LeaveLoop()
 {
+    timerHeartbeat.cancel();
+    mapTimerById.clear();
+    mapTimerByExpiry.clear();
+
+    CIOActor::LeaveLoop();
 }
 
 void CIOProc::HeartBeat()
@@ -302,25 +300,6 @@ void CIOProc::HostResolved(const CNetHost& host, const tcp::endpoint& ep)
 
 void CIOProc::HostFailToResolve(const CNetHost& host)
 {
-}
-
-void CIOProc::IOThreadFunc()
-{
-    ioService.reset();
-
-    timerHeartbeat.async_wait(boost::bind(&CIOProc::IOProcHeartBeat, this, _1));
-
-    EnterLoop();
-
-    ioService.run();
-
-    LeaveLoop();
-
-    timerHeartbeat.cancel();
-
-    mapTimerById.clear();
-
-    mapTimerByExpiry.clear();
 }
 
 void CIOProc::IOProcHeartBeat(const boost::system::error_code& err)

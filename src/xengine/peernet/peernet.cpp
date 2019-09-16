@@ -57,6 +57,8 @@ void CPeerNet::HandlePeerWriten(CPeer* pPeer)
 
 void CPeerNet::EnterLoop()
 {
+    CIOProc::EnterLoop();
+
     for (const CPeerService& service : confNetwork.vecService)
     {
         if (StartService(service.epListen, service.nMaxInBounds))
@@ -97,6 +99,8 @@ void CPeerNet::LeaveLoop()
     }
 
     epMngr.Clear();
+
+    CIOProc::LeaveLoop();
 }
 
 void CPeerNet::HeartBeat()

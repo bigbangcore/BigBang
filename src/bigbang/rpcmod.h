@@ -128,7 +128,7 @@ private:
     rpc::CRPCResultPtr RPCQueryStat(rpc::CRPCParamPtr param);
 
 protected:
-    xengine::IIOProc* pHttpServer;
+    xengine::CIOProc* pHttpServer;
     ICoreProtocol* pCoreProtocol;
     IService* pService;
     IDataStat* pDataStat;

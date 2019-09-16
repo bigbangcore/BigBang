@@ -236,6 +236,8 @@ void CHttpServer::HandleDeinitialize()
 void CHttpServer::EnterLoop()
 {
     Log("Http Server start:\n");
+    CIOProc::EnterLoop();
+
     for (map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
     {
@@ -265,6 +267,8 @@ void CHttpServer::LeaveLoop()
     {
         RemoveClient(pClient);
     }
+
+    CIOProc::LeaveLoop();
     Log("Http Server stop\n");
 }
 

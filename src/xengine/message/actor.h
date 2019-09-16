@@ -29,7 +29,7 @@ public:
     /**
      * @brief Actor constructor
      */
-    CIOActor(const std::string& ownKeyIn);
+    CIOActor(const std::string& ownKeyIn = "");
 
     /**
      * @brief Actor destructor
@@ -114,12 +114,13 @@ private:
     /// Message handler callback entry.
     void MessageHandler(std::shared_ptr<CMessage> spMessage);
 
-private:
-    CThread thrIOActor;
+protected:
     boost::asio::io_service ioService;
     boost::asio::io_service::strand ioStrand;
-    boost::asio::io_service::work ioWork;
 
+private:
+    boost::asio::io_service::work ioWork;
+    CThread thrIOActor;
     std::map<uint32, boost::any> mapHandler;
 };
 

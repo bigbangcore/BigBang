@@ -263,6 +263,8 @@ void CHttpGet::LeaveLoop()
     {
         CloseConn(pGetClient, HTTPGET_ABORTED);
     }
+
+    CIOProc::LeaveLoop();
 }
 
 void CHttpGet::HostResolved(const CNetHost& host, const tcp::endpoint& ep)
