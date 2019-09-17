@@ -678,11 +678,7 @@ bool CCoreProtocol::VerifySpecialAddress(int nBlockHeight, const CBlock& block)
     if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && 
         (nSpecialIndex != 3 || nSpecialSect < 4))
     {
-        CDestination destSpecial;
-        if (!destSpecial.ParseString(BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[nSpecialIndex]))
-        {
-            return false;
-        }
+        CAddress destSpecial(BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[nSpecialIndex]);
         if (block.txMint.sendTo != destSpecial)
         {
             return false;
