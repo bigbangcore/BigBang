@@ -525,7 +525,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
 bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo)
 {
     const int64 nTimePrev = block.nTimeStamp - BLOCK_TARGET_SPACING;
-    block.nTimeStamp -= 5;
+    block.nTimeStamp -= 25;
     if (GetNetTime() > block.nTimeStamp)
     {
         block.nTimeStamp = GetNetTime();
@@ -562,7 +562,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                     pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
-            nNonce++;
+            nNonce += 256;
         }
 
         int64 nNetTime = GetNetTime();
@@ -693,7 +693,7 @@ void CBlockMaker::BlockMakerThreadFunc()
                     {
                         pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
-                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.\n", agree.nAgreement.GetHex().c_str(),
+                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
                             nLastBlockHeight + 1, agree.nWeight,
                             agree.IsProofOfWork() ? "pow" : "dpos");
                         break;
@@ -715,7 +715,6 @@ void CBlockMaker::BlockMakerThreadFunc()
         try
         {
             int nNextStatus = MAKER_HOLD;
-            //StdLog("bbbb", hashPrimaryBlock.GetHex().c_str());
             PrepareBlock(block, hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, agree);
 
             if (agree.IsProofOfWork())
