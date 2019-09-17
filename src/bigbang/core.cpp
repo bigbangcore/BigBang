@@ -623,7 +623,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
         {
             return BBCP_SPECIAL_MARKET_TOKEN_COIN[nSpecialSect-1];
         }
-        else if (nSpecialIndex == 3 && nSpecialSect < 4)
+        else if (nSpecialIndex == 3 && nSpecialSect <= 4)
         {
             return BBCP_SPECIAL_INSTITUTION_TOKEN_COIN;
         }
@@ -661,7 +661,7 @@ bool CCoreProtocol::CheckSpecialHeight(int nBlockHeight)
     int nSpecialSect = (nBlockHeight-1) / BBCP_SPECIAL_HEIGHT_SECT;
 
     if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && 
-        (nSpecialIndex != 3 || nSpecialSect < 4))
+        (nSpecialIndex != 3 || nSpecialSect <= 4))
     {
         return true;
     }
@@ -676,7 +676,7 @@ bool CCoreProtocol::VerifySpecialAddress(int nBlockHeight, const CBlock& block)
     int nSpecialSect = (nBlockHeight-1) / BBCP_SPECIAL_HEIGHT_SECT;
 
     if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && 
-        (nSpecialIndex != 3 || nSpecialSect < 4))
+        (nSpecialIndex != 3 || nSpecialSect <= 4))
     {
         CAddress destSpecial(BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[nSpecialIndex]);
         if (block.txMint.sendTo != destSpecial)
