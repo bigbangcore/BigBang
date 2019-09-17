@@ -28,6 +28,7 @@ protected:
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                    const std::vector<uint8>& vchSig, bool& fCompleted) const;
     virtual bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
+    virtual bool VerifyBlockSpendAddress(const CDestination& destSpendIn) const;
 
 protected:
     bigbang::crypto::CPubKey keyDelegate;

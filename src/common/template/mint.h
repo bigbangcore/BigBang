@@ -23,12 +23,16 @@ public:
     // Verify block signature.
     static bool VerifyBlockSignature(const CTemplateId& nIdIn, const uint256& hash, const std::vector<uint8>& vchSig);
 
+    // Verify block spend address.
+    static bool VerifyBlockSpendAddress(const CDestination& destIn, const std::vector<uint8>& vchDataIn, const CDestination& destSpendIn);
+
     // Build block signature by concrete template.
     bool BuildBlockSignature(const uint256& hash, const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig) const;
 
 protected:
     // Verify block signature by concrete template.
     virtual bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const = 0;
+    virtual bool VerifyBlockSpendAddress(const CDestination& destSpendIn) const = 0;
 };
 
 #endif // COMMON_TEMPLATE_MINT_H

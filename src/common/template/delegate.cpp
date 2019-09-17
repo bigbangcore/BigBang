@@ -149,3 +149,9 @@ bool CTemplateDelegate::VerifyBlockSignature(const uint256& hash, const vector<u
 {
     return keyDelegate.Verify(hash, vchSig);
 }
+
+bool CTemplateDelegate::VerifyBlockSpendAddress(const CDestination& destSpendIn) const
+{
+    return (destSpendIn == destOwner);
+}
+
