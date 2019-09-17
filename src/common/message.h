@@ -24,14 +24,12 @@ struct CPeerBasicMessage : public CMessage
 struct CPeerActiveMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerActiveMessage);
-    uint64 nService;
     CAddress address;
 };
 
 struct CPeerDeactiveMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerDeactiveMessage);
-    uint64 nService;
     CAddress address;
 };
 

@@ -202,7 +202,7 @@ void CNetChannel::HandleHalt()
     }
 }
 
-/*int CNetChannel::GetPrimaryChainHeight()
+int CNetChannel::GetPrimaryChainHeight()
 {
     uint256 hashBlock = uint64(0);
     int nHeight = 0;
@@ -307,12 +307,12 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
             pPeerNet->DispatchEvent(&eventUnsubscribe);
         }
     }
-}*/
+}
 
 void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
 {
     uint64 nNonce = activeMsg.nNonce;
-    if ((activeMsg.nService & network::NODE_NETWORK))
+    if ((activeMsg.address.nService & network::NODE_NETWORK))
     {
         DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
 
@@ -334,7 +334,7 @@ void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
     }
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(activeMsg.nService, pCoreProtocol->GetGenesisBlockHash());
+        mapPeer[nNonce] = CNetChannelPeer(activeMsg.address.nService, pCoreProtocol->GetGenesisBlockHash());
         mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
     }
     NotifyPeerUpdate(nNonce, true, activeMsg.address);
