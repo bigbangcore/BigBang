@@ -35,16 +35,6 @@ bool CTemplateMint::VerifyBlockSignature(const CTemplateId& nIdIn, const uint256
     return ptr->VerifyBlockSignature(hash, vchSubSig);
 }
 
-bool CTemplateMint::VerifyBlockSpendAddress(const CDestination& destIn, const std::vector<uint8>& vchDataIn, const CDestination& destSpendIn)
-{
-    const CTemplateMintPtr ptr = boost::dynamic_pointer_cast<CTemplateMint>(CTemplate::CreateTemplatePtr(destIn, vchDataIn));
-    if (!ptr)
-    {
-        return false;
-    }
-    return ptr->VerifyBlockSpendAddress(destSpendIn);
-}
-
 bool CTemplateMint::BuildBlockSignature(const uint256& hash, const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig) const
 {
     vchSig = vchData;

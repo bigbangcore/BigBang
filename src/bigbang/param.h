@@ -28,8 +28,6 @@ static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 static const unsigned int DELEGATE_THRESH = 50;
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
-
 enum ConsensusMethod
 {
     CM_MPVSS = 0,

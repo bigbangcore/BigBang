@@ -116,8 +116,3 @@ bool CTemplateProof::VerifyBlockSignature(const uint256& hash, const vector<uint
     return keyMint.Verify(hash, vchSig);
 }
 
-bool CTemplateProof::VerifyBlockSpendAddress(const CDestination& destSpendIn) const
-{
-    return (destSpendIn == destSpend);
-}
-

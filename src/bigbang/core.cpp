@@ -12,6 +12,8 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
+#define BBCP_SET_TOKEN_DISTRIBUTION
+
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LIMIT = 8;
@@ -23,6 +25,7 @@ static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING; // + BLOCK
 static const int64 BBCP_TOKEN_INIT = 0;
 static const int64 BBCP_BASE_REWARD_TOKEN_COIN = 15 * COIN;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN_COIN = 19025875; //1% : (1000000000*0.010000)/(60*24*365)*1000000=19,025875.190258751902587519025875
+static const int64 BBCP_SPECIAL_HEIGHT_SECT = 60*24*30*3;
 
 static const int64 BBCP_END_HEIGHT[7] = {
     129600,         //CPOW             : 60*24*30*3=129600
@@ -68,11 +71,11 @@ static const int64 BBCP_SPECIAL_MARKET_TOKEN_COIN[10] = {
 };
 static const int64 BBCP_SPECIAL_INSTITUTION_TOKEN_COIN = 20000000000000; //2% : (1000000000*0.020000)*1000000=20000000,000000
 
-static const std::string BBCP_SPECIAL_PUBKEY[4] = {
-    "57e7d8bb1119ec37d76f0785e73b1a3fa288a5aa1e84925fe47a5d73b68dba91",     //Foundation
-    "6dda0fef197fa5d4347fde5844b1b8b357a427fe51e3482001892e93030352ac",     //Technical team
-    "34845d977e8feeca5317d93bf31b8d82e94e418abecdb7ab88b929feed127a40",     //Market operation
-    "f57b691449ad1fd6df92f12a563e8b59875b2ae0786f4db74ae020aed17b952e"      //Institution
+static const std::string BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[4] = {
+    "20g053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynqmeyf",            //Foundation
+    "20g00c7gng4w63kjt8r9n6bpfmea7crw7pmkv9rshxf6d6vwhq9bdfy8k",            //Technical team
+    "20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa",            //Market operation
+    "20g0d0p9gaynwq6k815kj4n8w8ttydcf80m67sjcp3zsjymjfb710sjgg"             //Institution
 };
 
 namespace bigbang
@@ -607,18 +610,18 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
-    int nSpecialIndex = (nBlockHeight-1) % (60*24*30*3);
-    int nSpecialSect = (nBlockHeight-1) / (60*24*30*3);
+    int nSpecialIndex = (nBlockHeight-1) % BBCP_SPECIAL_HEIGHT_SECT;
+    int nSpecialSect = (nBlockHeight-1) / BBCP_SPECIAL_HEIGHT_SECT;
 
-    if (nSpecialSect < 10)
+    if (nSpecialSect >= 1 && nSpecialSect <= 10)
     {
         if (nSpecialIndex == 0 || nSpecialIndex == 1)
         {
-            return BBCP_SPECIAL_FOUNDATION_TECH_TOKEN_COIN[nSpecialSect];
+            return BBCP_SPECIAL_FOUNDATION_TECH_TOKEN_COIN[nSpecialSect-1];
         }
         else if (nSpecialIndex == 2)
         {
-            return BBCP_SPECIAL_MARKET_TOKEN_COIN[nSpecialSect];
+            return BBCP_SPECIAL_MARKET_TOKEN_COIN[nSpecialSect-1];
         }
         else if (nSpecialIndex == 3 && nSpecialSect < 4)
         {
@@ -633,7 +636,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
             return BBCP_REWARD_TOKEN_COIN[i];
         }
     }
-
+    
     return BBCP_YEAR_INC_REWARD_TOKEN_COIN;
 #else
     return BBCP_BASE_REWARD_TOKEN_COIN;
@@ -654,10 +657,10 @@ bool CCoreProtocol::CheckFirstPow(int nBlockHeight)
 bool CCoreProtocol::CheckSpecialHeight(int nBlockHeight)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
-    int nSpecialIndex = (nBlockHeight-1) % (60*24*30*3);
-    int nSpecialSect = (nBlockHeight-1) / (60*24*30*3);
+    int nSpecialIndex = (nBlockHeight-1) % BBCP_SPECIAL_HEIGHT_SECT;
+    int nSpecialSect = (nBlockHeight-1) / BBCP_SPECIAL_HEIGHT_SECT;
 
-    if ((nSpecialIndex < 4 && nSpecialSect < 10) && 
+    if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && 
         (nSpecialIndex != 3 || nSpecialSect < 4))
     {
         return true;
@@ -669,16 +672,18 @@ bool CCoreProtocol::CheckSpecialHeight(int nBlockHeight)
 bool CCoreProtocol::VerifySpecialAddress(int nBlockHeight, const CBlock& block)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
-    int nSpecialIndex = (nBlockHeight-1) % (60*24*30*3);
-    int nSpecialSect = (nBlockHeight-1) / (60*24*30*3);
+    int nSpecialIndex = (nBlockHeight-1) % BBCP_SPECIAL_HEIGHT_SECT;
+    int nSpecialSect = (nBlockHeight-1) / BBCP_SPECIAL_HEIGHT_SECT;
 
-    if ((nSpecialIndex < 4 && nSpecialSect < 10) && 
+    if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && 
         (nSpecialIndex != 3 || nSpecialSect < 4))
     {
-        crypto::CPubKey pubkeySpec;
-        pubkeySpec.SetHex(BBCP_SPECIAL_PUBKEY[nSpecialIndex]);
-        CDestination destSpendSpec(pubkeySpec);
-        if (!CTemplateMint::VerifyBlockSpendAddress(block.txMint.sendTo, block.vchSig, destSpendSpec))
+        CDestination destSpecial;
+        if (!destSpecial.ParseString(BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[nSpecialIndex]))
+        {
+            return false;
+        }
+        if (block.txMint.sendTo != destSpecial)
         {
             return false;
         }
