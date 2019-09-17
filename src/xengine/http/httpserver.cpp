@@ -268,6 +268,12 @@ void CHttpServer::LeaveLoop()
         RemoveClient(pClient);
     }
 
+    for (map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.begin();
+         it != mapProfile.end(); ++it)
+    {
+        StopService(it->first);
+    }
+
     CIOProc::LeaveLoop();
     Log("Http Server stop\n");
 }
