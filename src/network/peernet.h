@@ -5,6 +5,7 @@
 #ifndef NETWORK_PEERNET_H
 #define NETWORK_PEERNET_H
 
+#include "message/actor.h"
 #include "peerevent.h"
 #include "proto.h"
 #include "xengine.h"
@@ -19,6 +20,19 @@ class INetChannel : public xengine::IIOModule, virtual public CBbPeerEventListen
 public:
     INetChannel()
       : IIOModule("netchannel") {}
+    virtual int GetPrimaryChainHeight() = 0;
+    virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
+    virtual void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) = 0;
+    virtual void BroadcastTxInv(const uint256& hashFork) = 0;
+    virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
+    virtual void UnsubscribeFork(const uint256& hashFork) = 0;
+};
+
+class INetChannelActor : public xengine::CIOActor
+{
+public:
+    INetChannelActor()
+      : xengine::CIOActor("netchannel") {}
     virtual int GetPrimaryChainHeight() = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
     virtual void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) = 0;
@@ -83,7 +97,7 @@ protected:
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
 
 protected:
-    INetChannel* pNetChannel;
+    INetChannelActor* pNetChannel;
     IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
