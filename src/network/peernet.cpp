@@ -60,6 +60,14 @@ bool CBbPeerNet::HandleInitialize()
         return false;
     }
 
+    RegisterHandler<CPeerSubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleSubscribe, this, _1));
+    RegisterHandler<CPeerUnsubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleUnsubscribe, this, _1));
+    RegisterHandler<CPeerInvMessageOutBound>(boost::bind(&CBbPeerNet::HandleInv, this, _1));
+    RegisterHandler<CPeerGetDataMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetData, this, _1));
+    RegisterHandler<CPeerGetBlocksMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetBlocks, this, _1));
+    RegisterHandler<CPeerTxMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerTx, this, _1));
+    RegisterHandler<CPeerBlockMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerBlock, this, _1));
+
     return true;
 }
 
@@ -70,59 +78,87 @@ void CBbPeerNet::HandleDeinitialize()
     pDelegatedChannel = nullptr;
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)
-{
-    CBufStream ssPayload;
-    ssPayload << eventSubscribe;
-    return SendDataMessage(eventSubscribe.nNonce, PROTO_CMD_SUBSCRIBE, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerUnsubscribe& eventUnsubscribe)
-{
-    CBufStream ssPayload;
-    ssPayload << eventUnsubscribe;
-    return SendDataMessage(eventUnsubscribe.nNonce, PROTO_CMD_UNSUBSCRIBE, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerInv& eventInv)
-{
-    CBufStream ssPayload;
-    ssPayload << eventInv;
-    return SendDataMessage(eventInv.nNonce, PROTO_CMD_INV, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerGetData& eventGetData)
-{
-    CBufStream ssPayload;
-    ssPayload << eventGetData;
-    if (!SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
-    {
-        return false;
-    }
-
-    SetInvTimer(eventGetData.nNonce, eventGetData.data);
-    return true;
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerGetBlocks& eventGetBlocks)
-{
-    CBufStream ssPayload;
-    ssPayload << eventGetBlocks;
-    return SendDataMessage(eventGetBlocks.nNonce, PROTO_CMD_GETBLOCKS, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerTx& eventTx)
-{
-    CBufStream ssPayload;
-    ssPayload << eventTx;
-    return SendDataMessage(eventTx.nNonce, PROTO_CMD_TX, ssPayload);
-}
-
+/*
 bool CBbPeerNet::HandleEvent(CEventPeerBlock& eventBlock)
 {
     CBufStream ssPayload;
     ssPayload << eventBlock;
     return SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
+}*/
+
+void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerSubscribe eventSubscribe(subscribeMsg.nNonce, subscribeMsg.hashFork);
+    eventSubscribe.data = subscribeMsg.vecForks;
+    ssPayload << eventSubscribe;
+    SendDataMessage(eventSubscribe.nNonce, PROTO_CMD_SUBSCRIBE, ssPayload);
+}
+
+void CBbPeerNet::HandleUnsubscribe(const CPeerUnsubscribeMessageOutBound& unsubscribeMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerUnsubscribe eventUnsubscribe(unsubscribeMsg.nNonce, unsubscribeMsg.hashFork);
+    eventUnsubscribe.data = unsubscribeMsg.vecForks;
+    ssPayload << eventUnsubscribe;
+    SendDataMessage(eventUnsubscribe.nNonce, PROTO_CMD_UNSUBSCRIBE, ssPayload);
+}
+
+void CBbPeerNet::HandleInv(const CPeerInvMessageOutBound& invMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerInv eventInv(invMsg.nNonce, invMsg.hashFork);
+    eventInv.data = invMsg.vecInv;
+    ssPayload << eventInv;
+    SendDataMessage(eventInv.nNonce, PROTO_CMD_INV, ssPayload);
+}
+
+void CBbPeerNet::HandleGetData(const CPeerGetDataMessageOutBound& getDataMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerGetData eventGetData(getDataMsg.nNonce, getDataMsg.hashFork);
+    eventGetData.data = getDataMsg.vecInv;
+    ssPayload << eventGetData;
+    if (!SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
+    {
+        return;
+    }
+
+    SetInvTimer(eventGetData.nNonce, eventGetData.data);
+}
+
+void CBbPeerNet::HandleGetBlocks(const CPeerGetBlocksMessageOutBound& getBlocksMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerGetBlocks eventGetBlocks(getBlocksMsg.nNonce, getBlocksMsg.hashFork);
+    eventGetBlocks.data = getBlocksMsg.blockLocator;
+    ssPayload << eventGetBlocks;
+    SendDataMessage(eventGetBlocks.nNonce, PROTO_CMD_GETBLOCKS, ssPayload);
+}
+
+void CBbPeerNet::HandlePeerTx(const CPeerTxMessageOutBound& txMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerTx eventTx(txMsg.nNonce, txMsg.hashFork);
+    eventTx.data = txMsg.tx;
+    ssPayload << eventTx;
+    SendDataMessage(eventTx.nNonce, PROTO_CMD_TX, ssPayload);
+}
+
+void CBbPeerNet::HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg)
+{
+    // TODO: All Message Type need to serilize to CBufStream
+    CBufStream ssPayload;
+    CEventPeerBlock eventBlock(blockMsg.nNonce, blockMsg.hashFork);
+    eventBlock.data = blockMsg.block;
+    ssPayload << eventBlock;
+    SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)

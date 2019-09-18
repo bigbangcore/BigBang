@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "message/actor.h"
 #include "netio/ioproc.h"
 #include "peernet/epmngr.h"
 #include "peernet/peer.h"
