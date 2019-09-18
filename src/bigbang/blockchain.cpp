@@ -422,11 +422,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
-        if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nForkHeight))
-        {
-            Log("AddNewBlock Verify tx Error(first pow) : %s \n", txid.ToString().c_str());
-            return ERR_TRANSACTION_INVALID;
-        }
         CTxContxt txContxt;
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
