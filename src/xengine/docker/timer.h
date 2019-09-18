@@ -5,32 +5,115 @@
 #ifndef XENGINE_DOCKER_TIMER_H
 #define XENGINE_DOCKER_TIMER_H
 
-#include <boost/function.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/thread/thread_time.hpp>
-#include <string>
+#include <map>
 
+#include "message/actor.h"
+#include "message/message.h"
 #include "type.h"
 
 namespace xengine
 {
 
-typedef boost::function<void(uint64)> TimerCallback;
+/**
+ * @brief Pure virtual base class of time out message. It will be published by CTimer on expiried
+ */
+struct CTimeoutMessage : public CMessage
+{
+};
 
-class CTimer
+/**
+ * @brief Timing message. It will be published to CTimer
+ */
+struct CSetTimerMessage : public CMessage
+{
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CSetTimerMessage);
+
+    /// Constructor
+    CSetTimerMessage() {}
+    CSetTimerMessage(std::shared_ptr<CTimeoutMessage> spTimeoutIn, boost::system_time expiryAtIn)
+      : spTimeout(spTimeoutIn), expiryAt(expiryAtIn) {}
+
+    /// Expiried time(seconds from 1970-01-01 UTC)
+    boost::system_time expiryAt;
+    /// Call back message. It must be not nullptr
+    std::shared_ptr<CTimeoutMessage> spTimeout;
+};
+
+struct CCancelTimerMessage : public CMessage
+{
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CCancelTimerMessage);
+
+    /// Constructor
+    CCancelTimerMessage() {}
+    CCancelTimerMessage(std::shared_ptr<CTimeoutMessage> spTimeoutIn)
+      : spTimeout(spTimeoutIn) {}
+
+    /// The same in CSetTimerMessage. It is the unique key for canceling.
+    std::shared_ptr<CTimeoutMessage> spTimeout;
+};
+
+/**
+ * @brief A timer actor.
+ */
+class CTimer : public xengine::CIOActor
 {
 public:
-    CTimer() {}
-    CTimer(const std::string& keyIn, uint32 nTimerIdIn, boost::system_time& tExpiryAtIn,
-           TimerCallback fnCallbackIn)
-      : key(keyIn), nTimerId(nTimerIdIn), tExpiryAt(tExpiryAtIn), fnCallback(fnCallbackIn)
-    {
-    }
+    /**
+     * @brief Constructor
+     */
+    CTimer();
+    /**
+     * @brief Destructor
+     */
+    ~CTimer();
 
-public:
-    const std::string key;
-    uint32 nTimerId;
-    boost::system_time const tExpiryAt;
-    TimerCallback fnCallback;
+protected:
+    bool HandleInitialize() override;
+    void HandleDeinitialize() override;
+    void EnterLoop() override;
+    void LeaveLoop() override;
+
+    // Timeout callback function
+    void TimerCallback(const boost::system::error_code& err);
+    // Reset timer expriy time
+    void NewTimer(const boost::system_time& expiryAt);
+
+    // Handle set timer message
+    virtual void SetTimer(const CSetTimerMessage& message);
+    // Handle cancel timer message
+    virtual void CancelTimer(const CCancelTimerMessage& message);
+
+protected:
+    struct CTagId
+    {
+    };
+    struct CTagTime
+    {
+    };
+    struct CTimerTask
+    {
+        boost::system_time expiryAt;
+        std::shared_ptr<CTimeoutMessage> spTimeout;
+    };
+    typedef boost::multi_index_container<
+        CTimerTask,
+        boost::multi_index::indexed_by<
+            boost::multi_index::ordered_unique<
+                boost::multi_index::tag<CTagId>,
+                boost::multi_index::member<CTimerTask, std::shared_ptr<CTimeoutMessage>, &CTimerTask::spTimeout>>,
+            boost::multi_index::ordered_non_unique<
+                boost::multi_index::tag<CTagTime>,
+                boost::multi_index::member<CTimerTask, boost::system_time, &CTimerTask::expiryAt>>>>
+        CTimerTaskSet;
+
+    CTimerTaskSet setTimerTask;
+    boost::asio::deadline_timer timer;
 };
 
 } // namespace xengine
