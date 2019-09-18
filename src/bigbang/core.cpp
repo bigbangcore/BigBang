@@ -309,9 +309,9 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.\n", proof.destMint.ToString().c_str());
     }
-    if ((proof.nNonce.Get32() & 0xff) != 0)
+    if ((proof.nNonce & 0xff) != 0)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "nNonce error, nNonce: %s.\n", proof.nNonce.GetHex().c_str());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "nNonce error, nNonce: %ld.\n", proof.nNonce);
     }
 
     uint256 hashTarget = (~uint256(uint64(0)) >> GetProofOfWorkRunTimeBits(nBits, block.GetBlockTime(), pIndexPrev->GetBlockTime()));

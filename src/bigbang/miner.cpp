@@ -403,7 +403,7 @@ void CMiner::LaunchMiner()
         }
 
         uint32& nTime = *((uint32*)&work.vchWorkData[4]);
-        uint256& nNonce = *((uint256*)&work.vchWorkData[work.vchWorkData.size() - 32]);
+        uint64_t& nNonce = *((uint64_t*)&work.vchWorkData[work.vchWorkData.size() - sizeof(uint64_t)]);
 
         if (work.nAlgo == CM_CRYPTONIGHT)
         {

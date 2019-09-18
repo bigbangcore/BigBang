@@ -540,7 +540,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     block.GetSerializedProofOfWorkData(vchProofOfWork);
 
     uint32& nTime = *((uint32*)&vchProofOfWork[4]);
-    uint256& nNonce = *((uint256*)&vchProofOfWork[vchProofOfWork.size() - 32]);
+    uint64_t& nNonce = *((uint64_t*)&vchProofOfWork[vchProofOfWork.size() - sizeof(uint64_t)]);
 
     int64& nHashRate = pHashAlgo->nHashRate;
 
