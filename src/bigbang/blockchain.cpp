@@ -422,11 +422,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
-        if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nForkHeight))
-        {
-            Log("AddNewBlock Verify tx Error(first pow) : %s \n", txid.ToString().c_str());
-            return ERR_TRANSACTION_INVALID;
-        }
         CTxContxt txContxt;
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
@@ -894,13 +889,28 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        if (agreement.IsProofOfWork())
+        if (pCoreProtocol->CheckSpecialHeight(pIndexPrev->GetBlockHeight()+1))
         {
+            if (!pCoreProtocol->VerifySpecialAddress(pIndexPrev->GetBlockHeight()+1, block))
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+            if (!agreement.IsProofOfWork())
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
             return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
         }
         else
         {
-            return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+            if (agreement.IsProofOfWork())
+            {
+                return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+            }
+            else
+            {
+                return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+            }
         }
     }
     else if (!block.IsVacant())

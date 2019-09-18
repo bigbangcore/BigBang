@@ -115,3 +115,4 @@ bool CTemplateProof::VerifyBlockSignature(const uint256& hash, const vector<uint
 {
     return keyMint.Verify(hash, vchSig);
 }
+

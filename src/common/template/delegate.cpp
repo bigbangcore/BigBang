@@ -149,3 +149,4 @@ bool CTemplateDelegate::VerifyBlockSignature(const uint256& hash, const vector<u
 {
     return keyDelegate.Verify(hash, vchSig);
 }
+

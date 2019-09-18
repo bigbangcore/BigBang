@@ -693,6 +693,7 @@ void CBlockMaker::BlockMakerThreadFunc()
                     {
                         pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
+
                         Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
                             nLastBlockHeight + 1, agree.nWeight,
                             agree.IsProofOfWork() ? "pow" : "dpos");
