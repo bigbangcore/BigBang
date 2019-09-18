@@ -461,50 +461,41 @@ public:
 
             // actual grammer
 
-            json_
-                = value_ | eps_p[&throw_not_value];
+            json_ = value_ | eps_p[&throw_not_value];
 
-            value_
-                = string_[new_str]
-                  | number_
-                  | object_
-                  | array_
-                  | str_p("true")[new_true]
-                  | str_p("false")[new_false]
-                  | str_p("null")[new_null];
+            value_ = string_[new_str]
+                     | number_
+                     | object_
+                     | array_
+                     | str_p("true")[new_true]
+                     | str_p("false")[new_false]
+                     | str_p("null")[new_null];
 
-            object_
-                = ch_p('{')[begin_obj]
-                  >> !members_
-                  >> (ch_p('}')[end_obj] | eps_p[&throw_not_object]);
+            object_ = ch_p('{')[begin_obj]
+                      >> !members_
+                      >> (ch_p('}')[end_obj] | eps_p[&throw_not_object]);
 
-            members_
-                = pair_ >> *(',' >> pair_);
+            members_ = pair_ >> *(',' >> pair_);
 
-            pair_
-                = string_[new_name]
-                  >> (':' | eps_p[&throw_not_colon])
-                  >> (value_ | eps_p[&throw_not_value]);
+            pair_ = string_[new_name]
+                    >> (':' | eps_p[&throw_not_colon])
+                    >> (value_ | eps_p[&throw_not_value]);
 
-            array_
-                = ch_p('[')[begin_array]
-                  >> !elements_
-                  >> (ch_p(']')[end_array] | eps_p[&throw_not_array]);
+            array_ = ch_p('[')[begin_array]
+                     >> !elements_
+                     >> (ch_p(']')[end_array] | eps_p[&throw_not_array]);
 
-            elements_
-                = value_ >> *(',' >> value_);
+            elements_ = value_ >> *(',' >> value_);
 
-            string_
-                = lexeme_d // this causes white space and what would appear to be comments inside a string to be retained
-                    [confix_p(
-                        '"',
-                        *lex_escape_ch_p,
-                        '"')];
+            string_ = lexeme_d // this causes white space and what would appear to be comments inside a string to be retained
+                [confix_p(
+                    '"',
+                    *lex_escape_ch_p,
+                    '"')];
 
-            number_
-                = strict_real_p[new_real]
-                  | int64_p[new_int]
-                  | uint64_p[new_uint64];
+            number_ = strict_real_p[new_real]
+                      | int64_p[new_int]
+                      | uint64_p[new_uint64];
         }
 
         spirit_namespace::rule<ScannerT> json_, object_, members_, pair_, array_, elements_, value_, string_, number_;

@@ -56,8 +56,7 @@ public:
     //
     // The returned file will only be accessed by one thread at a time.
     virtual Status NewSequentialFile(const std::string& fname,
-                                     SequentialFile** result)
-        = 0;
+                                     SequentialFile** result) = 0;
 
     // Create an object supporting random-access reads from the file with the
     // specified name.  On success, stores a pointer to the new file in
@@ -68,8 +67,7 @@ public:
     //
     // The returned file may be concurrently accessed by multiple threads.
     virtual Status NewRandomAccessFile(const std::string& fname,
-                                       RandomAccessFile** result)
-        = 0;
+                                       RandomAccessFile** result) = 0;
 
     // Create an object that writes to a new file with the specified
     // name.  Deletes any existing file with the same name and creates a
@@ -79,8 +77,7 @@ public:
     //
     // The returned file will only be accessed by one thread at a time.
     virtual Status NewWritableFile(const std::string& fname,
-                                   WritableFile** result)
-        = 0;
+                                   WritableFile** result) = 0;
 
     // Create an object that either appends to an existing file, or
     // writes to a new file (if the file does not exist to begin with).
@@ -104,8 +101,7 @@ public:
     // The names are relative to "dir".
     // Original contents of *results are dropped.
     virtual Status GetChildren(const std::string& dir,
-                               std::vector<std::string>* result)
-        = 0;
+                               std::vector<std::string>* result) = 0;
 
     // Delete the named file.
     virtual Status DeleteFile(const std::string& fname) = 0;
@@ -121,8 +117,7 @@ public:
 
     // Rename file src to target.
     virtual Status RenameFile(const std::string& src,
-                              const std::string& target)
-        = 0;
+                              const std::string& target) = 0;
 
     // Lock the specified file.  Used to prevent concurrent access to
     // the same db by multiple processes.  On failure, stores nullptr in
@@ -153,8 +148,7 @@ public:
     // serialized.
     virtual void Schedule(
         void (*function)(void* arg),
-        void* arg)
-        = 0;
+        void* arg) = 0;
 
     // Start a new thread, invoking "function(arg)" within the new thread.
     // When "function(arg)" returns, the thread will be destroyed.

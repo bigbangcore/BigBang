@@ -49,8 +49,7 @@ public:
     virtual void PrimaryUpdate(int nStartHeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData)
-        = 0;
+                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
 };
 
 class CBbPeerNet : public xengine::CPeerNet, virtual public CBbPeerEventListener
