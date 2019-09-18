@@ -689,9 +689,10 @@ void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseR
         Log("DispatchMisbehaveEvent : %s\n", strCaller.c_str());
     }
 
-    CEventPeerNetClose eventClose(nNonce);
-    eventClose.data = reason;
-    pPeerNet->DispatchEvent(&eventClose);
+    xengine::CPeerNetCloseMessage* pNetCloseMsg = new xengine::CPeerNetCloseMessage();
+    pNetCloseMsg->nNonce = nNonce;
+    pNetCloseMsg->closeReason = reason;
+    PUBLISH_MESSAGE(pNetCloseMsg);
 }
 
 void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched)

@@ -8,6 +8,7 @@
 #include "base.h"
 #include "message.h"
 #include "peernet.h"
+#include "peernet/message.h"
 #include "schedule.h"
 
 namespace bigbang
