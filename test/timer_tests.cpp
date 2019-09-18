@@ -197,16 +197,13 @@ BOOST_AUTO_TEST_CASE(basic)
 
     docker.Exit();
 
-    // cout << "Message A handler A. Publish time: " << spTimeoutA->tm << ". Plan timeout: " << handledTimeA << ". Real timeout: " << CTimeoutMessageA::HandledTimeA << ". Duration: " << (CTimeoutMessageA::HandledTimeA - spTimeoutA->tm).total_milliseconds() << endl;
-    // cout << "Message A handler B. Publish time: " << spTimeoutA->tm << ". Plan timeout: " << handledTimeA << ". Real timeout: " << CTimeoutMessageA::HandledTimeB << ". Duration: " << (CTimeoutMessageA::HandledTimeB - spTimeoutA->tm).total_milliseconds() << endl;
-    // cout << "Message B handler A. Publish time: " << spTimeoutB->tm << ". Plan timeout: " << handledTimeB << ". Real timeout: " << CTimeoutMessageB::HandledTimeA << ". Duration: " << (CTimeoutMessageB::HandledTimeA - spTimeoutB->tm).total_milliseconds() << endl;
-    // cout << "Message B handler B. Publish time: " << spTimeoutB->tm << ". Plan timeout: " << handledTimeB << ". Real timeout: " << CTimeoutMessageB::HandledTimeB << ". Duration: " << (CTimeoutMessageB::HandledTimeB - spTimeoutB->tm).total_milliseconds() << endl;
-    // cout << "Message C handler A. Publish time: " << spTimeoutC->tm << ". Plan timeout: " << handledTimeC << ". Real timeout: " << CTimeoutMessageC::HandledTimeA << ". Duration: " << (CTimeoutMessageC::HandledTimeA - spTimeoutC->tm).total_milliseconds() << endl;
-    // cout << "Message C handler B. Publish time: " << spTimeoutC->tm << ". Plan timeout: " << handledTimeC << ". Real timeout: " << CTimeoutMessageC::HandledTimeB << ". Duration: " << (CTimeoutMessageC::HandledTimeB - spTimeoutC->tm).total_milliseconds() << endl;
-    // cout << "Message D handler A. Publish time: " << spTimeoutD->tm << ". Plan timeout: " << handledTimeD << ". Real timeout: " << CTimeoutMessageD::HandledTimeA << ". Duration: " << (CTimeoutMessageD::HandledTimeA - spTimeoutD->tm).total_milliseconds() << endl;
-    // cout << "Message D handler B. Publish time: " << spTimeoutD->tm << ". Plan timeout: " << handledTimeD << ". Real timeout: " << CTimeoutMessageD::HandledTimeB << ". Duration: " << (CTimeoutMessageD::HandledTimeB - spTimeoutD->tm).total_milliseconds() << endl;
+    cout << "Timer difference Message A of handler A: " << (CTimeoutMessageA::HandledTimeA - handledTimeA).total_milliseconds() << "ms" << endl;
+    cout << "Timer difference Message A of handler B: " << (CTimeoutMessageA::HandledTimeB - handledTimeA).total_milliseconds() << "ms" << endl;
+    cout << "Timer difference Message B of handler A: " << (CTimeoutMessageB::HandledTimeA - handledTimeB).total_milliseconds() << "ms" << endl;
+    cout << "Timer difference Message B of handler B: " << (CTimeoutMessageB::HandledTimeB - handledTimeB).total_milliseconds() << "ms" << endl;
+    cout << "Timer difference Message D of handler B: " << (CTimeoutMessageD::HandledTimeB - handledTimeD).total_milliseconds() << "ms" << endl;
 
-    auto delta = boost::posix_time::milliseconds(10);
+    auto delta = boost::posix_time::milliseconds(100);
     BOOST_CHECK(CTimeoutMessageA::HandledTimeA >= (handledTimeA - delta) && CTimeoutMessageA::HandledTimeA <= (handledTimeA + delta));
     BOOST_CHECK(CTimeoutMessageA::HandledTimeB >= (handledTimeA - delta) && CTimeoutMessageA::HandledTimeB <= (handledTimeA + delta));
     BOOST_CHECK(CTimeoutMessageB::HandledTimeA >= (handledTimeB - delta) && CTimeoutMessageB::HandledTimeA <= (handledTimeB + delta));
