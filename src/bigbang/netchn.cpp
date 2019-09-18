@@ -802,7 +802,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
     }
     if (nAddNewTx)
     {
-        // BroadcastTxInv(hashFork);
+        BroadcastTxInv(hashFork);
     }
 }
 
@@ -840,7 +840,7 @@ void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool
         if (fSync)
         {
             mapUnsync[hashFork].erase(nNonce);
-            // BroadcastTxInv(hashFork);
+            BroadcastTxInv(hashFork);
         }
         else
         {
