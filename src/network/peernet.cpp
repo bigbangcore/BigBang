@@ -7,7 +7,7 @@
 #include <boost/any.hpp>
 #include <boost/bind.hpp>
 
-#include "../common/message.h"
+#include "common/message.h"
 #include "peer.h"
 
 #define HANDSHAKE_TIMEOUT (5)
