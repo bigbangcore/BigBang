@@ -7,7 +7,7 @@
 #include <boost/any.hpp>
 #include <boost/bind.hpp>
 
-#include "common/message.h"
+#include "message.h"
 #include "peer.h"
 
 #define HANDSHAKE_TIMEOUT (5)
@@ -285,13 +285,10 @@ void CBbPeerNet::ProcessAskFor(CPeer* pPeer)
     if (pBbPeer->FetchAskFor(hashFork, inv))
     {
         CPeerGetDataMessage* pGetDataMsg = new CPeerGetDataMessage();
-        if (pGetDataMsg)
-        {
-            pGetDataMsg->nNonce = pBbPeer->GetNonce();
-            pGetDataMsg->hashFork = hashFork;
-            pGetDataMsg->vecInv.push_back(inv);
-            PUBLISH_MESSAGE(pGetDataMsg);
-        }
+        pGetDataMsg->nNonce = pBbPeer->GetNonce();
+        pGetDataMsg->hashFork = hashFork;
+        pGetDataMsg->vecInv.push_back(inv);
+        PUBLISH_MESSAGE(pGetDataMsg);
     }
 }
 
@@ -340,12 +337,9 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     pEventActiveDelegated->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
     CPeerActiveMessage* pActiveMsg = new CPeerActiveMessage();
-    if (pActiveMsg)
-    {
-        pActiveMsg->nNonce = pEventActiveDelegated->nNonce;
-        pActiveMsg->address = pEventActiveDelegated->data;
-        PUBLISH_MESSAGE(pActiveMsg);
-    }
+    pActiveMsg->nNonce = pEventActiveDelegated->nNonce;
+    pActiveMsg->address = pEventActiveDelegated->data;
+    PUBLISH_MESSAGE(pActiveMsg);
 
     if (pEventActiveDelegated != nullptr)
     {
@@ -451,40 +445,31 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         case PROTO_CMD_SUBSCRIBE:
         {
             CPeerSubscribeMessage* pSubscribeMsg = new CPeerSubscribeMessage();
-            if (pSubscribeMsg)
-            {
-                pSubscribeMsg->nNonce = pBbPeer->GetNonce();
-                pSubscribeMsg->hashFork = hashFork;
-                ssPayload >> pSubscribeMsg->vecForks;
-                PUBLISH_MESSAGE(pSubscribeMsg);
-                return true;
-            }
+            pSubscribeMsg->nNonce = pBbPeer->GetNonce();
+            pSubscribeMsg->hashFork = hashFork;
+            ssPayload >> pSubscribeMsg->vecForks;
+            PUBLISH_MESSAGE(pSubscribeMsg);
+            return true;
         }
         break;
         case PROTO_CMD_UNSUBSCRIBE:
         {
-            CPeerUnSubscribeMessage* pUnsubscribeMsg = new CPeerUnSubscribeMessage();
-            if (pUnsubscribeMsg)
-            {
-                pUnsubscribeMsg->nNonce = pBbPeer->GetNonce();
-                pUnsubscribeMsg->hashFork = hashFork;
-                ssPayload >> pUnsubscribeMsg->vecForks;
-                PUBLISH_MESSAGE(pUnsubscribeMsg);
-                return true;
-            }
+            CPeerUnsubscribeMessage* pUnsubscribeMsg = new CPeerUnsubscribeMessage();
+            pUnsubscribeMsg->nNonce = pBbPeer->GetNonce();
+            pUnsubscribeMsg->hashFork = hashFork;
+            ssPayload >> pUnsubscribeMsg->vecForks;
+            PUBLISH_MESSAGE(pUnsubscribeMsg);
+            return true;
         }
         break;
         case PROTO_CMD_GETBLOCKS:
         {
             CPeerGetBlocksMessage* pGetBlocksMsg = new CPeerGetBlocksMessage();
-            if (pGetBlocksMsg)
-            {
-                pGetBlocksMsg->nNonce = pBbPeer->GetNonce();
-                pGetBlocksMsg->hashFork = hashFork;
-                ssPayload >> pGetBlocksMsg->blockLocator;
-                PUBLISH_MESSAGE(pGetBlocksMsg);
-                return true;
-            }
+            pGetBlocksMsg->nNonce = pBbPeer->GetNonce();
+            pGetBlocksMsg->hashFork = hashFork;
+            ssPayload >> pGetBlocksMsg->blockLocator;
+            PUBLISH_MESSAGE(pGetBlocksMsg);
+            return true;
         }
         break;
         case PROTO_CMD_GETDATA:
@@ -499,44 +484,35 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         case PROTO_CMD_INV:
         {
             CPeerInvMessage* pInvMsg = new CPeerInvMessage();
-            if (pInvMsg)
-            {
-                pInvMsg->nNonce = pBbPeer->GetNonce();
-                pInvMsg->hashFork = hashFork;
-                ssPayload >> pInvMsg->vecInv;
-                PUBLISH_MESSAGE(pInvMsg);
-                return true;
-            }
+            pInvMsg->nNonce = pBbPeer->GetNonce();
+            pInvMsg->hashFork = hashFork;
+            ssPayload >> pInvMsg->vecInv;
+            PUBLISH_MESSAGE(pInvMsg);
+            return true;
         }
         break;
         case PROTO_CMD_TX:
         {
             CPeerTxMessage* pTxMsg = new CPeerTxMessage();
-            if (pTxMsg)
-            {
-                pTxMsg->nNonce = pBbPeer->GetNonce();
-                pTxMsg->hashFork = hashFork;
-                ssPayload >> pTxMsg->tx;
-                CInv inv(CInv::MSG_TX, pTxMsg->tx.GetHash());
-                CancelTimer(pBbPeer->Responded(inv));
-                PUBLISH_MESSAGE(pTxMsg);
-                return true;
-            }
+            pTxMsg->nNonce = pBbPeer->GetNonce();
+            pTxMsg->hashFork = hashFork;
+            ssPayload >> pTxMsg->tx;
+            CInv inv(CInv::MSG_TX, pTxMsg->tx.GetHash());
+            CancelTimer(pBbPeer->Responded(inv));
+            PUBLISH_MESSAGE(pTxMsg);
+            return true;
         }
         break;
         case PROTO_CMD_BLOCK:
         {
             CPeerBlockMessage* pBlockMsg = new CPeerBlockMessage();
-            if (pBlockMsg)
-            {
-                pBlockMsg->nNonce = pBbPeer->GetNonce();
-                pBlockMsg->hashFork = hashFork;
-                ssPayload >> pBlockMsg->block;
-                CInv inv(CInv::MSG_BLOCK, pBlockMsg->block.GetHash());
-                CancelTimer(pBbPeer->Responded(inv));
-                PUBLISH_MESSAGE(pBlockMsg);
-                return true;
-            }
+            pBlockMsg->nNonce = pBbPeer->GetNonce();
+            pBlockMsg->hashFork = hashFork;
+            ssPayload >> pBlockMsg->block;
+            CInv inv(CInv::MSG_BLOCK, pBlockMsg->block.GetHash());
+            CancelTimer(pBbPeer->Responded(inv));
+            PUBLISH_MESSAGE(pBlockMsg);
+            return true;
         }
         break;
         default:

@@ -39,9 +39,9 @@ struct CPeerSubscribeMessage : public CPeerBasicMessage
     std::vector<uint256> vecForks;
 };
 
-struct CPeerUnSubscribeMessage : public CPeerBasicMessage
+struct CPeerUnsubscribeMessage : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerUnSubscribeMessage);
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerUnsubscribeMessage);
     std::vector<uint256> vecForks;
 };
 

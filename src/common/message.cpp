@@ -8,7 +8,7 @@ INITIALIZE_MESSAGE_STATIC_VAR(CPeerBasicMessage, "BasicMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerActiveMessage, "ActiveMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerDeactiveMessage, "DeactiveMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerSubscribeMessage, "SubscribeMessage");
-INITIALIZE_MESSAGE_STATIC_VAR(CPeerUnSubscribeMessage, "UnsubscribeMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerUnsubscribeMessage, "UnsubscribeMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerGetBlocksMessage, "GetBlocksMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerGetDataMessage, "GetDataMessage");
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerInvMessage, "InvMessage");

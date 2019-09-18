@@ -99,7 +99,7 @@ protected:
     void HandleActive(const CPeerActiveMessage& activeMsg);
     void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
     void HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg);
-    void HandleUnsubscribe(const CPeerUnSubscribeMessage& unsubscribeMsg);
+    void HandleUnsubscribe(const CPeerUnsubscribeMessage& unsubscribeMsg);
     void HandleInv(const CPeerInvMessage& invMsg);
     void HandleGetData(const CPeerGetDataMessage& getDataMsg);
     void HandleGetBlocks(const CPeerGetBlocksMessage& getBlocksMsg);

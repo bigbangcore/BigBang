@@ -154,7 +154,7 @@ bool CNetChannel::HandleInitialize()
     RegisterHandler<CPeerActiveMessage>(boost::bind(&CNetChannel::HandleActive, this, _1));
     RegisterHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannel::HandleDeactive, this, _1));
     RegisterHandler<CPeerSubscribeMessage>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
-    RegisterHandler<CPeerUnSubscribeMessage>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
+    RegisterHandler<CPeerUnsubscribeMessage>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
     RegisterHandler<CPeerInvMessage>(boost::bind(&CNetChannel::HandleInv, this, _1));
     RegisterHandler<CPeerGetDataMessage>(boost::bind(&CNetChannel::HandleGetData, this, _1));
     RegisterHandler<CPeerGetBlocksMessage>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
@@ -404,7 +404,7 @@ void CNetChannel::HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg)
     }
 }
 
-void CNetChannel::HandleUnsubscribe(const CPeerUnSubscribeMessage& unsubscribeMsg)
+void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessage& unsubscribeMsg)
 {
     uint64 nNonce = unsubscribeMsg.nNonce;
     const uint256& hashFork = unsubscribeMsg.hashFork;

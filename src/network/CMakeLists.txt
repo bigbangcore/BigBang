@@ -15,7 +15,7 @@ set(sources
 
 add_library(network ${sources})
 
-include_directories(../xengine ../common ../crypto ../storage ../)
+include_directories(../xengine ../common ../crypto ../storage)
 
 target_link_libraries(network
     ${Boost_SYSTEM_LIBRARY}
