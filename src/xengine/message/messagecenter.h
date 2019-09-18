@@ -58,9 +58,15 @@ public:
 
     /**
      * @brief Publish a pMessage->Type() message to subscribers.
-     * @param pMessage The message. 
+     * @param pMessage The message pointer.
      */
     void Publish(CMessage* pMessage);
+
+    /**
+     * @brief Publish a spMessage->Type() message to subscribers.
+     * @param spMessage The message smart pointer.
+     */
+    void Publish(std::shared_ptr<CMessage> spMessage);
 
     /**
      * @brief Get the size of undistributed message.
@@ -78,7 +84,7 @@ protected:
 
 private:
     std::map<uint32, std::set<CIOActor*>> mapMessage;
-    ListMPSCQueue<CMessage*> queue;
+    ListMPSCQueue<CMessage> queue;
     std::atomic<uint64> nSize;
     boost::thread* pDistThread;
 };
