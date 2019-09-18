@@ -14,6 +14,8 @@
 using namespace xengine;
 using namespace bigbang::network;
 
+/////////// NetChannel /////////////
+
 struct CPeerBasicMessage : public CMessage
 {
     GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerBasicMessage);

@@ -25,6 +25,7 @@ namespace xengine
 CPeerNet::CPeerNet(const string& ownKeyIn)
   : CIOProc(ownKeyIn), confNetwork{}
 {
+    RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
 }
 
 CPeerNet::~CPeerNet()
@@ -451,15 +452,14 @@ bool CPeerNet::HandleEvent(CEventPeerNetReward& eventReward)
     return true;
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetClose& eventClose)
+void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
 {
-    CPeer* pPeer = GetPeer(eventClose.nNonce);
-    if (pPeer == nullptr)
+    CPeer* pPeer = GetPeer(netCloseMsg.nNonce);
+    if (!pPeer)
     {
-        return false;
+        return;
     }
-    RemovePeer(pPeer, eventClose.data);
-    return true;
+    RemovePeer(pPeer, netCloseMsg.closeReason);
 }
 
 } // namespace xengine

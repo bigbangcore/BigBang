@@ -63,6 +63,7 @@ protected:
     void HandleGetBlocks(const CPeerGetBlocksMessageOutBound& getBlocksMsg);
     void HandlePeerTx(const CPeerTxMessageOutBound& txMsg);
     void HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg);
+
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;

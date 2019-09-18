@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "message.h"
 #include "message/actor.h"
 #include "netio/ioproc.h"
 #include "peernet/epmngr.h"
@@ -94,7 +95,7 @@ protected:
     bool HandleEvent(CEventPeerNetSetBan& eventSetBan) override;
     bool HandleEvent(CEventPeerNetClrBanned& eventClrBanned) override;
     bool HandleEvent(CEventPeerNetReward& eventReward) override;
-    bool HandleEvent(CEventPeerNetClose& eventClose) override;
+    void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
     int GetCandidateNodeCount()
     {
         return epMngr.GetCandidateNodeCount();
