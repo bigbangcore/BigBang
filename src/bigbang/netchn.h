@@ -98,13 +98,13 @@ protected:
 
     void HandleActive(const CPeerActiveMessage& activeMsg);
     void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
-    void HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg);
-    void HandleUnsubscribe(const CPeerUnsubscribeMessage& unsubscribeMsg);
-    void HandleInv(const CPeerInvMessage& invMsg);
-    void HandleGetData(const CPeerGetDataMessage& getDataMsg);
-    void HandleGetBlocks(const CPeerGetBlocksMessage& getBlocksMsg);
-    void HandlePeerTx(const CPeerTxMessage& txMsg);
-    void HandlePeerBlock(const CPeerBlockMessage& blockMsg);
+    void HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeMsg);
+    void HandleUnsubscribe(const CPeerUnsubscribeMessageInBound& unsubscribeMsg);
+    void HandleInv(const CPeerInvMessageInBound& invMsg);
+    void HandleGetData(const CPeerGetDataMessageInBound& getDataMsg);
+    void HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksMsg);
+    void HandlePeerTx(const CPeerTxMessageInBound& txMsg);
+    void HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg);
 
     CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);

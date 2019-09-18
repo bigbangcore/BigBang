@@ -284,7 +284,7 @@ void CBbPeerNet::ProcessAskFor(CPeer* pPeer)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     if (pBbPeer->FetchAskFor(hashFork, inv))
     {
-        CPeerGetDataMessage* pGetDataMsg = new CPeerGetDataMessage();
+        CPeerGetDataMessageInBound* pGetDataMsg = new CPeerGetDataMessageInBound();
         pGetDataMsg->nNonce = pBbPeer->GetNonce();
         pGetDataMsg->hashFork = hashFork;
         pGetDataMsg->vecInv.push_back(inv);
@@ -444,7 +444,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         {
         case PROTO_CMD_SUBSCRIBE:
         {
-            CPeerSubscribeMessage* pSubscribeMsg = new CPeerSubscribeMessage();
+            CPeerSubscribeMessageInBound* pSubscribeMsg = new CPeerSubscribeMessageInBound();
             pSubscribeMsg->nNonce = pBbPeer->GetNonce();
             pSubscribeMsg->hashFork = hashFork;
             ssPayload >> pSubscribeMsg->vecForks;
@@ -454,7 +454,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_UNSUBSCRIBE:
         {
-            CPeerUnsubscribeMessage* pUnsubscribeMsg = new CPeerUnsubscribeMessage();
+            CPeerUnsubscribeMessageInBound* pUnsubscribeMsg = new CPeerUnsubscribeMessageInBound();
             pUnsubscribeMsg->nNonce = pBbPeer->GetNonce();
             pUnsubscribeMsg->hashFork = hashFork;
             ssPayload >> pUnsubscribeMsg->vecForks;
@@ -464,7 +464,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_GETBLOCKS:
         {
-            CPeerGetBlocksMessage* pGetBlocksMsg = new CPeerGetBlocksMessage();
+            CPeerGetBlocksMessageInBound* pGetBlocksMsg = new CPeerGetBlocksMessageInBound();
             pGetBlocksMsg->nNonce = pBbPeer->GetNonce();
             pGetBlocksMsg->hashFork = hashFork;
             ssPayload >> pGetBlocksMsg->blockLocator;
@@ -483,7 +483,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_INV:
         {
-            CPeerInvMessage* pInvMsg = new CPeerInvMessage();
+            CPeerInvMessageInBound* pInvMsg = new CPeerInvMessageInBound();
             pInvMsg->nNonce = pBbPeer->GetNonce();
             pInvMsg->hashFork = hashFork;
             ssPayload >> pInvMsg->vecInv;
@@ -493,7 +493,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_TX:
         {
-            CPeerTxMessage* pTxMsg = new CPeerTxMessage();
+            CPeerTxMessageInBound* pTxMsg = new CPeerTxMessageInBound();
             pTxMsg->nNonce = pBbPeer->GetNonce();
             pTxMsg->hashFork = hashFork;
             ssPayload >> pTxMsg->tx;
@@ -505,7 +505,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_BLOCK:
         {
-            CPeerBlockMessage* pBlockMsg = new CPeerBlockMessage();
+            CPeerBlockMessageInBound* pBlockMsg = new CPeerBlockMessageInBound();
             pBlockMsg->nNonce = pBbPeer->GetNonce();
             pBlockMsg->hashFork = hashFork;
             ssPayload >> pBlockMsg->block;

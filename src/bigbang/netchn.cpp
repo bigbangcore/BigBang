@@ -153,13 +153,13 @@ bool CNetChannel::HandleInitialize()
 
     RegisterHandler<CPeerActiveMessage>(boost::bind(&CNetChannel::HandleActive, this, _1));
     RegisterHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannel::HandleDeactive, this, _1));
-    RegisterHandler<CPeerSubscribeMessage>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
-    RegisterHandler<CPeerUnsubscribeMessage>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
-    RegisterHandler<CPeerInvMessage>(boost::bind(&CNetChannel::HandleInv, this, _1));
-    RegisterHandler<CPeerGetDataMessage>(boost::bind(&CNetChannel::HandleGetData, this, _1));
-    RegisterHandler<CPeerGetBlocksMessage>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
-    RegisterHandler<CPeerTxMessage>(boost::bind(&CNetChannel::HandlePeerTx, this, _1));
-    RegisterHandler<CPeerBlockMessage>(boost::bind(&CNetChannel::HandlePeerBlock, this, _1));
+    RegisterHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
+    RegisterHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
+    RegisterHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannel::HandleInv, this, _1));
+    RegisterHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannel::HandleGetData, this, _1));
+    RegisterHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
+    RegisterHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannel::HandlePeerTx, this, _1));
+    RegisterHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannel::HandlePeerBlock, this, _1));
 
     return true;
 }
@@ -373,7 +373,7 @@ void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
     NotifyPeerUpdate(nNonce, false, deactiveMsg.address);
 }
 
-void CNetChannel::HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg)
+void CNetChannel::HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeMsg)
 {
     uint64 nNonce = subscribeMsg.nNonce;
     const uint256& hashFork = subscribeMsg.hashFork;
@@ -404,7 +404,7 @@ void CNetChannel::HandleSubscribe(const CPeerSubscribeMessage& subscribeMsg)
     }
 }
 
-void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessage& unsubscribeMsg)
+void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessageInBound& unsubscribeMsg)
 {
     uint64 nNonce = unsubscribeMsg.nNonce;
     const uint256& hashFork = unsubscribeMsg.hashFork;
@@ -427,7 +427,7 @@ void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessage& unsubscribeMs
     }
 }
 
-void CNetChannel::HandleInv(const CPeerInvMessage& invMsg)
+void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
 {
     uint64 nNonce = invMsg.nNonce;
     const uint256& hashFork = invMsg.hashFork;
@@ -468,7 +468,7 @@ void CNetChannel::HandleInv(const CPeerInvMessage& invMsg)
     }
 }
 
-void CNetChannel::HandleGetData(const CPeerGetDataMessage& getDataMsg)
+void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
 {
     uint64 nNonce = getDataMsg.nNonce;
     const uint256& hashFork = getDataMsg.hashFork;
@@ -505,7 +505,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessage& getDataMsg)
     }
 }
 
-void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessage& getBlocksMsg)
+void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksMsg)
 {
     uint64 nNonce = getBlocksMsg.nNonce;
     const uint256& hashFork = getBlocksMsg.hashFork;
@@ -527,7 +527,7 @@ void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessage& getBlocksMsg)
     pPeerNet->DispatchEvent(&eventInv);
 }
 
-void CNetChannel::HandlePeerTx(const CPeerTxMessage& txMsg)
+void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
 {
     uint64 nNonce = txMsg.nNonce;
     const uint256& hashFork = txMsg.hashFork;
@@ -585,7 +585,7 @@ void CNetChannel::HandlePeerTx(const CPeerTxMessage& txMsg)
     }
 }
 
-void CNetChannel::HandlePeerBlock(const CPeerBlockMessage& blockMsg)
+void CNetChannel::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
 {
     uint64 nNonce = blockMsg.nNonce;
     const uint256& hashFork = blockMsg.hashFork;
