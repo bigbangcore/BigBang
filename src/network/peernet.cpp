@@ -336,20 +336,14 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 
     UpdateNetTime(pBbPeer->GetRemote().address(), pBbPeer->nTimeDelta);
 
-    CEventPeerActive* pEventActive = new CEventPeerActive(pBbPeer->GetNonce());
-    if (pEventActive == nullptr)
-    {
-        return false;
-    }
-
-    pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-    CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
+    CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(pBbPeer->GetNonce());
+    pEventActiveDelegated->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
     CPeerActiveMessage* pActiveMsg = new CPeerActiveMessage();
     if (pActiveMsg)
     {
-        pActiveMsg->nNonce = pEventActive->nNonce;
-        pActiveMsg->address = pEventActive->data;
+        pActiveMsg->nNonce = pEventActiveDelegated->nNonce;
+        pActiveMsg->address = pEventActiveDelegated->data;
         PUBLISH_MESSAGE(pActiveMsg);
     }
 
