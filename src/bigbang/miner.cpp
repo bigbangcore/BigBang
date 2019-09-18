@@ -2,12 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "miner.h"
-
 #include "json/json_spirit_reader_template.h"
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_writer_template.h"
 
+#include "miner.h"
 #include "rpc/rpc.h"
 
 using namespace std;
@@ -404,7 +403,7 @@ void CMiner::LaunchMiner()
         }
 
         uint32& nTime = *((uint32*)&work.vchWorkData[4]);
-        uint256& nNonce = *((uint256*)&work.vchWorkData[work.vchWorkData.size() - 32]);
+        uint64_t& nNonce = *((uint64_t*)&work.vchWorkData[work.vchWorkData.size() - sizeof(uint64_t)]);
 
         if (work.nAlgo == CM_CRYPTONIGHT)
         {
@@ -418,7 +417,7 @@ void CMiner::LaunchMiner()
                     nTime = t;
                     hashTarget = GetHashTarget(work, t);
                 }
-                for (int i = 0; i < 100 * 1024; i++, nNonce++)
+                for (int i = 0; i < 100 * 1024; i++, nNonce += 256)
                 {
                     uint256 hash = crypto::CryptoPowHash(&work.vchWorkData[0], work.vchWorkData.size());
                     if (hash <= hashTarget)
