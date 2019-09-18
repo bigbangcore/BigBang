@@ -8,6 +8,7 @@ Website : [BigBang Website](https://www.bigbangcore.com)
 Wiki: [BigBang Wiki](https://github.com/bigbangcore/BigBang/wiki)
 
 Whitepaper: [BigBang Whitepaper(中文)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper.pdf)
+
 Whitepaper: [BigBang Whitepaper(EN)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper_EN.pdf)
 
 Release: [BigBang Core Release](https://github.com/bigbangcore/BigBang/releases)
