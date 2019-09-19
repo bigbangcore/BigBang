@@ -427,7 +427,7 @@ uint32 CDocker::SetTimer(const string& key, int64 nMilliSeconds, TimerCallback f
 
         boost::system_time tExpiryAt = boost::get_system_time()
                                        + boost::posix_time::milliseconds(nMilliSeconds);
-        pair<map<uint32, CTimer>::iterator, bool> r;
+        pair<map<uint32, CTimerTask>::iterator, bool> r;
         do
         {
             nTimerId = ++nTimerIdAlloc;
@@ -435,7 +435,7 @@ uint32 CDocker::SetTimer(const string& key, int64 nMilliSeconds, TimerCallback f
             {
                 continue;
             }
-            r = mapTimerById.insert(make_pair(nTimerId, CTimer(key, nTimerId, tExpiryAt, fnCallback)));
+            r = mapTimerById.insert(make_pair(nTimerId, CTimerTask(key, nTimerId, tExpiryAt, fnCallback)));
         } while (!r.second);
 
         multimap<boost::system_time, uint32>::iterator it;
@@ -454,10 +454,10 @@ void CDocker::CancelTimer(const uint32 nTimerId)
     bool fUpdate = false;
     {
         boost::unique_lock<boost::mutex> lock(mtxTimer);
-        map<uint32, CTimer>::iterator it = mapTimerById.find(nTimerId);
+        map<uint32, CTimerTask>::iterator it = mapTimerById.find(nTimerId);
         if (it != mapTimerById.end())
         {
-            CTimer& tmr = (*it).second;
+            CTimerTask& tmr = (*it).second;
             multimap<boost::system_time, uint32>::iterator mi;
             for (mi = mapTimerByExpiry.lower_bound(tmr.tExpiryAt);
                  mi != mapTimerByExpiry.upper_bound(tmr.tExpiryAt); ++mi)
@@ -486,7 +486,7 @@ void CDocker::CancelTimers(const string& key)
         multimap<boost::system_time, uint32>::iterator mi = mapTimerByExpiry.begin();
         while (mi != mapTimerByExpiry.end())
         {
-            map<uint32, CTimer>::iterator it = mapTimerById.find((*mi).second);
+            map<uint32, CTimerTask>::iterator it = mapTimerById.find((*mi).second);
             if (it != mapTimerById.end() && (*it).second.key == key)
             {
                 if (mi == mapTimerByExpiry.begin())
@@ -593,7 +593,7 @@ void CDocker::TimerProc()
             TimerCallback fnCallback;
             {
                 boost::unique_lock<boost::mutex> lock(mtxTimer);
-                map<uint32, CTimer>::iterator it = mapTimerById.find(nTimerId);
+                map<uint32, CTimerTask>::iterator it = mapTimerById.find(nTimerId);
                 if (it != mapTimerById.end())
                 {
                     fnCallback = (*it).second.fnCallback;

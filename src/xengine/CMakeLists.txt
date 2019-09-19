@@ -48,7 +48,8 @@ set(sources
     docker/log.h  
     docker/nettime.h  
     docker/thread.h  
-    docker/timer.h
+    docker/timertask.h
+    docker/timer.h          docker/timer.cpp
     netio/netio.h
     http/httptype.h
     http/httpevent.h

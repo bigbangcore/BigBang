@@ -16,6 +16,7 @@ set(sources
     ipv6_tests.cpp
     crypto_tests.cpp
     actor_tests.cpp
+    timer_tests.cpp
 )
 
 add_executable(test_big ${sources})

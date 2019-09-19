@@ -14,7 +14,7 @@
 #include <docker/docker.h>
 #include <docker/log.h>
 #include <docker/thread.h>
-#include <docker/timer.h>
+#include <docker/timertask.h>
 #include <entry/entry.h>
 #include <event/event.h>
 #include <event/eventproc.h>
