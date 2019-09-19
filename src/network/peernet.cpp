@@ -377,10 +377,7 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     pActiveMsg->address = pEventActiveDelegated->data;
     PUBLISH_MESSAGE(pActiveMsg);
 
-    if (pEventActiveDelegated != nullptr)
-    {
-        pDelegatedChannel->PostEvent(pEventActiveDelegated);
-    }
+    pDelegatedChannel->PostEvent(pEventActiveDelegated);
 
     if (!fEnclosed)
     {
