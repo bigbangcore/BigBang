@@ -225,11 +225,11 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
 
             CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
 
-            CPeerDeactiveMessage* pDeactiveMsg = new CPeerDeactiveMessage();
-            pDeactiveMsg->address = pEventDeactive->data;
-            pDeactiveMsg->nNonce = pEventDeactive->nNonce;
+            auto spDeactiveMsg = CPeerDeactiveMessage::Create();
+            spDeactiveMsg->address = pEventDeactive->data;
+            spDeactiveMsg->nNonce = pEventDeactive->nNonce;
 
-            PUBLISH_MESSAGE(pDeactiveMsg);
+            PUBLISH_MESSAGE(spDeactiveMsg);
 
             if (pEventDeactiveDelegated != nullptr)
             {
@@ -320,11 +320,11 @@ void CBbPeerNet::ProcessAskFor(CPeer* pPeer)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     if (pBbPeer->FetchAskFor(hashFork, inv))
     {
-        CPeerGetDataMessageInBound* pGetDataMsg = new CPeerGetDataMessageInBound();
-        pGetDataMsg->nNonce = pBbPeer->GetNonce();
-        pGetDataMsg->hashFork = hashFork;
-        pGetDataMsg->vecInv.push_back(inv);
-        PUBLISH_MESSAGE(pGetDataMsg);
+        auto spGetDataMsg = CPeerGetDataMessageInBound::Create();
+        spGetDataMsg->nNonce = pBbPeer->GetNonce();
+        spGetDataMsg->hashFork = hashFork;
+        spGetDataMsg->vecInv.push_back(inv);
+        PUBLISH_MESSAGE(spGetDataMsg);
     }
 }
 
@@ -372,10 +372,10 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(pBbPeer->GetNonce());
     pEventActiveDelegated->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
-    CPeerActiveMessage* pActiveMsg = new CPeerActiveMessage();
-    pActiveMsg->nNonce = pEventActiveDelegated->nNonce;
-    pActiveMsg->address = pEventActiveDelegated->data;
-    PUBLISH_MESSAGE(pActiveMsg);
+    auto spActiveMsg = CPeerActiveMessage::Create();
+    spActiveMsg->nNonce = pEventActiveDelegated->nNonce;
+    spActiveMsg->address = pEventActiveDelegated->data;
+    PUBLISH_MESSAGE(spActiveMsg);
 
     pDelegatedChannel->PostEvent(pEventActiveDelegated);
 
@@ -477,31 +477,31 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         {
         case PROTO_CMD_SUBSCRIBE:
         {
-            CPeerSubscribeMessageInBound* pSubscribeMsg = new CPeerSubscribeMessageInBound();
-            pSubscribeMsg->nNonce = pBbPeer->GetNonce();
-            pSubscribeMsg->hashFork = hashFork;
-            ssPayload >> pSubscribeMsg->vecForks;
-            PUBLISH_MESSAGE(pSubscribeMsg);
+            auto spSubscribeMsg = CPeerSubscribeMessageInBound::Create();
+            spSubscribeMsg->nNonce = pBbPeer->GetNonce();
+            spSubscribeMsg->hashFork = hashFork;
+            ssPayload >> spSubscribeMsg->vecForks;
+            PUBLISH_MESSAGE(spSubscribeMsg);
             return true;
         }
         break;
         case PROTO_CMD_UNSUBSCRIBE:
         {
-            CPeerUnsubscribeMessageInBound* pUnsubscribeMsg = new CPeerUnsubscribeMessageInBound();
-            pUnsubscribeMsg->nNonce = pBbPeer->GetNonce();
-            pUnsubscribeMsg->hashFork = hashFork;
-            ssPayload >> pUnsubscribeMsg->vecForks;
-            PUBLISH_MESSAGE(pUnsubscribeMsg);
+            auto spUnsubscribeMsg = CPeerUnsubscribeMessageInBound::Create();
+            spUnsubscribeMsg->nNonce = pBbPeer->GetNonce();
+            spUnsubscribeMsg->hashFork = hashFork;
+            ssPayload >> spUnsubscribeMsg->vecForks;
+            PUBLISH_MESSAGE(spUnsubscribeMsg);
             return true;
         }
         break;
         case PROTO_CMD_GETBLOCKS:
         {
-            CPeerGetBlocksMessageInBound* pGetBlocksMsg = new CPeerGetBlocksMessageInBound();
-            pGetBlocksMsg->nNonce = pBbPeer->GetNonce();
-            pGetBlocksMsg->hashFork = hashFork;
-            ssPayload >> pGetBlocksMsg->blockLocator;
-            PUBLISH_MESSAGE(pGetBlocksMsg);
+            auto spGetBlocksMsg = CPeerGetBlocksMessageInBound::Create();
+            spGetBlocksMsg->nNonce = pBbPeer->GetNonce();
+            spGetBlocksMsg->hashFork = hashFork;
+            ssPayload >> spGetBlocksMsg->blockLocator;
+            PUBLISH_MESSAGE(spGetBlocksMsg);
             return true;
         }
         break;
@@ -516,35 +516,35 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_INV:
         {
-            CPeerInvMessageInBound* pInvMsg = new CPeerInvMessageInBound();
-            pInvMsg->nNonce = pBbPeer->GetNonce();
-            pInvMsg->hashFork = hashFork;
-            ssPayload >> pInvMsg->vecInv;
-            PUBLISH_MESSAGE(pInvMsg);
+            auto spInvMsg = CPeerInvMessageInBound::Create();
+            spInvMsg->nNonce = pBbPeer->GetNonce();
+            spInvMsg->hashFork = hashFork;
+            ssPayload >> spInvMsg->vecInv;
+            PUBLISH_MESSAGE(spInvMsg);
             return true;
         }
         break;
         case PROTO_CMD_TX:
         {
-            CPeerTxMessageInBound* pTxMsg = new CPeerTxMessageInBound();
-            pTxMsg->nNonce = pBbPeer->GetNonce();
-            pTxMsg->hashFork = hashFork;
-            ssPayload >> pTxMsg->tx;
-            CInv inv(CInv::MSG_TX, pTxMsg->tx.GetHash());
+            auto spTxMsg = CPeerTxMessageInBound::Create();
+            spTxMsg->nNonce = pBbPeer->GetNonce();
+            spTxMsg->hashFork = hashFork;
+            ssPayload >> spTxMsg->tx;
+            CInv inv(CInv::MSG_TX, spTxMsg->tx.GetHash());
             CancelTimer(pBbPeer->Responded(inv));
-            PUBLISH_MESSAGE(pTxMsg);
+            PUBLISH_MESSAGE(spTxMsg);
             return true;
         }
         break;
         case PROTO_CMD_BLOCK:
         {
-            CPeerBlockMessageInBound* pBlockMsg = new CPeerBlockMessageInBound();
-            pBlockMsg->nNonce = pBbPeer->GetNonce();
-            pBlockMsg->hashFork = hashFork;
-            ssPayload >> pBlockMsg->block;
-            CInv inv(CInv::MSG_BLOCK, pBlockMsg->block.GetHash());
+            auto spBlockMsg = CPeerBlockMessageInBound::Create();
+            spBlockMsg->nNonce = pBbPeer->GetNonce();
+            spBlockMsg->hashFork = hashFork;
+            ssPayload >> spBlockMsg->block;
+            CInv inv(CInv::MSG_BLOCK, spBlockMsg->block.GetHash());
             CancelTimer(pBbPeer->Responded(inv));
-            PUBLISH_MESSAGE(pBlockMsg);
+            PUBLISH_MESSAGE(spBlockMsg);
             return true;
         }
         break;
