@@ -16,22 +16,21 @@ namespace
 // The message type for subscribing message to CMessageCenter
 struct CSubscribeMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CSubscribeMessage);
+    GENERATE_MESSAGE_FUNCTION(CSubscribeMessage);
 
     uint32 nSubType;
     CIOActor* pActor;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CSubscribeMessage, "SubscribeMessage");
 
 // The message type for unsubscribing message from CMessageCenter
 struct CUnsubscribeMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CUnsubscribeMessage);
+    GENERATE_MESSAGE_FUNCTION(CUnsubscribeMessage);
 
     uint32 nUnsubType;
     CIOActor* pActor;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CUnsubscribeMessage, "UnsubscribeMessage");
+
 } // namespace
 
 // CMessageCenter
@@ -87,12 +86,12 @@ void CMessageCenter::DistributionThreadFunc()
     {
         while ((spMessage = queue.Pop()))
         {
-            if (spMessage->Type() == CSubscribeMessage::nType)
+            if (spMessage->Type() == CSubscribeMessage::MessageType())
             {
                 std::shared_ptr<CSubscribeMessage> spSubMessage = std::dynamic_pointer_cast<CSubscribeMessage>(spMessage);
                 mapMessage[spSubMessage->nSubType].insert(spSubMessage->pActor);
             }
-            else if (spMessage->Type() == CUnsubscribeMessage::nType)
+            else if (spMessage->Type() == CUnsubscribeMessage::MessageType())
             {
                 std::shared_ptr<CUnsubscribeMessage> spUnsubMessage = std::dynamic_pointer_cast<CUnsubscribeMessage>(spMessage);
                 mapMessage[spUnsubMessage->nUnsubType].erase(spUnsubMessage->pActor);

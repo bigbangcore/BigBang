@@ -23,45 +23,41 @@ BOOST_FIXTURE_TEST_SUITE(actor_tests, BasicUtfSetup)
 
 struct CTestMessageA : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTestMessageA);
+    GENERATE_MESSAGE_FUNCTION(CTestMessageA);
     string strA;
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageA, "messageA");
 atomic<uint> CTestMessageA::nPublish;
 atomic<uint> CTestMessageA::nHandled;
 
 struct CTestMessageB : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTestMessageB);
+    GENERATE_MESSAGE_FUNCTION(CTestMessageB);
     string strB;
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageB, "messageB");
 atomic<uint> CTestMessageB::nPublish;
 atomic<uint> CTestMessageB::nHandled;
 
 struct CTestMessageC : public CTestMessageB
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTestMessageC);
+    GENERATE_MESSAGE_FUNCTION(CTestMessageC);
     string strC;
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageC, "messageC");
 atomic<uint> CTestMessageC::nPublish;
 atomic<uint> CTestMessageC::nHandled;
 
 struct CTestMessageD : public CTestMessageB
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTestMessageD);
+    GENERATE_MESSAGE_FUNCTION(CTestMessageD);
     string strD;
     static atomic<uint> nPublish;
     static atomic<uint> nHandled;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTestMessageD, "messageD");
 atomic<uint> CTestMessageD::nPublish;
 atomic<uint> CTestMessageD::nHandled;
 
@@ -113,22 +109,22 @@ public:
 protected:
     void HandlerMessage(const CMessage& msg)
     {
-        if (msg.Type() == CTestMessageA::nType)
+        if (msg.Type() == CTestMessageA::MessageType())
         {
             // cout << "Actor B handle message A as CMessage" << dynamic_cast<const CTestMessageB&>(msg).strB << endl;
             CTestMessageA::nHandled++;
         }
-        else if (msg.Type() == CTestMessageB::nType)
+        else if (msg.Type() == CTestMessageB::MessageType())
         {
             // cout << "Actor B handle message B as CMessage" << dynamic_cast<const CTestMessageB&>(msg).strB << endl;
             CTestMessageB::nHandled++;
         }
-        else if (msg.Type() == CTestMessageC::nType)
+        else if (msg.Type() == CTestMessageC::MessageType())
         {
             // cout << "Actor B handle message C as CMessage" << dynamic_cast<const CTestMessageC&>(msg).strC << endl;
             CTestMessageC::nHandled++;
         }
-        else if (msg.Type() == CTestMessageD::nType)
+        else if (msg.Type() == CTestMessageD::MessageType())
         {
             // cout << "Actor B handle message D as CMessage" << dynamic_cast<const CTestMessageD&>(msg).strD << endl;
             CTestMessageD::nHandled++;
@@ -148,8 +144,7 @@ vector<shared_ptr<CMessage>> GenerateMessages(int n)
     vecMessage.reserve(n);
     for (int i = 0; i < n; i++)
     {
-        shared_ptr<T> spT(new T);
-        vecMessage.push_back(spT);
+        vecMessage.push_back(T::Create());
     }
     return vecMessage;
 }
@@ -254,10 +249,10 @@ BOOST_AUTO_TEST_CASE(basic)
     BOOST_CHECK(CTestMessageB::nHandled == CTestMessageB::nPublish && CTestMessageB::nHandled == 4 * nB);
     BOOST_CHECK(CTestMessageC::nHandled == 2 * CTestMessageC::nPublish && CTestMessageC::nHandled == 4 * 2 * nC);
     BOOST_CHECK(CTestMessageD::nHandled == CTestMessageD::nPublish && CTestMessageD::nHandled == 4 * nD);
-    BOOST_CHECK(CTestMessageA::strTag == CTestMessageA().Tag() && CTestMessageA::strTag == "messageA");
-    BOOST_CHECK(CTestMessageB::strTag == CTestMessageB().Tag() && CTestMessageB::strTag == "messageB");
-    BOOST_CHECK(CTestMessageC::strTag == CTestMessageC().Tag() && CTestMessageC::strTag == "messageC");
-    BOOST_CHECK(CTestMessageD::strTag == CTestMessageD().Tag() && CTestMessageD::strTag == "messageD");
+    BOOST_CHECK(CTestMessageA::MessageTag() == CTestMessageA().Tag() && CTestMessageA::MessageTag() == "CTestMessageA");
+    BOOST_CHECK(CTestMessageB::MessageTag() == CTestMessageB().Tag() && CTestMessageB::MessageTag() == "CTestMessageB");
+    BOOST_CHECK(CTestMessageC::MessageTag() == CTestMessageC().Tag() && CTestMessageC::MessageTag() == "CTestMessageC");
+    BOOST_CHECK(CTestMessageD::MessageTag() == CTestMessageD().Tag() && CTestMessageD::MessageTag() == "CTestMessageD");
 }
 
 template <typename T>
@@ -268,19 +263,19 @@ void Handle(ListMPSCQueue<T>& queue, const atomic<bool>& fStop, atomic<int>& nHa
     {
         while ((spMessage = queue.Pop()))
         {
-            if (spMessage->Type() == CTestMessageA::nType)
+            if (spMessage->Type() == CTestMessageA::MessageType())
             {
                 CTestMessageA::nHandled++;
             }
-            else if (spMessage->Type() == CTestMessageB::nType)
+            else if (spMessage->Type() == CTestMessageB::MessageType())
             {
                 CTestMessageB::nHandled++;
             }
-            else if (spMessage->Type() == CTestMessageC::nType)
+            else if (spMessage->Type() == CTestMessageC::MessageType())
             {
                 CTestMessageC::nHandled++;
             }
-            else if (spMessage->Type() == CTestMessageD::nType)
+            else if (spMessage->Type() == CTestMessageD::MessageType())
             {
                 CTestMessageD::nHandled++;
             }
@@ -329,19 +324,19 @@ void PublishPtr(ListMPSCQueue<T>& queue, const vector<T*>& vec)
 {
     for (auto& p : vec)
     {
-        if (p->Type() == CTestMessageA::nType)
+        if (p->Type() == CTestMessageA::MessageType())
         {
             CTestMessageA::nPublish++;
         }
-        else if (p->Type() == CTestMessageB::nType)
+        else if (p->Type() == CTestMessageB::MessageType())
         {
             CTestMessageB::nPublish++;
         }
-        else if (p->Type() == CTestMessageC::nType)
+        else if (p->Type() == CTestMessageC::MessageType())
         {
             CTestMessageC::nPublish++;
         }
-        else if (p->Type() == CTestMessageD::nType)
+        else if (p->Type() == CTestMessageD::MessageType())
         {
             CTestMessageD::nPublish++;
         }

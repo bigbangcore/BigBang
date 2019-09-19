@@ -15,9 +15,6 @@
 namespace xengine
 {
 
-INITIALIZE_MESSAGE_STATIC_VAR(CSetTimerMessage, "SetTimerMessage");
-INITIALIZE_MESSAGE_STATIC_VAR(CCancelTimerMessage, "CancelTimerMessage");
-
 CTimer::CTimer()
   : CIOActor("timer"), timer(ioService)
 {
@@ -37,8 +34,8 @@ bool CTimer::HandleInitialize()
 
 void CTimer::HandleDeinitialize()
 {
-    DeregisterHandler(CSetTimerMessage::nType);
-    DeregisterHandler(CCancelTimerMessage::nType);
+    DeregisterHandler(CSetTimerMessage::MessageType());
+    DeregisterHandler(CCancelTimerMessage::MessageType());
 }
 
 void CTimer::EnterLoop()

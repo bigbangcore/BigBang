@@ -18,98 +18,98 @@ using namespace bigbang::network;
 
 struct CPeerBasicMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerBasicMessage);
+    GENERATE_MESSAGE_FUNCTION(CPeerBasicMessage);
     uint64 nNonce;
     uint256 hashFork;
 };
 
 struct CPeerActiveMessage : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerActiveMessage);
+    GENERATE_MESSAGE_FUNCTION(CPeerActiveMessage);
     CAddress address;
 };
 
 struct CPeerDeactiveMessage : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerDeactiveMessage);
+    GENERATE_MESSAGE_FUNCTION(CPeerDeactiveMessage);
     CAddress address;
 };
 
 struct CPeerSubscribeMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerSubscribeMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerSubscribeMessageInBound);
     std::vector<uint256> vecForks;
 };
 
 struct CPeerSubscribeMessageOutBound : public CPeerSubscribeMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerSubscribeMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerSubscribeMessageOutBound);
 };
 
 struct CPeerUnsubscribeMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerUnsubscribeMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerUnsubscribeMessageInBound);
     std::vector<uint256> vecForks;
 };
 
 struct CPeerUnsubscribeMessageOutBound : public CPeerUnsubscribeMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerUnsubscribeMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerUnsubscribeMessageOutBound);
 };
 
 struct CPeerGetBlocksMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerGetBlocksMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerGetBlocksMessageInBound);
     CBlockLocator blockLocator;
 };
 
 struct CPeerGetBlocksMessageOutBound : public CPeerGetBlocksMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerGetBlocksMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerGetBlocksMessageOutBound);
 };
 
 struct CPeerGetDataMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerGetDataMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerGetDataMessageInBound);
     std::vector<CInv> vecInv;
 };
 
 struct CPeerGetDataMessageOutBound : public CPeerGetDataMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerGetDataMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerGetDataMessageOutBound);
 };
 
 struct CPeerInvMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerInvMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerInvMessageInBound);
     std::vector<CInv> vecInv;
 };
 
 struct CPeerInvMessageOutBound : public CPeerInvMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerInvMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerInvMessageOutBound);
 };
 
 struct CPeerTxMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerTxMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerTxMessageInBound);
     CTransaction tx;
 };
 
 struct CPeerTxMessageOutBound : public CPeerTxMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerTxMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerTxMessageOutBound);
 };
 
 struct CPeerBlockMessageInBound : public CPeerBasicMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerBlockMessageInBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageInBound);
     CBlock block;
 };
 
 struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerBlockMessageOutBound);
+    GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageOutBound);
 };
 
 #endif // COMMON_MESSAGE_H

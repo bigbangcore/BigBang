@@ -20,7 +20,7 @@ namespace xengine
  * @code
  *    struct CDerivedMessage : public CMessage
  *    {
- *        GENERATE_MESSAGE_VIRTUAL_FUNCTION(CDerivedMessage);
+ *        GENERATE_MESSAGE_FUNCTION(CDerivedMessage);
  *        // self member variables
  *        string str;
  *        int n;
@@ -69,31 +69,36 @@ protected:
 
 /**
  * @brief Create the virtual function of class derived from CMessage: Type() and destructor.
- * @param cls The name of derived class.
+ * @param cls Derived class name.
  */
-#define GENERATE_MESSAGE_VIRTUAL_FUNCTION(cls)                                  \
+#define GENERATE_MESSAGE_FUNCTION(cls)                                          \
+    template <typename... Args>                                                 \
+    static std::shared_ptr<cls> Create(Args&&... args)                          \
+    {                                                                           \
+        return std::make_shared<cls>(std::forward<Args>(args)...);              \
+    }                                                                           \
+    static uint32 MessageType()                                                 \
+    {                                                                           \
+        static const uint32 nType = CMessage::NewMessageType();                 \
+        return nType;                                                           \
+    }                                                                           \
+    static std::string MessageTag()                                             \
+    {                                                                           \
+        static const std::string strTag = #cls;                                 \
+        return strTag;                                                          \
+    }                                                                           \
     virtual uint32 Type() const override                                        \
     {                                                                           \
-        return cls::nType;                                                      \
+        return cls::MessageType();                                              \
     }                                                                           \
     virtual std::string Tag() const override                                    \
     {                                                                           \
-        return cls::strTag;                                                     \
+        return cls::MessageTag();                                               \
     }                                                                           \
     virtual void Handle(boost::any handler) override                            \
     {                                                                           \
         boost::any_cast<boost::function<void(const cls& msg)>>(handler)(*this); \
-    }                                                                           \
-    static const uint32 nType;                                                  \
-    static const std::string strTag
-
-/**
- * @brief Initialze the variable 'static const uint32 cls::nType' of cls.
- * @param cls The name of derived class.
- */
-#define INITIALIZE_MESSAGE_STATIC_VAR(cls, tag)           \
-    const uint32 cls::nType = CMessage::NewMessageType(); \
-    const std::string cls::strTag = tag
+    }
 
 } // namespace xengine
 
