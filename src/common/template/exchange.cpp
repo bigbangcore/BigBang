@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "bigbang/address.h"
 #include "rpc/auto_protocol.h"
 #include "stream/datastream.h"
 #include "template.h"
@@ -77,8 +76,8 @@ void CTemplateExchange::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
     obj.exchange.nHeight_M = height_m;
     obj.exchange.nHeight_S = height_s;
 
-    obj.exchange.strSpend_M = bigbang::CAddress(destSpend_m).ToString();
-    obj.exchange.strSpend_S = bigbang::CAddress(destSpend_s).ToString();
+    obj.exchange.strSpend_M = (destInstance = destSpend_m).ToString();
+    obj.exchange.strSpend_S = (destInstance = destSpend_s).ToString();
 }
 
 const CTemplateExchangePtr CTemplateExchange::CreateTemplatePtr(CTemplateExchange* ptr)
@@ -130,15 +129,14 @@ bool CTemplateExchange::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
 
     const string& addr_m = obj.exchange.strAddr_M;
     const string& addr_s = obj.exchange.strAddr_S;
-    bigbang::CAddress address_m(addr_m);
-    bigbang::CAddress address_s(addr_s);
-    if (address_m.IsNull() || address_s.IsNull())
-    {
+    if (!destInstance.ParseString(addr_m)) {
         return false;
     }
-
-    destSpend_m = address_m;
-    destSpend_s = address_s;
+    destSpend_m = destInstance;
+    if (!destInstance.ParseString(addr_s)) {
+        return false;
+    }
+    destSpend_s = destInstance;
 
     height_m = obj.exchange.nHeight_M;
     height_s = obj.exchange.nHeight_S;

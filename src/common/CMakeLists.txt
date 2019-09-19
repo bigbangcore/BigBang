@@ -32,7 +32,7 @@ set(sources
 
 add_library(common ${sources})
 
-include_directories(../xengine ../crypto ../jsonrpc ../bigbang ../network ../ ./)
+include_directories(../xengine ../crypto ../jsonrpc ../network ./)
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 
 target_link_libraries(common
