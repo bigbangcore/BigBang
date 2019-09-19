@@ -82,7 +82,7 @@ class CEventPeerDelegated : public xengine::CEvent
     friend class xengine::CStream;
 
 public:
-    CEventPeerDelegated(uint64 nNonceIn, const uint256& hashAnchorIn)
+    CEventPeerDelegated(uint64 nNonceIn, const int& hashAnchorIn)
       : CEvent(nNonceIn, type), hashAnchor(hashAnchorIn) {}
     virtual ~CEventPeerDelegated() {}
     virtual bool Handle(xengine::CEventListener& listener)
@@ -111,7 +111,7 @@ protected:
     }
 
 public:
-    uint256 hashAnchor;
+    int hashAnchor;
     D data;
 };
 
@@ -123,7 +123,7 @@ public:
     class CDelegatedBitmap
     {
     public:
-        CDelegatedBitmap(const uint256& hashAnchorIn = uint64(0), uint64 bitmapIn = 0)
+        CDelegatedBitmap(const int& hashAnchorIn = uint64(0), uint64 bitmapIn = 0)
           : hashAnchor(hashAnchorIn), bitmap(bitmapIn)
         {
         }
@@ -135,12 +135,12 @@ public:
         }
 
     public:
-        uint256 hashAnchor;
+        int hashAnchor;
         uint64 bitmap;
     };
 
 public:
-    void AddBitmap(const uint256& hash, uint64 bitmap)
+    void AddBitmap(const int& hash, uint64 bitmap)
     {
         vBitmap.push_back(CDelegatedBitmap(hash, bitmap));
     }

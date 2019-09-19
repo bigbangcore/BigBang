@@ -81,7 +81,7 @@ public:
     ~CDelegateVote();
     void CreateDelegate(const std::set<CDestination>& setDelegate);
 
-    void Setup(std::size_t nMaxThresh, std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
+    void Setup(std::size_t nMaxThresh, std::map<CDestination, std::vector<unsigned char>>& mapEnrollData, const uint256& block_hash);
     void Distribute(std::map<CDestination, std::vector<unsigned char>>& mapDistributeData);
     void Publish(std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
 
@@ -100,6 +100,11 @@ protected:
     CSecretShare witness;
 
     std::vector<CDelegateData> vCollected;
+
+public:
+    uint256 blockHash;
+    bool is_enroll;
+    bool is_public;
 };
 
 } // namespace delegate

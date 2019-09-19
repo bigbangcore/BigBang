@@ -232,10 +232,10 @@ public:
       : IBase("dispatcher") {}
     virtual Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) = 0;
     virtual Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) = 0;
-    virtual bool AddNewDistribute(const uint256& hashAnchor, const CDestination& dest,
+    virtual bool AddNewDistribute(const int& hashAnchor, const CDestination& dest,
                                   const std::vector<unsigned char>& vchDistribute)
         = 0;
-    virtual bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
+    virtual bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
                                const std::vector<unsigned char>& vchPublish)
         = 0;
 };

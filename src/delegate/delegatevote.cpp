@@ -2,9 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "delegatevote.h"
-
 #include "crypto.h"
+#include "delegatevote.h"
 
 using namespace std;
 using namespace xengine;
@@ -66,6 +65,8 @@ void CSecretShare::RandGeneretor(uint256& r)
 CDelegateVote::CDelegateVote()
 {
     witness.SetupWitness();
+    is_enroll = false;
+    is_public = false;
 }
 
 CDelegateVote::~CDelegateVote()
@@ -81,7 +82,7 @@ void CDelegateVote::CreateDelegate(const set<CDestination>& setDelegate)
     }
 }
 
-void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned char>>& mapEnrollData)
+void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned char>>& mapEnrollData, const uint256& block_hash)
 {
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
@@ -92,6 +93,7 @@ void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned c
         CODataStream os(mapEnrollData[(*it).first]);
         os << sealed.nPubKey << sealed.vEncryptedCoeff << sealed.nR << sealed.nS;
     }
+    blockHash = block_hash;
 }
 
 void CDelegateVote::Distribute(map<CDestination, std::vector<unsigned char>>& mapDistributeData)

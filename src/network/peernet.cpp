@@ -2,12 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "peernet.h"
-
 #include <boost/any.hpp>
 #include <boost/bind.hpp>
 
 #include "peer.h"
+#include "peernet.h"
 
 #define HANDSHAKE_TIMEOUT (5)
 #define RESPONSE_TX_TIMEOUT (15)
@@ -525,7 +524,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
     }
     else if (nChannel == PROTO_CHN_DELEGATE)
     {
-        uint256 hashAnchor;
+        int hashAnchor;
         ssPayload >> hashAnchor;
         switch (nCommand)
         {

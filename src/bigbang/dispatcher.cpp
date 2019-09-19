@@ -274,26 +274,26 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     return OK;
 }
 
-bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
+bool CDispatcher::AddNewDistribute(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    uint256 hashFork;
-    int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
-    }
-    return false;
+    //uint256 hashFork;
+    //int nHeight;
+    //if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    //{
+    return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    //}
+    //return false;
 }
 
-bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
+bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    uint256 hashFork;
-    int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
-    }
-    return false;
+    //uint256 hashFork;
+    //int nHeight;
+    //if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    //{
+    return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    //}
+    //return false;
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
@@ -301,7 +301,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                        routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+                                     routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {
