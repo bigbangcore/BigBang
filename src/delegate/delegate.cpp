@@ -63,8 +63,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
         vote.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::DebugLog("CDelegate", (string("Setup height:") + to_string(nTarget) + " time:" +
-                                        to_string((t1 - t0).ticks())).c_str());
+        xengine::DebugLog("CDelegate", (string("Setup height:") + to_string(nTarget) + " time:" + to_string((t1 - t0).ticks())).c_str());
     }
     // enroll & distribute
     {
@@ -78,8 +77,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             vote.Distribute(result.mapDistributeData);
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
-            xengine::DebugLog("CDelegate", (string("Enroll height:") + to_string(nEnrollEnd) + " time:" +
-                                            to_string((t1 - t0).ticks())).c_str());
+            xengine::DebugLog("CDelegate", (string("Enroll height:") + to_string(nEnrollEnd) + " time:" + to_string((t1 - t0).ticks())).c_str());
         }
     }
     // publish
@@ -93,8 +91,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             vote.Publish(result.mapPublishData);
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
-            xengine::DebugLog("CDelegate", (string("Publish height:") + to_string(nPublish) + " time:" +
-                                            to_string((t1 - t0).ticks())).c_str());
+            xengine::DebugLog("CDelegate", (string("Publish height:") + to_string(nPublish) + " time:" + to_string((t1 - t0).ticks())).c_str());
         }
     }
 }
@@ -134,8 +131,7 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const CDestination& destFrom
         bool ret = vote.Accept(destFrom, vchDistributeData);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::DebugLog("CDelegate", (string("Accept height:") + to_string(nTargetHeight) + " time:" +
-                                        to_string((t1 - t0).ticks())).c_str());
+        xengine::DebugLog("CDelegate", (string("Accept height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
 
         return ret;
     }
@@ -155,8 +151,7 @@ bool CDelegate::HandlePublish(int nTargetHeight, const CDestination& destFrom,
         bool ret = vote.Collect(destFrom, vchPublishData, fCompleted);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::DebugLog("CDelegate", (string("Collect height:") + to_string(nTargetHeight) + " time:" +
-                                        to_string((t1 - t0).ticks())).c_str());
+        xengine::DebugLog("CDelegate", (string("Collect height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
 
         return ret;
     }
@@ -178,8 +173,7 @@ void CDelegate::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWe
         vote.GetAgreement(nAgreement, nWeight, mapBallot);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::DebugLog("CDelegate", (string("Reconstruct height:") + to_string(nTargetHeight) + " time:" +
-                                        to_string((t1 - t0).ticks())).c_str());
+        xengine::DebugLog("CDelegate", (string("Reconstruct height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
     }
 }
 

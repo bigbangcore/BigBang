@@ -411,9 +411,10 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
 {
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
-        DebugLog("STAT",
-                 (string("GetBlockMakerStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") +
-                  to_string(nGetCount) + string(".\n")).c_str());
+        DebugLog("STAT", (string("GetBlockMakerStatData fail: nBeginTime: ")
+                          + to_string(nBeginTime) + string(", nGetCount: ")
+                          + to_string(nGetCount) + string(".\n"))
+                             .c_str());
         return false;
     }
     if (fStatWork)
@@ -470,8 +471,7 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
         DebugLog("STAT",
-                 (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") +
-                  to_string(nGetCount) + string(".\n")).c_str());
+                 (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".\n")).c_str());
         return false;
     }
     if (fStatWork)

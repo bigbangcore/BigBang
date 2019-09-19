@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(mpscsptr)
     int nSpMsgTotal = 4 * (nSpMsgA + nSpMsgB + nSpMsgC + nSpMsgD);
     while (nSpMsgHandled != nSpMsgTotal)
     {
-        cout << "nSpMsgHandled: " << nSpMsgHandled << ", nSpMsgTotal: " << nSpMsgTotal << endl;
+        // cout << "nSpMsgHandled: " << nSpMsgHandled << ", nSpMsgTotal: " << nSpMsgTotal << endl;
         this_thread::sleep_for(chrono::milliseconds(1));
     }
     auto end = chrono::steady_clock::now();
@@ -466,7 +466,7 @@ BOOST_AUTO_TEST_CASE(spsc)
     int nSPSCTotal = (nSPSCA + nSPSCB + nSPSCC + nSPSCD);
     while (nSPSCHandled != nSPSCTotal)
     {
-        cout << "nSPSCHandled: " << nSPSCHandled << ", nSPSCTotal: " << nSPSCTotal << endl;
+        // cout << "nSPSCHandled: " << nSPSCHandled << ", nSPSCTotal: " << nSPSCTotal << endl;
         this_thread::sleep_for(chrono::milliseconds(1));
     }
     auto end = chrono::steady_clock::now();

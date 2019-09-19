@@ -2039,8 +2039,7 @@ CRPCResultPtr CRPCMod::RPCQueryStat(rpc::CRPCParamPtr param)
         TYPE_NON,
         TYPE_MAKER,
         TYPE_P2PSYN
-    } eType
-        = TYPE_NON;
+    } eType = TYPE_NON;
     uint32 nDefQueryCount = 20;
     uint256 hashFork;
     uint32 nBeginTimeValue = ((GetTime() - 60 * nDefQueryCount) % (24 * 60 * 60)) / 60;

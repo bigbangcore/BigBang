@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "destination.h"
+#include "logger.h"
 #include "stream/datastream.h"
 #include "templateid.h"
-#include "logger.h"
 
 class CSpendableTemplate
 {

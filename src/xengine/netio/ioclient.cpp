@@ -424,9 +424,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
             break;
         }
 
-        xengine::DebugLog("SSLVERIFY", (string("SSL verify fail, subject: ") + subject_name + string(", cts_error: [") +
-                                        to_string(cts_error) + string("]<") + to_string(depth) + string(">  ") +
-                                        string(sErrorDesc)).c_str());
+        xengine::DebugLog("SSLVERIFY", (string("SSL verify fail, subject: ") + subject_name + string(", cts_error: [") + to_string(cts_error) + string("]<") + to_string(depth) + string(">  ") + string(sErrorDesc)).c_str());
     }
 
     return fPreverified;
