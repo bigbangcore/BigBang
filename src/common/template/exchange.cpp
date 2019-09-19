@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "../../bigbang/address.h"
+#include "bigbang/address.h"
 #include "rpc/auto_protocol.h"
 #include "stream/datastream.h"
 #include "template.h"

@@ -4,7 +4,7 @@
 
 #include "wallet.h"
 
-#include "../common/template/exchange.h"
+#include "template/exchange.h"
 using namespace std;
 using namespace xengine;
 

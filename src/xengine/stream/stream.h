@@ -11,8 +11,8 @@
 #include <iomanip>
 #include <iostream>
 
-#include "../type.h"
 #include "stream/circular.h"
+#include "type.h"
 
 namespace xengine
 {
