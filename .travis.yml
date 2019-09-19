@@ -16,6 +16,11 @@ os:
 - linux
 - osx
 
+branches:
+  only:
+  - master
+  - v1.1.0
+
 matrix:
   exclude:
     # Use clang in osx, and gcc in linux
