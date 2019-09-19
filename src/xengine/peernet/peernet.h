@@ -94,8 +94,8 @@ protected:
     bool HandleEvent(CEventPeerNetGetBanned& eventGetBanned) override;
     bool HandleEvent(CEventPeerNetSetBan& eventSetBan) override;
     bool HandleEvent(CEventPeerNetClrBanned& eventClrBanned) override;
-    bool HandleEvent(CEventPeerNetReward& eventReward) override;
     void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
+    void HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg);
     int GetCandidateNodeCount()
     {
         return epMngr.GetCandidateNodeCount();

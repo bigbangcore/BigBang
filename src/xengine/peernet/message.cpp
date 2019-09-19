@@ -7,3 +7,4 @@
 using namespace xengine;
 
 INITIALIZE_MESSAGE_STATIC_VAR(CPeerNetCloseMessage, "NetCloseMessage");
+INITIALIZE_MESSAGE_STATIC_VAR(CPeerNetRewardMessage, "NetRewardMessage");

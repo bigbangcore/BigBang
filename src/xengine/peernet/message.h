@@ -16,6 +16,13 @@ struct CPeerNetCloseMessage : public CMessage
     uint64 nNonce;
     CEndpointManager::CloseReason closeReason;
 };
+
+struct CPeerNetRewardMessage : public CMessage
+{
+    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerNetRewardMessage);
+    uint64 nNonce;
+    CEndpointManager::Bonus bonus;
+};
 } // namespace xengine
 
 #endif // XENGINE_PEERNET_MESSAGE_H

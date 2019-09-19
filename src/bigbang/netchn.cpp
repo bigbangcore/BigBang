@@ -677,9 +677,10 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
 
 void CNetChannel::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonus)
 {
-    CEventPeerNetReward eventReward(nNonce);
-    eventReward.data = bonus;
-    pPeerNet->DispatchEvent(&eventReward);
+    CPeerNetRewardMessage* pNetRewardMsg = new CPeerNetRewardMessage();
+    pNetRewardMsg->nNonce = nNonce;
+    pNetRewardMsg->bonus = bonus;
+    PUBLISH_MESSAGE(pNetRewardMsg);
 }
 
 void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason, const std::string& strCaller)

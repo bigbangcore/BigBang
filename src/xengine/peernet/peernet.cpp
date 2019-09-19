@@ -26,6 +26,7 @@ CPeerNet::CPeerNet(const string& ownKeyIn)
   : CIOProc(ownKeyIn), confNetwork{}
 {
     RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
+    RegisterHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
 }
 
 CPeerNet::~CPeerNet()
@@ -441,17 +442,6 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
     return true;
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetReward& eventReward)
-{
-    CPeer* pPeer = GetPeer(eventReward.nNonce);
-    if (pPeer == nullptr)
-    {
-        return false;
-    }
-    epMngr.RewardEndpoint(pPeer->GetRemote(), eventReward.data);
-    return true;
-}
-
 void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
 {
     CPeer* pPeer = GetPeer(netCloseMsg.nNonce);
@@ -460,6 +450,16 @@ void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
         return;
     }
     RemovePeer(pPeer, netCloseMsg.closeReason);
+}
+
+void CPeerNet::HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg)
+{
+    CPeer* pPeer = GetPeer(netRewardMsg.nNonce);
+    if (!pPeer)
+    {
+        return;
+    }
+    epMngr.RewardEndpoint(pPeer->GetRemote(), netRewardMsg.bonus);
 }
 
 } // namespace xengine
