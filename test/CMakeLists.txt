@@ -22,7 +22,9 @@ set(sources
 
 add_executable(test_big ${sources})
 
-include_directories(../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc)
+include_directories(../src ../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/bigbang ../src/jsonrpc)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
