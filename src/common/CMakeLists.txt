@@ -27,6 +27,7 @@ set(sources
     block.h
     forkcontext.h   
     message.h
+    struct.h
     ${template}
 )
 

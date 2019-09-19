@@ -6,17 +6,16 @@
 #define COMMON_MESSAGE_H
 
 #include <uint256.h>
+#include <vector>
 
 #include "block.h"
 #include "message/message.h"
 #include "proto.h"
-
-using namespace xengine;
-using namespace bigbang::network;
+#include "struct.h"
 
 /////////// NetChannel /////////////
 
-struct CPeerBasicMessage : public CMessage
+struct CPeerBasicMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerBasicMessage);
     uint64 nNonce;
@@ -26,13 +25,13 @@ struct CPeerBasicMessage : public CMessage
 struct CPeerActiveMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerActiveMessage);
-    CAddress address;
+    bigbang::network::CAddress address;
 };
 
 struct CPeerDeactiveMessage : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerDeactiveMessage);
-    CAddress address;
+    bigbang::network::CAddress address;
 };
 
 struct CPeerSubscribeMessageInBound : public CPeerBasicMessage
@@ -71,7 +70,7 @@ struct CPeerGetBlocksMessageOutBound : public CPeerGetBlocksMessageInBound
 struct CPeerGetDataMessageInBound : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerGetDataMessageInBound);
-    std::vector<CInv> vecInv;
+    std::vector<bigbang::network::CInv> vecInv;
 };
 
 struct CPeerGetDataMessageOutBound : public CPeerGetDataMessageInBound
@@ -82,7 +81,7 @@ struct CPeerGetDataMessageOutBound : public CPeerGetDataMessageInBound
 struct CPeerInvMessageInBound : public CPeerBasicMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerInvMessageInBound);
-    std::vector<CInv> vecInv;
+    std::vector<bigbang::network::CInv> vecInv;
 };
 
 struct CPeerInvMessageOutBound : public CPeerInvMessageInBound
@@ -110,6 +109,70 @@ struct CPeerBlockMessageInBound : public CPeerBasicMessage
 struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
 {
     GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageOutBound);
+};
+
+/// Add an unconfirmed transaction.
+struct CAddTxMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddTxMessage);
+    uint64 nNonce;
+    uint256 hashFork;
+    CTransaction tx;
+};
+
+/// Added an unconfirmed transaction.
+struct CAddedTxMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddedTxMessage);
+    uint64 nNonce;
+    int nError;
+    uint256 hashFork;
+    CTransaction tx;
+    CDestination destIn;
+    int64 nValueIn;
+};
+
+/// Remove an unconfirmed transaction.
+struct CRemoveTxMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CRemoveTxMessage);
+    uint256 hashFork;
+    uint256 txId;
+};
+
+/// Clear unconfirmed transactions. If hashFork equals 0, clear all forks.
+struct CClearTxMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CClearTxMessage);
+    uint256 hashFork;
+};
+
+/// Add a new block.
+struct CAddBlockMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddBlockMessage);
+    uint64 nNonce;
+    uint256 hashFork;
+    CBlock block;
+};
+
+/// Added a new block.
+struct CAddedBlockMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddedBlockMessage);
+    uint64 nNonce;
+    int nError;
+    uint256 hashFork;
+    CBlock block;
+    CBlockChainUpdate update;
+};
+
+/// Synchronize changed transactions.
+struct CSyncTxChangeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CSyncTxChangeMessage);
+    uint256 hashFork;
+    CTxSetChange change;
 };
 
 #endif // COMMON_MESSAGE_H
