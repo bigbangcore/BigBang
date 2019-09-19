@@ -26,7 +26,6 @@ namespace xengine
  *        int n;
  *        ...
  *     };
- *     INITIALIZE_MESSAGE_TYPE(CDerivedMessage);
  * @endcode
  */
 class CMessage
