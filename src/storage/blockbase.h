@@ -8,8 +8,8 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 #include <map>
-#include <unordered_map>
 #include <numeric>
+#include <unordered_map>
 
 #include "block.h"
 #include "blockdb.h"

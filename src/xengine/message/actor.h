@@ -9,6 +9,7 @@
 #include <boost/function.hpp>
 #include <map>
 #include <memory>
+#include <type_traits>
 
 #include "base/controller.h"
 #include "message/messagecenter.h"

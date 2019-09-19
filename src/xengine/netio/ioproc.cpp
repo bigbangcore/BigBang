@@ -134,12 +134,15 @@ void CIOProc::HandleHalt()
     ioOutBound.Halt();
     ioSSLOutBound.Halt();
 
-    for (map<tcp::endpoint, CIOInBound*>::iterator it = mapService.begin();
-         it != mapService.end(); ++it)
-    {
-        delete ((*it).second);
-    }
-    mapService.clear();
+    // TODO: Crashed by calling aync callback in deleted pointer.
+    //       Must call StopService in derived LeaveLoop() now.
+
+    // for (map<tcp::endpoint, CIOInBound*>::iterator it = mapService.begin();
+    //      it != mapService.end(); ++it)
+    // {
+    //     delete it->second;
+    // }
+    // mapService.clear();
 
     CIOActor::HandleHalt();
 }

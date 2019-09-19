@@ -69,6 +69,12 @@ void CMessageCenter::Publish(CMessage* pMessage)
     ++nSize;
 }
 
+void CMessageCenter::Publish(std::shared_ptr<CMessage> spMessage)
+{
+    queue.Push(spMessage);
+    ++nSize;
+}
+
 uint64 CMessageCenter::Size()
 {
     return nSize;
@@ -76,29 +82,26 @@ uint64 CMessageCenter::Size()
 
 void CMessageCenter::DistributionThreadFunc()
 {
-    CMessage* pMessage = nullptr;
+    std::shared_ptr<CMessage> spMessage = nullptr;
     while (true)
     {
-        while ((pMessage = queue.Pop()))
+        while ((spMessage = queue.Pop()))
         {
-            if (pMessage->Type() == CSubscribeMessage::nType)
+            if (spMessage->Type() == CSubscribeMessage::nType)
             {
-                CSubscribeMessage* pSubMessage = static_cast<CSubscribeMessage*>(pMessage);
-                mapMessage[pSubMessage->nSubType].insert(pSubMessage->pActor);
-                delete pMessage;
+                std::shared_ptr<CSubscribeMessage> spSubMessage = std::dynamic_pointer_cast<CSubscribeMessage>(spMessage);
+                mapMessage[spSubMessage->nSubType].insert(spSubMessage->pActor);
             }
-            else if (pMessage->Type() == CUnsubscribeMessage::nType)
+            else if (spMessage->Type() == CUnsubscribeMessage::nType)
             {
-                CUnsubscribeMessage* pUnsubMessage = static_cast<CUnsubscribeMessage*>(pMessage);
-                mapMessage[pUnsubMessage->nUnsubType].erase(pUnsubMessage->pActor);
-                delete pMessage;
+                std::shared_ptr<CUnsubscribeMessage> spUnsubMessage = std::dynamic_pointer_cast<CUnsubscribeMessage>(spMessage);
+                mapMessage[spUnsubMessage->nUnsubType].erase(spUnsubMessage->pActor);
             }
             else
             {
-                auto it = mapMessage.find(pMessage->Type());
+                auto it = mapMessage.find(spMessage->Type());
                 if (it != mapMessage.end() && !it->second.empty())
                 {
-                    std::shared_ptr<CMessage> spMessage(pMessage);
                     for (auto& pActor : it->second)
                     {
                         pActor->Publish(spMessage);

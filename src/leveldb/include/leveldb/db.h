@@ -71,8 +71,7 @@ public:
     // Note: consider setting options.sync = true.
     virtual Status Put(const WriteOptions& options,
                        const Slice& key,
-                       const Slice& value)
-        = 0;
+                       const Slice& value) = 0;
 
     // Remove the database entry (if any) for "key".  Returns OK on
     // success, and a non-OK status on error.  It is not an error if "key"
@@ -93,8 +92,7 @@ public:
     //
     // May return some other Status on an error.
     virtual Status Get(const ReadOptions& options,
-                       const Slice& key, std::string* value)
-        = 0;
+                       const Slice& key, std::string* value) = 0;
 
     // Return a heap-allocated iterator over the contents of the database.
     // The result of NewIterator() is initially invalid (caller must
@@ -141,8 +139,7 @@ public:
     //
     // The results may not include the sizes of recently written data.
     virtual void GetApproximateSizes(const Range* range, int n,
-                                     uint64_t* sizes)
-        = 0;
+                                     uint64_t* sizes) = 0;
 
     // Compact the underlying storage for the key range [*begin,*end].
     // In particular, deleted and overwritten versions are discarded,

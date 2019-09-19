@@ -922,7 +922,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
                 peer.MakeTxInv(hashFork, vTxPool, spInvMsg->vecInv, network::CInv::MAX_INV_COUNT);
                 if (!spInvMsg->vecInv.empty())
                 {
-                    //PUBLISH_MESSAGE(spInvMsg);
+                    PUBLISH_MESSAGE(spInvMsg);
                     if (fCompleted && spInvMsg->vecInv.size() == network::CInv::MAX_INV_COUNT)
                     {
                         fCompleted = false;

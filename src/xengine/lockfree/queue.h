@@ -7,28 +7,34 @@
 
 #include <atomic>
 #include <memory>
+#include <type_traits>
 
 namespace xengine
 {
 
-template <typename T>
+template <typename T, typename U = typename std::add_pointer<T>::type>
 class LockFreeQueue
 {
 public:
-    virtual void Push(T t) = 0;
-    virtual T Pop() = 0;
+    virtual void Push(T* t) = 0;
+    virtual U Pop() = 0;
 };
 
 template <typename T>
-class ListMPSCQueue : public LockFreeQueue<T>
+class ListMPSCQueue : public LockFreeQueue<T, std::shared_ptr<T>>
 {
 public:
+    typedef T* Ptr;
+    typedef std::shared_ptr<T> SPtr;
+
     struct CNode
     {
-        CNode(T t)
+        CNode(Ptr t)
+          : t(t), pNext(nullptr) {}
+        CNode(SPtr t)
           : t(t), pNext(nullptr) {}
 
-        T t;
+        SPtr t;
         std::atomic<CNode*> pNext;
     };
 
@@ -43,14 +49,19 @@ public:
         Clear();
     }
 
-    void Push(T t)
+    void Push(Ptr t)
+    {
+        Push(SPtr(t));
+    }
+
+    void Push(SPtr t)
     {
         CNode* pNode = new CNode(t);
         CNode* pPrev = pTail.exchange(pNode, std::memory_order_release);
         pPrev->pNext.store(pNode, std::memory_order_relaxed);
     }
 
-    T Pop()
+    SPtr Pop()
     {
         CNode* pNode = pHead->pNext.load(std::memory_order_relaxed);
         if (pNode)

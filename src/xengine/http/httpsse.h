@@ -34,8 +34,7 @@ public:
     virtual void ResetData() = 0;
     virtual bool UpdateData(CHttpSSEData& data, uint64 nEventNewId) = 0;
     virtual void GenerateEventData(uint64 nEventLastId, uint64 nEventCurrentId,
-                                   std::vector<std::string>& vEventData)
-        = 0;
+                                   std::vector<std::string>& vEventData) = 0;
 };
 
 template <typename T>

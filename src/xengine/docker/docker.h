@@ -16,7 +16,7 @@
 #include "docker/log.h"
 #include "docker/nettime.h"
 #include "docker/thread.h"
-#include "docker/timer.h"
+#include "docker/timertask.h"
 
 namespace xengine
 {
@@ -80,7 +80,7 @@ protected:
     boost::thread* pThreadTimer;
     boost::mutex mtxTimer;
     boost::condition_variable condTimer;
-    std::map<uint32, CTimer> mapTimerById;
+    std::map<uint32, CTimerTask> mapTimerById;
     std::multimap<boost::system_time, uint32> mapTimerByExpiry;
 };
 
