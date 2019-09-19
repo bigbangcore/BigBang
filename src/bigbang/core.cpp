@@ -4,8 +4,8 @@
 
 #include "core.h"
 
-#include "../common/template/exchange.h"
 #include "address.h"
+#include "template/exchange.h"
 #include "wallet.h"
 
 using namespace std;

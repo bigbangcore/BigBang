@@ -7,9 +7,9 @@
 
 #include <uint256.h>
 
-#include "../network/proto.h"
 #include "block.h"
 #include "message/message.h"
+#include "proto.h"
 
 using namespace xengine;
 using namespace bigbang::network;
