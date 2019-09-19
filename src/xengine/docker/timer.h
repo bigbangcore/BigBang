@@ -32,7 +32,7 @@ struct CTimeoutMessage : public CMessage
  */
 struct CSetTimerMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CSetTimerMessage);
+    GENERATE_MESSAGE_FUNCTION(CSetTimerMessage);
 
     /// Constructor
     CSetTimerMessage() {}
@@ -47,7 +47,7 @@ struct CSetTimerMessage : public CMessage
 
 struct CCancelTimerMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CCancelTimerMessage);
+    GENERATE_MESSAGE_FUNCTION(CCancelTimerMessage);
 
     /// Constructor
     CCancelTimerMessage() {}

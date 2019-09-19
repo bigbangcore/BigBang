@@ -25,7 +25,8 @@ set(sources
     proof.h
     profile.h       profile.cpp
     block.h
-    forkcontext.h   message.h message.cpp
+    forkcontext.h   
+    message.h
     ${template}
 )
 

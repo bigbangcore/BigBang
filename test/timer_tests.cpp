@@ -22,52 +22,48 @@ BOOST_FIXTURE_TEST_SUITE(timer_tests, BasicUtfSetup)
 
 struct CTimeoutMessageA : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTimeoutMessageA);
+    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageA);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
     static boost::system_time HandledTimeB;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTimeoutMessageA, "TimeoutMessageA");
 boost::system_time CTimeoutMessageA::PublishTime;
 boost::system_time CTimeoutMessageA::HandledTimeA;
 boost::system_time CTimeoutMessageA::HandledTimeB;
 
 struct CTimeoutMessageB : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTimeoutMessageB);
+    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageB);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
     static boost::system_time HandledTimeB;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTimeoutMessageB, "TimeoutMessageB");
 boost::system_time CTimeoutMessageB::PublishTime;
 boost::system_time CTimeoutMessageB::HandledTimeA;
 boost::system_time CTimeoutMessageB::HandledTimeB;
 
 struct CTimeoutMessageC : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTimeoutMessageC);
+    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageC);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
     static boost::system_time HandledTimeB;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTimeoutMessageC, "TimeoutMessageC");
 boost::system_time CTimeoutMessageC::PublishTime;
 boost::system_time CTimeoutMessageC::HandledTimeA;
 boost::system_time CTimeoutMessageC::HandledTimeB;
 
 struct CTimeoutMessageD : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CTimeoutMessageD);
+    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageD);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
     static boost::system_time HandledTimeB;
 };
-INITIALIZE_MESSAGE_STATIC_VAR(CTimeoutMessageD, "TimeoutMessageD");
 boost::system_time CTimeoutMessageD::PublishTime;
 boost::system_time CTimeoutMessageD::HandledTimeA;
 boost::system_time CTimeoutMessageD::HandledTimeB;
@@ -117,19 +113,19 @@ public:
 protected:
     void HandlerMessage(const CTimeoutMessage& msg)
     {
-        if (msg.Type() == CTimeoutMessageA::nType)
+        if (msg.Type() == CTimeoutMessageA::MessageType())
         {
             CTimeoutMessageA::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageB::nType)
+        else if (msg.Type() == CTimeoutMessageB::MessageType())
         {
             CTimeoutMessageB::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageC::nType)
+        else if (msg.Type() == CTimeoutMessageC::MessageType())
         {
             CTimeoutMessageC::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageD::nType)
+        else if (msg.Type() == CTimeoutMessageD::MessageType())
         {
             CTimeoutMessageD::HandledTimeB = boost::get_system_time();
         }
@@ -157,39 +153,39 @@ BOOST_AUTO_TEST_CASE(basic)
     docker.Run();
 
     // publish A
-    shared_ptr<CTimeoutMessageA> spTimeoutA(new CTimeoutMessageA);
+    auto spTimeoutA = CTimeoutMessageA::Create();
     spTimeoutA->tm = boost::get_system_time();
     auto handledTimeA = spTimeoutA->tm + boost::posix_time::milliseconds(100);
 
-    CSetTimerMessage* pSetTimerA = new CSetTimerMessage(spTimeoutA, handledTimeA);
-    PUBLISH_MESSAGE(pSetTimerA);
+    auto spSetTimerA = CSetTimerMessage::Create(spTimeoutA, handledTimeA);
+    PUBLISH_MESSAGE(spSetTimerA);
 
     // publish B
-    shared_ptr<CTimeoutMessageB> spTimeoutB(new CTimeoutMessageB);
+    auto spTimeoutB = CTimeoutMessageB::Create();
     spTimeoutB->tm = boost::get_system_time();
     auto handledTimeB = spTimeoutB->tm + boost::posix_time::milliseconds(300);
 
-    CSetTimerMessage* pSetTimerB = new CSetTimerMessage(spTimeoutB, handledTimeB);
-    PUBLISH_MESSAGE(pSetTimerB);
+    auto spSetTimerB = CSetTimerMessage::Create(spTimeoutB, handledTimeB);
+    PUBLISH_MESSAGE(spSetTimerB);
 
     // publish C
-    shared_ptr<CTimeoutMessageC> spTimeoutC(new CTimeoutMessageC);
+    auto spTimeoutC = CTimeoutMessageC::Create();
     spTimeoutC->tm = boost::get_system_time();
     auto handledTimeC = spTimeoutC->tm + boost::posix_time::milliseconds(500);
 
-    CSetTimerMessage* pSetTimerC = new CSetTimerMessage(spTimeoutC, handledTimeC);
-    PUBLISH_MESSAGE(pSetTimerC);
+    auto spSetTimerC = CSetTimerMessage::Create(spTimeoutC, handledTimeC);
+    PUBLISH_MESSAGE(spSetTimerC);
 
     // publish D
-    shared_ptr<CTimeoutMessageD> spTimeoutD(new CTimeoutMessageD);
+    auto spTimeoutD = CTimeoutMessageD::Create();
     spTimeoutD->tm = boost::get_system_time();
     auto handledTimeD = spTimeoutD->tm + boost::posix_time::milliseconds(800);
 
-    CSetTimerMessage* pSetTimerD = new CSetTimerMessage(spTimeoutD, handledTimeD);
-    PUBLISH_MESSAGE(pSetTimerD);
+    auto spSetTimerD = CSetTimerMessage::Create(spTimeoutD, handledTimeD);
+    PUBLISH_MESSAGE(spSetTimerD);
 
     // cancel C
-    shared_ptr<CCancelTimerMessage> spCancelC(new CCancelTimerMessage());
+    auto spCancelC = CCancelTimerMessage::Create();
     spCancelC->spTimeout = spTimeoutC;
     PUBLISH_MESSAGE(spCancelC);
 

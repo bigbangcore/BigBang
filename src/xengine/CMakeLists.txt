@@ -43,7 +43,7 @@ set(sources
     message/message.h
     message/actor.h         message/actor.cpp
     message/messagecenter.h message/messagecenter.cpp
-    peernet/message.h       peernet/message.cpp
+    peernet/message.h
     db/kvdb.h
     stream/datastream.h
     docker/log.h  

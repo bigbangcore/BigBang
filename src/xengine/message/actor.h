@@ -92,15 +92,15 @@ protected:
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
     void RegisterHandler(boost::function<void(const Message&)> handler)
     {
-        CMessageCenter::GetInstance().Subscribe(Message::nType, this);
-        mapHandler[Message::nType] = handler;
+        CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
+        mapHandler[Message::MessageType()] = handler;
     }
 
     /**
      * @brief Deregister message handler for derived.
      * @param nType The message type.
      * @code
-     *     DeregisterHandler(DerivedMessage::nType);
+     *     DeregisterHandler(DerivedMessage::MessageType());
      * @endcode
      */
     void DeregisterHandler(const uint32 nType)

@@ -12,14 +12,14 @@ namespace xengine
 {
 struct CPeerNetCloseMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerNetCloseMessage);
+    GENERATE_MESSAGE_FUNCTION(CPeerNetCloseMessage);
     uint64 nNonce;
     CEndpointManager::CloseReason closeReason;
 };
 
 struct CPeerNetRewardMessage : public CMessage
 {
-    GENERATE_MESSAGE_VIRTUAL_FUNCTION(CPeerNetRewardMessage);
+    GENERATE_MESSAGE_FUNCTION(CPeerNetRewardMessage);
     uint64 nNonce;
     CEndpointManager::Bonus bonus;
 };
