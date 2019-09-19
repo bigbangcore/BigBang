@@ -25,6 +25,8 @@ namespace xengine
 CPeerNet::CPeerNet(const string& ownKeyIn)
   : CIOProc(ownKeyIn), confNetwork{}
 {
+    RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
+    RegisterHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
 }
 
 CPeerNet::~CPeerNet()
@@ -440,26 +442,24 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
     return true;
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetReward& eventReward)
+void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
 {
-    CPeer* pPeer = GetPeer(eventReward.nNonce);
-    if (pPeer == nullptr)
+    CPeer* pPeer = GetPeer(netCloseMsg.nNonce);
+    if (!pPeer)
     {
-        return false;
+        return;
     }
-    epMngr.RewardEndpoint(pPeer->GetRemote(), eventReward.data);
-    return true;
+    RemovePeer(pPeer, netCloseMsg.closeReason);
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetClose& eventClose)
+void CPeerNet::HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg)
 {
-    CPeer* pPeer = GetPeer(eventClose.nNonce);
-    if (pPeer == nullptr)
+    CPeer* pPeer = GetPeer(netRewardMsg.nNonce);
+    if (!pPeer)
     {
-        return false;
+        return;
     }
-    RemovePeer(pPeer, eventClose.data);
-    return true;
+    epMngr.RewardEndpoint(pPeer->GetRemote(), netRewardMsg.bonus);
 }
 
 } // namespace xengine

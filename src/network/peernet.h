@@ -5,6 +5,7 @@
 #ifndef NETWORK_PEERNET_H
 #define NETWORK_PEERNET_H
 
+#include "message.h"
 #include "message/actor.h"
 #include "peerevent.h"
 #include "proto.h"
@@ -14,19 +15,6 @@ namespace bigbang
 {
 namespace network
 {
-
-class INetChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
-{
-public:
-    INetChannel()
-      : IIOModule("netchannel") {}
-    virtual int GetPrimaryChainHeight() = 0;
-    virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
-    virtual void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) = 0;
-    virtual void BroadcastTxInv(const uint256& hashFork) = 0;
-    virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
-    virtual void UnsubscribeFork(const uint256& hashFork) = 0;
-};
 
 class INetChannelActor : public xengine::CIOActor
 {
@@ -66,13 +54,15 @@ public:
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
-    bool HandleEvent(CEventPeerSubscribe& eventSubscribe) override;
-    bool HandleEvent(CEventPeerUnsubscribe& eventUnsubscribe) override;
-    bool HandleEvent(CEventPeerInv& eventInv) override;
-    bool HandleEvent(CEventPeerGetData& eventGetData) override;
-    bool HandleEvent(CEventPeerGetBlocks& eventGetBlocks) override;
-    bool HandleEvent(CEventPeerTx& eventTx) override;
-    bool HandleEvent(CEventPeerBlock& eventBlock) override;
+
+    void HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg);
+    void HandleUnsubscribe(const CPeerUnsubscribeMessageOutBound& unsubscribeMsg);
+    void HandleInv(const CPeerInvMessageOutBound& invMsg);
+    void HandleGetData(const CPeerGetDataMessageOutBound& getDataMsg);
+    void HandleGetBlocks(const CPeerGetBlocksMessageOutBound& getBlocksMsg);
+    void HandlePeerTx(const CPeerTxMessageOutBound& txMsg);
+    void HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg);
+
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
