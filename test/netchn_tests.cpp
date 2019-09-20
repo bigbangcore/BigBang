@@ -67,10 +67,10 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(docker.Attach(new CWallet()));
     BOOST_CHECK(docker.Attach(new CService()));
     BOOST_CHECK(docker.Attach(new CTxPool()));
+    BOOST_CHECK(docker.Attach(new CBlockChain()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
-    BOOST_CHECK(docker.Attach(new CBlockChain()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
     BOOST_CHECK(docker.Attach(new bigbang::CNetChannel()));
 

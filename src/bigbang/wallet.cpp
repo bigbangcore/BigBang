@@ -183,28 +183,23 @@ void CWallet::HandleDeinitialize()
 
 bool CWallet::HandleInvoke()
 {
-    if (Config())
+
+    if (!dbWallet.Initialize(Config() ? (Config()->pathData / "wallet") : "./"))
     {
-        if (!dbWallet.Initialize(Config()->pathData / "wallet"))
-        {
-            Error("Failed to initialize wallet database\n");
-            return false;
-        }
+        Error("Failed to initialize wallet database\n");
+        return false;
+    }
 
-        if (!LoadDB())
-        {
-            Error("Failed to load wallet database\n");
-            return false;
-        }
+    if (!LoadDB())
+    {
+        Error("Failed to load wallet database\n");
+        return false;
+    }
 
-        if (StorageConfig())
-        {
-            if (!InspectWalletTx(StorageConfig()->nCheckDepth))
-            {
-                Log("Failed to inspect wallet transactions\n");
-                return false;
-            }
-        }
+    if (!InspectWalletTx(StorageConfig() ? StorageConfig()->nCheckDepth : 1))
+    {
+        Log("Failed to inspect wallet transactions\n");
+        return false;
     }
 
     return true;

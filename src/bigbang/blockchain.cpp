@@ -55,7 +55,8 @@ void CBlockChain::HandleDeinitialize()
 
 bool CBlockChain::HandleInvoke()
 {
-    if (!cntrBlock.Initialize(Config()->pathData, Config()->fDebug))
+
+    if (!cntrBlock.Initialize(Config() ? Config()->pathData : "./", Config() ? Config()->fDebug : true))
     {
         Error("Failed to initialize container\n");
         return false;
@@ -759,7 +760,8 @@ bool CBlockChain::CheckContainer()
     {
         return false;
     }
-    return cntrBlock.CheckConsistency(StorageConfig()->nCheckLevel, StorageConfig()->nCheckDepth);
+    return cntrBlock.CheckConsistency(StorageConfig() ? StorageConfig()->nCheckLevel : 1,
+                                      StorageConfig() ? StorageConfig()->nCheckDepth : 1);
 }
 
 bool CBlockChain::RebuildContainer()
