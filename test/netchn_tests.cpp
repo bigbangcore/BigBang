@@ -17,6 +17,7 @@
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "netchn.h"
+#include "proto.h"
 #include "service.h"
 #include "test_big.h"
 #include "txpool.h"
@@ -64,7 +65,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = 0xff;
-    spActiveMsg->address = CAddress(network::NODE_NETWORK, network::CEndpoint());
+    spActiveMsg->address = network::CAddress(network::NODE_NETWORK, network::CEndpoint());
     PUBLISH_MESSAGE(spActiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));

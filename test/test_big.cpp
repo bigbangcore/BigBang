@@ -4,6 +4,8 @@
 
 #include "test_big.h"
 
+#include "entry.h"
+
 BasicUtfSetup::BasicUtfSetup(const std::string& strMsg)
 {
     std::cout << strMsg << (" - basic fixture loaded!\n");
@@ -34,4 +36,9 @@ UtfBlockchain100Setup::UtfBlockchain100Setup()
 UtfBlockchain100Setup::~UtfBlockchain100Setup()
 {
     std::cout << ("UtfBlockchain100Setup - specific fixture unloaded!\n");
+}
+
+void Shutdown()
+{
+    bigbang::CBbEntry::GetInstance().Stop();
 }

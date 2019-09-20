@@ -54,13 +54,26 @@ target_link_libraries(test_big
 add_executable(test_ctsdb test_big_main.cpp test_big.h test_big.cpp ctsdb_test.cpp)
 
 target_link_libraries(test_ctsdb
+    libbigbang
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    ${Protobuf_LIBRARIES}
+    ${Readline_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
     mpvss
     crypto
-    storage
+    xengine
+    storage    
+    network
+    delegate    
+    jsonrpc
+    common
 )

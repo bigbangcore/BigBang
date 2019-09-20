@@ -26,4 +26,6 @@ struct UtfBlockchain100Setup : public UtfSetup
     ~UtfBlockchain100Setup();
 };
 
+void Shutdown();
+
 #endif
