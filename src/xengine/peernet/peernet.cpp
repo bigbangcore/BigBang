@@ -119,6 +119,10 @@ void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId)
     CPeer* pPeer = GetPeer(nNonce);
     if (pPeer != nullptr)
     {
+        if (pPeer->PingTimer(nTimerId))
+        {
+            return;
+        }
         RemovePeer(pPeer, CEndpointManager::RESPONSE_FAILURE);
     }
 }

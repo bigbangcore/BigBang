@@ -20,7 +20,7 @@ namespace network
 
 CBbPeer::CBbPeer(CPeerNet* pPeerNetIn, CIOClient* pClientIn, uint64 nNonceIn,
                  bool fInBoundIn, uint32 nMsgMagicIn, uint32 nHsTimerIdIn)
-  : CPeer(pPeerNetIn, pClientIn, nNonceIn, fInBoundIn), nMsgMagic(nMsgMagicIn), nHsTimerId(nHsTimerIdIn)
+  : CPeer(pPeerNetIn, pClientIn, nNonceIn, fInBoundIn), nMsgMagic(nMsgMagicIn), nHsTimerId(nHsTimerIdIn), nPingTimerId(0), nPingMillisTime(0), nPingSeq(0)
 {
 }
 
@@ -39,6 +39,9 @@ void CBbPeer::Activate()
     nTimeHello = 0;
     strSubVer.clear();
     nStartingHeight = 0;
+    nPingPongTimeDelta = 0;
+    nPingMillisTime = 0;
+    nPingSeq = 0;
 
     Read(MESSAGE_HEADER_SIZE, boost::bind(&CBbPeer::HandshakeReadHeader, this));
     if (!fInBound)
@@ -119,6 +122,17 @@ bool CBbPeer::FetchAskFor(uint256& hashFork, CInv& inv)
     return false;
 }
 
+bool CBbPeer::PingTimer(uint32 nTimerId)
+{
+    if (nPingTimerId == nTimerId)
+    {
+        SendPing();
+        nPingTimerId = (static_cast<CBbPeerNet*>(pPeerNet))->SetPingTimer(nTimerId, GetNonce(), PING_TIMER_DURATION);
+        return true;
+    }
+    return false;
+}
+
 void CBbPeer::SendHello()
 {
     CBufStream ssPayload;
@@ -130,6 +144,14 @@ void CBbPeer::SendHello()
 void CBbPeer::SendHelloAck()
 {
     SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_HELLO_ACK);
+}
+
+void CBbPeer::SendPing()
+{
+    CBufStream ssPayload;
+    nPingSeq = (static_cast<CBbPeerNet*>(pPeerNet))->BuildPing(this, ssPayload);
+    SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_PING, ssPayload);
+    nPingMillisTime = GetTimeMillis();
 }
 
 bool CBbPeer::ParseMessageHeader()

@@ -582,6 +582,10 @@
                             "type": "int",
                             "desc": "active time"
                         },
+                        "pingtime": {
+                            "type": "int",
+                            "desc": "ping pong time"
+                        },
                         "version": {
                             "type": "string",
                             "desc": "version"
@@ -1237,7 +1241,7 @@
         "error": [
             "{\"code\":-6,\"message\":\"Invalid fork\"}",
             "{\"code\":-6,\"message\":\"Unknown fork\"}"
-        ]        
+        ]
     },
     "listkey": {
         "type": "command",
@@ -2530,8 +2534,8 @@
                 "reversal": {
                     "type": "string",
                     "desc": "reversal get address pubkey",
-	                "required": false,
-	                "opt": "r"
+                    "required": false,
+                    "opt": "r"
                 }
             }
         },

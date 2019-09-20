@@ -2,11 +2,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "peernet.h"
+
 #include <boost/any.hpp>
 #include <boost/bind.hpp>
 
 #include "peer.h"
-#include "peernet.h"
 
 #define HANDSHAKE_TIMEOUT (5)
 #define RESPONSE_TX_TIMEOUT (15)
@@ -38,6 +39,7 @@ CBbPeerNet::CBbPeerNet()
     fEnclosed = false;
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
+    nSeqCreate = (GetTimeMillis() << 32) | (GetTime() & 0xFFFFFFFF);
 }
 
 CBbPeerNet::~CBbPeerNet()
@@ -210,6 +212,7 @@ CPeerInfo* CBbPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
         pBbInfo->nService = pBbPeer->nService;
         pBbInfo->strSubVer = pBbPeer->strSubVer;
         pBbInfo->nStartingHeight = pBbPeer->nStartingHeight;
+        pBbInfo->nPingPongTimeDelta = pBbPeer->nPingPongTimeDelta;
     }
     return pInfo;
 }
@@ -295,6 +298,15 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
     ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight;
 }
 
+uint32 CBbPeerNet::BuildPing(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload)
+{
+    uint32 nSeq = CreateSeq(pPeer->GetNonce());
+    int64 nTime = GetNetTime();
+    int nHeight = pNetChannel->GetPrimaryChainHeight();
+    ssPayload << nSeq << nTime << nHeight;
+    return nSeq;
+}
+
 void CBbPeerNet::HandlePeerWriten(CPeer* pPeer)
 {
     ProcessAskFor(pPeer);
@@ -347,6 +359,8 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     {
         pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_GETADDRESS);
     }
+
+    pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     return true;
 }
 
@@ -379,7 +393,6 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             ss << vAddr;
             return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_ADDRESS, ss);
         }
-        break;
         case PROTO_CMD_ADDRESS:
             if (!fEnclosed)
             {
@@ -424,11 +437,33 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             }
             break;
         case PROTO_CMD_PING:
-            return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_PONG, ssPayload);
-            break;
+        {
+            uint32 nSeq;
+            int64 nTime;
+            int nHeight;
+            CBufStream ssRespPayload;
+            ssPayload >> nSeq >> nTime >> pBbPeer->nStartingHeight;
+            nTime = GetNetTime();
+            nHeight = pNetChannel->GetPrimaryChainHeight();
+            ssRespPayload << nSeq << nTime << nHeight;
+            return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_PONG, ssRespPayload);
+        }
         case PROTO_CMD_PONG:
+        {
+            uint32 nSeq;
+            int64 nTime;
+            ssPayload >> nSeq >> nTime >> pBbPeer->nStartingHeight;
+            if (pBbPeer->nPingSeq != 0 && nSeq == pBbPeer->nPingSeq)
+            {
+                if (pBbPeer->nPingMillisTime != 0)
+                {
+                    pBbPeer->nPingPongTimeDelta = (int)(GetTimeMillis() - pBbPeer->nPingMillisTime);
+                    pBbPeer->nPingMillisTime = 0;
+                }
+                pBbPeer->nPingSeq = 0;
+            }
             return true;
-            break;
+        }
         default:
             break;
         }
@@ -592,6 +627,23 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         }
     }
     return false;
+}
+
+uint32 CBbPeerNet::SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse)
+{
+    if (nOldTimerId != 0)
+    {
+        CancelTimer(nOldTimerId);
+    }
+    return SetTimer(nNonce, nElapse);
+}
+
+uint32 CBbPeerNet::CreateSeq(uint64 nNonce)
+{
+    CBufStream ss;
+    int64 nTime = GetTimeMillis();
+    ss << nTime << nSeqCreate++ << nNonce;
+    return bigbang::crypto::crc24q((const unsigned char*)ss.GetData(), ss.GetSize());
 }
 
 } // namespace network

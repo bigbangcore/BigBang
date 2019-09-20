@@ -60,6 +60,7 @@ enum
 
 #define MESSAGE_HEADER_SIZE 16
 #define MESSAGE_PAYLOAD_MAX_SIZE 0x400000
+#define PING_TIMER_DURATION 120
 
 class CPeerMessageHeader
 {

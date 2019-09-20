@@ -31,6 +31,7 @@ public:
     const boost::asio::ip::tcp::endpoint GetRemote();
     const boost::asio::ip::tcp::endpoint GetLocal();
     virtual void Activate();
+    virtual bool PingTimer(uint32 nTimerId);
 
 protected:
     CBufStream& ReadStream();
