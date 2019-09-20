@@ -75,12 +75,11 @@ set(sources
     ${src}
     ${mode_src}
 )
-message(STATUS "sources: ${sources}")
+
 add_executable(bigbang ${sources})
 
 string(REPLACE "bigbang.cpp;" "" libsrc "${sources}")
 
-message(STATUS "libsrc: ${libsrc}")
 add_library(libbigbang ${libsrc})
 
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
