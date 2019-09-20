@@ -75,7 +75,7 @@ public:
     unsigned char nAlgo;
     unsigned char nBits;
     CDestination destMint;
-    uint64_t nNonce;
+    uint256 nNonce;
 
 protected:
     virtual void ToStream(xengine::CODataStream& os) override
@@ -96,12 +96,12 @@ public:
     unsigned char nAlgo;
     unsigned char nBits;
     CDestination destMint;
-    uint64_t nNonce;
+    uint256 nNonce;
 
 public:
     enum
     {
-        PROOFHASHWORK_SIZE = 43
+        PROOFHASHWORK_SIZE = 67
     };
     void Save(std::vector<unsigned char>& vchProof)
     {
@@ -111,7 +111,7 @@ public:
         *p++ = destMint.prefix;
         *((uint256*)p) = destMint.data;
         p += 32;
-        *((uint64_t*)p) = nNonce;
+        *((uint256*)p) = nNonce;
     }
     void Load(const std::vector<unsigned char>& vchProof)
     {
@@ -121,7 +121,7 @@ public:
         destMint.prefix = *p++;
         destMint.data = *((uint256*)p);
         p += 32;
-        nNonce = *((uint64_t*)p);
+        nNonce = *((uint256*)p);
     }
 };
 

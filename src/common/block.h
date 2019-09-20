@@ -120,7 +120,14 @@ public:
         {
             CProofOfHashWorkCompact proof;
             proof.Load(vchProof);
-            return proof.nBits - 8;
+            if (proof.nBits > 10)
+            {
+                return proof.nBits - 10;
+            }
+            else
+            {
+                return 1;
+            }
         }
         else
         {
