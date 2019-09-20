@@ -468,6 +468,7 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
         peer.nLastsend = info.nLastSend;
         peer.nLastrecv = info.nLastRecv;
         peer.nConntime = info.nActive;
+        peer.nPingtime = info.nPingPongTimeDelta;
         peer.strVersion = FormatVersion(info.nVersion);
         peer.strSubver = info.strSubVer;
         peer.fInbound = info.fInBound;

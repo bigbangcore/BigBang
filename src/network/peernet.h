@@ -45,10 +45,12 @@ public:
     CBbPeerNet();
     ~CBbPeerNet();
     virtual void BuildHello(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload);
+    virtual uint32 BuildPing(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload);
     void HandlePeerWriten(xengine::CPeer* pPeer) override;
     virtual bool HandlePeerHandshaked(xengine::CPeer* pPeer, uint32 nTimerId);
     virtual bool HandlePeerRecvMessage(xengine::CPeer* pPeer, int nChannel, int nCommand,
                                        xengine::CBufStream& ssPayload);
+    uint32 SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse);
 
 protected:
     bool HandleInitialize() override;
@@ -81,6 +83,7 @@ protected:
         fEnclosed = fEnclosedIn;
     }
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
+    uint32 CreateSeq(uint64 nNonce);
 
 protected:
     INetChannel* pNetChannel;
@@ -91,6 +94,7 @@ protected:
     bool fEnclosed;
     std::string subVersion;
     std::set<boost::asio::ip::tcp::endpoint> setDNSeed;
+    uint64 nSeqCreate;
 };
 
 } // namespace network
