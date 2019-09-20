@@ -227,7 +227,9 @@ bool CDataStat::HandleInitialize()
         Error("Data stat initialize fail.\n");
         return false;
     }
-    fStatWork = RPCServerConfig()->fStatDataEnable;
+
+    fStatWork = RPCServerConfig() ? RPCServerConfig()->fStatDataEnable : false;
+
     return true;
 }
 

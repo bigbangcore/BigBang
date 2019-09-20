@@ -24,7 +24,7 @@ add_executable(test_big ${sources})
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc)
-include_directories(../src ../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/bigbang ../src/jsonrpc)
+include_directories(../src ../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/bigbang ../src/jsonrpc ../src/delegate)
 
 target_link_libraries(test_big
     libbigbang

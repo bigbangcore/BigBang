@@ -8,11 +8,16 @@
 #include <thread>
 
 #include "blockchain.h"
+#include "blockmaker.h"
 #include "common/message.h"
+#include "consensus.h"
 #include "core.h"
+#include "datastat.h"
+#include "delegatedchn.h"
 #include "dispatcher.h"
 #include "docker/config.h"
 #include "docker/docker.h"
+#include "forkmanager.h"
 #include "message/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
@@ -21,17 +26,17 @@
 #include "service.h"
 #include "test_big.h"
 #include "txpool.h"
+#include "wallet.h"
 
 using namespace xengine;
 using namespace bigbang;
 
 BOOST_FIXTURE_TEST_SUITE(netchn_tests, BasicUtfSetup)
 
-class CDummyPeerNet : public CIOProc
+class CDummyPeerNet : public CNetwork
 {
 public:
-    CDummyPeerNet()
-      : CIOProc("peernet") {}
+    CDummyPeerNet() {}
     virtual bool HandleInitialize() override
     {
         RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CDummyPeerNet::HandleNetClose, this, _1));
@@ -52,13 +57,21 @@ protected:
 BOOST_AUTO_TEST_CASE(netchn_msg)
 {
     CDocker docker;
-    BOOST_CHECK(docker.Initialize(new xengine::CConfig));
+    InitLog("./", true, false);
+    xengine::CLog log;
+    BOOST_CHECK(docker.Initialize(new xengine::CConfig, &log));
+    BOOST_CHECK(docker.Attach(new CConsensus()));
     BOOST_CHECK(docker.Attach(new CCoreProtocol()));
     BOOST_CHECK(docker.Attach(new CDummyPeerNet()));
+    BOOST_CHECK(docker.Attach(new CForkManager()));
+    BOOST_CHECK(docker.Attach(new CWallet()));
     BOOST_CHECK(docker.Attach(new CService()));
     BOOST_CHECK(docker.Attach(new CTxPool()));
+    BOOST_CHECK(docker.Attach(new CBlockMaker()));
+    BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CBlockChain()));
+    BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
     BOOST_CHECK(docker.Attach(new bigbang::CNetChannel()));
 
     BOOST_CHECK(docker.Run());
