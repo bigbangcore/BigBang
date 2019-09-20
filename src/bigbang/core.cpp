@@ -2,10 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "core.h"
-
 #include "../common/template/exchange.h"
 #include "address.h"
+#include "core.h"
 #include "wallet.h"
 
 using namespace std;
@@ -13,7 +12,7 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
+//#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 

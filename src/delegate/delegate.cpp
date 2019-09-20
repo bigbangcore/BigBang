@@ -173,7 +173,9 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const CDestination& destFrom
         bool ret = vote.Accept(destFrom, vchDistributeData);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::StdDebug("CDelegate", (string("Accept height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
+        std::stringstream ss;
+        ss << "Accept height:" << nTargetHeight << " time:" << (t1 - t0).ticks() << " ret:" << ret;
+        xengine::StdDebug("CDelegate", ss.str().c_str());
 
         return ret;
     }
@@ -193,7 +195,10 @@ bool CDelegate::HandlePublish(int nTargetHeight, const CDestination& destFrom,
         bool ret = vote.Collect(destFrom, vchPublishData, fCompleted);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::StdDebug("CDelegate", (string("Collect height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
+
+        std::stringstream ss;
+        ss << "Collect height:" << nTargetHeight << " time:" << (t1 - t0).ticks();
+        xengine::StdDebug("CDelegate", ss.str().c_str());
 
         return ret;
     }
@@ -215,7 +220,9 @@ void CDelegate::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWe
         vote.GetAgreement(nAgreement, nWeight, mapBallot);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::StdDebug("CDelegate", (string("Reconstruct height:") + to_string(nTargetHeight) + " time:" + to_string((t1 - t0).ticks())).c_str());
+        std::stringstream ss;
+        ss << "Reconstruct height:" << nTargetHeight << " time:" << (t1 - t0).ticks();
+        xengine::StdDebug("CDelegate", ss.str().c_str());
     }
 }
 
