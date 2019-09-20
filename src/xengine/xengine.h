@@ -6,6 +6,8 @@
 #define XENGINE_XENGINE_H
 
 #include <base/base.h>
+#include <base/controller.h>
+#include <base/model.h>
 #include <cache.h>
 #include <compacttv.h>
 #include <console/console.h>
@@ -25,6 +27,9 @@
 #include <http/httpsse.h>
 #include <http/httptype.h>
 #include <http/httputil.h>
+#include <message/actor.h>
+#include <message/message.h>
+#include <message/messagecenter.h>
 #include <netio/ioproc.h>
 #include <netio/netio.h>
 #include <peernet/datasched.h>

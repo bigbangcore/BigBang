@@ -141,6 +141,11 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
+    RegisterHandler<CAddTxMessage>(boost::bind(&CTxPool::HandleAddTx, this, _1));
+    RegisterHandler<CRemoveTxMessage>(boost::bind(&CTxPool::HandleRemoveTx, this, _1));
+    RegisterHandler<CClearTxMessage>(boost::bind(&CTxPool::HandleClearTx, this, _1));
+    RegisterHandler<CAddedBlockMessage>(boost::bind(&CTxPool::HandleAddedBlock, this, _1));
+
     return true;
 }
 
@@ -304,20 +309,6 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
         for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
             vTxPool.push_back((*mi).hashTX);
-        }
-    }
-}
-
-void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, uint256>>& vTxPool)
-{
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
-    if (it != mapPoolView.end())
-    {
-        CPooledTxLinkSetBySequenceNumber& idxTx = it->second.setTxLinkIndex.get<1>();
-        for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
-        {
-            vTxPool.emplace_back(mi->hashTX, mi->ptx->hashAnchor);
         }
     }
 }
@@ -585,6 +576,49 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     txView.AddNew(txid, (*mi).second);
 
     return OK;
+}
+
+void CTxPool::HandleAddTx(const CAddTxMessage& msg)
+{
+    auto spAddedMsg = CAddedTxMessage::Create();
+
+    Push(msg.tx, spAddedMsg->hashFork, spAddedMsg->destIn, spAddedMsg->nValueIn);
+
+    PUBLISH_MESSAGE(spAddedMsg);
+}
+
+void CTxPool::HandleRemoveTx(const CRemoveTxMessage& msg)
+{
+    auto& txId = msg.txId;
+    Pop(txId);
+}
+
+void CTxPool::HandleClearTx(const CClearTxMessage& msg)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    if (msg.hashFork == 0)
+    {
+        // Remove all transactions
+        mapPoolView.clear();
+        mapTx.clear();
+    }
+    else
+    {
+        // TODO: remove one fork tx;
+    }
+}
+
+void CTxPool::HandleAddedBlock(const CAddedBlockMessage& msg)
+{
+    auto& update = msg.update;
+
+    auto spSyncMsg = CSyncTxChangeMessage::Create();
+    spSyncMsg->hashFork = msg.hashFork;
+    auto& change = spSyncMsg->change;
+
+    SynchronizeBlockChain(update, change);
+
+    PUBLISH_MESSAGE(spSyncMsg);
 }
 
 } // namespace bigbang

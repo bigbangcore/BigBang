@@ -6,6 +6,7 @@
 #define BIGBANG_TXPOOL_H
 
 #include "base.h"
+#include "message.h"
 #include "txpooldata.h"
 
 namespace bigbang
@@ -223,7 +224,6 @@ public:
     bool Get(const uint256& txid, CTransaction& tx) const override;
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
-    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
@@ -246,6 +246,11 @@ protected:
         }
         return ++nLastSequenceNumber;
     }
+
+    void HandleAddTx(const CAddTxMessage& msg);
+    void HandleRemoveTx(const CRemoveTxMessage& msg);
+    void HandleClearTx(const CClearTxMessage& msg);
+    void HandleAddedBlock(const CAddedBlockMessage& msg);
 
 protected:
     storage::CTxPoolData datTxPool;

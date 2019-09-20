@@ -14,12 +14,8 @@
 #include <vector>
 
 #include "block.h"
-#include "proto.h"
 #include "transaction.h"
 #include "uint256.h"
-
-namespace bigbang
-{
 
 // Status
 class CForkStatus
@@ -120,7 +116,7 @@ class CNetworkPeerUpdate
 public:
     bool fActive;
     uint64 nPeerNonce;
-    network::CAddress addrPeer;
+    // bigbang::network::CAddress addrPeer;
 };
 
 class CTransactionUpdate
@@ -297,7 +293,5 @@ public:
     uint64 nSynRecvTxTPS;
     uint64 nSynSendTxTPS;
 };
-
-} // namespace bigbang
 
 #endif // BIGBANG_STRUCT_H

@@ -660,7 +660,7 @@ void CNetChannel::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::C
     CNetworkPeerUpdate update;
     update.nPeerNonce = nNonce;
     update.fActive = fActive;
-    update.addrPeer = addrPeer;
+    // update.addrPeer = addrPeer;
     pService->NotifyNetworkPeerUpdate(update);
 }
 
