@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "blockchain.h"
+
 #include "delegatecomm.h"
 #include "delegateverify.h"
 
@@ -637,7 +638,7 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         }
         else
         {
-            nReward = profile.nMintReward / pow(2, (pIndexPrev->GetBlockHeight() + 1) / profile.nHalveCycle);
+            nReward = profile.nMintReward / pow(2, (pIndexPrev->GetBlockHeight() + 1 - profile.nJointHeight) / profile.nHalveCycle);
         }
     }
     return true;
@@ -889,9 +890,9 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        if (pCoreProtocol->CheckSpecialHeight(pIndexPrev->GetBlockHeight()+1))
+        if (pCoreProtocol->CheckSpecialHeight(pIndexPrev->GetBlockHeight() + 1))
         {
-            if (!pCoreProtocol->VerifySpecialAddress(pIndexPrev->GetBlockHeight()+1, block))
+            if (!pCoreProtocol->VerifySpecialAddress(pIndexPrev->GetBlockHeight() + 1, block))
             {
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
