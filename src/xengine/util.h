@@ -273,7 +273,7 @@ inline std::size_t ParseHexString(const std::string& str, unsigned char* p, std:
  * if false return 0
  * if error return -1
  * */
-inline int is_begin_with(const char* str1, char* str2)
+inline int IsBeginWith(const char* str1, char* str2)
 {
     if (str1 == NULL || str2 == NULL)
         return -1;
@@ -298,7 +298,7 @@ inline int is_begin_with(const char* str1, char* str2)
  * if false return 0
  * if error return -1
  * */
-inline int is_end_with(const char* str1, char* str2)
+inline int IsEndWith(const char* str1, char* str2)
 {
     if (str1 == NULL || str2 == NULL)
         return -1;
