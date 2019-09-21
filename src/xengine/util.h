@@ -7,8 +7,8 @@
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/date_time.hpp>
-#include <boost/log/common.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/log/common.hpp>
 
 #include "type.h"
 
@@ -91,7 +91,7 @@ enum severity_level
 
 namespace src = boost::log::sources;
 
-typedef src::severity_channel_logger_mt< severity_level, std::string > sclmt_type;
+typedef src::severity_channel_logger_mt<severity_level, std::string> sclmt_type;
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, sclmt_type)
 
 void StdDebug(const char* pszName, const char* pszErr);
@@ -99,23 +99,23 @@ void StdLog(const char* pszName, const char* pszErr);
 void StdWarn(const char* pszName, const char* pszErr);
 void StdError(const char* pszName, const char* pszErr);
 
-bool InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon);
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon);
 
-inline std::string PulsFileLine(const char *file,int line,const char *info)
+inline std::string PulsFileLine(const char* file, int line, const char* info)
 {
     std::stringstream ss;
-    ss  << file << "(" << line << ") " << info;
+    ss << file << "(" << line << ") " << info;
     return ss.str();
 }
 
-#define STD_DEBUG(Mod,Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_DEBUG(Mod, Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_LOG(Mod,Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_LOG(Mod, Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_WARN(Mod,Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_WARN(Mod, Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_Eerror(Mod,Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
- 
+#define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+
 inline bool IsRoutable(const boost::asio::ip::address& address)
 {
     if (address.is_loopback() || address.is_unspecified())
@@ -266,6 +266,54 @@ inline std::vector<unsigned char> ParseHexString(const std::string& str)
 inline std::size_t ParseHexString(const std::string& str, unsigned char* p, std::size_t n)
 {
     return ParseHexString(str.c_str(), p, n);
+}
+
+/**Determine whether STR1 begins with STR2
+ * if true return 1
+ * if false return 0
+ * if error return -1
+ * */
+inline int is_begin_with(const char* str1, char* str2)
+{
+    if (str1 == NULL || str2 == NULL)
+        return -1;
+    int len1 = strlen(str1);
+    int len2 = strlen(str2);
+    if ((len1 < len2) || (len1 == 0 || len2 == 0))
+        return -1;
+    char* p = str2;
+    int i = 0;
+    while (*p != '\0')
+    {
+        if (*p != str1[i])
+            return 0;
+        p++;
+        i++;
+    }
+    return 1;
+}
+
+/**Determine whether STR1 ends with STR2
+ * if true return 1
+ * if false return 0
+ * if error return -1
+ * */
+inline int is_end_with(const char* str1, char* str2)
+{
+    if (str1 == NULL || str2 == NULL)
+        return -1;
+    int len1 = strlen(str1);
+    int len2 = strlen(str2);
+    if ((len1 < len2) || (len1 == 0 || len2 == 0))
+        return -1;
+    while (len2 >= 1)
+    {
+        if (str2[len2 - 1] != str1[len1 - 1])
+            return 0;
+        len2--;
+        len1--;
+    }
+    return 1;
 }
 
 #ifdef __GNUG__

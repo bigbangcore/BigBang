@@ -88,7 +88,15 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, co
     ret.fAmount = ValueFromAmount(tx.nAmount);
     ret.fTxfee = ValueFromAmount(tx.nTxFee);
 
-    ret.strData = xengine::ToHexString(tx.vchData);
+    std::string str(tx.vchData.begin(), tx.vchData.end());
+    if (xengine::is_begin_with(str.c_str(), (char*)"msg:") == 1)
+    {
+        ret.strData = str;
+    }
+    else
+    {
+        ret.strData = xengine::ToHexString(tx.vchData);
+    }
     ret.strSig = xengine::ToHexString(tx.vchSig);
     ret.strFork = hashFork.GetHex();
     if (nDepth >= 0)
@@ -1282,9 +1290,18 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
     vector<unsigned char> vchData;
-    if (spParam->strData.IsValid())
+    auto strDataTmp = spParam->strData;
+    if (strDataTmp.IsValid())
     {
-        vchData = ParseHexString(spParam->strData);
+        if (is_begin_with(strDataTmp.c_str(), (char*)"msg:") == 1)
+        {
+            auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
+            vchData = ParseHexString(hex);
+        }
+        else
+        {
+            vchData = ParseHexString(strDataTmp);
+        }
     }
 
     CTransaction txNew;
