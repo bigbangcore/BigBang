@@ -761,24 +761,25 @@ CTestNetCoreProtocol::CTestNetCoreProtocol()
 }
 
 /*
-PubKey : ff2d3a109b53b4dc0b01f5a373bd88c3ed569afb2e76ab076a269ce9f90d008e
-Secret : 8eaf3fbf3c79a58535bc3426d16356104891c4904e97ce3ba541bb53423cc89e
 
 PubKey : 68e4dca5989876ca64f16537e82d05c103e5695dfaf009a01632cb33639cc530
 Secret : ab14e1de9a0e805df0c79d50e1b065304814a247e7d52fc51fd0782e0eec27d6
 
 PubKey : 310be18f947a56f92541adbad67374facad61ab814c53fa5541488bea62fb47d
 Secret : 14e1abd0802f7065b55f5076d0d2cfbea159abd540a977e8d3afd4b3061bf47f
+
 */
 void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 {
-    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("ff2d3a109b53b4dc0b01f5a373bd88c3ed569afb2e76ab076a269ce9f90d008e")));
+    using namespace boost::posix_time;
+    using namespace boost::gregorian;
+    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("62a401ff58234d2c7543859ed4917a9e85fb431ffb650a4d7694a301234771c4")));
 
     block.SetNull();
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1515745156;
+    block.nTimeStamp = (ptime(date(2019, 9, 23), time_duration(15 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
