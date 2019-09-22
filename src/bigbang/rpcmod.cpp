@@ -88,7 +88,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, co
     ret.fTxfee = ValueFromAmount(tx.nTxFee);
 
     std::string str(tx.vchData.begin(), tx.vchData.end());
-    if (xengine::IsBeginWith(str.c_str(), (char*)"msg:") == 1)
+    if (str.substr(0, 4) == "msg:")
     {
         ret.strData = str;
     }
@@ -1417,7 +1417,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     auto strDataTmp = spParam->strData;
     if (strDataTmp.IsValid())
     {
-        if (IsBeginWith(strDataTmp.c_str(), (char*)"msg:") == 1)
+        if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
             auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
             vchData = ParseHexString(hex);

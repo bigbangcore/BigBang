@@ -268,54 +268,6 @@ inline std::size_t ParseHexString(const std::string& str, unsigned char* p, std:
     return ParseHexString(str.c_str(), p, n);
 }
 
-/**Determine whether STR1 begins with STR2
- * if true return 1
- * if false return 0
- * if error return -1
- * */
-inline int IsBeginWith(const char* str1, char* str2)
-{
-    if (str1 == NULL || str2 == NULL)
-        return -1;
-    int len1 = strlen(str1);
-    int len2 = strlen(str2);
-    if ((len1 < len2) || (len1 == 0 || len2 == 0))
-        return -1;
-    char* p = str2;
-    int i = 0;
-    while (*p != '\0')
-    {
-        if (*p != str1[i])
-            return 0;
-        p++;
-        i++;
-    }
-    return 1;
-}
-
-/**Determine whether STR1 ends with STR2
- * if true return 1
- * if false return 0
- * if error return -1
- * */
-inline int IsEndWith(const char* str1, char* str2)
-{
-    if (str1 == NULL || str2 == NULL)
-        return -1;
-    int len1 = strlen(str1);
-    int len2 = strlen(str2);
-    if ((len1 < len2) || (len1 == 0 || len2 == 0))
-        return -1;
-    while (len2 >= 1)
-    {
-        if (str2[len2 - 1] != str1[len1 - 1])
-            return 0;
-        len2--;
-        len1--;
-    }
-    return 1;
-}
-
 #ifdef __GNUG__
 #include <cxxabi.h>
 inline const char* TypeName(const std::type_info& info)

@@ -296,7 +296,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         }
         boost::replace_all(strCmd, "%s", block_hash);
         std::string cmd = strCmd;
-        std::async(std::launch::async, [cmd]() { ::system(cmd.c_str()); });
+        std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
     }
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
