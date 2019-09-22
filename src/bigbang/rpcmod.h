@@ -86,6 +86,7 @@ private:
     rpc::CRPCResultPtr RPCGetBlockCount(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetBlockHash(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetBlock(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlockDetail(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTxPool(rpc::CRPCParamPtr param);
     // CRPCResultPtr RPCRemovePendingTx(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTransaction(rpc::CRPCParamPtr param);

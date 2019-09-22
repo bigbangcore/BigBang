@@ -451,6 +451,55 @@
             }
         }
     },
+    "blockdatadetail": {
+        "type": "class",
+        "name": "blockdatadetail",
+        "content": {
+            "hash": {
+                "type": "string",
+                "desc": "block hash"
+            },
+            "version": {
+                "type": "uint",
+                "desc": "version"
+            },
+            "type": {
+                "type": "string",
+                "desc": "block type"
+            },
+            "time": {
+                "type": "uint",
+                "desc": "block time"
+            },
+            "prev": {
+                "type": "string",
+                "desc": "previous block hash",
+                "required": false
+            },
+            "fork": {
+                "type": "string",
+                "desc": "fork hash"
+            },
+            "height": {
+                "type": "uint",
+                "desc": "block height"
+            },
+            "txmint": {
+                "type": "transactiondata",
+                "desc": "transaction mint data"
+            },
+            "tx": {
+                "type": "array",
+                "desc": "transaction hash list",
+                "content": {
+                    "tx": {
+                        "type": "transactiondata",
+                        "desc": "transaction data"
+                    }
+                }
+            }
+        }
+    },
     "help": {
         "type": "command",
         "name": "Help",
@@ -1026,6 +1075,36 @@
             },
             {
                 "request": "curl -d '{\"id\":10,\"method\":\"getblock\",\"jsonrpc\":\"2.0\",\"params\":{\"block\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":10,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\",\"version\":1,\"type\":\"primary-pow\",\"time\":1538138566,\"prev\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":31296,\"txmint\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"tx\":[]}}"
+            }
+        ],
+        "error": "{\"code\":-6,\"message\":\"Unknown block.\"}"
+    },
+    "getblockdetail": {
+        "type": "command",
+        "name": "getblockdetail",
+        "desc": "Return details of a block with given block-hash.",
+        "request": {
+            "type": "object",
+            "content": {
+                "block": {
+                    "type": "string",
+                    "desc": "block hash"
+                }
+            }
+        },
+        "response": {
+            "type": "blockdatadetail",
+            "name": "block",
+            "desc": "block data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getblockdetail ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c",
+                "response": "{\"hash\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\",\"version\":1,\"type\":\"primary-pow\",\"time\":1538138566,\"prev\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":31296,\"txmint\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"tx\":[]}"
+            },
+            {
+                "request": "curl -d '{\"id\":10,\"method\":\"getbgetblockdetaillock\",\"jsonrpc\":\"2.0\",\"params\":{\"block\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\"}}' http://127.0.0.1:9902",
                 "response": "{\"id\":10,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c\",\"version\":1,\"type\":\"primary-pow\",\"time\":1538138566,\"prev\":\"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a\",\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"height\":31296,\"txmint\":\"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29\",\"tx\":[]}}"
             }
         ],

@@ -2,8 +2,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcmod.h"
-
 #include "json/json_spirit_reader_template.h"
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
@@ -13,6 +11,7 @@
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
+#include "rpcmod.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -146,17 +145,105 @@ CRPCMod::CRPCMod()
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
-        ("help", &CRPCMod::RPCHelp)("stop", &CRPCMod::RPCStop)("version", &CRPCMod::RPCVersion)
+        ("help", &CRPCMod::RPCHelp)
+        //
+        ("stop", &CRPCMod::RPCStop)
+        //
+        ("version", &CRPCMod::RPCVersion)
         /* Network */
-        ("getpeercount", &CRPCMod::RPCGetPeerCount)("listpeer", &CRPCMod::RPCListPeer)("addnode", &CRPCMod::RPCAddNode)("removenode", &CRPCMod::RPCRemoveNode)
+        ("getpeercount", &CRPCMod::RPCGetPeerCount)
+        //
+        ("listpeer", &CRPCMod::RPCListPeer)
+        //
+        ("addnode", &CRPCMod::RPCAddNode)
+        //
+        ("removenode", &CRPCMod::RPCRemoveNode)
         /* Blockchain & TxPool */
-        ("getforkcount", &CRPCMod::RPCGetForkCount)("listfork", &CRPCMod::RPCListFork)("getgenealogy", &CRPCMod::RPCGetForkGenealogy)("getblocklocation", &CRPCMod::RPCGetBlockLocation)("getblockcount", &CRPCMod::RPCGetBlockCount)("getblockhash", &CRPCMod::RPCGetBlockHash)("getblock", &CRPCMod::RPCGetBlock)("gettxpool", &CRPCMod::RPCGetTxPool)("gettransaction", &CRPCMod::RPCGetTransaction)("sendtransaction", &CRPCMod::RPCSendTransaction)("getforkheight", &CRPCMod::RPCGetForkHeight)
+        ("getforkcount", &CRPCMod::RPCGetForkCount)
+        //
+        ("listfork", &CRPCMod::RPCListFork)
+        //
+        ("getgenealogy", &CRPCMod::RPCGetForkGenealogy)
+        //
+        ("getblocklocation", &CRPCMod::RPCGetBlockLocation)
+        //
+        ("getblockcount", &CRPCMod::RPCGetBlockCount)
+        //
+        ("getblockhash", &CRPCMod::RPCGetBlockHash)
+        //
+        ("getblock", &CRPCMod::RPCGetBlock)
+        //
+        ("getblockdetail", &CRPCMod::RPCGetBlockDetail)
+        //
+        ("gettxpool", &CRPCMod::RPCGetTxPool)
+        //
+        ("gettransaction", &CRPCMod::RPCGetTransaction)
+        //
+        ("sendtransaction", &CRPCMod::RPCSendTransaction)
+        //
+        ("getforkheight", &CRPCMod::RPCGetForkHeight)
         /* Wallet */
-        ("listkey", &CRPCMod::RPCListKey)("getnewkey", &CRPCMod::RPCGetNewKey)("encryptkey", &CRPCMod::RPCEncryptKey)("lockkey", &CRPCMod::RPCLockKey)("unlockkey", &CRPCMod::RPCUnlockKey)("importprivkey", &CRPCMod::RPCImportPrivKey)("importkey", &CRPCMod::RPCImportKey)("exportkey", &CRPCMod::RPCExportKey)("addnewtemplate", &CRPCMod::RPCAddNewTemplate)("importtemplate", &CRPCMod::RPCImportTemplate)("exporttemplate", &CRPCMod::RPCExportTemplate)("validateaddress", &CRPCMod::RPCValidateAddress)("resyncwallet", &CRPCMod::RPCResyncWallet)("getbalance", &CRPCMod::RPCGetBalance)("listtransaction", &CRPCMod::RPCListTransaction)("sendfrom", &CRPCMod::RPCSendFrom)("createtransaction", &CRPCMod::RPCCreateTransaction)("signtransaction", &CRPCMod::RPCSignTransaction)("signmessage", &CRPCMod::RPCSignMessage)("listaddress", &CRPCMod::RPCListAddress)("exportwallet", &CRPCMod::RPCExportWallet)("importwallet", &CRPCMod::RPCImportWallet)("makeorigin", &CRPCMod::RPCMakeOrigin)
+        ("listkey", &CRPCMod::RPCListKey)
+        //
+        ("getnewkey", &CRPCMod::RPCGetNewKey)
+        //
+        ("encryptkey", &CRPCMod::RPCEncryptKey)
+        //
+        ("lockkey", &CRPCMod::RPCLockKey)
+        //
+        ("unlockkey", &CRPCMod::RPCUnlockKey)
+        //
+        ("importprivkey", &CRPCMod::RPCImportPrivKey)
+        //
+        ("importkey", &CRPCMod::RPCImportKey)
+        //
+        ("exportkey", &CRPCMod::RPCExportKey)
+        //
+        ("addnewtemplate", &CRPCMod::RPCAddNewTemplate)
+        //
+        ("importtemplate", &CRPCMod::RPCImportTemplate)
+        //
+        ("exporttemplate", &CRPCMod::RPCExportTemplate)
+        //
+        ("validateaddress", &CRPCMod::RPCValidateAddress)
+        //
+        ("resyncwallet", &CRPCMod::RPCResyncWallet)
+        //
+        ("getbalance", &CRPCMod::RPCGetBalance)
+        //
+        ("listtransaction", &CRPCMod::RPCListTransaction)
+        //
+        ("sendfrom", &CRPCMod::RPCSendFrom)
+        //
+        ("createtransaction", &CRPCMod::RPCCreateTransaction)
+        //
+        ("signtransaction", &CRPCMod::RPCSignTransaction)
+        //
+        ("signmessage", &CRPCMod::RPCSignMessage)
+        //
+        ("listaddress", &CRPCMod::RPCListAddress)
+        //
+        ("exportwallet", &CRPCMod::RPCExportWallet)
+        //
+        ("importwallet", &CRPCMod::RPCImportWallet)
+        //
+        ("makeorigin", &CRPCMod::RPCMakeOrigin)
         /* Util */
-        ("verifymessage", &CRPCMod::RPCVerifyMessage)("makekeypair", &CRPCMod::RPCMakeKeyPair)("getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress)("gettemplateaddress", &CRPCMod::RPCGetTemplateAddress)("maketemplate", &CRPCMod::RPCMakeTemplate)("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        ("verifymessage", &CRPCMod::RPCVerifyMessage)
+        //
+        ("makekeypair", &CRPCMod::RPCMakeKeyPair)
+        //
+        ("getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress)
+        //
+        ("gettemplateaddress", &CRPCMod::RPCGetTemplateAddress)
+        //
+        ("maketemplate", &CRPCMod::RPCMakeTemplate)
+        //
+        ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
         /* Mint */
-        ("getwork", &CRPCMod::RPCGetWork)("submitwork", &CRPCMod::RPCSubmitWork)
+        ("getwork", &CRPCMod::RPCGetWork)
+        //
+        ("submitwork", &CRPCMod::RPCSubmitWork)
         /* tool */
         ("querystat", &CRPCMod::RPCQueryStat);
     mapRPCFunc = temp_map;
@@ -658,6 +745,43 @@ CRPCResultPtr CRPCMod::RPCGetBlock(CRPCParamPtr param)
     }
 
     return MakeCGetBlockResultPtr(BlockToJSON(hashBlock, block, fork, height));
+}
+
+CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CgetblockdetailParam>(param);
+
+    //getblockdetail <"block">
+    uint256 hashBlock;
+    hashBlock.SetHex(spParam->strBlock);
+
+    CBlock block;
+    uint256 fork;
+    int height;
+    if (!pService->GetBlock(hashBlock, block, fork, height))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown block");
+    }
+
+    Cblockdatadetail data;
+
+    data.strHash = hashBlock.GetHex();
+    data.nVersion = block.nVersion;
+    data.strType = GetBlockTypeStr(block.nType, block.txMint.nType);
+    data.nTime = block.GetBlockTime();
+    if (block.hashPrev != 0)
+    {
+        data.strPrev = block.hashPrev.GetHex();
+    }
+    data.strFork = fork.GetHex();
+    data.nHeight = height;
+    int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth);
+    for (const CTransaction& tx : block.vtx)
+    {
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth));
+    }
+    return MakeCgetblockdetailResultPtr(data);
 }
 
 CRPCResultPtr CRPCMod::RPCGetTxPool(CRPCParamPtr param)

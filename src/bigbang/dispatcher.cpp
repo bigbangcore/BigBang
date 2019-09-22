@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chrono>
+#include <future>
 #include <thread>
 
 #include "dispatcher.h"
@@ -103,7 +104,7 @@ bool CDispatcher::HandleInitialize()
         Error("Failed to request datastat\n");
         return false;
     }
-
+    strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
     return true;
 }
 
@@ -276,28 +277,27 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
 bool CDispatcher::AddNewDistribute(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    //uint256 hashFork;
-    //int nHeight;
-    //if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    //{
     return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
-    //}
-    //return false;
 }
 
 bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    //uint256 hashFork;
-    //int nHeight;
-    //if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    //{
     return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
-    //}
-    //return false;
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
+    if (!strCmd.empty())
+    {
+        std::string block_hash = updateBlockChain.hashFork.GetHex();
+        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
+        {
+            block_hash += " " + ite->GetHash().GetHex();
+        }
+        boost::replace_all(strCmd, "%s", block_hash);
+        std::string cmd = strCmd;
+        std::async(std::launch::async, [cmd]() { ::system(cmd.c_str()); });
+    }
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
