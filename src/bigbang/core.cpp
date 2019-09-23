@@ -2,9 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "core.h"
+
 #include "../common/template/exchange.h"
 #include "address.h"
-#include "core.h"
 #include "wallet.h"
 
 using namespace std;
@@ -12,7 +13,7 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-//#define BBCP_SET_TOKEN_DISTRIBUTION
+#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
@@ -23,7 +24,9 @@ static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
 static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING; // + BLOCK_TARGET_SPACING / 2;
 
 static const int64 BBCP_TOKEN_INIT = 300000000;
+#ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_BASE_REWARD_TOKEN_COIN = 15 * COIN;
+#else
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN_COIN = 20 * COIN; //19025875; //1% : (1000000000*0.010000)/(60*24*365)*1000000=19,025875.190258751902587519025875
 static const int64 BBCP_SPECIAL_HEIGHT_SECT = 10080;            //60*24*30*3;
 
@@ -77,6 +80,7 @@ static const std::string BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[4] = {
     "20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa", //Market operation
     "20g0d0p9gaynwq6k815kj4n8w8ttydcf80m67sjcp3zsjymjfb710sjgg"  //Institution
 };
+#endif
 
 namespace bigbang
 {
