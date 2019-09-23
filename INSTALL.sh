@@ -34,6 +34,10 @@ if [ "$os" == "Darwin" ]; then
     fi
     echo "make install -j${cores}"
     make install -j${cores}
+    
+    if [ $? -ne 0 ]; then   
+        exit 1 
+    fi
 else
     cores=`nproc --all`
     if [ "${cores}" == "" ]; then
