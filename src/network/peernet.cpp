@@ -78,14 +78,6 @@ void CBbPeerNet::HandleDeinitialize()
     pDelegatedChannel = nullptr;
 }
 
-/*
-bool CBbPeerNet::HandleEvent(CEventPeerBlock& eventBlock)
-{
-    CBufStream ssPayload;
-    ssPayload << eventBlock;
-    return SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
-}*/
-
 void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)
 {
     // TODO: All Message Type need to serilize to CBufStream
