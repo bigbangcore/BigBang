@@ -41,7 +41,7 @@ bool CTemplateProof::GetSignDestination(const CTransaction& tx, const std::vecto
 
 void CTemplateProof::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const
 {
-    obj.mint.strMint = destInstance.SetPubKey(keyMint).ToString();
+    obj.mint.strMint = keyMint.ToString();
     obj.mint.strSpent = (destInstance = destSpend).ToString();
 }
 
@@ -115,4 +115,3 @@ bool CTemplateProof::VerifyBlockSignature(const uint256& hash, const vector<uint
 {
     return keyMint.Verify(hash, vchSig);
 }
-
