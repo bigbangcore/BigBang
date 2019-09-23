@@ -108,6 +108,27 @@ target_link_libraries(bigbang
     common
 )
 
+target_link_libraries(libbigbang
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${Protobuf_LIBRARIES}
+    ${Readline_LIBRARY}
+    xengine
+    crypto    
+    storage    
+    network
+    delegate    
+    jsonrpc
+    common
+)
+
 # create symbol link
 set(exec_link bigbang-cli bigbang-server bigbang-miner)
 foreach(link ${exec_link})
