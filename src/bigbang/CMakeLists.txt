@@ -122,8 +122,7 @@ target_link_libraries(libbigbang
     ${Readline_LIBRARY}
     xengine
     crypto    
-    storage    
-    network
+    storage
     delegate    
     jsonrpc
     common
