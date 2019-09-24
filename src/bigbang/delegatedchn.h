@@ -188,14 +188,12 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    /*
-    bool HandleEvent(network::CEventPeerBulletin& eventBulletin) override;
-    bool HandleEvent(network::CEventPeerGetDelegated& eventGetDelegated) override;
-    bool HandleEvent(network::CEventPeerDistribute& eventDistribute) override;
-    bool HandleEvent(network::CEventPeerPublish& eventPublish) override;*/
-
     void HandleActive(const CPeerActiveMessage& activeMsg);
     void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
+    void HandleBulletin(const CPeerBulletinMessageInBound& bulletinMsg);
+    void HandleGetDelegate(const CPeerGetDelegatedMessageInBound& getDelegatedMsg);
+    void HandleDistribute(const CPeerDistributeMessageInBound& distributeMsg);
+    void HandlePublish(const CPeerPublishMessageInBound& publishMsg);
 
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
