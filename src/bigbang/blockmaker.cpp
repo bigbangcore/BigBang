@@ -118,24 +118,26 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
+    if (MintConfig())
     {
-        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
-        if (profile.IsValid())
+        if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
         {
-            mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
+            CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
+            if (profile.IsValid())
+            {
+                mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
+            }
+        }
+
+        if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
+        {
+            CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
+            if (profile.IsValid())
+            {
+                mapWorkProfile.insert(make_pair(CM_CRYPTONIGHT, profile));
+            }
         }
     }
-
-    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
-    {
-        CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
-        if (profile.IsValid())
-        {
-            mapWorkProfile.insert(make_pair(CM_CRYPTONIGHT, profile));
-        }
-    }
-
     return true;
 }
 
@@ -156,11 +158,13 @@ bool CBlockMaker::HandleInvoke()
 {
     if (!IBlockMaker::HandleInvoke())
     {
+        Error("Failed to invoke IBlockMaker::HandleInvoke()\n");
         return false;
     }
 
     if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastBlockHeight, nLastBlockTime))
     {
+        Error("Failed to invoke GetLastBlock(GenesisBlockHash)\n");
         return false;
     }
 

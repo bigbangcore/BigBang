@@ -227,7 +227,9 @@ bool CDataStat::HandleInitialize()
         Error("Data stat initialize fail.\n");
         return false;
     }
-    fStatWork = RPCServerConfig()->fStatDataEnable;
+
+    fStatWork = RPCServerConfig() ? RPCServerConfig()->fStatDataEnable : false;
+
     return true;
 }
 
@@ -239,14 +241,18 @@ void CDataStat::HandleDeinitialize()
 
 bool CDataStat::HandleInvoke()
 {
-    if (RPCServerConfig()->fStatDataEnable)
+    if (RPCServerConfig())
     {
-        fRunFlag = true;
-        if (!ThreadDelayStart(thrStatTimer))
+        if (RPCServerConfig()->fStatDataEnable)
         {
-            return false;
+            fRunFlag = true;
+            if (!ThreadDelayStart(thrStatTimer))
+            {
+                return false;
+            }
         }
     }
+
     return IIOModule::HandleInvoke();
 }
 

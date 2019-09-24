@@ -204,17 +204,20 @@ bool CConsensus::HandleInitialize()
         return false;
     }
 
-    if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
+    if (MintConfig())
     {
-        crypto::CKey key;
-        key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyMpvss.begin(), MintConfig()->keyMpvss.end()));
+        if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
+        {
+            crypto::CKey key;
+            key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyMpvss.begin(), MintConfig()->keyMpvss.end()));
 
-        CDelegateContext ctxt(key, MintConfig()->destMpvss);
-        mapContext.insert(make_pair(ctxt.GetDestination(), ctxt));
+            CDelegateContext ctxt(key, MintConfig()->destMpvss);
+            mapContext.insert(make_pair(ctxt.GetDestination(), ctxt));
 
-        delegate.AddNewDelegate(ctxt.GetDestination());
+            delegate.AddNewDelegate(ctxt.GetDestination());
 
-        Log("AddNew delegate : %s\n", CAddress(ctxt.GetDestination()).ToString().c_str());
+            Log("AddNew delegate : %s\n", CAddress(ctxt.GetDestination()).ToString().c_str());
+        }
     }
 
     return true;

@@ -230,9 +230,9 @@ void CNetChannel::BroadcastBlockInv(const uint256& hashFork, const uint256& hash
         sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
     }
 
-    CPeerInvMessageOutBound* pInvMsg = new CPeerInvMessageOutBound();
-    pInvMsg->hashFork = hashFork;
-    pInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
+    auto spInvMsg = CPeerInvMessageOutBound::Create();
+    spInvMsg->hashFork = hashFork;
+    spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
 
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
@@ -241,8 +241,8 @@ void CNetChannel::BroadcastBlockInv(const uint256& hashFork, const uint256& hash
             uint64 nNonce = (*it).first;
             if (!setKnownPeer.count(nNonce) && (*it).second.IsSubscribed(hashFork))
             {
-                pInvMsg->nNonce = nNonce;
-                PUBLISH_MESSAGE(pInvMsg);
+                spInvMsg->nNonce = nNonce;
+                PUBLISH_MESSAGE(spInvMsg);
             }
         }
     }
@@ -275,16 +275,16 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         }
     }
 
-    CPeerSubscribeMessageOutBound* pSubscribeMsg = new CPeerSubscribeMessageOutBound();
-    pSubscribeMsg->nNonce = 0ULL;
-    pSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
-    pSubscribeMsg->vecForks.push_back(hashFork);
+    auto spSubscribeMsg = CPeerSubscribeMessageOutBound::Create();
+    spSubscribeMsg->nNonce = 0ULL;
+    spSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
+    spSubscribeMsg->vecForks.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
-            pSubscribeMsg->nNonce = (*it).first;
-            PUBLISH_MESSAGE(pSubscribeMsg);
+            spSubscribeMsg->nNonce = (*it).first;
+            PUBLISH_MESSAGE(spSubscribeMsg);
             DispatchGetBlocksEvent(it->first, hashFork);
         }
     }
@@ -300,17 +300,17 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
         }
     }
 
-    CPeerUnsubscribeMessageOutBound* pUnsubscribeMsg = new CPeerUnsubscribeMessageOutBound();
-    pUnsubscribeMsg->nNonce = 0ULL;
-    pUnsubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
-    pUnsubscribeMsg->vecForks.push_back(hashFork);
+    auto spUnsubscribeMsg = CPeerUnsubscribeMessageOutBound::Create();
+    spUnsubscribeMsg->nNonce = 0ULL;
+    spUnsubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
+    spUnsubscribeMsg->vecForks.push_back(hashFork);
 
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
-            pUnsubscribeMsg->nNonce = (*it).first;
-            PUBLISH_MESSAGE(pUnsubscribeMsg);
+            spUnsubscribeMsg->nNonce = (*it).first;
+            PUBLISH_MESSAGE(spUnsubscribeMsg);
         }
     }
 }
@@ -322,22 +322,22 @@ void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
     {
         DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
 
-        CPeerSubscribeMessageOutBound* pSubscribeMsg = new CPeerSubscribeMessageOutBound();
-        pSubscribeMsg->nNonce = nNonce;
-        pSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
+        auto spSubscribeMsg = CPeerSubscribeMessageOutBound::Create();
+        spSubscribeMsg->nNonce = nNonce;
+        spSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
         {
             boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
             for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
             {
                 if ((*it).first != pCoreProtocol->GetGenesisBlockHash())
                 {
-                    pSubscribeMsg->vecForks.push_back(it->first);
+                    spSubscribeMsg->vecForks.push_back(it->first);
                 }
             }
         }
-        if (!pSubscribeMsg->vecForks.empty())
+        if (!spSubscribeMsg->vecForks.empty())
         {
-            PUBLISH_MESSAGE(pSubscribeMsg);
+            PUBLISH_MESSAGE(spSubscribeMsg);
         }
     }
     {
@@ -484,16 +484,16 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
     {
         if (inv.nType == network::CInv::MSG_TX)
         {
-            CPeerTxMessageOutBound* pTxMsg = new CPeerTxMessageOutBound();
-            pTxMsg->nNonce = nNonce;
-            pTxMsg->hashFork = hashFork;
-            if (pTxPool->Get(inv.nHash, pTxMsg->tx))
+            auto spTxMsg = CPeerTxMessageOutBound::Create();
+            spTxMsg->nNonce = nNonce;
+            spTxMsg->hashFork = hashFork;
+            if (pTxPool->Get(inv.nHash, spTxMsg->tx))
             {
-                PUBLISH_MESSAGE(pTxMsg);
+                PUBLISH_MESSAGE(spTxMsg);
             }
-            else if (pBlockChain->GetTransaction(inv.nHash, pTxMsg->tx))
+            else if (pBlockChain->GetTransaction(inv.nHash, spTxMsg->tx))
             {
-                PUBLISH_MESSAGE(pTxMsg);
+                PUBLISH_MESSAGE(spTxMsg);
             }
             else
             {
@@ -502,12 +502,12 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
         }
         else if (inv.nType == network::CInv::MSG_BLOCK)
         {
-            CPeerBlockMessageOutBound* pBlockMsg = new CPeerBlockMessageOutBound();
-            pBlockMsg->nNonce = nNonce;
-            pBlockMsg->hashFork = hashFork;
-            if (pBlockChain->GetBlock(inv.nHash, pBlockMsg->block))
+            auto spBlockMsg = CPeerBlockMessageOutBound::Create();
+            spBlockMsg->nNonce = nNonce;
+            spBlockMsg->hashFork = hashFork;
+            if (pBlockChain->GetBlock(inv.nHash, spBlockMsg->block))
             {
-                PUBLISH_MESSAGE(pBlockMsg);
+                PUBLISH_MESSAGE(spBlockMsg);
             }
             else
             {
@@ -532,14 +532,14 @@ void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksM
         }
     }
 
-    CPeerInvMessageOutBound* pInvMsg = new CPeerInvMessageOutBound();
-    pInvMsg->nNonce = nNonce;
-    pInvMsg->hashFork = hashFork;
+    auto spInvMsg = CPeerInvMessageOutBound::Create();
+    spInvMsg->nNonce = nNonce;
+    spInvMsg->hashFork = hashFork;
     for (const uint256& hash : vBlockHash)
     {
-        pInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
+        spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
     }
-    PUBLISH_MESSAGE(pInvMsg);
+    PUBLISH_MESSAGE(spInvMsg);
 }
 
 void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
@@ -666,21 +666,21 @@ void CNetChannel::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::C
 
 void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
 {
-    CPeerGetBlocksMessageOutBound* pGetBlocksMsg = new CPeerGetBlocksMessageOutBound();
-    pGetBlocksMsg->nNonce = nNonce;
-    pGetBlocksMsg->hashFork = hashFork;
-    if (pBlockChain->GetBlockLocator(hashFork, pGetBlocksMsg->blockLocator))
+    auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
+    spGetBlocksMsg->nNonce = nNonce;
+    spGetBlocksMsg->hashFork = hashFork;
+    if (pBlockChain->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
     {
-        PUBLISH_MESSAGE(pGetBlocksMsg);
+        PUBLISH_MESSAGE(spGetBlocksMsg);
     }
 }
 
 void CNetChannel::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonus)
 {
-    CPeerNetRewardMessage* pNetRewardMsg = new CPeerNetRewardMessage();
-    pNetRewardMsg->nNonce = nNonce;
-    pNetRewardMsg->bonus = bonus;
-    PUBLISH_MESSAGE(pNetRewardMsg);
+    auto spNetRewardMsg = CPeerNetRewardMessage::Create();
+    spNetRewardMsg->nNonce = nNonce;
+    spNetRewardMsg->bonus = bonus;
+    PUBLISH_MESSAGE(spNetRewardMsg);
 }
 
 void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason, const std::string& strCaller)
@@ -690,28 +690,28 @@ void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseR
         Log("DispatchMisbehaveEvent : %s\n", strCaller.c_str());
     }
 
-    xengine::CPeerNetCloseMessage* pNetCloseMsg = new xengine::CPeerNetCloseMessage();
-    pNetCloseMsg->nNonce = nNonce;
-    pNetCloseMsg->closeReason = reason;
-    PUBLISH_MESSAGE(pNetCloseMsg);
+    auto spNetCloseMsg = xengine::CPeerNetCloseMessage::Create();
+    spNetCloseMsg->nNonce = nNonce;
+    spNetCloseMsg->closeReason = reason;
+    PUBLISH_MESSAGE(spNetCloseMsg);
 }
 
 void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched)
 {
-    CPeerGetDataMessageOutBound* pGetData = new CPeerGetDataMessageOutBound();
-    pGetData->nNonce = nNonce;
-    pGetData->hashFork = hashFork;
+    auto spGetData = CPeerGetDataMessageOutBound::Create();
+    spGetData->nNonce = nNonce;
+    spGetData->hashFork = hashFork;
     bool fMissingPrev = false;
     bool fEmpty = true;
-    if (sched.ScheduleBlockInv(nNonce, pGetData->vecInv, MAX_PEER_SCHED_COUNT, fMissingPrev, fEmpty))
+    if (sched.ScheduleBlockInv(nNonce, spGetData->vecInv, MAX_PEER_SCHED_COUNT, fMissingPrev, fEmpty))
     {
         if (fMissingPrev)
         {
             DispatchGetBlocksEvent(nNonce, hashFork);
         }
-        else if (pGetData->vecInv.empty())
+        else if (spGetData->vecInv.empty())
         {
-            if (!sched.ScheduleTxInv(nNonce, pGetData->vecInv, MAX_PEER_SCHED_COUNT))
+            if (!sched.ScheduleTxInv(nNonce, spGetData->vecInv, MAX_PEER_SCHED_COUNT))
             {
                 DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv1");
             }
@@ -722,9 +722,9 @@ void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSched
     {
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv2");
     }
-    if (!pGetData->vecInv.empty())
+    if (!spGetData->vecInv.empty())
     {
-        PUBLISH_MESSAGE(pGetData);
+        PUBLISH_MESSAGE(spGetData);
     }
 }
 
@@ -916,7 +916,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
             CNetChannelPeer& peer = it->second;
             if (peer.IsSubscribed(hashFork))
             {
-                std::shared_ptr<CPeerInvMessageOutBound> spInvMsg(new CPeerInvMessageOutBound());
+                auto spInvMsg = CPeerInvMessageOutBound::Create();
                 spInvMsg->nNonce = it->first;
                 spInvMsg->hashFork = hashFork;
 

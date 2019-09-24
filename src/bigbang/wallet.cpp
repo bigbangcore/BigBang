@@ -183,7 +183,8 @@ void CWallet::HandleDeinitialize()
 
 bool CWallet::HandleInvoke()
 {
-    if (!dbWallet.Initialize(Config()->pathData / "wallet"))
+
+    if (!dbWallet.Initialize(Config() ? (Config()->pathData / "wallet") : "./"))
     {
         Error("Failed to initialize wallet database\n");
         return false;
@@ -195,7 +196,7 @@ bool CWallet::HandleInvoke()
         return false;
     }
 
-    if (!InspectWalletTx(StorageConfig()->nCheckDepth))
+    if (!InspectWalletTx(StorageConfig() ? StorageConfig()->nCheckDepth : 1))
     {
         Log("Failed to inspect wallet transactions\n");
         return false;
