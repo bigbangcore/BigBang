@@ -39,7 +39,6 @@ CBbPeerNet::CBbPeerNet()
     nService = 0;
     fEnclosed = false;
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
 }
 
 CBbPeerNet::~CBbPeerNet()
@@ -51,12 +50,6 @@ bool CBbPeerNet::HandleInitialize()
     if (!GetObject("netchannel", pNetChannel))
     {
         Error("Failed to request peer net datachannel\n");
-        return false;
-    }
-
-    if (!GetObject("delegatedchannel", pDelegatedChannel))
-    {
-        Error("Failed to request delegated datachannel\n");
         return false;
     }
 
@@ -75,7 +68,6 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
 }
 
 void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)
@@ -210,11 +202,11 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     if (pBbPeer->IsHandshaked())
     {
-        CPeerDeactiveMessage* pDeactiveMsg = new CPeerDeactiveMessage();
-        pDeactiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-        pDeactiveMsg->nNonce = pBbPeer->GetNonce();
+        auto spDeactiveMsg = CPeerDeactiveMessage::Create();
+        spDeactiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+        spDeactiveMsg->nNonce = pBbPeer->GetNonce();
 
-        PUBLISH_MESSAGE(pDeactiveMsg);
+        PUBLISH_MESSAGE(spDeactiveMsg);
     }
     CPeerNet::DestroyPeer(pPeer);
 }
@@ -348,10 +340,10 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 
     UpdateNetTime(pBbPeer->GetRemote().address(), pBbPeer->nTimeDelta);
 
-    CPeerActiveMessage* pActiveMsg = new CPeerActiveMessage();
-    pActiveMsg->nNonce = pBbPeer->GetNonce();
-    pActiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-    PUBLISH_MESSAGE(pActiveMsg);
+    auto spActiveMsg = CPeerActiveMessage::Create();
+    spActiveMsg->nNonce = pBbPeer->GetNonce();
+    spActiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+    PUBLISH_MESSAGE(spActiveMsg);
 
     if (!fEnclosed)
     {
@@ -543,50 +535,43 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_GETDELEGATED:
         {
-            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
+            auto spGetDelegatedMsg = CPeerGetDelegatedMessageInBound::Create();
+            spGetDelegatedMsg->nNonce = pBbPeer->GetNonce();
+            spGetDelegatedMsg->hashAnchor = hashAnchor;
+            ssPayload >> spGetDelegatedMsg->delegatedGetData;
+            PUBLISH_MESSAGE(spGetDelegatedMsg);
         }
         break;
         case PROTO_CMD_DISTRIBUTE:
         {
-            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
+            auto spDistributeMsg = CPeerDistributeMessageInBound::Create();
+            spDistributeMsg->nNonce = pBbPeer->GetNonce();
+            spDistributeMsg->hashAnchor = hashAnchor;
+            ssPayload >> spDistributeMsg->delegatedData;
 
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_DISTRIBUTE, hash);
-                CancelTimer(pBbPeer->Responded(inv));
+            CBufStream ss;
+            ss << hashAnchor << (spDistributeMsg->delegatedData.destDelegate);
+            uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+            CInv inv(CInv::MSG_DISTRIBUTE, hash);
+            CancelTimer(pBbPeer->Responded(inv));
 
-                pDelegatedChannel->PostEvent(pEvent);
-
-                return true;
-            }
+            PUBLISH_MESSAGE(spDistributeMsg);
         }
         break;
         case PROTO_CMD_PUBLISH:
         {
-            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
+            auto spPublishMsh = CPeerPublishMessageInBound::Create();
+            spPublishMsh->nNonce = pBbPeer->GetNonce();
+            spPublishMsh->hashAnchor = hashAnchor;
+            ssPayload >> spPublishMsh->delegatedData;
 
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_PUBLISH, hash);
-                CancelTimer(pBbPeer->Responded(inv));
+            CBufStream ss;
+            ss << hashAnchor << (spPublishMsh->delegatedData.destDelegate);
+            uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+            CInv inv(CInv::MSG_PUBLISH, hash);
+            CancelTimer(pBbPeer->Responded(inv));
 
-                pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
+            PUBLISH_MESSAGE(spPublishMsh);
         }
         break;
         default:

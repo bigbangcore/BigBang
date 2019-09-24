@@ -452,7 +452,7 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
 
 void CDelegatedChannel::HandleActive(const CPeerActiveMessage& activeMsg)
 {
-    uint64 activeMsg = eventActive.nNonce;
+    uint64 nNonce = activeMsg.nNonce;
     if ((activeMsg.address.nService & network::NODE_DELEGATED))
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);

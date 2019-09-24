@@ -114,7 +114,7 @@ struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
 
 //////////////////  Delegate NetChannel /////////////////////
 
-struct CPeerDelegateBasicMessage : public xengine::CMesssage
+struct CPeerDelegateBasicMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerDelegateBasicMessage);
     uint64 nNonce;

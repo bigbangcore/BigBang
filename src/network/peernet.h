@@ -98,7 +98,6 @@ protected:
 
 protected:
     INetChannelActor* pNetChannel;
-    IDelegatedChannelActor* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;
