@@ -303,17 +303,6 @@ void CDelegatedChannel::HandleHalt()
 }
 
 /*
-bool CDelegatedChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
-{
-    uint64 nNonce = eventDeactive.nNonce;
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
-        schedPeer.DeactivatePeer(nNonce);
-        DispatchGetDelegated();
-    }
-    return true;
-}
-
 bool CDelegatedChannel::HandleEvent(network::CEventPeerBulletin& eventBulletin)
 {
     uint64 nNonce = eventBulletin.nNonce;

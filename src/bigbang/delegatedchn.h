@@ -189,7 +189,6 @@ protected:
     void HandleHalt() override;
 
     /*
-    bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
     bool HandleEvent(network::CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(network::CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(network::CEventPeerDistribute& eventDistribute) override;
