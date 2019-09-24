@@ -40,6 +40,17 @@ public:
                                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
 };
 
+class IDelegatedChannelActor : public xengine::CIOActor
+{
+public:
+    IDelegatedChannelActor()
+      : xengine::CIOActor("delegatedchannel") {}
+    virtual void PrimaryUpdate(int nStartHeight,
+                               const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
+                               const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
+                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
+};
+
 class CBbPeerNet : public xengine::CPeerNet, virtual public CBbPeerEventListener
 {
 public:
@@ -87,7 +98,7 @@ protected:
 
 protected:
     INetChannelActor* pNetChannel;
-    IDelegatedChannel* pDelegatedChannel;
+    IDelegatedChannelActor* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

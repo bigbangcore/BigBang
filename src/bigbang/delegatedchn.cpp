@@ -260,6 +260,10 @@ bool CDelegatedChannel::HandleInitialize()
         Error("Failed to request dispatcher\n");
         return false;
     }
+
+    RegisterHandler<CPeerActiveMessage>(boost::bind(&CDelegatedChannel::HandleActive, this, _1));
+    RegisterHandler<CPeerDeactiveMessage>(boost::bind(&CDelegatedChannel::HandleDeactive, this, _1));
+
     return true;
 }
 
@@ -278,7 +282,7 @@ bool CDelegatedChannel::HandleInvoke()
         nTimerBulletin = 0;
         fBulletin = false;
     }
-    return network::IDelegatedChannel::HandleInvoke();
+    return network::IDelegatedChannelActor::HandleInvoke();
 }
 
 void CDelegatedChannel::HandleHalt()
@@ -293,22 +297,12 @@ void CDelegatedChannel::HandleHalt()
         fBulletin = false;
     }
 
-    network::IDelegatedChannel::HandleHalt();
+    network::IDelegatedChannelActor::HandleHalt();
     schedPeer.Clear();
     dataChain.Clear();
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerActive& eventActive)
-{
-    uint64 nNonce = eventActive.nNonce;
-    if ((eventActive.data.nService & network::NODE_DELEGATED))
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
-        schedPeer.ActivatePeer(std::shared_ptr<CDataPeer<CDelegatedDataIdent>>(new CDelegatedChannelPeer(nNonce)));
-    }
-    return true;
-}
-
+/*
 bool CDelegatedChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
 {
     uint64 nNonce = eventDeactive.nNonce;
@@ -454,6 +448,26 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
     }
     return true;
+}*/
+
+void CDelegatedChannel::HandleActive(const CPeerActiveMessage& activeMsg)
+{
+    uint64 activeMsg = eventActive.nNonce;
+    if ((activeMsg.address.nService & network::NODE_DELEGATED))
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
+        schedPeer.ActivatePeer(std::shared_ptr<CDataPeer<CDelegatedDataIdent>>(new CDelegatedChannelPeer(nNonce)));
+    }
+}
+
+void CDelegatedChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
+{
+    uint64 nNonce = deactiveMsg.nNonce;
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
+        schedPeer.DeactivatePeer(nNonce);
+        DispatchGetDelegated();
+    }
 }
 
 void CDelegatedChannel::PrimaryUpdate(int nStartHeight,

@@ -43,7 +43,7 @@ protected:
     IService* pService;
     IBlockMaker* pBlockMaker;
     network::INetChannelActor* pNetChannel;
-    network::IDelegatedChannel* pDelegatedChannel;
+    network::IDelegatedChannelActor* pDelegatedChannel;
     IDataStat* pDataStat;
 };
 

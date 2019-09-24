@@ -210,24 +210,11 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     if (pBbPeer->IsHandshaked())
     {
-        CEventPeerDeactive* pEventDeactive = new CEventPeerDeactive(pBbPeer->GetNonce());
-        if (pEventDeactive != nullptr)
-        {
-            pEventDeactive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+        CPeerDeactiveMessage* pDeactiveMsg = new CPeerDeactiveMessage();
+        pDeactiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+        pDeactiveMsg->nNonce = pBbPeer->GetNonce();
 
-            CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
-
-            auto spDeactiveMsg = CPeerDeactiveMessage::Create();
-            spDeactiveMsg->address = pEventDeactive->data;
-            spDeactiveMsg->nNonce = pEventDeactive->nNonce;
-
-            PUBLISH_MESSAGE(spDeactiveMsg);
-
-            if (pEventDeactiveDelegated != nullptr)
-            {
-                pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
-            }
-        }
+        PUBLISH_MESSAGE(pDeactiveMsg);
     }
     CPeerNet::DestroyPeer(pPeer);
 }
@@ -361,15 +348,10 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 
     UpdateNetTime(pBbPeer->GetRemote().address(), pBbPeer->nTimeDelta);
 
-    CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(pBbPeer->GetNonce());
-    pEventActiveDelegated->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-
-    auto spActiveMsg = CPeerActiveMessage::Create();
-    spActiveMsg->nNonce = pEventActiveDelegated->nNonce;
-    spActiveMsg->address = pEventActiveDelegated->data;
-    PUBLISH_MESSAGE(spActiveMsg);
-
-    pDelegatedChannel->PostEvent(pEventActiveDelegated);
+    CPeerActiveMessage* pActiveMsg = new CPeerActiveMessage();
+    pActiveMsg->nNonce = pBbPeer->GetNonce();
+    pActiveMsg->address = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+    PUBLISH_MESSAGE(pActiveMsg);
 
     if (!fEnclosed)
     {

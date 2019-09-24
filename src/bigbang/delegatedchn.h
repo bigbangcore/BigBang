@@ -6,6 +6,7 @@
 #define BIGBANG_DELEGATEDCHN_H
 
 #include "base.h"
+#include "message.h"
 #include "peernet.h"
 
 namespace bigbang
@@ -171,7 +172,7 @@ public:
     int nLastBlockHeight;
 };
 
-class CDelegatedChannel : public network::IDelegatedChannel
+class CDelegatedChannel : public network::IDelegatedChannelActor
 {
 public:
     CDelegatedChannel();
@@ -187,12 +188,15 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    bool HandleEvent(network::CEventPeerActive& eventActive) override;
+    /*
     bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
     bool HandleEvent(network::CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(network::CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(network::CEventPeerDistribute& eventDistribute) override;
-    bool HandleEvent(network::CEventPeerPublish& eventPublish) override;
+    bool HandleEvent(network::CEventPeerPublish& eventPublish) override;*/
+
+    void HandleActive(const CPeerActiveMessage& activeMsg);
+    void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
 
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
