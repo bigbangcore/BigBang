@@ -534,13 +534,11 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         {
         case PROTO_CMD_BULLETIN:
         {
-            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
+            auto spBulletinMsg = CPeerBulletinMessageInBound::Create();
+            spBulletinMsg->nNonce = pBbPeer->GetNonce();
+            spBulletinMsg->hashAnchor = hashAnchor;
+            ssPayload >> spBulletinMsg->deletegatedBulletin;
+            PUBLISH_MESSAGE(spBulletinMsg);
         }
         break;
         case PROTO_CMD_GETDELEGATED:

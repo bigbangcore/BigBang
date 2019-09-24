@@ -10,6 +10,7 @@
 
 #include "block.h"
 #include "message/message.h"
+#include "peerevent.h"
 #include "proto.h"
 #include "struct.h"
 
@@ -109,6 +110,59 @@ struct CPeerBlockMessageInBound : public CPeerBasicMessage
 struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
 {
     GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageOutBound);
+};
+
+//////////////////  Delegate NetChannel /////////////////////
+
+struct CPeerDelegateBasicMessage : public xengine::CMesssage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerDelegateBasicMessage);
+    uint64 nNonce;
+    uint256 hashAnchor;
+};
+
+struct CPeerBulletinMessageInBound : public CPeerDelegateBasicMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerBulletinMessageInBound);
+    bigbang::network::CEventPeerDelegatedBulletin deletegatedBulletin;
+};
+
+struct CPeerBulletinMessageOutBound : public CPeerBulletinMessageInBound
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerBulletinMessageOutBound);
+};
+
+struct CPeerGetDelegatedMessageInBound : public CPeerDelegateBasicMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerGetDelegatedMessageInBound);
+    bigbang::network::CEventPeerDelegatedGetData delegatedGetData;
+};
+
+struct CPeerGetDelegatedMessageOutBound : public CPeerGetDelegatedMessageInBound
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerGetDelegatedMessageOutBound);
+};
+
+struct CPeerDistributeMessageInBound : public CPeerDelegateBasicMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerDistributeMessageInBound);
+    bigbang::network::CEventPeerDelegatedData delegatedData;
+};
+
+struct CPeerDistributeMessageOutBound : public CPeerDistributeMessageInBound
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerDistributeMessageOutBound);
+};
+
+struct CPeerPublishMessageInBound : public CPeerDelegateBasicMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageInBound);
+    bigbang::network::CEventPeerDelegatedData delegatedData;
+};
+
+struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageOutBound);
 };
 
 /// Add an unconfirmed transaction.
