@@ -61,6 +61,11 @@ bool CBbPeerNet::HandleInitialize()
     RegisterHandler<CPeerTxMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerTx, this, _1));
     RegisterHandler<CPeerBlockMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerBlock, this, _1));
 
+    RegisterHandler<CPeerBulletinMessageOutBound>(boost::bind(&CBbPeerNet::HandleBulletin, this, _1));
+    RegisterHandler<CPeerGetDelegatedMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetDelegate, this, _1));
+    RegisterHandler<CPeerDistributeMessageOutBound>(boost::bind(&CBbPeerNet::HandleDistribute, this, _1));
+    RegisterHandler<CPeerPublishMessageOutBound>(boost::bind(&CBbPeerNet::HandlePublish, this, _1));
+
     return true;
 }
 
@@ -145,20 +150,26 @@ void CBbPeerNet::HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg)
     SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)
+void CBbPeerNet::HandleBulletin(const CPeerBulletinMessageOutBound& bulletinMsg)
 {
+    // TODO: All Message Type need to serilize to CBufStream
+    CEventPeerBulletin eventBulletin(bulletinMsg.nNonce, bulletinMsg.hashAnchor);
+    eventBulletin.data = bulletinMsg.deletegatedBulletin;
     CBufStream ssPayload;
     ssPayload << eventBulletin;
-    return SendDelegatedMessage(eventBulletin.nNonce, PROTO_CMD_BULLETIN, ssPayload);
+    SendDelegatedMessage(eventBulletin.nNonce, PROTO_CMD_BULLETIN, ssPayload);
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerGetDelegated& eventGetDelegated)
+void CBbPeerNet::HandleGetDelegate(const CPeerGetDelegatedMessageOutBound& getDelegatedMsg)
 {
+    // TODO: All Message Type need to serilize to CBufStream
+    CEventPeerGetDelegated eventGetDelegated(getDelegatedMsg.nNonce, getDelegatedMsg.hashAnchor);
+    eventGetDelegated.data = getDelegatedMsg.delegatedGetData;
     CBufStream ssPayload;
     ssPayload << eventGetDelegated;
     if (!SendDelegatedMessage(eventGetDelegated.nNonce, PROTO_CMD_GETDELEGATED, ssPayload))
     {
-        return false;
+        return;
     }
 
     CBufStream ss;
@@ -169,21 +180,26 @@ bool CBbPeerNet::HandleEvent(CEventPeerGetDelegated& eventGetDelegated)
     vInv.push_back(CInv(eventGetDelegated.data.nInvType, hash));
 
     SetInvTimer(eventGetDelegated.nNonce, vInv);
-    return true;
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerDistribute& eventDistribute)
+void CBbPeerNet::HandleDistribute(const CPeerDistributeMessageOutBound& distributeMsg)
 {
+    // TODO: All Message Type need to serilize to CBufStream
+    CEventPeerDistribute eventDistribute(distributeMsg.nNonce, distributeMsg.hashAnchor);
+    eventDistribute.data = distributeMsg.delegatedData;
     CBufStream ssPayload;
     ssPayload << eventDistribute;
-    return SendDelegatedMessage(eventDistribute.nNonce, PROTO_CMD_DISTRIBUTE, ssPayload);
+    SendDelegatedMessage(eventDistribute.nNonce, PROTO_CMD_DISTRIBUTE, ssPayload);
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerPublish& eventPublish)
+void CBbPeerNet::HandlePublish(const CPeerPublishMessageOutBound& publishMsg)
 {
+    // TODO: All Message Type need to serilize to CBufStream
+    CEventPeerPublish eventPublish(publishMsg.nNonce, publishMsg.hashAnchor);
+    eventPublish.data = publishMsg.delegatedData;
     CBufStream ssPayload;
     ssPayload << eventPublish;
-    return SendDelegatedMessage(eventPublish.nNonce, PROTO_CMD_PUBLISH, ssPayload);
+    SendDelegatedMessage(eventPublish.nNonce, PROTO_CMD_PUBLISH, ssPayload);
 }
 
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)

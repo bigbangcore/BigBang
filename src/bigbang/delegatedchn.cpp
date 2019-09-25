@@ -362,19 +362,23 @@ void CDelegatedChannel::HandleGetDelegate(const CPeerGetDelegatedMessageInBound&
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
 
-        network::CEventPeerDistribute eventDistribute(nNonce, hashAnchor);
-        eventDistribute.data.destDelegate = dest;
-        dataChain.GetDistributeData(hashAnchor, dest, eventDistribute.data.vchData);
-        pPeerNet->DispatchEvent(&eventDistribute);
+        auto spDistributeMsg = CPeerDistributeMessageOutBound::Create();
+        spDistributeMsg->nNonce = nNonce;
+        spDistributeMsg->hashAnchor = hashAnchor;
+        spDistributeMsg->delegatedData.destDelegate = dest;
+        dataChain.GetDistributeData(hashAnchor, dest, spDistributeMsg->delegatedData.vchData);
+        PUBLISH_MESSAGE(spDistributeMsg);
     }
     else if (getDelegatedMsg.delegatedGetData.nInvType == network::CInv::MSG_PUBLISH)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
 
-        network::CEventPeerPublish eventPublish(nNonce, hashAnchor);
-        eventPublish.data.destDelegate = dest;
-        dataChain.GetPublishData(hashAnchor, dest, eventPublish.data.vchData);
-        pPeerNet->DispatchEvent(&eventPublish);
+        auto spPublishMsg = CPeerPublishMessageOutBound::Create();
+        spPublishMsg->nNonce = nNonce;
+        spPublishMsg->hashAnchor = hashAnchor;
+        spPublishMsg->delegatedData.destDelegate = dest;
+        dataChain.GetPublishData(hashAnchor, dest, spPublishMsg->delegatedData.vchData);
+        PUBLISH_MESSAGE(spPublishMsg);
     }
 }
 
@@ -504,10 +508,13 @@ bool CDelegatedChannel::DispatchGetDelegated()
     {
         uint64 nNonce = vAssigned[i].first;
         const CDelegatedDataIdent& ident = vAssigned[i].second;
-        network::CEventPeerGetDelegated eventGetDelegated(nNonce, ident.hashAnchor);
-        eventGetDelegated.data.nInvType = ident.nInvType;
-        eventGetDelegated.data.destDelegate = ident.destDelegated;
-        pPeerNet->DispatchEvent(&eventGetDelegated);
+
+        auto spGetDelegatedMsg = CPeerGetDelegatedMessageOutBound::Create();
+        spGetDelegatedMsg->nNonce = nNonce;
+        spGetDelegatedMsg->hashAnchor = ident.hashAnchor;
+        spGetDelegatedMsg->delegatedGetData.nInvType = ident.nInvType;
+        spGetDelegatedMsg->delegatedGetData.destDelegate = ident.destDelegated;
+        PUBLISH_MESSAGE(spGetDelegatedMsg);
     }
 
     return (!vAssigned.empty());
@@ -573,26 +580,29 @@ void CDelegatedChannel::PushBulletin()
     {
         const uint256& hashAnchor = listHash.front();
 
-        network::CEventPeerBulletin eventBulletin(0ULL, hashAnchor);
-        eventBulletin.data.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
-        eventBulletin.data.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+        auto spBulletinMsg = CPeerBulletinMessageOutBound::Create();
+        spBulletinMsg->nNonce = 0ULL;
+        spBulletinMsg->hashAnchor = hashAnchor;
+        spBulletinMsg->deletegatedBulletin.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
+        spBulletinMsg->deletegatedBulletin.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+
         for (list<uint256>::iterator it = ++listHash.begin(); it != listHash.end(); ++it)
         {
             const uint256& hash = (*it);
             uint64 bitmap = dataChain.GetDistributeBitmap(hash);
             if (bitmap != 0)
             {
-                eventBulletin.data.AddBitmap(hash, bitmap);
+                spBulletinMsg->deletegatedBulletin.AddBitmap(hash, bitmap);
             }
         }
         for (const uint64& nNonce : vPeer)
         {
             std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, eventBulletin.data))
+            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, spBulletinMsg->deletegatedBulletin))
             {
-                spPeer->Update(hashAnchor, eventBulletin.data);
-                eventBulletin.nNonce = nNonce;
-                pPeerNet->DispatchEvent(&eventBulletin);
+                spPeer->Update(hashAnchor, spBulletinMsg->deletegatedBulletin);
+                spBulletinMsg->nNonce = nNonce;
+                PUBLISH_MESSAGE(spBulletinMsg);
             }
         }
     }

@@ -74,10 +74,11 @@ protected:
     void HandlePeerTx(const CPeerTxMessageOutBound& txMsg);
     void HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg);
 
-    bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
-    bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
-    bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
-    bool HandleEvent(CEventPeerPublish& eventPublish) override;
+    void HandleBulletin(const CPeerBulletinMessageOutBound& bulletinMsg);
+    void HandleGetDelegate(const CPeerGetDelegatedMessageOutBound& getDelegatedMsg);
+    void HandleDistribute(const CPeerDistributeMessageOutBound& distributeMsg);
+    void HandlePublish(const CPeerPublishMessageOutBound& publishMsg);
+
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;
     xengine::CPeerInfo* GetPeerInfo(xengine::CPeer* pPeer, xengine::CPeerInfo* pInfo) override;
