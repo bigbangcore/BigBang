@@ -208,7 +208,6 @@ protected:
     }
 
 protected:
-    network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IDispatcher* pDispatcher;
