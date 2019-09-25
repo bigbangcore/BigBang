@@ -2081,28 +2081,20 @@
         },
         "example": [
             {
-                "request": "bigbang-cli sendfrom 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q 1",
-                "response": "01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038"
-            },
-            {
-                "request": "curl -d '{\"id\":18,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000}}' http://127.0.0.1:9902",
-                "response": "{\"id\":18,\"jsonrpc\":\"2.0\",\"result\":\"01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038\"}"
-            },
-            {
-                "request": "bigbang sendfrom 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm 100 0.1 -d=1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q -l=15",
-                "response": "01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038"
-            },
-            {
-                "request": "curl -d '{\"id\":18,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":1,\"data\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"lockutxo\":15}}' http://127.0.0.1:9902",
-                "response": "{\"id\":18,\"jsonrpc\":\"2.0\",\"result\":\"01a9f3bb967f24396293903c856e99896a514756a220266afa347a8b8c7f0038\"}"
-            },
-            {
                 "request": "bigbang-cli sendfrom 20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26 1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q 1 0.1 -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0",
                 "response": "8f92969642024234481e104481f36145736b465ead2d52a6657cf38bd52bdf59"
             },
             {
                 "request": "curl -d '{\"id\":53,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\"}}' http://127.0.0.1:9902",
                 "response": "{\"id\":53,\"jsonrpc\":\"2.0\",\"result\":\"8f92969642024234481e104481f36145736b465ead2d52a6657cf38bd52bdf59\"}"
+            },
+            {
+                "request": "bigbang-cli sendfrom 20r07rwj0032jssv0d3xaes1kq6z1cvjmz1jwhme0m1jf23vx48v683s3 1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h 12.345 1 -sm='1b8c6b0807472627cec2f77b2a33428539b64493f7f1b9f7be4dfbdee72f9aeb3b5763fa39ce5df2425d8d530698de9c1cea993bccfce6596901b6b8cb054103' -ss='a51a925a50a7101ca25c8165050b61421f9e54aad5b0cfb4a4947da82f5fb62fec8e96fb80bd697db33f391bf1f875179d446ac08829f85cf8fe6483ec9acf0c' -f='92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f'",
+                "response": "8f92969642024234481e104481f36145736b465ead2d52a6657cf38bd52bdf59"
+            },
+            {
+                "request": "curl -d '{\"id\":53,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20r07rwj0032jssv0d3xaes1kq6z1cvjmz1jwhme0m1jf23vx48v683s3\",\"to\":\"1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h\",\"amount\":12.345000,\"txfee\":1.00000000,\"sm\":\"1b8c6b0807472627cec2f77b2a33428539b64493f7f1b9f7be4dfbdee72f9aeb3b5763fa39ce5df2425d8d530698de9c1cea993bccfce6596901b6b8cb054103\", \"ss\":\"a51a925a50a7101ca25c8165050b61421f9e54aad5b0cfb4a4947da82f5fb62fec8e96fb80bd697db33f391bf1f875179d446ac08829f85cf8fe6483ec9acf0c\",\"fork\":\"92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":53,\"jsonrpc\":\"2.0\",\"result\":\"5ce79ba78b44f8710710c8e35b8d3b725c2f994d4038b74fda84f0b061c01a76\"}"
             }
         ],
         "error": [
