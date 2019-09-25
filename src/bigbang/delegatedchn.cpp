@@ -224,7 +224,6 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 
 CDelegatedChannel::CDelegatedChannel()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
@@ -237,11 +236,6 @@ CDelegatedChannel::~CDelegatedChannel()
 
 bool CDelegatedChannel::HandleInitialize()
 {
-    if (!GetObject("peernet", pPeerNet))
-    {
-        Error("Failed to request peer net\n");
-        return false;
-    }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
@@ -273,7 +267,6 @@ bool CDelegatedChannel::HandleInitialize()
 
 void CDelegatedChannel::HandleDeinitialize()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
