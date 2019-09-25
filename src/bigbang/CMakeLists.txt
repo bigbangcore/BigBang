@@ -78,15 +78,6 @@ set(sources
 
 add_executable(bigbang ${sources})
 
-string(REPLACE "bigbang.cpp;" "" libsrc "${sources}")
-
-add_library(libbigbang ${libsrc})
-
-include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
-include_directories(${Protobuf_INCLUDE_DIRS})
-
 target_link_libraries(bigbang
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
@@ -107,6 +98,14 @@ target_link_libraries(bigbang
     jsonrpc
     common
 )
+
+include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
+include_directories(${Protobuf_INCLUDE_DIRS})
+
+string(REPLACE "bigbang.cpp;" "" libsrc "${sources}")
+add_library(libbigbang ${libsrc})
 
 target_link_libraries(libbigbang
     ${Boost_SYSTEM_LIBRARY}
