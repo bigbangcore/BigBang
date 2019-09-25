@@ -535,11 +535,11 @@ void CDelegatedChannel::AddPeerKnownPublish(uint64 nNonce, const uint256& hashAn
 
 void CDelegatedChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason)
 {
-    /*
-    CEventPeerNetClose eventClose(nNonce);
-    eventClose.data = reason;
-    pPeerNet->DispatchEvent(&eventClose);
-*/
+    // TODO
+    /*auto spNetCloseMsg = CPeerNetCloseMessage::Create();
+    spNetCloseMsg->nNonce = nNonce;
+    spNetCloseMsg->closeReason = reason;
+    PUBLISH_MESSAGE(spNetCloseMsg);*/
 }
 
 void CDelegatedChannel::PushBulletinTimerFunc(uint32 nTimerId)
