@@ -241,9 +241,9 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannel()));
     auto pDelegatedChannel = new CDummyDelegatedChannel();
     BOOST_CHECK(docker.Attach(pDelegatedChannel));
-    BOOST_CHECK(docker.Attach(new CNetChannel()));
 
     BOOST_CHECK(docker.Run());
 
