@@ -29,17 +29,6 @@ public:
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
 };
 
-class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
-{
-public:
-    IDelegatedChannel()
-      : IIOModule("delegatedchannel") {}
-    virtual void PrimaryUpdate(int nStartHeight,
-                               const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
-};
-
 class IDelegatedChannelActor : public xengine::CIOActor
 {
 public:
@@ -51,7 +40,7 @@ public:
                                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
 };
 
-class CBbPeerNet : public xengine::CPeerNet, virtual public CBbPeerEventListener
+class CBbPeerNet : public xengine::CPeerNet
 {
 public:
     CBbPeerNet();
