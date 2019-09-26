@@ -175,6 +175,7 @@ bool CDocker::Run()
         fActived = true;
         condDocker.notify_all();
     }
+    DebugLog("debugLog", "Leave notify_all");
     return true;
 }
 
