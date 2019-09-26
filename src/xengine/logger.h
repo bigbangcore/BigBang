@@ -58,6 +58,8 @@ void inline ErrorLog(const char* pszName, const char* pszErr)
     XLog(pszName, pszErr, severity_level::ERROR);
 }
 
+void StdLog(const char* pszFormat, ...);
+
 bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon);
 
 } // namespace xengine

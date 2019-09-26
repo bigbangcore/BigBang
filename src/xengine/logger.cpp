@@ -13,6 +13,8 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/noncopyable.hpp>
+#include <cstdarg>
+#include <cstdio>
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -160,6 +162,19 @@ void XLog(const char* pszName, const char* pszErr, severity_level level)
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, level) << str;
     }
+}
+
+void StdLog(const char* pszFormat, ...)
+{
+    std::stringstream ss;
+    char arg_buffer[256] = { 0 };
+    va_list ap;
+    va_start(ap, pszFormat);
+    vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+    va_end(ap);
+    ss << arg_buffer;
+    std::string str = ss.str();
+    DebugLog("StdLog", str.c_str());
 }
 
 bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
