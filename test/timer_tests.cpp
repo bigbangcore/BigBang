@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(basic)
     cout << "Timer difference Message B of handler B: " << (CTimeoutMessageB::HandledTimeB - handledTimeB).total_milliseconds() << "ms" << endl;
     cout << "Timer difference Message D of handler B: " << (CTimeoutMessageD::HandledTimeB - handledTimeD).total_milliseconds() << "ms" << endl;
 
-    auto delta = boost::posix_time::milliseconds(100);
+    auto delta = boost::posix_time::seconds(1);
     BOOST_CHECK(CTimeoutMessageA::HandledTimeA >= (handledTimeA - delta) && CTimeoutMessageA::HandledTimeA <= (handledTimeA + delta));
     BOOST_CHECK(CTimeoutMessageA::HandledTimeB >= (handledTimeA - delta) && CTimeoutMessageA::HandledTimeB <= (handledTimeA + delta));
     BOOST_CHECK(CTimeoutMessageB::HandledTimeA >= (handledTimeB - delta) && CTimeoutMessageB::HandledTimeA <= (handledTimeB + delta));
