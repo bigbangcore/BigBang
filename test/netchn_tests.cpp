@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CConsensus()));
     auto pCoreProtocol = new CCoreProtocol();
     BOOST_CHECK(docker.Attach(pCoreProtocol));
-    BOOST_CHECK(docker.Attach(new CDummyPeerNet()));
+    BOOST_CHECK(docker.Attach(new CNetwork()));
     BOOST_CHECK(docker.Attach(new CForkManager()));
     BOOST_CHECK(docker.Attach(new CWallet()));
     BOOST_CHECK(docker.Attach(new CService()));
