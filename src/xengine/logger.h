@@ -6,6 +6,8 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/common.hpp>
+#include <cstdarg>
+#include <cstdio>
 #include <sstream>
 
 #include "util.h"
@@ -58,7 +60,57 @@ void inline ErrorLog(const char* pszName, const char* pszErr)
     XLog(pszName, pszErr, severity_level::ERROR);
 }
 
-void StdLog(const char* pszFormat, ...);
+void inline DebugLog(const char* pszFormat, ...)
+{
+    std::stringstream ss;
+    char arg_buffer[256] = { 0 };
+    va_list ap;
+    va_start(ap, pszFormat);
+    vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+    va_end(ap);
+    ss << arg_buffer;
+    std::string str = ss.str();
+    DebugLog("StdDebugLog", str.c_str());
+}
+
+void inline InfoLog(const char* pszFormat, ...)
+{
+    std::stringstream ss;
+    char arg_buffer[256] = { 0 };
+    va_list ap;
+    va_start(ap, pszFormat);
+    vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+    va_end(ap);
+    ss << arg_buffer;
+    std::string str = ss.str();
+    InfoLog("StdInfoLog", str.c_str());
+}
+
+void inline WarnLog(const char* pszFormat, ...)
+{
+    std::stringstream ss;
+    char arg_buffer[256] = { 0 };
+    va_list ap;
+    va_start(ap, pszFormat);
+    vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+    va_end(ap);
+    ss << arg_buffer;
+    std::string str = ss.str();
+    WarnLog("StdWarnLog", str.c_str());
+}
+
+void inline ErrorLog(const char* pszFormat, ...)
+{
+    std::stringstream ss;
+    char arg_buffer[256] = { 0 };
+    va_list ap;
+    va_start(ap, pszFormat);
+    vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+    va_end(ap);
+    ss << arg_buffer;
+    std::string str = ss.str();
+    ErrorLog("StdErrorLog", str.c_str());
+}
 
 bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon);
 
