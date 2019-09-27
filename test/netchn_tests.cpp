@@ -247,11 +247,11 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     BOOST_CHECK(docker.Run());
 
-    // const uint64 nTestNonce = 0xff;
+    const uint64 nTestNonce = 0xff;
 
     ///////////////////   Active Test  //////////////////
 
-    /*auto spActiveMsg = CPeerActiveMessage::Create();
+    auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = nTestNonce;
     spActiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
     PUBLISH_MESSAGE(spActiveMsg);
@@ -271,11 +271,11 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
+    // BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
 
     //////////////////   Deactive Test  /////////////////
 
-    auto spDeactiveMsg = CPeerDeactiveMessage::Create();
+    /*auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
     PUBLISH_MESSAGE(spDeactiveMsg);
