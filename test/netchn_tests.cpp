@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = nTestNonce;
     spActiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    PUBLISH_MESSAGE(spActiveMsg);
+    //PUBLISH_MESSAGE(spActiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     spBulletinMsg->hashAnchor = uint256("testHashAchor");
     spBulletinMsg->deletegatedBulletin.bmDistribute = 0x001;
     spBulletinMsg->deletegatedBulletin.bmPublish = 0x002;
-    PUBLISH_MESSAGE(spBulletinMsg);
+    //PUBLISH_MESSAGE(spBulletinMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    PUBLISH_MESSAGE(spDeactiveMsg);
+    //PUBLISH_MESSAGE(spDeactiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
