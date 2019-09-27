@@ -60,7 +60,7 @@ void inline ErrorLog(const char* pszName, const char* pszErr)
     XLog(pszName, pszErr, severity_level::ERROR);
 }
 
-void inline DebugLog(const char* pszFormat, ...)
+void inline DebugLog(const std::string& pszName, const char* pszFormat, ...)
 {
     std::stringstream ss;
     char arg_buffer[256] = { 0 };
@@ -70,10 +70,10 @@ void inline DebugLog(const char* pszFormat, ...)
     va_end(ap);
     ss << arg_buffer;
     std::string str = ss.str();
-    DebugLog("StdDebugLog", str.c_str());
+    DebugLog(pszName.c_str(), str.c_str());
 }
 
-void inline InfoLog(const char* pszFormat, ...)
+void inline InfoLog(const std::string& pszName, const char* pszFormat, ...)
 {
     std::stringstream ss;
     char arg_buffer[256] = { 0 };
@@ -83,10 +83,10 @@ void inline InfoLog(const char* pszFormat, ...)
     va_end(ap);
     ss << arg_buffer;
     std::string str = ss.str();
-    InfoLog("StdInfoLog", str.c_str());
+    InfoLog(pszName.c_str(), str.c_str());
 }
 
-void inline WarnLog(const char* pszFormat, ...)
+void inline WarnLog(const std::string& pszName, const char* pszFormat, ...)
 {
     std::stringstream ss;
     char arg_buffer[256] = { 0 };
@@ -96,10 +96,10 @@ void inline WarnLog(const char* pszFormat, ...)
     va_end(ap);
     ss << arg_buffer;
     std::string str = ss.str();
-    WarnLog("StdWarnLog", str.c_str());
+    WarnLog(pszName.c_str(), str.c_str());
 }
 
-void inline ErrorLog(const char* pszFormat, ...)
+void inline ErrorLog(const std::string& pszName, const char* pszFormat, ...)
 {
     std::stringstream ss;
     char arg_buffer[256] = { 0 };
@@ -109,7 +109,7 @@ void inline ErrorLog(const char* pszFormat, ...)
     va_end(ap);
     ss << arg_buffer;
     std::string str = ss.str();
-    ErrorLog("StdErrorLog", str.c_str());
+    ErrorLog(pszName.c_str(), str.c_str());
 }
 
 bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon);
