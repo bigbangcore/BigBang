@@ -190,31 +190,30 @@ class CDummyDelegatedChannel : public CDelegatedChannel
 public:
     bool TestActiveNonce(uint64 nNonce)
     {
-        const auto temp = schedPeer.mapPeer;
-        return temp.count(nNonce) != 0;
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        return schedPeer.mapPeer.count(nNonce) != 0;
     }
 
     bool TestDeactiveNonce(uint64 nNonce)
     {
-        const auto temp = schedPeer.mapPeer;
-        return temp.count(nNonce) == 0;
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        return schedPeer.mapPeer.count(nNonce) == 0;
     }
 
     bool TestBulletin(uint64 nNonce, uint256 hashAnchor)
     {
-        auto temp = schedPeer;
-        if (temp.mapPeer.count(nNonce) == 0)
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        if (schedPeer.mapPeer.count(nNonce) == 0)
         {
             return false;
         }
 
-        if (!temp.GetPeer(nNonce))
+        if (!schedPeer.GetPeer(nNonce))
         {
             return false;
         }
 
-        const auto tempChain = dataChain.mapChainData;
-        if (tempChain.count(hashAnchor) != 0)
+        if (dataChain.mapChainData.count(hashAnchor) != 0)
         {
             return false;
         }
@@ -247,7 +246,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     BOOST_CHECK(docker.Run());
 
-    /*const uint64 nTestNonce = 0xff;
+    const uint64 nTestNonce = 0xff;
 
     ///////////////////   Active Test  //////////////////
 
@@ -282,7 +281,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));*/
+    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
 }
