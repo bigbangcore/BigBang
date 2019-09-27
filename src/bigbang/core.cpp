@@ -625,7 +625,6 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
     {
         if (nSpecialIndex == 0 || nSpecialIndex == 1)
         {
-
             return BBCP_SPECIAL_FOUNDATION_TECH_TOKEN_COIN[nSpecialSect - 1];
         }
         else if (nSpecialIndex == 2)
