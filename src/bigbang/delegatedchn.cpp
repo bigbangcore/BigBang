@@ -270,6 +270,13 @@ void CDelegatedChannel::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
+
+    DeregisterHandler(CPeerActiveMessage::MessageType());
+    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+    DeregisterHandler(CPeerBulletinMessageInBound::MessageType());
+    DeregisterHandler(CPeerGetDelegatedMessageInBound::MessageType());
+    DeregisterHandler(CPeerDistributeMessageInBound::MessageType());
+    DeregisterHandler(CPeerPublishMessageInBound::MessageType());
 }
 
 bool CDelegatedChannel::HandleInvoke()

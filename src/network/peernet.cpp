@@ -73,6 +73,19 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
+
+    DeregisterHandler(CPeerSubscribeMessageOutBound::MessageType());
+    DeregisterHandler(CPeerUnsubscribeMessageOutBound::MessageType());
+    DeregisterHandler(CPeerInvMessageOutBound::MessageType());
+    DeregisterHandler(CPeerGetDataMessageOutBound::MessageType());
+    DeregisterHandler(CPeerGetBlocksMessageOutBound::MessageType());
+    DeregisterHandler(CPeerTxMessageOutBound::MessageType());
+    DeregisterHandler(CPeerBlockMessageOutBound::MessageType());
+
+    DeregisterHandler(CPeerBulletinMessageOutBound::MessageType());
+    DeregisterHandler(CPeerGetDelegatedMessageOutBound::MessageType());
+    DeregisterHandler(CPeerDistributeMessageOutBound::MessageType());
+    DeregisterHandler(CPeerPublishMessageOutBound::MessageType());
 }
 
 void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)

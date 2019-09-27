@@ -44,6 +44,12 @@ public:
         return true;
     }
 
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CPeerNetCloseMessage::MessageType());
+        DeregisterHandler(CPeerNetRewardMessage::MessageType());
+    }
+
 protected:
     void HandleNetClose(const CPeerNetCloseMessage& msg)
     {
