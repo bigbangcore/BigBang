@@ -229,7 +229,6 @@ CDelegatedChannel::CDelegatedChannel()
     pBlockChain = nullptr;
     pDispatcher = nullptr;
     fBulletin = false;
-    DebugLog("DebugLog", "Finished CDelegatedChannel()");
 }
 
 CDelegatedChannel::~CDelegatedChannel()
@@ -238,8 +237,6 @@ CDelegatedChannel::~CDelegatedChannel()
 
 bool CDelegatedChannel::HandleInitialize()
 {
-
-    DebugLog("DebugLog", "Entry CDelegatedChannel::HandleInitialize()");
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
         Error("Failed to request coreprotocol\n");
@@ -265,7 +262,6 @@ bool CDelegatedChannel::HandleInitialize()
     RegisterHandler<CPeerDistributeMessageInBound>(boost::bind(&CDelegatedChannel::HandleDistribute, this, _1));
     RegisterHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
 
-    DebugLog("DebugLog", "Leave CDelegatedChannel::HandleInitialize()");
     return true;
 }
 

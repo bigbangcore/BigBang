@@ -129,8 +129,6 @@ bool CDocker::Run()
         }
     }
 
-    DebugLog("debugLog", "Leave GetStatus");
-
     vector<IBase*>::iterator it;
     for (it = vWorkQueue.begin(); it != vWorkQueue.end(); ++it)
     {
@@ -140,8 +138,6 @@ bool CDocker::Run()
             return false;
         }
     }
-
-    DebugLog("debugLog", "Leave Initialize");
 
     {
         boost::unique_lock<boost::mutex> lock(mtxDocker);
@@ -157,8 +153,6 @@ bool CDocker::Run()
         }
     }
 
-    DebugLog("debugLog", "Leave GetStatus2");
-
     for (it = vWorkQueue.begin(); it != vWorkQueue.end(); ++it)
     {
         if (!(*it)->Invoke())
@@ -168,14 +162,12 @@ bool CDocker::Run()
         }
     }
 
-    DebugLog("debugLog", "Leave Invoke");
-
     {
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         fActived = true;
         condDocker.notify_all();
     }
-    DebugLog("debugLog", "Leave notify_all");
+
     return true;
 }
 

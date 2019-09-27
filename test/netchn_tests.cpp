@@ -59,16 +59,19 @@ class CDummyNetChannel : public CNetChannel
 public:
     bool TestActiveNonce(uint64 nNonce)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         return mapPeer.count(nNonce) != 0;
     }
 
     bool TestDeactiveNonce(uint nNonce)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         return mapPeer.count(nNonce) == 0;
     }
 
     bool TestSubscribe(uint nNonce, const uint256& fork)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         if (mapPeer.count(nNonce) == 0
             || mapUnsync.count(fork) == 0
             || mapSched.count(fork) == 0)
@@ -86,6 +89,7 @@ public:
 
     bool TestUnsubscribe(uint nNonce, const uint256& fork)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         if (mapUnsync.count(fork) == 0)
         {
             return false;
@@ -186,35 +190,31 @@ class CDummyDelegatedChannel : public CDelegatedChannel
 public:
     bool TestActiveNonce(uint64 nNonce)
     {
-        if (schedPeer.mapPeer.count(nNonce) == 0)
-        {
-            return false;
-        }
-        return true;
+        const auto temp = schedPeer.mapPeer;
+        return temp.count(nNonce) != 0;
     }
 
     bool TestDeactiveNonce(uint64 nNonce)
     {
-        if (schedPeer.mapPeer.count(nNonce) != 0)
-        {
-            return false;
-        }
-        return true;
+        const auto temp = schedPeer.mapPeer;
+        return temp.count(nNonce) == 0;
     }
 
     bool TestBulletin(uint64 nNonce, uint256 hashAnchor)
     {
-        if (schedPeer.mapPeer.count(nNonce) == 0)
+        auto temp = schedPeer;
+        if (temp.mapPeer.count(nNonce) == 0)
         {
             return false;
         }
 
-        if (!schedPeer.GetPeer(nNonce))
+        if (!temp.GetPeer(nNonce))
         {
             return false;
         }
 
-        if (dataChain.mapChainData.count(hashAnchor) != 0)
+        const auto tempChain = dataChain.mapChainData;
+        if (tempChain.count(hashAnchor) != 0)
         {
             return false;
         }
@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CNetChannel()));
-    auto pDelegatedChannel = new CDelegatedChannel();
+    auto pDelegatedChannel = new CDummyDelegatedChannel();
     BOOST_CHECK(docker.Attach(pDelegatedChannel));
 
     BOOST_CHECK(docker.Run());
@@ -271,18 +271,18 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    // BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
+    BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
 
     //////////////////   Deactive Test  /////////////////
 
-    /*auto spDeactiveMsg = CPeerDeactiveMessage::Create();
+    auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
     PUBLISH_MESSAGE(spDeactiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));*/
+    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
 }
