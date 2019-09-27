@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     BOOST_CHECK(docker.Run());
 
-    const uint64 nTestNonce = 0xff;
+    /*const uint64 nTestNonce = 0xff;
 
     ///////////////////   Active Test  //////////////////
 
@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
+    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));*/
 
     docker.Exit();
 }
