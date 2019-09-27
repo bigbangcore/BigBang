@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = nTestNonce;
     spActiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    //PUBLISH_MESSAGE(spActiveMsg);
+    PUBLISH_MESSAGE(spActiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
