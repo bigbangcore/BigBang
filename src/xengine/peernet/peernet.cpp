@@ -382,56 +382,53 @@ CPeerInfo* CPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
     return pInfo;
 }
 
-/*bool CPeerNet::HandleEvent(CEventPeerNetGetIP& eventGetIP)
+void CPeerNet::HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg)
 {
-    eventGetIP.result = GetLocalIP();
-    return true;
+    getIPMsg.ip.set_value(GetLocalIP());
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetGetCount& eventGetCount)
+void CPeerNet::HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg)
 {
-    eventGetCount.result = mapPeer.size();
-    return true;
+    getCountMsg.count.set_value(mapPeer.size());
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetGetPeers& eventGetPeers)
+void CPeerNet::HandlePeerGetPeers(const CPeerNetGetPeersMessage& getPeersMsg)
 {
-    eventGetPeers.result.reserve(mapPeer.size());
+    boost::ptr_vector<CPeerInfo> results;
     for (map<uint64, CPeer*>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
     {
         CPeerInfo* pInfo = GetPeerInfo((*it).second);
-        if (pInfo != nullptr)
+        if (pInfo)
         {
-            eventGetPeers.result.push_back(pInfo);
+            results.push_back(pInfo);
         }
     }
-    return true;
+    getPeersMsg.results.set_value(results);
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetAddNode& eventAddNode)
+void CPeerNet::HandlePeerAddNode(const CPeerNetAddNodeMessage& addNodeMsg)
 {
-    AddNewNode(eventAddNode.data);
-    eventAddNode.result = true;
-    return true;
+    AddNewNode(addNodeMsg.host);
+    addNodeMsg.fSuccess.set_value(true);
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetRemoveNode& eventRemoveNode)
+void CPeerNet::HandlePeerRemoveNode(const CPeerNetRemoveNodeMessage& removeNodeMsg)
 {
-    RemoveNode(eventRemoveNode.data);
-    eventRemoveNode.result = true;
-    return true;
+    RemoveNode(removeNodeMsg.host);
+    removeNodeMsg.fSuccess.set_value(true);
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetGetBanned& eventGetBanned)
+void CPeerNet::HandlePeerGetBanned(const CPeerNetGetBannedMessage& getBannedMsg)
 {
-    epMngr.GetBanned(eventGetBanned.result);
-    return true;
+    std::vector<CAddressBanned> bannedAddresses;
+    epMngr.GetBanned(bannedAddresses);
+    getBannedMsg.results.set_value(bannedAddresses);
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetSetBan& eventSetBan)
+void CPeerNet::HandlePeerSetBan(const CPeerNetSetBanMessage& setBanMsg)
 {
     vector<boost::asio::ip::address> vAddrToBan;
-    for (const string& strAddress : eventSetBan.data.first)
+    for (const string& strAddress : setBanMsg.addresses.first)
     {
         boost::system::error_code ec;
         boost::asio::ip::address addr = boost::asio::ip::address::from_string(strAddress, ec);
@@ -440,15 +437,14 @@ bool CPeerNet::HandleEvent(CEventPeerNetSetBan& eventSetBan)
             vAddrToBan.push_back(addr);
         }
     }
-    epMngr.SetBan(vAddrToBan, eventSetBan.data.second);
-    eventSetBan.result = vAddrToBan.size();
-    return true;
+    epMngr.SetBan(vAddrToBan, setBanMsg.addresses.second);
+    setBanMsg.count.set_value(vAddrToBan.size());
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
+void CPeerNet::HandlePeerClrBanned(const CPeerNetClrBannedMessage& clrBannedMsg)
 {
     vector<boost::asio::ip::address> vAddrToClear;
-    for (const string& strAddress : eventClrBanned.data)
+    for (const string& strAddress : clrBannedMsg.addresses)
     {
         boost::system::error_code ec;
         boost::asio::ip::address addr = boost::asio::ip::address::from_string(strAddress, ec);
@@ -458,40 +454,7 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
         }
     }
     epMngr.ClearBanned(vAddrToClear);
-    eventClrBanned.result = vAddrToClear.size();
-    return true;
-}*/
-
-void CPeerNet::HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg)
-{
-}
-
-void CPeerNet::HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg)
-{
-}
-
-void CPeerNet::HandlePeerGetPeers(const CPeerNetGetPeersMessage& getPeersMsg)
-{
-}
-
-void CPeerNet::HandlePeerAddNode(const CPeerNetAddNodeMessage& addNodeMsg)
-{
-}
-
-void CPeerNet::HandlePeerRemoveNode(const CPeerNetRemoveNodeMessage& removeNodeMsg)
-{
-}
-
-void CPeerNet::HandlePeerGetBanned(const CPeerNetGetBannedMessage& getBannedMsg)
-{
-}
-
-void CPeerNet::HandlePeerSetBan(const CPeerNetSetBanMessage& setBanMsg)
-{
-}
-
-void CPeerNet::HandlePeerClrBanned(const CPeerNetClrBannedMessage& clrBannedMsg)
-{
+    clrBannedMsg.count.set_value(vAddrToClear.size());
 }
 
 void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)

@@ -86,14 +86,6 @@ protected:
     virtual CPeer* CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound);
     virtual void DestroyPeer(CPeer* pPeer);
     virtual CPeerInfo* GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo = nullptr);
-    /*bool HandleEvent(CEventPeerNetGetIP& eventGetIP) override;
-    bool HandleEvent(CEventPeerNetGetCount& eventGetCount) override;
-    bool HandleEvent(CEventPeerNetGetPeers& eventGetPeers) override;
-    bool HandleEvent(CEventPeerNetAddNode& eventAddNode) override;
-    bool HandleEvent(CEventPeerNetRemoveNode& eventRemoveNode) override;
-    bool HandleEvent(CEventPeerNetGetBanned& eventGetBanned) override;
-    bool HandleEvent(CEventPeerNetSetBan& eventSetBan) override;
-    bool HandleEvent(CEventPeerNetClrBanned& eventClrBanned) override;*/
 
     void HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg);
     void HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg);
