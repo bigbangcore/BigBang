@@ -42,6 +42,7 @@ set(sources
     lockfree/queue.h
     message/message.h
     message/actor.h         message/actor.cpp
+    message/actorworker.h   message/actorworker.cpp
     message/messagecenter.h message/messagecenter.cpp
     peernet/message.h
     db/kvdb.h

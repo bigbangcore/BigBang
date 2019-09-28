@@ -141,10 +141,10 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
-    RegisterHandler<CAddTxMessage>(boost::bind(&CTxPool::HandleAddTx, this, _1));
-    RegisterHandler<CRemoveTxMessage>(boost::bind(&CTxPool::HandleRemoveTx, this, _1));
-    RegisterHandler<CClearTxMessage>(boost::bind(&CTxPool::HandleClearTx, this, _1));
-    RegisterHandler<CAddedBlockMessage>(boost::bind(&CTxPool::HandleAddedBlock, this, _1));
+    RegisterRefHandler<CAddTxMessage>(boost::bind(&CTxPool::HandleAddTx, this, _1));
+    RegisterRefHandler<CRemoveTxMessage>(boost::bind(&CTxPool::HandleRemoveTx, this, _1));
+    RegisterRefHandler<CClearTxMessage>(boost::bind(&CTxPool::HandleClearTx, this, _1));
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CTxPool::HandleAddedBlock, this, _1));
 
     return true;
 }

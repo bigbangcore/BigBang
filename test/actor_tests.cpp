@@ -68,9 +68,14 @@ public:
       : CIOActor("actorA"), nHandled(0) {}
     virtual bool HandleInitialize() override
     {
-        RegisterHandler<CTestMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
-        RegisterHandler<CTestMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
+        RegisterRefHandler<CTestMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
+        RegisterRefHandler<CTestMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
         return true;
+    }
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CTestMessageA::MessageType());
+        DeregisterHandler(CTestMessageC::MessageType());
     }
 
     atomic<int> nHandled;
@@ -97,42 +102,108 @@ public:
       : CIOActor("actorB"), nHandled(0) {}
     virtual bool HandleInitialize() override
     {
-        RegisterHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterPtrHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterPtrHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterPtrHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterPtrHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
         return true;
+    }
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CTestMessageA::MessageType());
+        DeregisterHandler(CTestMessageB::MessageType());
+        DeregisterHandler(CTestMessageC::MessageType());
+        DeregisterHandler(CTestMessageD::MessageType());
+    }
+
+    virtual void EnterLoop() override
+    {
+        CIOActor::EnterLoop();
+        CIOActorWorker* pWorkerA(new CIOActorWorker);
+        pWorkerA->RegisterRefHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessageA, this, _1));
+        mapWorkers[CTestMessageA::MessageType()] = pWorkerA;
+        ThreadStart(pWorkerA->GetThread());
+
+        CIOActorWorker* pWorkerB(new CIOActorWorker);
+        pWorkerB->RegisterRefHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessageB, this, _1));
+        mapWorkers[CTestMessageB::MessageType()] = pWorkerB;
+        ThreadStart(pWorkerB->GetThread());
+
+        CIOActorWorker* pWorkerC(new CIOActorWorker);
+        pWorkerC->RegisterRefHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessageC, this, _1));
+        mapWorkers[CTestMessageC::MessageType()] = pWorkerC;
+        ThreadStart(pWorkerC->GetThread());
+
+        CIOActorWorker* pWorkerD(new CIOActorWorker);
+        pWorkerD->RegisterRefHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessageD, this, _1));
+        mapWorkers[CTestMessageD::MessageType()] = pWorkerD;
+        ThreadStart(pWorkerD->GetThread());
+    }
+
+    virtual void LeaveLoop() override
+    {
+        for (auto it = mapWorkers.begin(); it != mapWorkers.end(); it++)
+        {
+            it->second->Stop();
+            delete it->second;
+        }
+        mapWorkers.clear();
+        CIOActor::LeaveLoop();
     }
 
     atomic<int> nHandled;
+    map<uint32, CIOActorWorker*> mapWorkers;
 
 protected:
-    void HandlerMessage(const CMessage& msg)
+    void HandlerMessage(const shared_ptr<CMessage> spMsg)
     {
-        if (msg.Type() == CTestMessageA::MessageType())
+        if (spMsg->Type() == CTestMessageA::MessageType())
         {
-            // cout << "Actor B handle message A as CMessage" << dynamic_cast<const CTestMessageB&>(msg).strB << endl;
-            CTestMessageA::nHandled++;
+            // CTestMessageA::nHandled++;
+            mapWorkers[spMsg->Type()]->Publish(spMsg);
         }
-        else if (msg.Type() == CTestMessageB::MessageType())
+        else if (spMsg->Type() == CTestMessageB::MessageType())
         {
-            // cout << "Actor B handle message B as CMessage" << dynamic_cast<const CTestMessageB&>(msg).strB << endl;
-            CTestMessageB::nHandled++;
+            // CTestMessageB::nHandled++;
+            mapWorkers[spMsg->Type()]->Publish(spMsg);
         }
-        else if (msg.Type() == CTestMessageC::MessageType())
+        else if (spMsg->Type() == CTestMessageC::MessageType())
         {
-            // cout << "Actor B handle message C as CMessage" << dynamic_cast<const CTestMessageC&>(msg).strC << endl;
-            CTestMessageC::nHandled++;
+            // CTestMessageC::nHandled++;
+            mapWorkers[spMsg->Type()]->Publish(spMsg);
         }
-        else if (msg.Type() == CTestMessageD::MessageType())
+        else if (spMsg->Type() == CTestMessageD::MessageType())
         {
-            // cout << "Actor B handle message D as CMessage" << dynamic_cast<const CTestMessageD&>(msg).strD << endl;
-            CTestMessageD::nHandled++;
+            // CTestMessageD::nHandled++;
+            mapWorkers[spMsg->Type()]->Publish(spMsg);
         }
         else
         {
-            cout << "Unknown CMessage: " << msg.Type() << endl;
+            cout << "Unknown CMessage: " << spMsg->Type() << endl;
         }
+    }
+
+    void HandlerMessageA(const CTestMessageA& msg)
+    {
+        CTestMessageA::nHandled++;
+        nHandled++;
+    }
+
+    void HandlerMessageB(const CTestMessageB& msg)
+    {
+        CTestMessageB::nHandled++;
+        nHandled++;
+    }
+
+    void HandlerMessageC(const CTestMessageC& msg)
+    {
+        CTestMessageC::nHandled++;
+        nHandled++;
+    }
+
+    void HandlerMessageD(const CTestMessageD& msg)
+    {
+        CTestMessageD::nHandled++;
         nHandled++;
     }
 };

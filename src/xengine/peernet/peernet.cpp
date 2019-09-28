@@ -22,11 +22,11 @@ namespace xengine
 ///////////////////////////////
 // CPeerNet
 
-CPeerNet::CPeerNet(const string& ownKeyIn)
-  : CIOProc(ownKeyIn), confNetwork{}
+CPeerNet::CPeerNet(const string& strOwnKeyIn)
+  : CIOProc(strOwnKeyIn), confNetwork{}
 {
-    RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
-    RegisterHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
+    RegisterRefHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
+    RegisterRefHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
 }
 
 CPeerNet::~CPeerNet()

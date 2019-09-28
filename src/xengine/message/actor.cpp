@@ -9,20 +9,14 @@
 namespace xengine
 {
 
-CIOActor::CIOActor(const std::string& ownKeyIn)
-  : IController(ownKeyIn),
-    thrIOActor(ownKeyIn, boost::bind(&CIOActor::HandlerThreadFunc, this)),
-    ioStrand(ioService), ioWork(ioService)
+CIOActor::CIOActor(const std::string& strOwnKeyIn)
+  : IController(strOwnKeyIn),
+    CIOActorWorker(strOwnKeyIn)
 {
 }
 
 CIOActor::~CIOActor()
 {
-}
-
-void CIOActor::Publish(std::shared_ptr<CMessage> spMessage)
-{
-    ioStrand.post(boost::bind(&CIOActor::MessageHandler, this, spMessage));
 }
 
 bool CIOActor::HandleInitialize()
@@ -32,9 +26,9 @@ bool CIOActor::HandleInitialize()
 
 bool CIOActor::HandleInvoke()
 {
-    if (!ThreadDelayStart(thrIOActor))
+    if (!ThreadDelayStart(thrIOActorWorker))
     {
-        Error("Failed to start iothread\n");
+        Error("Failed to start thread\n");
         return false;
     }
 
@@ -43,15 +37,7 @@ bool CIOActor::HandleInvoke()
 
 void CIOActor::HandleHalt()
 {
-    if (!ioService.stopped())
-    {
-        ioService.stop();
-    }
-
-    thrIOActor.Interrupt();
-    ThreadExit(thrIOActor);
-
-    mapHandler.clear();
+    Stop();
 }
 
 void CIOActor::HandleDeinitialize()
@@ -60,41 +46,18 @@ void CIOActor::HandleDeinitialize()
 
 void CIOActor::EnterLoop()
 {
+    CIOActorWorker::EnterLoop();
 }
 
 void CIOActor::LeaveLoop()
 {
+    CIOActorWorker::LeaveLoop();
 }
 
-void CIOActor::HandlerThreadFunc()
+void CIOActor::DeregisterHandler(const uint32 nType)
 {
-    ioService.reset();
-
-    EnterLoop();
-
-    try
-    {
-        ioService.run();
-    }
-    catch (const boost::system::system_error& err)
-    {
-        Error("Failed to run CIOActor io_service: %s\n", err.what());
-    }
-    catch (...)
-    {
-        Error("Failed to run CIOActor io_service: unknown error\n");
-    }
-
-    LeaveLoop();
-}
-
-void CIOActor::MessageHandler(std::shared_ptr<CMessage> spMessage)
-{
-    auto it = mapHandler.find(spMessage->Type());
-    if (it != mapHandler.end())
-    {
-        spMessage->Handle(it->second);
-    }
+    CMessageCenter::GetInstance().Unsubscribe(nType, this);
+    CIOActorWorker::DeregisterHandler(nType);
 }
 
 } // namespace xengine

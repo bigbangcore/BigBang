@@ -2,19 +2,18 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef XENGINE_MESSAGE_ACTOR_H
-#define XENGINE_MESSAGE_ACTOR_H
+#ifndef XENGINE_MESSAGE_ACTORWORKER_H
+#define XENGINE_MESSAGE_ACTORWORKER_H
 
+#include <boost/any.hpp>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
-#include <boost/any.hpp>
+#include <map>
 #include <memory>
 #include <type_traits>
-#include <set>
 
-#include "base/controller.h"
-#include "message/actorworker.h"
-#include "message/messagecenter.h"
+#include "docker/thread.h"
+#include "type.h"
 
 namespace xengine
 {
@@ -22,54 +21,54 @@ namespace xengine
 class CMessage;
 
 /**
- * @brief CIOActor object can handle message.
+ * @brief CIOActorWorker object can handle message.
+ *        It is the worker of CIOActor.
+ *        And There may be one or more workers behind CIOActor for scalability.
  */
-class CIOActor : public IController, public CIOActorWorker
+class CIOActorWorker
 {
     typedef std::function<void(const CMessage&)> HandlerFunction;
 
 public:
     /**
-     * @brief Actor constructor
+     * @brief Actor worker constructor
      */
-    CIOActor(const std::string& strOwnKeyIn = "");
+    CIOActorWorker(const std::string& strNameIn = "");
 
     /**
-     * @brief Actor destructor
+     * @brief Actor worker destructor
      */
-    virtual ~CIOActor();
-
-protected:
-    /**
-     * @brief Override IBase::HandleInitialize().
-     *        Derived class should call RegisterRefHandler in this function.
-     */
-    virtual bool HandleInitialize() override;
+    virtual ~CIOActorWorker();
 
     /**
-     * @brief Override IBase::HandleInvoke()
+     * @brief Publish a message to Actor worker.
+     * @param spMessage a shared_ptr object of CMessage or it's derived
+     * @note Thread safe.
      */
-    virtual bool HandleInvoke() override;
+    void Publish(const std::shared_ptr<CMessage> spMessage);
 
     /**
-     * @brief Override IBase::HandleHalt()
+     * @brief Stop service.
      */
-    virtual void HandleHalt() override;
+    void Stop();
 
     /**
-     * @brief Override IBase::HandleDeinitialize()
+     * @brief Get reference of io_service
+     * @return The reference of io_service
      */
-    virtual void HandleDeinitialize() override;
+    boost::asio::io_service& GetService();
 
     /**
-     * @brief Called before message handler thread running.
+     * @brief Get reference of io_service::strand
+     * @return The reference of io_service::strand
      */
-    virtual void EnterLoop() override;
+    boost::asio::io_service::strand& GetStrand();
 
     /**
-     * @brief Called after message handler thread stopping.
+     * @brief Get reference of worker thread
+     * @return The reference of worker thread
      */
-    virtual void LeaveLoop() override;
+    CThread& GetThread();
 
     /**
      * @brief Register message handler for derived.
@@ -87,8 +86,7 @@ protected:
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
     void RegisterPtrHandler(boost::function<void(const std::shared_ptr<Message>)> handler)
     {
-        CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
-        CIOActorWorker::RegisterPtrHandler<Message>(handler);
+        mapHandler[Message::MessageType()] = handler;
     }
 
     /**
@@ -107,9 +105,19 @@ protected:
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
     void RegisterRefHandler(boost::function<void(const Message&)> handler)
     {
-        CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
-        CIOActorWorker::RegisterRefHandler<Message>(handler);
+        mapHandler[Message::MessageType()] = handler;
     }
+
+protected:
+    /**
+     * @brief Called before message handler thread running.
+     */
+    virtual void EnterLoop();
+
+    /**
+     * @brief Called after message handler thread stopping.
+     */
+    virtual void LeaveLoop();
 
     /**
      * @brief Deregister message handler for derived.
@@ -124,10 +132,18 @@ private:
     /// The function of the thread entry contains ioService.run().
     void HandlerThreadFunc();
     /// Message handler callback entry.
-    void MessageHandler(std::shared_ptr<CMessage> spMessage);
+    void MessageHandler(const std::shared_ptr<CMessage> spMessage);
 
+protected:
+    boost::asio::io_service ioService;
+    boost::asio::io_service::strand ioStrand;
+    CThread thrIOActorWorker;
+    std::map<uint32, boost::any> mapHandler;
+
+private:
+    boost::asio::io_service::work ioWork;
 };
 
 } // namespace xengine
 
-#endif // XENGINE_MESSAGE_ACTOR_H
+#endif // XENGINE_MESSAGE_ACTORWORKER_H

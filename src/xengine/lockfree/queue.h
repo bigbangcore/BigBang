@@ -21,7 +21,7 @@ public:
 };
 
 template <typename T>
-class ListMPSCQueue : public LockFreeQueue<T, std::shared_ptr<T>>
+class ListMPSCQueue : public LockFreeQueue<T, const std::shared_ptr<T>>
 {
 public:
     typedef T* Ptr;
@@ -31,10 +31,10 @@ public:
     {
         CNode(Ptr t)
           : t(t), pNext(nullptr) {}
-        CNode(SPtr t)
+        CNode(const SPtr t)
           : t(t), pNext(nullptr) {}
 
-        SPtr t;
+        const SPtr t;
         std::atomic<CNode*> pNext;
     };
 
@@ -49,19 +49,19 @@ public:
         Clear();
     }
 
-    void Push(Ptr t)
+    void Push(const Ptr t)
     {
         Push(SPtr(t));
     }
 
-    void Push(SPtr t)
+    void Push(const SPtr t)
     {
         CNode* pNode = new CNode(t);
         CNode* pPrev = pTail.exchange(pNode, std::memory_order_release);
         pPrev->pNext.store(pNode, std::memory_order_relaxed);
     }
 
-    SPtr Pop()
+    const SPtr Pop()
     {
         CNode* pNode = pHead->pNext.load(std::memory_order_relaxed);
         if (pNode)

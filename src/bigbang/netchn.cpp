@@ -151,15 +151,15 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    RegisterHandler<CPeerActiveMessage>(boost::bind(&CNetChannel::HandleActive, this, _1));
-    RegisterHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannel::HandleDeactive, this, _1));
-    RegisterHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
-    RegisterHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
-    RegisterHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannel::HandleInv, this, _1));
-    RegisterHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannel::HandleGetData, this, _1));
-    RegisterHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
-    RegisterHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannel::HandlePeerTx, this, _1));
-    RegisterHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannel::HandlePeerBlock, this, _1));
+    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CNetChannel::HandleActive, this, _1));
+    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannel::HandleDeactive, this, _1));
+    RegisterRefHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
+    RegisterRefHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
+    RegisterRefHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannel::HandleInv, this, _1));
+    RegisterRefHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannel::HandleGetData, this, _1));
+    RegisterRefHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
+    RegisterRefHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannel::HandlePeerTx, this, _1));
+    RegisterRefHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannel::HandlePeerBlock, this, _1));
 
     return true;
 }
