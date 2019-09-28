@@ -312,7 +312,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     {
         // check version
         string strVersion = eventHttpReq.data.mapHeader["url"].substr(1);
-        if (!strVersion.empty() && strVersion != "json_rpc")
+        if (!strVersion.empty() && strVersion.compare("json_rpc"))
         {
             if (!CheckVersion(strVersion))
             {
