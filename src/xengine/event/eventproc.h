@@ -81,7 +81,7 @@ protected:
 class CEventProc : public IBase
 {
 public:
-    CEventProc(const std::string& ownKeyIn);
+    CEventProc(const std::string& strOwnKeyIn);
     void PostEvent(CEvent* pEvent);
 
 protected:

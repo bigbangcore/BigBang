@@ -27,9 +27,9 @@ class IBase : virtual public CEventListener
 {
 public:
     IBase();
-    IBase(const std::string& ownKeyIn);
+    IBase(const std::string& strOwnKeyIn);
     virtual ~IBase();
-    void SetOwnKey(const std::string& ownKeyIn);
+    void SetOwnKey(const std::string& strOwnKeyIn);
     std::string& GetOwnKey();
     Status GetStatus();
     void Connect(CDocker* pDockerIn);
@@ -65,7 +65,7 @@ protected:
     const std::string GetWarnings();
 
 private:
-    std::string ownKey;
+    std::string strOwnKey;
     CDocker* pDocker;
     Status status;
 };

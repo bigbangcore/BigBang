@@ -15,8 +15,8 @@ namespace xengine
 class IModel : public IBase
 {
 public:
-    IModel(const std::string& ownKeyIn = "")
-      : IBase(ownKeyIn) {}
+    IModel(const std::string& strOwnKeyIn = "")
+      : IBase(strOwnKeyIn) {}
 };
 
 } // namespace xengine

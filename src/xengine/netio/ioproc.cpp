@@ -71,8 +71,8 @@ void CIOCompletion::Reset()
 ///////////////////////////////
 // CIOProc
 
-CIOProc::CIOProc(const string& ownKeyIn)
-  : CIOActor(ownKeyIn),
+CIOProc::CIOProc(const string& strOwnKeyIn)
+  : CIOActor(strOwnKeyIn),
     resolverHost(ioService), ioOutBound(this), ioSSLOutBound(this),
     timerHeartbeat(ioService, IOPROC_HEARTBEAT)
 {

@@ -22,24 +22,24 @@ IBase::IBase()
     status = STATUS_OUTDOCKER;
 }
 
-IBase::IBase(const string& ownKeyIn)
+IBase::IBase(const string& strOwnKeyIn)
 {
     status = STATUS_OUTDOCKER;
-    ownKey = ownKeyIn;
+    strOwnKey = strOwnKeyIn;
 }
 
 IBase::~IBase()
 {
 }
 
-void IBase::SetOwnKey(const string& ownKeyIn)
+void IBase::SetOwnKey(const string& strOwnKeyIn)
 {
-    ownKey = ownKeyIn;
+    strOwnKey = strOwnKeyIn;
 }
 
 string& IBase::GetOwnKey()
 {
-    return ownKey;
+    return strOwnKey;
 }
 
 Status IBase::GetStatus()
@@ -125,7 +125,7 @@ void IBase::HandleHalt()
 void IBase::FatalError()
 {
     Log("Fatal Error!!!!!\n");
-    pDocker->FatalError(ownKey.c_str());
+    pDocker->FatalError(strOwnKey.c_str());
 }
 
 void IBase::Log(const char* pszFormat, ...)
@@ -134,7 +134,7 @@ void IBase::Log(const char* pszFormat, ...)
     {
         va_list ap;
         va_start(ap, pszFormat);
-        pDocker->LogOutput(ownKey.c_str(), "[INFO]", pszFormat, ap);
+        pDocker->LogOutput(strOwnKey.c_str(), "[INFO]", pszFormat, ap);
         va_end(ap);
     }
 }
@@ -145,7 +145,7 @@ void IBase::Debug(const char* pszFormat, ...)
     {
         va_list ap;
         va_start(ap, pszFormat);
-        pDocker->LogOutput(ownKey.c_str(), "[DEBUG]", pszFormat, ap);
+        pDocker->LogOutput(strOwnKey.c_str(), "[DEBUG]", pszFormat, ap);
         va_end(ap);
     }
 }
@@ -154,7 +154,7 @@ void IBase::VDebug(const char* pszFormat, va_list ap)
 {
     if (pDocker != nullptr && pDocker->GetConfig()->fDebug)
     {
-        pDocker->LogOutput(ownKey.c_str(), "[DEBUG]", pszFormat, ap);
+        pDocker->LogOutput(strOwnKey.c_str(), "[DEBUG]", pszFormat, ap);
     }
 }
 
@@ -164,7 +164,7 @@ void IBase::Warn(const char* pszFormat, ...)
     {
         va_list ap;
         va_start(ap, pszFormat);
-        pDocker->LogOutput(ownKey.c_str(), "[WARN]", pszFormat, ap);
+        pDocker->LogOutput(strOwnKey.c_str(), "[WARN]", pszFormat, ap);
         va_end(ap);
     }
 }
@@ -175,7 +175,7 @@ void IBase::Error(const char* pszFormat, ...)
     {
         va_list ap;
         va_start(ap, pszFormat);
-        pDocker->LogOutput(ownKey.c_str(), "[ERROR]", pszFormat, ap);
+        pDocker->LogOutput(strOwnKey.c_str(), "[ERROR]", pszFormat, ap);
         va_end(ap);
     }
 }
@@ -210,7 +210,7 @@ uint32 IBase::SetTimer(int64 nMilliSeconds, TimerCallback fnCallback)
 {
     if (pDocker != nullptr)
     {
-        return pDocker->SetTimer(ownKey, nMilliSeconds, fnCallback);
+        return pDocker->SetTimer(strOwnKey, nMilliSeconds, fnCallback);
     }
     return 0;
 }

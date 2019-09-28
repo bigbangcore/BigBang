@@ -25,9 +25,9 @@ namespace xengine
 CConsole* CConsole::pCurrentConsole = nullptr;
 boost::mutex CConsole::mutexConsole;
 
-CConsole::CConsole(const string& ownKeyIn, const string& strPromptIn)
-  : IBase(ownKeyIn),
-    thrConsole(ownKeyIn, boost::bind(&CConsole::ConsoleThreadFunc, this)), strPrompt(strPromptIn),
+CConsole::CConsole(const string& strOwnKeyIn, const string& strPromptIn)
+  : IBase(strOwnKeyIn),
+    thrConsole(strOwnKeyIn, boost::bind(&CConsole::ConsoleThreadFunc, this)), strPrompt(strPromptIn),
     ioStrand(ioService),
 #ifdef WIN32
     inStream(ioService, GetStdHandle(STD_INPUT_HANDLE))
