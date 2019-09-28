@@ -46,7 +46,7 @@ public:
     unsigned short nPortDefault;
 };
 
-class CPeerNet : public CIOProc, virtual public CPeerEventListener
+class CPeerNet : public CIOProc
 {
 public:
     CPeerNet(const std::string& ownKeyIn);
@@ -94,6 +94,15 @@ protected:
     bool HandleEvent(CEventPeerNetGetBanned& eventGetBanned) override;
     bool HandleEvent(CEventPeerNetSetBan& eventSetBan) override;
     bool HandleEvent(CEventPeerNetClrBanned& eventClrBanned) override;*/
+
+    void HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg);
+    void HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg);
+    void HandlePeerGetPeers(const CPeerNetGetPeersMessage& getPeersMsg);
+    void HandlePeerAddNode(const CPeerNetAddNodeMessage& addNodeMsg);
+    void HandlePeerRemoveNode(const CPeerNetRemoveNodeMessage& removeNodeMsg);
+    void HandlePeerGetBanned(const CPeerNetGetBannedMessage& getBannedMsg);
+    void HandlePeerSetBan(const CPeerNetSetBanMessage& setBanMsg);
+    void HandlePeerClrBanned(const CPeerNetClrBannedMessage& clrBannedMsg);
 
     void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
     void HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg);

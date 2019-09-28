@@ -27,12 +27,30 @@ CPeerNet::CPeerNet(const string& ownKeyIn)
 {
     RegisterHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
     RegisterHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
+
+    RegisterHandler<CPeerNetGetIPMessage>(boost::bind(&CPeerNet::HandlePeerGetIP, this, _1));
+    RegisterHandler<CPeerNetGetCountMessage>(boost::bind(&CPeerNet::HandlePeerGetCount, this, _1));
+    RegisterHandler<CPeerNetGetPeersMessage>(boost::bind(&CPeerNet::HandlePeerGetPeers, this, _1));
+    RegisterHandler<CPeerNetAddNodeMessage>(boost::bind(&CPeerNet::HandlePeerAddNode, this, _1));
+    RegisterHandler<CPeerNetRemoveNodeMessage>(boost::bind(&CPeerNet::HandlePeerRemoveNode, this, _1));
+    RegisterHandler<CPeerNetGetBannedMessage>(boost::bind(&CPeerNet::HandlePeerGetBanned, this, _1));
+    RegisterHandler<CPeerNetSetBanMessage>(boost::bind(&CPeerNet::HandlePeerSetBan, this, _1));
+    RegisterHandler<CPeerNetClrBannedMessage>(boost::bind(&CPeerNet::HandlePeerClrBanned, this, _1));
 }
 
 CPeerNet::~CPeerNet()
 {
     DeregisterHandler(CPeerNetCloseMessage::MessageType());
     DeregisterHandler(CPeerNetRewardMessage::MessageType());
+
+    DeregisterHandler(CPeerNetGetIPMessage::MessageType());
+    DeregisterHandler(CPeerNetGetCountMessage::MessageType());
+    DeregisterHandler(CPeerNetGetPeersMessage::MessageType());
+    DeregisterHandler(CPeerNetAddNodeMessage::MessageType());
+    DeregisterHandler(CPeerNetRemoveNodeMessage::MessageType());
+    DeregisterHandler(CPeerNetGetBannedMessage::MessageType());
+    DeregisterHandler(CPeerNetSetBanMessage::MessageType());
+    DeregisterHandler(CPeerNetClrBannedMessage::MessageType());
 }
 
 void CPeerNet::ConfigNetwork(CPeerNetConfig& config)
@@ -443,6 +461,38 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
     eventClrBanned.result = vAddrToClear.size();
     return true;
 }*/
+
+void CPeerNet::HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg)
+{
+}
+
+void CPeerNet::HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg)
+{
+}
+
+void CPeerNet::HandlePeerGetPeers(const CPeerNetGetPeersMessage& getPeersMsg)
+{
+}
+
+void CPeerNet::HandlePeerAddNode(const CPeerNetAddNodeMessage& addNodeMsg)
+{
+}
+
+void CPeerNet::HandlePeerRemoveNode(const CPeerNetRemoveNodeMessage& removeNodeMsg)
+{
+}
+
+void CPeerNet::HandlePeerGetBanned(const CPeerNetGetBannedMessage& getBannedMsg)
+{
+}
+
+void CPeerNet::HandlePeerSetBan(const CPeerNetSetBanMessage& setBanMsg)
+{
+}
+
+void CPeerNet::HandlePeerClrBanned(const CPeerNetClrBannedMessage& clrBannedMsg)
+{
+}
 
 void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
 {

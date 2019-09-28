@@ -5,8 +5,13 @@
 #ifndef XENGINE_PEERNET_MESSAGE_H
 #define XENGINE_PEERNET_MESSAGE_H
 
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <future>
+
 #include "epmngr.h"
 #include "message/message.h"
+#include "netio/nethost.h"
+#include "peernet/peerinfo.h"
 
 namespace xengine
 {
@@ -23,6 +28,82 @@ struct CPeerNetRewardMessage : public CMessage
     uint64 nNonce;
     CEndpointManager::Bonus bonus;
 };
+
+////////////////////   PeerNet  ////////////////////////
+struct CPeerNetGetIPMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetGetIPMessage);
+    CPeerNetGetIPMessage(std::promise<std::string>& ipIn)
+      : ip(ipIn) {}
+    int data;
+    std::promise<std::string>& ip;
+};
+
+struct CPeerNetGetCountMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetGetCountMessage);
+    CPeerNetGetCountMessage(std::promise<std::size_t>& countIn)
+      : count(countIn) {}
+    int data;
+    std::promise<std::size_t>& count;
+};
+
+struct CPeerNetGetPeersMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetGetPeersMessage);
+    CPeerNetGetPeersMessage(std::promise<boost::ptr_vector<CPeerInfo>>& resultsIn)
+      : results(resultsIn) {}
+    int data;
+    std::promise<boost::ptr_vector<CPeerInfo>>& results;
+};
+
+struct CPeerNetAddNodeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetAddNodeMessage);
+    CPeerNetAddNodeMessage(std::promise<bool>& fSuccessIn)
+      : fSuccess(fSuccessIn) {}
+    CNetHost host;
+    std::promise<bool>& fSuccess;
+};
+
+struct CPeerNetRemoveNodeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetRemoveNodeMessage);
+    CPeerNetRemoveNodeMessage(std::promise<bool>& fSuccessIn)
+      : fSuccess(fSuccessIn) {}
+    CNetHost host;
+    std::promise<bool>& fSuccess;
+};
+
+struct CPeerNetGetBannedMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetGetBannedMessage);
+    CPeerNetGetBannedMessage(std::promise<std::vector<CAddressBanned>>& resultIn)
+      : results(resultIn) {}
+    int data;
+    std::promise<std::vector<CAddressBanned>>& results;
+};
+
+typedef std::pair<std::vector<std::string>, int64> ADDRESSES_TO_BAN;
+
+struct CPeerNetSetBanMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetSetBanMessage);
+    CPeerNetSetBanMessage(std::promise<std::size_t>& countIn)
+      : count(countIn) {}
+    ADDRESSES_TO_BAN addresses;
+    std::promise<std::size_t>& count;
+};
+
+struct CPeerNetClrBannedMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CPeerNetClrBannedMessage);
+    CPeerNetClrBannedMessage(std::promise<std::size_t>& countIn)
+      : count(countIn) {}
+    std::vector<std::string> addresses;
+    std::promise<std::size_t>& count;
+};
+
 } // namespace xengine
 
 #endif // XENGINE_PEERNET_MESSAGE_H
