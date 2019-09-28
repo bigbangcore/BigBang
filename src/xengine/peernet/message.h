@@ -30,6 +30,8 @@ struct CPeerNetRewardMessage : public CMessage
 };
 
 ////////////////////   PeerNet  ////////////////////////
+
+// Message that contains std::promise must be consume once
 struct CPeerNetGetIPMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetIPMessage);
