@@ -165,47 +165,6 @@ struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageOutBound);
 };
 
-////////////////////   PeerNet  ////////////////////////
-struct CPeerNetGetIPMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetGetIPMessage);
-};
-
-struct CPeerNetGetCountMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetGetCountMessage);
-};
-
-struct CPeerNetGetPeersMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetGetPeersMessage);
-};
-
-struct CPeerNetAddNodeMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetAddNodeMessage);
-};
-
-struct CPeerNetRemoveNodeMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetRemoveNodeMessage);
-};
-
-struct CPeerNetGetBannedMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetGetBannedMessage);
-};
-
-struct CPeerNetSetBanMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetSetBanMessage);
-};
-
-struct CPeerNetClrBannedMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CPeerNetClrBannedMessage);
-};
-
 /// Add an unconfirmed transaction.
 struct CAddTxMessage : public xengine::CMessage
 {
