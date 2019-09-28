@@ -364,7 +364,7 @@ CPeerInfo* CPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
     return pInfo;
 }
 
-bool CPeerNet::HandleEvent(CEventPeerNetGetIP& eventGetIP)
+/*bool CPeerNet::HandleEvent(CEventPeerNetGetIP& eventGetIP)
 {
     eventGetIP.result = GetLocalIP();
     return true;
@@ -442,7 +442,7 @@ bool CPeerNet::HandleEvent(CEventPeerNetClrBanned& eventClrBanned)
     epMngr.ClearBanned(vAddrToClear);
     eventClrBanned.result = vAddrToClear.size();
     return true;
-}
+}*/
 
 void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
 {
