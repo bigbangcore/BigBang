@@ -31,7 +31,7 @@
 using namespace xengine;
 using namespace bigbang;
 
-BOOST_FIXTURE_TEST_SUITE(netchn_tests, BasicUtfSetup)
+BOOST_FIXTURE_TEST_SUITE(network_tests, BasicUtfSetup)
 
 class CDummyPeerNet : public CNetwork
 {

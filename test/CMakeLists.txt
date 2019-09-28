@@ -17,7 +17,7 @@ set(sources
     crypto_tests.cpp
     actor_tests.cpp
     timer_tests.cpp
-    netchn_tests.cpp
+    network_tests.cpp
 )
 
 add_executable(test_big ${sources})
