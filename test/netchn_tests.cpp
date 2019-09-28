@@ -117,10 +117,23 @@ public:
 
 BOOST_AUTO_TEST_CASE(netchn_msg)
 {
+    auto pCfg = new CBasicConfig();
+    boost::filesystem::path dataPath(boost::filesystem::current_path().generic_string() + boost::filesystem::path("/data-dir").generic_string());
+    boost::filesystem::create_directory(dataPath);
+    std::string args = std::string("-datadir=") + dataPath.generic_string();
+
+    const char* argv[] = {
+        (char*)("/bin/test"),
+        (char*)(args.c_str())
+    };
+    pCfg->pathData = dataPath;
+    BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
+
     CDocker docker;
-    InitLog("./", true, false);
+    InitLog(dataPath.c_str(), true, false);
     xengine::CLog log;
-    BOOST_CHECK(docker.Initialize(new xengine::CConfig, &log));
+
+    BOOST_CHECK(docker.Initialize(pCfg, &log));
     BOOST_CHECK(docker.Attach(new CConsensus()));
     auto pCoreProtocol = new CCoreProtocol();
     BOOST_CHECK(docker.Attach(pCoreProtocol));
@@ -230,10 +243,23 @@ public:
 
 BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 {
+    auto pCfg = new CBasicConfig();
+    boost::filesystem::path dataPath(boost::filesystem::current_path().generic_string() + boost::filesystem::path("/data-dir").generic_string());
+    boost::filesystem::create_directory(dataPath);
+    std::string args = std::string("-datadir=") + dataPath.generic_string();
+
+    const char* argv[] = {
+        (char*)("/bin/test"),
+        (char*)(args.c_str())
+    };
+    pCfg->pathData = dataPath;
+    BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
+
     CDocker docker;
-    InitLog("./", true, false);
+    InitLog(dataPath.c_str(), true, false);
     xengine::CLog log;
-    BOOST_CHECK(docker.Initialize(new xengine::CConfig, &log));
+
+    BOOST_CHECK(docker.Initialize(pCfg, &log));
     BOOST_CHECK(docker.Attach(new CConsensus()));
     auto pCoreProtocol = new CCoreProtocol();
     BOOST_CHECK(docker.Attach(pCoreProtocol));
@@ -263,7 +289,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    //BOOST_CHECK(pDelegatedChannel->TestActiveNonce(spActiveMsg->nNonce));
+    BOOST_CHECK(pDelegatedChannel->TestActiveNonce(spActiveMsg->nNonce));
 
     //////////////////  Bulletin Test   /////////////////
 
@@ -272,22 +298,22 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     spBulletinMsg->hashAnchor = uint256("testHashAchor");
     spBulletinMsg->deletegatedBulletin.bmDistribute = 0x001;
     spBulletinMsg->deletegatedBulletin.bmPublish = 0x002;
-    //PUBLISH_MESSAGE(spBulletinMsg);
+    PUBLISH_MESSAGE(spBulletinMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    //BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
+    BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
 
     //////////////////   Deactive Test  /////////////////
 
     auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    //PUBLISH_MESSAGE(spDeactiveMsg);
+    PUBLISH_MESSAGE(spDeactiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    //BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
+    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
 }
