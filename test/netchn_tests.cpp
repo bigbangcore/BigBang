@@ -44,6 +44,12 @@ public:
         return true;
     }
 
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CPeerNetCloseMessage::MessageType());
+        DeregisterHandler(CPeerNetRewardMessage::MessageType());
+    }
+
 protected:
     void HandleNetClose(const CPeerNetCloseMessage& msg)
     {
@@ -59,16 +65,19 @@ class CDummyNetChannel : public CNetChannel
 public:
     bool TestActiveNonce(uint64 nNonce)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         return mapPeer.count(nNonce) != 0;
     }
 
     bool TestDeactiveNonce(uint nNonce)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         return mapPeer.count(nNonce) == 0;
     }
 
     bool TestSubscribe(uint nNonce, const uint256& fork)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         if (mapPeer.count(nNonce) == 0
             || mapUnsync.count(fork) == 0
             || mapSched.count(fork) == 0)
@@ -86,6 +95,7 @@ public:
 
     bool TestUnsubscribe(uint nNonce, const uint256& fork)
     {
+        boost::shared_lock<boost::shared_mutex> lock(rwNetPeer);
         if (mapUnsync.count(fork) == 0)
         {
             return false;
@@ -176,7 +186,108 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestDeactiveNonce(spActiveMsg->nNonce));
+    BOOST_CHECK(pNetChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
+
+    docker.Exit();
+}
+
+class CDummyDelegatedChannel : public CDelegatedChannel
+{
+public:
+    bool TestActiveNonce(uint64 nNonce)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        return schedPeer.mapPeer.count(nNonce) != 0;
+    }
+
+    bool TestDeactiveNonce(uint64 nNonce)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        return schedPeer.mapPeer.count(nNonce) == 0;
+    }
+
+    bool TestBulletin(uint64 nNonce, uint256 hashAnchor)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
+        if (schedPeer.mapPeer.count(nNonce) == 0)
+        {
+            return false;
+        }
+
+        if (!schedPeer.GetPeer(nNonce))
+        {
+            return false;
+        }
+
+        if (dataChain.mapChainData.count(hashAnchor) != 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+};
+
+BOOST_AUTO_TEST_CASE(delegated_chn_msg)
+{
+    CDocker docker;
+    InitLog("./", true, false);
+    xengine::CLog log;
+    BOOST_CHECK(docker.Initialize(new xengine::CConfig, &log));
+    BOOST_CHECK(docker.Attach(new CConsensus()));
+    auto pCoreProtocol = new CCoreProtocol();
+    BOOST_CHECK(docker.Attach(pCoreProtocol));
+    BOOST_CHECK(docker.Attach(new CDummyPeerNet()));
+    BOOST_CHECK(docker.Attach(new CForkManager()));
+    BOOST_CHECK(docker.Attach(new CWallet()));
+    BOOST_CHECK(docker.Attach(new CService()));
+    BOOST_CHECK(docker.Attach(new CTxPool()));
+    BOOST_CHECK(docker.Attach(new CBlockChain()));
+    BOOST_CHECK(docker.Attach(new CBlockMaker()));
+    BOOST_CHECK(docker.Attach(new CDataStat()));
+    BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannel()));
+    auto pDelegatedChannel = new CDummyDelegatedChannel();
+    BOOST_CHECK(docker.Attach(pDelegatedChannel));
+
+    BOOST_CHECK(docker.Run());
+
+    const uint64 nTestNonce = 0xff;
+
+    ///////////////////   Active Test  //////////////////
+
+    auto spActiveMsg = CPeerActiveMessage::Create();
+    spActiveMsg->nNonce = nTestNonce;
+    spActiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
+    PUBLISH_MESSAGE(spActiveMsg);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    //BOOST_CHECK(pDelegatedChannel->TestActiveNonce(spActiveMsg->nNonce));
+
+    //////////////////  Bulletin Test   /////////////////
+
+    auto spBulletinMsg = CPeerBulletinMessageInBound::Create();
+    spBulletinMsg->nNonce = nTestNonce;
+    spBulletinMsg->hashAnchor = uint256("testHashAchor");
+    spBulletinMsg->deletegatedBulletin.bmDistribute = 0x001;
+    spBulletinMsg->deletegatedBulletin.bmPublish = 0x002;
+    //PUBLISH_MESSAGE(spBulletinMsg);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    //BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
+
+    //////////////////   Deactive Test  /////////////////
+
+    auto spDeactiveMsg = CPeerDeactiveMessage::Create();
+    spDeactiveMsg->nNonce = nTestNonce;
+    spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
+    //PUBLISH_MESSAGE(spDeactiveMsg);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    //BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
 }

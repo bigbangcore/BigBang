@@ -31,6 +31,8 @@ CPeerNet::CPeerNet(const string& ownKeyIn)
 
 CPeerNet::~CPeerNet()
 {
+    DeregisterHandler(CPeerNetCloseMessage::MessageType());
+    DeregisterHandler(CPeerNetRewardMessage::MessageType());
 }
 
 void CPeerNet::ConfigNetwork(CPeerNetConfig& config)

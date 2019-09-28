@@ -167,6 +167,7 @@ bool CDocker::Run()
         fActived = true;
         condDocker.notify_all();
     }
+
     return true;
 }
 

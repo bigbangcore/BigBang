@@ -5,6 +5,7 @@
 #include "delegatedchn.h"
 
 #include "delegatecomm.h"
+#include "logger.h"
 
 using namespace std;
 using namespace xengine;
@@ -224,7 +225,6 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 
 CDelegatedChannel::CDelegatedChannel()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
@@ -237,12 +237,6 @@ CDelegatedChannel::~CDelegatedChannel()
 
 bool CDelegatedChannel::HandleInitialize()
 {
-    if (!GetObject("peernet", pPeerNet))
-    {
-        Error("Failed to request peer net\n");
-        return false;
-    }
-
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
         Error("Failed to request coreprotocol\n");
@@ -260,15 +254,29 @@ bool CDelegatedChannel::HandleInitialize()
         Error("Failed to request dispatcher\n");
         return false;
     }
+
+    RegisterHandler<CPeerActiveMessage>(boost::bind(&CDelegatedChannel::HandleActive, this, _1));
+    RegisterHandler<CPeerDeactiveMessage>(boost::bind(&CDelegatedChannel::HandleDeactive, this, _1));
+    RegisterHandler<CPeerBulletinMessageInBound>(boost::bind(&CDelegatedChannel::HandleBulletin, this, _1));
+    RegisterHandler<CPeerGetDelegatedMessageInBound>(boost::bind(&CDelegatedChannel::HandleGetDelegate, this, _1));
+    RegisterHandler<CPeerDistributeMessageInBound>(boost::bind(&CDelegatedChannel::HandleDistribute, this, _1));
+    RegisterHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
+
     return true;
 }
 
 void CDelegatedChannel::HandleDeinitialize()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
+
+    DeregisterHandler(CPeerActiveMessage::MessageType());
+    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+    DeregisterHandler(CPeerBulletinMessageInBound::MessageType());
+    DeregisterHandler(CPeerGetDelegatedMessageInBound::MessageType());
+    DeregisterHandler(CPeerDistributeMessageInBound::MessageType());
+    DeregisterHandler(CPeerPublishMessageInBound::MessageType());
 }
 
 bool CDelegatedChannel::HandleInvoke()
@@ -278,7 +286,7 @@ bool CDelegatedChannel::HandleInvoke()
         nTimerBulletin = 0;
         fBulletin = false;
     }
-    return network::IDelegatedChannel::HandleInvoke();
+    return network::IDelegatedChannelActor::HandleInvoke();
 }
 
 void CDelegatedChannel::HandleHalt()
@@ -293,112 +301,110 @@ void CDelegatedChannel::HandleHalt()
         fBulletin = false;
     }
 
-    network::IDelegatedChannel::HandleHalt();
+    network::IDelegatedChannelActor::HandleHalt();
     schedPeer.Clear();
     dataChain.Clear();
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerActive& eventActive)
+void CDelegatedChannel::HandleActive(const CPeerActiveMessage& activeMsg)
 {
-    uint64 nNonce = eventActive.nNonce;
-    if ((eventActive.data.nService & network::NODE_DELEGATED))
+    uint64 nNonce = activeMsg.nNonce;
+    if ((activeMsg.address.nService & network::NODE_DELEGATED))
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
         schedPeer.ActivatePeer(std::shared_ptr<CDataPeer<CDelegatedDataIdent>>(new CDelegatedChannelPeer(nNonce)));
     }
-    return true;
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
+void CDelegatedChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
 {
-    uint64 nNonce = eventDeactive.nNonce;
+    uint64 nNonce = deactiveMsg.nNonce;
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
         schedPeer.DeactivatePeer(nNonce);
         DispatchGetDelegated();
     }
-    return true;
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerBulletin& eventBulletin)
+void CDelegatedChannel::HandleBulletin(const CPeerBulletinMessageInBound& bulletinMsg)
 {
-    uint64 nNonce = eventBulletin.nNonce;
-    const uint256& hashAnchor = eventBulletin.hashAnchor;
+    uint64 nNonce = bulletinMsg.nNonce;
+    const uint256& hashAnchor = bulletinMsg.hashAnchor;
 
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
-        AddPeerKnownDistrubute(nNonce, hashAnchor, eventBulletin.data.bmDistribute);
-        AddPeerKnownPublish(nNonce, hashAnchor, eventBulletin.data.bmPublish);
+        AddPeerKnownDistrubute(nNonce, hashAnchor, bulletinMsg.deletegatedBulletin.bmDistribute);
+        AddPeerKnownPublish(nNonce, hashAnchor, bulletinMsg.deletegatedBulletin.bmPublish);
 
-        for (size_t i = 0; i < eventBulletin.data.vBitmap.size(); ++i)
+        for (size_t i = 0; i < bulletinMsg.deletegatedBulletin.vBitmap.size(); ++i)
         {
-            AddPeerKnownDistrubute(nNonce, eventBulletin.data.vBitmap[i].hashAnchor,
-                                   eventBulletin.data.vBitmap[i].bitmap);
+            AddPeerKnownDistrubute(nNonce, bulletinMsg.deletegatedBulletin.vBitmap[i].hashAnchor,
+                                   bulletinMsg.deletegatedBulletin.vBitmap[i].bitmap);
         }
         DispatchGetDelegated();
 
         std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-        if (spPeer != nullptr)
+        if (spPeer)
         {
-            spPeer->Renew(hashAnchor, eventBulletin.data);
+            spPeer->Renew(hashAnchor, bulletinMsg.deletegatedBulletin);
         }
     }
-
-    return true;
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerGetDelegated& eventGetDelegated)
+void CDelegatedChannel::HandleGetDelegate(const CPeerGetDelegatedMessageInBound& getDelegatedMsg)
 {
-    uint64 nNonce = eventGetDelegated.nNonce;
-    const uint256& hashAnchor = eventGetDelegated.hashAnchor;
-    const CDestination& dest = eventGetDelegated.data.destDelegate;
+    uint64 nNonce = getDelegatedMsg.nNonce;
+    const uint256& hashAnchor = getDelegatedMsg.hashAnchor;
+    const CDestination& dest = getDelegatedMsg.delegatedGetData.destDelegate;
 
-    if (eventGetDelegated.data.nInvType == network::CInv::MSG_DISTRIBUTE)
+    if (getDelegatedMsg.delegatedGetData.nInvType == network::CInv::MSG_DISTRIBUTE)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
 
-        network::CEventPeerDistribute eventDistribute(nNonce, hashAnchor);
-        eventDistribute.data.destDelegate = dest;
-        dataChain.GetDistributeData(hashAnchor, dest, eventDistribute.data.vchData);
-        pPeerNet->DispatchEvent(&eventDistribute);
+        auto spDistributeMsg = CPeerDistributeMessageOutBound::Create();
+        spDistributeMsg->nNonce = nNonce;
+        spDistributeMsg->hashAnchor = hashAnchor;
+        spDistributeMsg->delegatedData.destDelegate = dest;
+        dataChain.GetDistributeData(hashAnchor, dest, spDistributeMsg->delegatedData.vchData);
+        PUBLISH_MESSAGE(spDistributeMsg);
     }
-    else if (eventGetDelegated.data.nInvType == network::CInv::MSG_PUBLISH)
+    else if (getDelegatedMsg.delegatedGetData.nInvType == network::CInv::MSG_PUBLISH)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwPeer);
 
-        network::CEventPeerPublish eventPublish(nNonce, hashAnchor);
-        eventPublish.data.destDelegate = dest;
-        dataChain.GetPublishData(hashAnchor, dest, eventPublish.data.vchData);
-        pPeerNet->DispatchEvent(&eventPublish);
+        auto spPublishMsg = CPeerPublishMessageOutBound::Create();
+        spPublishMsg->nNonce = nNonce;
+        spPublishMsg->hashAnchor = hashAnchor;
+        spPublishMsg->delegatedData.destDelegate = dest;
+        dataChain.GetPublishData(hashAnchor, dest, spPublishMsg->delegatedData.vchData);
+        PUBLISH_MESSAGE(spPublishMsg);
     }
-
-    return true;
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerDistribute& eventDistribute)
+void CDelegatedChannel::HandleDistribute(const CPeerDistributeMessageInBound& distributeMsg)
 {
-    uint64 nNonce = eventDistribute.nNonce;
-    const uint256& hashAnchor = eventDistribute.hashAnchor;
-    const CDestination& dest = eventDistribute.data.destDelegate;
+    uint64 nNonce = distributeMsg.nNonce;
+    const uint256& hashAnchor = distributeMsg.hashAnchor;
+    const CDestination& dest = distributeMsg.delegatedData.destDelegate;
     CDelegatedDataIdent ident(hashAnchor, network::CInv::MSG_DISTRIBUTE, dest);
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
         if (nNonce == schedPeer.GetAssignedPeer(ident))
         {
-            const vector<unsigned char>& vchData = eventDistribute.data.vchData;
+            const vector<unsigned char>& vchData = distributeMsg.delegatedData.vchData;
 
             schedPeer.RemoveKnownData(ident);
 
             if (dataChain.IsOutOfDistributeRange(hashAnchor))
             {
                 DispatchGetDelegated();
-                return true;
+                return;
             }
             else if (vchData.empty())
             {
-                return true;
+                return;
             }
             else if (pDispatcher->AddNewDistribute(hashAnchor, dest, vchData))
             {
@@ -407,38 +413,37 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerDistribute& eventDistribu
                 {
                     BroadcastBulletin(!fAssigned);
                 }
-                return true;
+                return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
     }
-    return true;
 }
 
-bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
+void CDelegatedChannel::HandlePublish(const CPeerPublishMessageInBound& publishMsg)
 {
-    uint64 nNonce = eventPublish.nNonce;
-    const uint256& hashAnchor = eventPublish.hashAnchor;
-    const CDestination& dest = eventPublish.data.destDelegate;
+    uint64 nNonce = publishMsg.nNonce;
+    const uint256& hashAnchor = publishMsg.hashAnchor;
+    const CDestination& dest = publishMsg.delegatedData.destDelegate;
     CDelegatedDataIdent ident(hashAnchor, network::CInv::MSG_PUBLISH, dest);
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
         if (nNonce == schedPeer.GetAssignedPeer(ident))
         {
-            const vector<unsigned char>& vchData = eventPublish.data.vchData;
+            const vector<unsigned char>& vchData = publishMsg.delegatedData.vchData;
 
             schedPeer.RemoveKnownData(ident);
 
             if (dataChain.IsOutOfPublishRange(hashAnchor))
             {
                 DispatchGetDelegated();
-                return true;
+                return;
             }
             else if (vchData.empty())
             {
-                return true;
+                return;
             }
             else if (pDispatcher->AddNewPublish(hashAnchor, dest, vchData))
             {
@@ -447,13 +452,12 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
                 {
                     BroadcastBulletin(!fAssigned);
                 }
-                return true;
+                return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
     }
-    return true;
 }
 
 void CDelegatedChannel::PrimaryUpdate(int nStartHeight,
@@ -504,10 +508,13 @@ bool CDelegatedChannel::DispatchGetDelegated()
     {
         uint64 nNonce = vAssigned[i].first;
         const CDelegatedDataIdent& ident = vAssigned[i].second;
-        network::CEventPeerGetDelegated eventGetDelegated(nNonce, ident.hashAnchor);
-        eventGetDelegated.data.nInvType = ident.nInvType;
-        eventGetDelegated.data.destDelegate = ident.destDelegated;
-        pPeerNet->DispatchEvent(&eventGetDelegated);
+
+        auto spGetDelegatedMsg = CPeerGetDelegatedMessageOutBound::Create();
+        spGetDelegatedMsg->nNonce = nNonce;
+        spGetDelegatedMsg->hashAnchor = ident.hashAnchor;
+        spGetDelegatedMsg->delegatedGetData.nInvType = ident.nInvType;
+        spGetDelegatedMsg->delegatedGetData.destDelegate = ident.destDelegated;
+        PUBLISH_MESSAGE(spGetDelegatedMsg);
     }
 
     return (!vAssigned.empty());
@@ -535,11 +542,11 @@ void CDelegatedChannel::AddPeerKnownPublish(uint64 nNonce, const uint256& hashAn
 
 void CDelegatedChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason)
 {
-    /*
-    CEventPeerNetClose eventClose(nNonce);
-    eventClose.data = reason;
-    pPeerNet->DispatchEvent(&eventClose);
-*/
+    // TODO
+    /*auto spNetCloseMsg = CPeerNetCloseMessage::Create();
+    spNetCloseMsg->nNonce = nNonce;
+    spNetCloseMsg->closeReason = reason;
+    PUBLISH_MESSAGE(spNetCloseMsg);*/
 }
 
 void CDelegatedChannel::PushBulletinTimerFunc(uint32 nTimerId)
@@ -573,26 +580,29 @@ void CDelegatedChannel::PushBulletin()
     {
         const uint256& hashAnchor = listHash.front();
 
-        network::CEventPeerBulletin eventBulletin(0ULL, hashAnchor);
-        eventBulletin.data.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
-        eventBulletin.data.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+        auto spBulletinMsg = CPeerBulletinMessageOutBound::Create();
+        spBulletinMsg->nNonce = 0ULL;
+        spBulletinMsg->hashAnchor = hashAnchor;
+        spBulletinMsg->deletegatedBulletin.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
+        spBulletinMsg->deletegatedBulletin.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+
         for (list<uint256>::iterator it = ++listHash.begin(); it != listHash.end(); ++it)
         {
             const uint256& hash = (*it);
             uint64 bitmap = dataChain.GetDistributeBitmap(hash);
             if (bitmap != 0)
             {
-                eventBulletin.data.AddBitmap(hash, bitmap);
+                spBulletinMsg->deletegatedBulletin.AddBitmap(hash, bitmap);
             }
         }
         for (const uint64& nNonce : vPeer)
         {
             std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, eventBulletin.data))
+            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, spBulletinMsg->deletegatedBulletin))
             {
-                spPeer->Update(hashAnchor, eventBulletin.data);
-                eventBulletin.nNonce = nNonce;
-                pPeerNet->DispatchEvent(&eventBulletin);
+                spPeer->Update(hashAnchor, spBulletinMsg->deletegatedBulletin);
+                spBulletinMsg->nNonce = nNonce;
+                PUBLISH_MESSAGE(spBulletinMsg);
             }
         }
     }

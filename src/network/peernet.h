@@ -29,18 +29,18 @@ public:
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
 };
 
-class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
+class IDelegatedChannelActor : public xengine::CIOActor
 {
 public:
-    IDelegatedChannel()
-      : IIOModule("delegatedchannel") {}
+    IDelegatedChannelActor()
+      : xengine::CIOActor("delegatedchannel") {}
     virtual void PrimaryUpdate(int nStartHeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
                                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) = 0;
 };
 
-class CBbPeerNet : public xengine::CPeerNet, virtual public CBbPeerEventListener
+class CBbPeerNet : public xengine::CPeerNet
 {
 public:
     CBbPeerNet();
@@ -63,10 +63,11 @@ protected:
     void HandlePeerTx(const CPeerTxMessageOutBound& txMsg);
     void HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg);
 
-    bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
-    bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
-    bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
-    bool HandleEvent(CEventPeerPublish& eventPublish) override;
+    void HandleBulletin(const CPeerBulletinMessageOutBound& bulletinMsg);
+    void HandleGetDelegate(const CPeerGetDelegatedMessageOutBound& getDelegatedMsg);
+    void HandleDistribute(const CPeerDistributeMessageOutBound& distributeMsg);
+    void HandlePublish(const CPeerPublishMessageOutBound& publishMsg);
+
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;
     xengine::CPeerInfo* GetPeerInfo(xengine::CPeer* pPeer, xengine::CPeerInfo* pInfo) override;
@@ -87,7 +88,6 @@ protected:
 
 protected:
     INetChannelActor* pNetChannel;
-    IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

@@ -172,6 +172,16 @@ void CNetChannel::HandleDeinitialize()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+
+    DeregisterHandler(CPeerActiveMessage::MessageType());
+    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+    DeregisterHandler(CPeerSubscribeMessageInBound::MessageType());
+    DeregisterHandler(CPeerUnsubscribeMessageInBound::MessageType());
+    DeregisterHandler(CPeerInvMessageInBound::MessageType());
+    DeregisterHandler(CPeerGetDataMessageInBound::MessageType());
+    DeregisterHandler(CPeerGetBlocksMessageInBound::MessageType());
+    DeregisterHandler(CPeerTxMessageInBound::MessageType());
+    DeregisterHandler(CPeerBlockMessageInBound::MessageType());
 }
 
 bool CNetChannel::HandleInvoke()
