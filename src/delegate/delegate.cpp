@@ -12,7 +12,7 @@ namespace bigbang
 namespace delegate
 {
 
-#define MAX_DELEGATE_THRESH (50)
+#define MAX_DELEGATE_THRESH (23) //(50)
 //////////////////////////////
 // CDelegate
 
