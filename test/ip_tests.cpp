@@ -32,9 +32,6 @@ public:
 
 BOOST_AUTO_TEST_CASE(white_list_regex)
 {
-    const boost::regex expr("(\\*)|(\\?)|(\\.)");
-    const std::string fmt = "(?1.*)(?2.)(?3\\\\.)";
-
     std::vector<std::string> vAllowMask{ "192.168.199.*", "2001:db8:0:f101::*",
                                          "fe80::95c3:6a70:f4e4:5c2a", "fe80::95c3:6a70:*:fc2a" };
 
