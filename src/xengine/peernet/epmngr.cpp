@@ -223,11 +223,19 @@ bool CEndpointManager::FetchOutBound(tcp::endpoint& ep)
     return false;
 }
 
-bool CEndpointManager::AcceptInBound(const tcp::endpoint& ep)
+int CEndpointManager::AcceptInBound(const tcp::endpoint& ep)
 {
     int64 now = GetTime();
     CAddressStatus& status = mapAddressStatus[ep.address()];
-    return (status.InBoundAttempt(now) && status.AddConnection(true));
+    if (!status.InBoundAttempt(now))
+    {
+        return -1;
+    }
+    if (!status.AddConnection(true))
+    {
+        return -2;
+    }
+    return 0;
 }
 
 void CEndpointManager::RewardEndpoint(const tcp::endpoint& ep, Bonus bonus)

@@ -132,18 +132,29 @@ std::size_t CPeerNet::GetMaxOutBoundCount()
     return confNetwork.nMaxOutBounds;
 }
 
-bool CPeerNet::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient)
+bool CPeerNet::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause)
 {
-    if (epMngr.AcceptInBound(pClient->GetRemote()))
+    switch (epMngr.AcceptInBound(pClient->GetRemote()))
     {
-        CPeer* pPeer = AddNewPeer(pClient, true);
-        if (pPeer != nullptr)
+    case 0:
+        if (AddNewPeer(pClient, true) == nullptr)
         {
-            return true;
+            epMngr.CloseEndpoint(pClient->GetRemote(), CEndpointManager::HOST_CLOSE);
+            strFailCause = "Add peer fail";
+            return false;
         }
-        epMngr.CloseEndpoint(pClient->GetRemote(), CEndpointManager::HOST_CLOSE);
+        break;
+    case -1:
+        strFailCause = "In bound attempt fail";
+        return false;
+    case -2:
+        strFailCause = "Connection number exceeding maximum limit";
+        return false;
+    default:
+        strFailCause = "Other fail";
+        return false;
     }
-    return false;
+    return true;
 }
 
 bool CPeerNet::ClientConnected(CIOClient* pClient)
@@ -195,12 +206,13 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
     {
         pPeer->Activate();
         mapPeer.insert(make_pair(nNonce, pPeer));
+
+        Log("Add New Peer : %s %d\n", pPeer->GetRemote().address().to_string().c_str(),
+            pPeer->GetRemote().port());
+
+        return pPeer;
     }
-
-    Log("Add New Peer : %s %d\n", pPeer->GetRemote().address().to_string().c_str(),
-        pPeer->GetRemote().port());
-
-    return pPeer;
+    return nullptr;
 }
 
 void CPeerNet::RemovePeer(CPeer* pPeer, const CEndpointManager::CloseReason& reason)

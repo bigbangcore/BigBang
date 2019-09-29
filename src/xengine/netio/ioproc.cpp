@@ -282,7 +282,7 @@ size_t CIOProc::GetMaxOutBoundCount()
     return DEFAULT_MAX_OUTBOUND;
 }
 
-bool CIOProc::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient)
+bool CIOProc::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause)
 {
     return false;
 }

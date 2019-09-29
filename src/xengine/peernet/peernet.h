@@ -61,7 +61,7 @@ protected:
     void HeartBeat() override;
     void Timeout(uint64 nNonce, uint32 nTimerId) override;
     std::size_t GetMaxOutBoundCount() override;
-    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient) override;
+    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause) override;
     bool ClientConnected(CIOClient* pClient) override;
     void ClientFailToConnect(const boost::asio::ip::tcp::endpoint& epRemote) override;
     void HostResolved(const CNetHost& host, const boost::asio::ip::tcp::endpoint& ep) override;
