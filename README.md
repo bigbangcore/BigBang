@@ -13,11 +13,6 @@ Whitepaper: [BigBang Whitepaper(中文)](https://www.bigbangcore.com/whitepaper/
 
 Whitepaper: [BigBang Whitepaper(EN)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper_EN.pdf)
 
-
-## License
-
-BigBangCoreWallet is released under the terms of the MIT license. See COPYING for more information or see <https://opensource.org/licenses/MIT>.
-
 ## Repo Guidelines
 
 * Developers work in their own forks, then submit pull requests when they think their feature or bug fix is ready.
