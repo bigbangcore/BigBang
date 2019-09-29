@@ -36,7 +36,7 @@ struct CPeerNetGetIPMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetIPMessage);
     CPeerNetGetIPMessage(std::promise<std::string>& ipIn)
-      : ip(ipIn) {}
+      : ip(ipIn), data(0) {}
     int data;
     std::promise<std::string>& ip;
 };
@@ -45,7 +45,7 @@ struct CPeerNetGetCountMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetCountMessage);
     CPeerNetGetCountMessage(std::promise<std::size_t>& countIn)
-      : count(countIn) {}
+      : count(countIn), data(0) {}
     int data;
     std::promise<std::size_t>& count;
 };
@@ -54,7 +54,7 @@ struct CPeerNetGetPeersMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetPeersMessage);
     CPeerNetGetPeersMessage(std::promise<boost::ptr_vector<CPeerInfo>>& resultsIn)
-      : results(resultsIn) {}
+      : results(resultsIn), data(0) {}
     int data;
     std::promise<boost::ptr_vector<CPeerInfo>>& results;
 };
@@ -81,7 +81,7 @@ struct CPeerNetGetBannedMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetBannedMessage);
     CPeerNetGetBannedMessage(std::promise<std::vector<CAddressBanned>>& resultIn)
-      : results(resultIn) {}
+      : results(resultIn), data(0) {}
     int data;
     std::promise<std::vector<CAddressBanned>>& results;
 };
