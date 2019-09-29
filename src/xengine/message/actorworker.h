@@ -45,7 +45,7 @@ public:
      * @param spMessage a shared_ptr object of CMessage or it's derived
      * @note Thread safe.
      */
-    void Publish(const std::shared_ptr<CMessage> spMessage);
+    void Publish(std::shared_ptr<CMessage> spMessage);
 
     /**
      * @brief Stop service.
@@ -132,7 +132,7 @@ private:
     /// The function of the thread entry contains ioService.run().
     void HandlerThreadFunc();
     /// Message handler callback entry.
-    void MessageHandler(const std::shared_ptr<CMessage> spMessage);
+    void MessageHandler(std::shared_ptr<CMessage> spMessage);
 
 protected:
     boost::asio::io_service ioService;

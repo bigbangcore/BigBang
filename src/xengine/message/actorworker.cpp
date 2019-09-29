@@ -21,7 +21,7 @@ CIOActorWorker::~CIOActorWorker()
     mapHandler.clear();
 }
 
-void CIOActorWorker::Publish(const std::shared_ptr<CMessage> spMessage)
+void CIOActorWorker::Publish(std::shared_ptr<CMessage> spMessage)
 {
     ioStrand.post(boost::bind(&CIOActorWorker::MessageHandler, this, spMessage));
 }
@@ -89,7 +89,7 @@ void CIOActorWorker::HandlerThreadFunc()
     LeaveLoop();
 }
 
-void CIOActorWorker::MessageHandler(const std::shared_ptr<CMessage> spMessage)
+void CIOActorWorker::MessageHandler(std::shared_ptr<CMessage> spMessage)
 {
     auto it = mapHandler.find(spMessage->Type());
     if (it != mapHandler.end())
