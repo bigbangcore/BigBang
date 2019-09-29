@@ -77,15 +77,15 @@ protected:
      *         Message is equal to or derived from CMessage.
      * @param handler The function (void handler(const std::shared_ptr<Message>)) which handle message.
      * @code
-     *     void HandlerDerivedFunction(const std::shared_ptr<DerivedMessage>);
+     *     void HandlerDerivedFunction(const std::shared_ptr<DerivedMessage>&);
      *     RegisterPtrHandler<DerivedMessage>(HandlerDerivedFunction);
      * 
-     *     void HandlerBaseFunction(const std::shared_ptr<CMessage>);
+     *     void HandlerBaseFunction(const std::shared_ptr<CMessage>&);
      *     RegisterPtrHandler<DerivedMessage>(HandlerBaseFunction);
      * @endcode
      */
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    void RegisterPtrHandler(boost::function<void(const std::shared_ptr<Message>)> handler)
+    void RegisterPtrHandler(boost::function<void(const std::shared_ptr<Message>&)> handler)
     {
         CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
         CIOActorWorker::RegisterPtrHandler<Message>(handler);
