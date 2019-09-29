@@ -202,6 +202,8 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(pNetChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
+
+    boost::filesystem::remove_all(dataPath);
 }
 
 class CDummyDelegatedChannel : public CDelegatedChannel
@@ -316,6 +318,8 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
 
     docker.Exit();
+
+    boost::filesystem::remove_all(dataPath);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
