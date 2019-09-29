@@ -104,7 +104,7 @@ protected:
     {                                                                                             \
         try                                                                                       \
         {                                                                                         \
-            auto f = boost::any_cast<boost::function<void(const std::shared_ptr<cls>)>>(handler); \
+            auto f = boost::any_cast<boost::function<void(const std::shared_ptr<cls>&)>>(handler); \
             f(SharedFromBase<cls>());                                                             \
         }                                                                                         \
         catch (const boost::bad_any_cast&)                                                          \

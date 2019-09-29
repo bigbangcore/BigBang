@@ -155,7 +155,7 @@ public:
     map<uint32, CIOActorWorker*> mapWorkers;
 
 protected:
-    void HandlerMessage(const shared_ptr<CMessage> spMsg)
+    void HandlerMessage(const shared_ptr<CMessage>& spMsg)
     {
         if (spMsg->Type() == CTestMessageA::MessageType())
         {
