@@ -12,16 +12,16 @@ namespace xengine
 class IIOProc : public IBase
 {
 public:
-    IIOProc(const std::string& ownKeyIn)
-      : IBase(ownKeyIn) {}
+    IIOProc(const std::string& strOwnKeyIn)
+      : IBase(strOwnKeyIn) {}
     virtual bool DispatchEvent(CEvent* pEvent) = 0;
 };
 
 class IIOModule : public CEventProc
 {
 public:
-    IIOModule(const std::string& ownKeyIn)
-      : CEventProc(ownKeyIn) {}
+    IIOModule(const std::string& strOwnKeyIn)
+      : CEventProc(strOwnKeyIn) {}
 };
 
 } // namespace xengine

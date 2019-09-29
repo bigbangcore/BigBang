@@ -23,7 +23,7 @@ namespace xengine
 class CConsole : public IBase
 {
 public:
-    CConsole(const std::string& ownKeyIn, const std::string& strPromptIn);
+    CConsole(const std::string& strOwnKeyIn, const std::string& strPromptIn);
     virtual ~CConsole();
     bool DispatchEvent(CEvent* pEvent) override;
     void DispatchLine(const std::string& strLine);

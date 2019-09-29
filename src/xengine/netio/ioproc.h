@@ -55,7 +55,7 @@ class CIOProc : public CIOActor
     friend class CIOInBound;
 
 public:
-    CIOProc(const std::string& ownKeyIn = "");
+    CIOProc(const std::string& strOwnKeyIn = "");
     virtual ~CIOProc();
     boost::asio::io_service& GetIoService();
     boost::asio::io_service::strand& GetIoStrand();

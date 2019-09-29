@@ -15,8 +15,8 @@ namespace xengine
 class IController : public IBase
 {
 public:
-    IController(const std::string& ownKeyIn = "")
-      : IBase(ownKeyIn) {}
+    IController(const std::string& strOwnKeyIn = "")
+      : IBase(strOwnKeyIn) {}
 };
 
 } // namespace xengine

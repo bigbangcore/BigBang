@@ -14,9 +14,9 @@ namespace xengine
 ///////////////////////////////
 // CEventProc
 
-CEventProc::CEventProc(const string& ownKeyIn)
-  : IBase(ownKeyIn),
-    thrEventQue(ownKeyIn + "-eventq", boost::bind(&CEventProc::EventThreadFunc, this))
+CEventProc::CEventProc(const string& strOwnKeyIn)
+  : IBase(strOwnKeyIn),
+    thrEventQue(strOwnKeyIn + "-eventq", boost::bind(&CEventProc::EventThreadFunc, this))
 {
 }
 

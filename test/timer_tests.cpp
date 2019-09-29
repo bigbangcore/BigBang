@@ -75,9 +75,9 @@ public:
       : CIOActor("actorA") {}
     virtual bool HandleInitialize() override
     {
-        RegisterHandler<CTimeoutMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
-        RegisterHandler<CTimeoutMessageB>(boost::bind(&CActorA::HandlerMessageB, this, _1));
-        RegisterHandler<CTimeoutMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
+        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
+        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorA::HandlerMessageB, this, _1));
+        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
         return true;
     }
 
@@ -103,10 +103,10 @@ public:
       : CIOActor("actorB") {}
     virtual bool HandleInitialize() override
     {
-        RegisterHandler<CTimeoutMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTimeoutMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTimeoutMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterHandler<CTimeoutMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterRefHandler<CTimeoutMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
         return true;
     }
 

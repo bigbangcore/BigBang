@@ -27,8 +27,8 @@ CTimer::~CTimer()
 
 bool CTimer::HandleInitialize()
 {
-    RegisterHandler<CSetTimerMessage>(boost::bind(&CTimer::SetTimer, this, _1));
-    RegisterHandler<CCancelTimerMessage>(boost::bind(&CTimer::CancelTimer, this, _1));
+    RegisterRefHandler<CSetTimerMessage>(boost::bind(&CTimer::SetTimer, this, _1));
+    RegisterRefHandler<CCancelTimerMessage>(boost::bind(&CTimer::CancelTimer, this, _1));
     return true;
 }
 

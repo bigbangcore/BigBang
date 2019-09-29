@@ -49,7 +49,7 @@ public:
 class CPeerNet : public CIOProc, virtual public CPeerEventListener
 {
 public:
-    CPeerNet(const std::string& ownKeyIn);
+    CPeerNet(const std::string& strOwnKeyIn);
     ~CPeerNet();
     void ConfigNetwork(CPeerNetConfig& config);
     void HandlePeerClose(CPeer* pPeer);
