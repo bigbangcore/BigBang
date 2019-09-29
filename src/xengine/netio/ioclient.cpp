@@ -2,10 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "ioclient.h"
+
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #include <boost/bind.hpp>
 
-#include "ioclient.h"
 #include "iocontainer.h"
 #include "util.h"
 
@@ -62,14 +63,19 @@ void CIOClient::Close()
     {
         CloseSocket();
         epRemote = tcp::endpoint();
-        Release();
     }
+    Release();
 }
 
 void CIOClient::Release()
 {
-    if (!(--nRefCount))
+    if (--nRefCount <= 0)
     {
+        if (IsSocketOpen())
+        {
+            CloseSocket();
+            epRemote = tcp::endpoint();
+        }
         pContainer->ClientClose(this);
     }
 }
@@ -113,11 +119,11 @@ void CIOClient::Write(CBufStream& ssSend, CallBackFunc fnCompleted)
 void CIOClient::HandleCompleted(CallBackFunc fnCompleted,
                                 const boost::system::error_code& err, size_t transferred)
 {
+    Release();
     if (err != boost::asio::error::operation_aborted && IsSocketOpen())
     {
         fnCompleted(!err ? transferred : 0);
     }
-    Release();
 }
 
 void CIOClient::HandleConnCompleted(CallBackConn fnCompleted, const boost::system::error_code& err)

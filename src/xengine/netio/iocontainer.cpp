@@ -56,6 +56,7 @@ void CIOCachedContainer::ClientClose(CIOClient* pClient)
         setInuseClient.erase(pClient);
         queIdleClient.push(pClient);
     }
+    IOInAccept();
 }
 
 size_t CIOCachedContainer::GetIdleCount()
@@ -118,7 +119,7 @@ void CIOCachedContainer::FreeClient(size_t nReserve)
 ///////////////////////////////
 // CIOInBound
 CIOInBound::CIOInBound(CIOProc* pIOProcIn)
-  : CIOCachedContainer(pIOProcIn), acceptorService(pIOProcIn->GetIoService())
+  : CIOCachedContainer(pIOProcIn), acceptorService(pIOProcIn->GetIoService()), nAcceptCount(0)
 {
 }
 
@@ -157,9 +158,7 @@ bool CIOInBound::Invoke(const tcp::endpoint& epListen, size_t nMaxConnection, co
 
         acceptorService.listen();
 
-        CIOClient* pClient = ClientAlloc();
-        pClient->Accept(acceptorService,
-                        boost::bind(&CIOInBound::HandleAccept, this, pClient, _1));
+        IOInAccept();
         return true;
     }
     catch (exception& e)
@@ -182,6 +181,21 @@ void CIOInBound::Halt()
 const tcp::endpoint CIOInBound::GetServiceEndpoint()
 {
     return epService;
+}
+
+void CIOInBound::IOInAccept()
+{
+    if (nAcceptCount <= 0 && queIdleClient.size() > 2)
+    {
+        CIOClient* pClient = ClientAlloc();
+        if (pClient == nullptr)
+        {
+            xengine::StdError("IOERROR", "IOInAccept ClientAlloc fail");
+            return;
+        }
+        pClient->Accept(acceptorService, boost::bind(&CIOInBound::HandleAccept, this, pClient, _1));
+        nAcceptCount++;
+    }
 }
 
 bool CIOInBound::BuildWhiteList(const vector<string>& vAllowMask)
@@ -228,37 +242,35 @@ bool CIOInBound::IsAllowedRemote(const tcp::endpoint& ep)
 
 void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_code& err)
 {
+    nAcceptCount--;
     if (!err)
     {
-        if (queIdleClient.size() <= 1 || !IsAllowedRemote(pClient->GetRemote())
-            || !pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient))
+        if (!IsAllowedRemote(pClient->GetRemote()))
         {
-            StdError(__PRETTY_FUNCTION__, (string("Accept error ") + epService.address().to_string()
-                                           + ". Idle client size: " + to_string(queIdleClient.size())
-                                           + ". Is allowed: " + to_string(IsAllowedRemote(pClient->GetRemote()))
-                                           + ". Accepted: " + to_string(pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient)))
+            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Not in the allowed table.")
                                               .c_str());
             pClient->Close();
+            return;
         }
 
-        pClient = ClientAlloc();
-        pClient->Accept(acceptorService,
-                        boost::bind(&CIOInBound::HandleAccept, this, pClient, _1));
+        string strFailCause;
+        if (!pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient, strFailCause))
+        {
+            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Client accepted fail, cause: " + strFailCause)
+                                              .c_str());
+            pClient->Close();
+            return;
+        }
+
+        IOInAccept();
     }
     else if (boost::asio::error::get_ssl_category() == err.category())
     {
         pClient->Close();
-        pClient = ClientAlloc();
-        pClient->Accept(acceptorService,
-                        boost::bind(&CIOInBound::HandleAccept, this, pClient, _1));
     }
     else
     {
-        StdError(__PRETTY_FUNCTION__, (string("Other error ") + epService.address().to_string() + ". " + err.message()).c_str());
-        if (err != boost::asio::error::operation_aborted)
-        {
-            acceptorService.close();
-        }
+        StdError(__PRETTY_FUNCTION__, (string("Other error ") + epService.address().to_string() + ". " + "[" + std::to_string(err.value()) + "]: " + err.message()).c_str());
         pClient->Close();
     }
 }

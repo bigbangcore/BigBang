@@ -106,7 +106,7 @@ protected:
     void EnterLoop() override;
     void LeaveLoop() override;
 
-    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient) override;
+    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause) override;
 
     bool CreateProfile(const CHttpHostConfig& confHost);
     CHttpClient* AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile);

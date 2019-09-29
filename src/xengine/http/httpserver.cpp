@@ -345,14 +345,20 @@ void CHttpServer::HandleClientError(CHttpClient* pHttpClient)
     RemoveClient(pHttpClient);
 }
 
-bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient)
+bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause)
 {
     map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.find(epService);
     if (it == mapProfile.end())
     {
+        strFailCause = "Query profile of service failed";
         return false;
     }
-    return (AddNewClient(pClient, &(*it).second) != nullptr);
+    if (AddNewClient(pClient, &(*it).second) == nullptr)
+    {
+        strFailCause = "Add new client failed";
+        return false;
+    }
+    return true;
 }
 
 CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile)

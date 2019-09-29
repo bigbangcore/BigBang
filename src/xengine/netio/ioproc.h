@@ -84,7 +84,7 @@ protected:
     virtual void HeartBeat();
     virtual void Timeout(uint64 nNonce, uint32 nTimerId);
     virtual std::size_t GetMaxOutBoundCount();
-    virtual bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient);
+    virtual bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause);
     virtual bool ClientConnected(CIOClient* pClient);
     virtual void ClientFailToConnect(const boost::asio::ip::tcp::endpoint& epRemote);
     virtual void HostResolved(const CNetHost& host, const boost::asio::ip::tcp::endpoint& ep);
