@@ -3,6 +3,7 @@
 
 [![Build Status](https://travis-ci.com/bigbangcore/BigBang.svg?branch=master)](https://travis-ci.com/bigbangcore/BigBang)
 [![GitHub Release](https://img.shields.io/github/release/bigbangcore/BigBang/all.svg)](https://github.com/bigbangcore/BigBang/releases)
+[![MIT licensed](https://img.shields.io/github/license/bigbangcore/BigBang)](https://raw.githubusercontent.com/bigbangcore/BigBang/master/LICENSE)
 
 Website : [BigBang Website](https://www.bigbangcore.com)
 
