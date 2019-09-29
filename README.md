@@ -2,6 +2,7 @@
 # BigBang Network Official Development Repo
 
 [![Build Status](https://travis-ci.com/bigbangcore/BigBang.svg?branch=master)](https://travis-ci.com/bigbangcore/BigBang)
+[![GitHub Release](https://img.shields.io/github/release/bigbangcore/BigBang/all.svg)](https://github.com/bigbangcore/BigBang/releases)
 
 Website : [BigBang Website](https://www.bigbangcore.com)
 
@@ -11,7 +12,6 @@ Whitepaper: [BigBang Whitepaper(中文)](https://www.bigbangcore.com/whitepaper/
 
 Whitepaper: [BigBang Whitepaper(EN)](https://www.bigbangcore.com/whitepaper/BigBang_Technical_WhitePaper_EN.pdf)
 
-Release: [BigBang Core Release](https://github.com/bigbangcore/BigBang/releases)
 
 ## License
 
