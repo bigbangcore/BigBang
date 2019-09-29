@@ -410,6 +410,10 @@
                 "type": "string",
                 "desc": "block hash"
             },
+            "hashPrev": {
+                "type": "string",
+                "desc": "block prev hash"
+            },
             "version": {
                 "type": "uint",
                 "desc": "version"
@@ -458,6 +462,10 @@
             "hash": {
                 "type": "string",
                 "desc": "block hash"
+            },
+            "hashPrev": {
+                "type": "string",
+                "desc": "block prev hash"
             },
             "version": {
                 "type": "uint",

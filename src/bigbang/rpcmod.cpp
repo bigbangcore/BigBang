@@ -2,8 +2,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcmod.h"
-
 #include "json/json_spirit_reader_template.h"
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
@@ -13,6 +11,7 @@
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
+#include "rpcmod.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -50,6 +49,7 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
 {
     CBlockData data;
     data.strHash = hashBlock.GetHex();
+    data.strHashprev = block.hashPrev.GetHex();
     data.nVersion = block.nVersion;
     data.strType = GetBlockTypeStr(block.nType, block.txMint.nType);
     data.nTime = block.GetBlockTime();
@@ -312,7 +312,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     {
         // check version
         string strVersion = eventHttpReq.data.mapHeader["url"].substr(1);
-        if (!strVersion.empty() && strVersion.compare("json_rpc"))
+        if (!strVersion.empty())
         {
             if (!CheckVersion(strVersion))
             {
@@ -767,6 +767,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     Cblockdatadetail data;
 
     data.strHash = hashBlock.GetHex();
+    data.strHashprev = block.hashPrev.GetHex();
     data.nVersion = block.nVersion;
     data.strType = GetBlockTypeStr(block.nType, block.txMint.nType);
     data.nTime = block.GetBlockTime();
