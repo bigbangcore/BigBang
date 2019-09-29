@@ -76,29 +76,6 @@ set(sources
     ${mode_src}
 )
 
-add_executable(bigbang ${sources})
-
-target_link_libraries(bigbang
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    ${Protobuf_LIBRARIES}
-    ${Readline_LIBRARY}
-    xengine
-    crypto    
-    storage    
-    network
-    delegate    
-    jsonrpc
-    common
-)
-
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
@@ -125,6 +102,13 @@ target_link_libraries(libbigbang
     delegate    
     jsonrpc
     common
+    network
+)
+
+add_executable(bigbang bigbang.cpp)
+
+target_link_libraries(bigbang
+    libbigbang
 )
 
 # create symbol link
