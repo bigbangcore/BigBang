@@ -431,6 +431,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             std::stringstream ss;
             ss << txid.GetHex() << ":" << block.hashPrev.GetHex() << ":" << block.GetHash().GetHex();
             StdDebug("missing previous", ss.str().c_str());
+            pTxPool->Pop(txid);
             return err;
         }
         if (!pTxPool->Exists(txid))
