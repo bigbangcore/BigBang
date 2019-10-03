@@ -13,7 +13,7 @@ set(sources
     rpc_tests.cpp
     version_tests.cpp
     mpvss_tests.cpp
-    ipv6_tests.cpp
+    ip_tests.cpp
     crypto_tests.cpp
     actor_tests.cpp
     timer_tests.cpp
