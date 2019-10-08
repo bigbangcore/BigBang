@@ -114,7 +114,7 @@ protected:
     boost::mutex mutex;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
-    ITxPool* pTxPool;
+    ITxPoolController* pTxPoolCntrl;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
 };

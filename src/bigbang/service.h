@@ -83,7 +83,7 @@ protected:
 protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
-    ITxPool* pTxPool;
+    ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IWallet* pWallet;
     CNetwork* pNetwork;

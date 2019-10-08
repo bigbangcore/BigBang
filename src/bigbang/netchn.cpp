@@ -104,7 +104,7 @@ CNetChannel::CNetChannel()
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
 }
@@ -133,7 +133,7 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -169,7 +169,7 @@ void CNetChannel::HandleDeinitialize()
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
 
@@ -462,7 +462,7 @@ void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
             vector<uint256> vTxHash;
             for (const network::CInv& inv : invMsg.vecInv)
             {
-                if ((inv.nType == network::CInv::MSG_TX && !pTxPool->Exists(inv.nHash))
+                if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCntrl->Exists(inv.nHash))
                     || (inv.nType == network::CInv::MSG_BLOCK && !pBlockChain->Exists(inv.nHash)))
                 {
                     sched.AddNewInv(inv, nNonce);
@@ -497,7 +497,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
             auto spTxMsg = CPeerTxMessageOutBound::Create();
             spTxMsg->nNonce = nNonce;
             spTxMsg->hashFork = hashFork;
-            if (pTxPool->Get(inv.nHash, spTxMsg->tx))
+            if (pTxPoolCntrl->Get(inv.nHash, spTxMsg->tx))
             {
                 PUBLISH_MESSAGE(spTxMsg);
             }
@@ -746,7 +746,7 @@ bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMiss
         const uint256& prev = txin.prevout.hash;
         if (!setMissingPrevTx.count(prev))
         {
-            if (!pTxPool->Exists(prev) && !pBlockChain->ExistsTx(prev))
+            if (!pTxPoolCntrl->Exists(prev) && !pBlockChain->ExistsTx(prev))
             {
                 setMissingPrevTx.insert(prev);
             }
@@ -917,7 +917,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
 
     bool fCompleted = true;
     vector<uint256> vTxPool;
-    pTxPool->ListTx(hashFork, vTxPool);
+    pTxPoolCntrl->ListTx(hashFork, vTxPool);
     if (!vTxPool.empty() && !mapPeer.empty())
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);

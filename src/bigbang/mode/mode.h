@@ -160,6 +160,7 @@ public:
                 EModuleType::COREPROTOCOL,
                 EModuleType::BLOCKCHAIN,
                 EModuleType::TXPOOL,
+                EModuleType::TXPOOLCONTROLLER,
                 EModuleType::FORKMANAGER,
                 EModuleType::CONSENSUS,
                 EModuleType::WALLET,

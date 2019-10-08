@@ -65,7 +65,7 @@ CBlockMaker::CBlockMaker()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pForkManager = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
@@ -100,7 +100,7 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -146,7 +146,7 @@ void CBlockMaker::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pForkManager = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
 
@@ -274,7 +274,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 {
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
-    pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
+    pTxPoolCntrl->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 }
@@ -467,7 +467,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
         uint256 hashLastBlock;
         int nLastBlockHeight;
         int64 nLastBlockTime;
-        if (pTxPool->Count(hashFork)
+        if (pTxPoolCntrl->Count(hashFork)
             && pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastBlockTime)
             && nPrimaryBlockHeight == nLastBlockHeight
             && nLastBlockTime < nTime)

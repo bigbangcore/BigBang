@@ -177,7 +177,7 @@ CConsensus::CConsensus()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 CConsensus::~CConsensus()
@@ -198,7 +198,7 @@ bool CConsensus::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -229,7 +229,7 @@ void CConsensus::HandleDeinitialize()
 
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 bool CConsensus::HandleInvoke()
@@ -394,7 +394,7 @@ bool CConsensus::LoadDelegateTx()
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         CDelegateTxFilter txFilter((*it).second);
-        if (!pBlockChain->FilterTx(hashGenesis, txFilter) || !pTxPool->FilterTx(hashGenesis, txFilter))
+        if (!pBlockChain->FilterTx(hashGenesis, txFilter) || !pTxPoolCntrl->FilterTx(hashGenesis, txFilter))
         {
             return false;
         }

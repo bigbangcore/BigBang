@@ -36,7 +36,7 @@ protected:
 protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
-    ITxPool* pTxPool;
+    ITxPoolController* pTxPoolCntrl;
     IForkManager* pForkManager;
     IConsensus* pConsensus;
     IWallet* pWallet;
