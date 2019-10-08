@@ -172,7 +172,7 @@ public:
     int nLastBlockHeight;
 };
 
-class CDelegatedChannel : public network::IDelegatedChannelActor
+class CDelegatedChannel : public network::IDelegatedChannel
 {
 public:
     CDelegatedChannel();

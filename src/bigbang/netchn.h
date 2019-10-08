@@ -70,7 +70,7 @@ public:
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
-class CNetChannel : public network::INetChannelActor
+class CNetChannel : public network::INetChannel
 {
 public:
     CNetChannel();

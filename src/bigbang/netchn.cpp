@@ -190,7 +190,7 @@ bool CNetChannel::HandleInvoke()
         boost::unique_lock<boost::mutex> lock(mtxPushTx);
         nTimerPushTx = 0;
     }
-    return network::INetChannelActor::HandleInvoke();
+    return network::INetChannel::HandleInvoke();
 }
 
 void CNetChannel::HandleHalt()
@@ -205,7 +205,7 @@ void CNetChannel::HandleHalt()
         setPushTxFork.clear();
     }
 
-    network::INetChannelActor::HandleHalt();
+    network::INetChannel::HandleHalt();
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         mapSched.clear();

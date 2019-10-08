@@ -16,10 +16,10 @@ namespace bigbang
 namespace network
 {
 
-class INetChannelActor : public xengine::CIOActor
+class INetChannel : public xengine::CIOActor
 {
 public:
-    INetChannelActor()
+    INetChannel()
       : xengine::CIOActor("netchannel") {}
     virtual int GetPrimaryChainHeight() = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
@@ -29,10 +29,10 @@ public:
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
 };
 
-class IDelegatedChannelActor : public xengine::CIOActor
+class IDelegatedChannel : public xengine::CIOActor
 {
 public:
-    IDelegatedChannelActor()
+    IDelegatedChannel()
       : xengine::CIOActor("delegatedchannel") {}
     virtual void PrimaryUpdate(int nStartHeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
@@ -87,7 +87,7 @@ protected:
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
 
 protected:
-    INetChannelActor* pNetChannel;
+    INetChannel* pNetChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;
