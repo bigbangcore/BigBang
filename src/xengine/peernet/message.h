@@ -35,55 +35,55 @@ struct CPeerNetRewardMessage : public CMessage
 struct CPeerNetGetIPMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetIPMessage);
-    CPeerNetGetIPMessage(std::promise<std::string>& ipIn)
-      : ip(ipIn), data(0) {}
+    CPeerNetGetIPMessage(std::promise<std::string>&& ipIn)
+      : ip(std::move(ipIn)), data(0) {}
     int data;
-    std::promise<std::string>& ip;
+    std::promise<std::string> ip;
 };
 
 struct CPeerNetGetCountMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetCountMessage);
-    CPeerNetGetCountMessage(std::promise<std::size_t>& countIn)
-      : count(countIn), data(0) {}
+    CPeerNetGetCountMessage(std::promise<std::size_t>&& countIn)
+      : count(std::move(countIn)), data(0) {}
     int data;
-    std::promise<std::size_t>& count;
+    std::promise<std::size_t> count;
 };
 
 struct CPeerNetGetPeersMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetPeersMessage);
-    CPeerNetGetPeersMessage(std::promise<boost::ptr_vector<CPeerInfo>>& resultsIn)
-      : results(resultsIn), data(0) {}
+    CPeerNetGetPeersMessage(std::promise<boost::ptr_vector<CPeerInfo>>&& resultsIn)
+      : results(std::move(resultsIn)), data(0) {}
     int data;
-    std::promise<boost::ptr_vector<CPeerInfo>>& results;
+    std::promise<boost::ptr_vector<CPeerInfo>> results;
 };
 
 struct CPeerNetAddNodeMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetAddNodeMessage);
-    CPeerNetAddNodeMessage(std::promise<bool>& fSuccessIn)
-      : fSuccess(fSuccessIn) {}
+    CPeerNetAddNodeMessage(std::promise<bool>&& fSuccessIn)
+      : fSuccess(std::move(fSuccessIn)) {}
     CNetHost host;
-    std::promise<bool>& fSuccess;
+    std::promise<bool> fSuccess;
 };
 
 struct CPeerNetRemoveNodeMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetRemoveNodeMessage);
-    CPeerNetRemoveNodeMessage(std::promise<bool>& fSuccessIn)
-      : fSuccess(fSuccessIn) {}
+    CPeerNetRemoveNodeMessage(std::promise<bool>&& fSuccessIn)
+      : fSuccess(std::move(fSuccessIn)) {}
     CNetHost host;
-    std::promise<bool>& fSuccess;
+    std::promise<bool> fSuccess;
 };
 
 struct CPeerNetGetBannedMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetGetBannedMessage);
-    CPeerNetGetBannedMessage(std::promise<std::vector<CAddressBanned>>& resultIn)
-      : results(resultIn), data(0) {}
+    CPeerNetGetBannedMessage(std::promise<std::vector<CAddressBanned>>&& resultIn)
+      : results(std::move(resultIn)), data(0) {}
     int data;
-    std::promise<std::vector<CAddressBanned>>& results;
+    std::promise<std::vector<CAddressBanned>> results;
 };
 
 typedef std::pair<std::vector<std::string>, int64> ADDRESSES_TO_BAN;
@@ -91,19 +91,19 @@ typedef std::pair<std::vector<std::string>, int64> ADDRESSES_TO_BAN;
 struct CPeerNetSetBanMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetSetBanMessage);
-    CPeerNetSetBanMessage(std::promise<std::size_t>& countIn)
-      : count(countIn) {}
+    CPeerNetSetBanMessage(std::promise<std::size_t>&& countIn)
+      : count(std::move(countIn)) {}
     ADDRESSES_TO_BAN addresses;
-    std::promise<std::size_t>& count;
+    std::promise<std::size_t> count;
 };
 
 struct CPeerNetClrBannedMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CPeerNetClrBannedMessage);
-    CPeerNetClrBannedMessage(std::promise<std::size_t>& countIn)
-      : count(countIn) {}
+    CPeerNetClrBannedMessage(std::promise<std::size_t>&& countIn)
+      : count(std::move(countIn)) {}
     std::vector<std::string> addresses;
-    std::promise<std::size_t>& count;
+    std::promise<std::size_t> count;
 };
 
 } // namespace xengine

@@ -366,14 +366,14 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
 
     std::promise<std::string> promiseIP;
     std::future<std::string> futureIP = promiseIP.get_future();
-    auto spGetIPMsg = CPeerNetGetIPMessage::Create(promiseIP);
+    auto spGetIPMsg = CPeerNetGetIPMessage::Create(std::move(promiseIP));
     PUBLISH_MESSAGE(spGetIPMsg);
 
     BOOST_CHECK(futureIP.get() == "0.0.0.0");
 
     std::promise<std::size_t> promiseCount;
     std::future<std::size_t> futureCount = promiseCount.get_future();
-    auto spGetPeerCountMsg = CPeerNetGetCountMessage::Create(promiseCount);
+    auto spGetPeerCountMsg = CPeerNetGetCountMessage::Create(std::move(promiseCount));
     PUBLISH_MESSAGE(spGetPeerCountMsg);
 
     BOOST_CHECK(futureCount.get() == 0);

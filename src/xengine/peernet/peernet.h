@@ -87,14 +87,14 @@ protected:
     virtual void DestroyPeer(CPeer* pPeer);
     virtual CPeerInfo* GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo = nullptr);
 
-    void HandlePeerGetIP(const CPeerNetGetIPMessage& getIPMsg);
-    void HandlePeerGetCount(const CPeerNetGetCountMessage& getCountMsg);
-    void HandlePeerGetPeers(const CPeerNetGetPeersMessage& getPeersMsg);
-    void HandlePeerAddNode(const CPeerNetAddNodeMessage& addNodeMsg);
-    void HandlePeerRemoveNode(const CPeerNetRemoveNodeMessage& removeNodeMsg);
-    void HandlePeerGetBanned(const CPeerNetGetBannedMessage& getBannedMsg);
-    void HandlePeerSetBan(const CPeerNetSetBanMessage& setBanMsg);
-    void HandlePeerClrBanned(const CPeerNetClrBannedMessage& clrBannedMsg);
+    void HandlePeerGetIP(std::shared_ptr<CPeerNetGetIPMessage> getIPMsg);
+    void HandlePeerGetCount(std::shared_ptr<CPeerNetGetCountMessage> getCountMsg);
+    void HandlePeerGetPeers(std::shared_ptr<CPeerNetGetPeersMessage> getPeersMsg);
+    void HandlePeerAddNode(std::shared_ptr<CPeerNetAddNodeMessage> addNodeMsg);
+    void HandlePeerRemoveNode(std::shared_ptr<CPeerNetRemoveNodeMessage> removeNodeMsg);
+    void HandlePeerGetBanned(std::shared_ptr<CPeerNetGetBannedMessage> getBannedMsg);
+    void HandlePeerSetBan(std::shared_ptr<CPeerNetSetBanMessage> setBanMsg);
+    void HandlePeerClrBanned(std::shared_ptr<CPeerNetClrBannedMessage> clrBannedMsg);
 
     void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
     void HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg);
