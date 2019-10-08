@@ -26,7 +26,7 @@ enum class EModuleType
     TXPOOL,           // CTxPool
     TXPOOLCONTROLLER, // CTxPoolController
     WALLET,           // CWallet
-    BLOCKCHAIN,       // CBlockChain
+    WORLDLINE,       // CWorldLine
     CONSENSUS,        // CConsensus
     FORKMANAGER,      // CForkManager
     DATASTAT,         // CDataStat

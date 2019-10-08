@@ -220,7 +220,7 @@ struct CAddedBlockMessage : public xengine::CMessage
     int nError;
     uint256 hashFork;
     CBlock block;
-    CBlockChainUpdate update;
+    CWorldLineUpdate update;
 };
 
 /// Synchronize changed transactions.

@@ -56,7 +56,7 @@ def create_wiki(filename = None):
         elif cmd == 'getpeercount':
             output_index = output_index + '### Network\n'
         elif cmd == 'getforkcount':
-            output_index = output_index + '### Blockchain & TxPool\n'
+            output_index = output_index + '### WorldLine & TxPool\n'
         elif cmd == 'listkey':
             output_index = output_index + '### Wallet\n'
         elif cmd == 'verifymessage':

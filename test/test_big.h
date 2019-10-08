@@ -20,10 +20,10 @@ struct UtfSetup : public BasicUtfSetup
     ~UtfSetup();
 };
 
-struct UtfBlockchain100Setup : public UtfSetup
+struct UtfWorldLine100Setup : public UtfSetup
 {
-    UtfBlockchain100Setup();
-    ~UtfBlockchain100Setup();
+    UtfWorldLine100Setup();
+    ~UtfWorldLine100Setup();
 };
 
 void Shutdown();

@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 
-#include "blockchain.h"
+#include "worldline.h"
 #include "blockmaker.h"
 #include "consensus.h"
 #include "core.h"
@@ -320,9 +320,9 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        case EModuleType::BLOCKCHAIN:
+        case EModuleType::WORLDLINE:
         {
-            if (!AttachModule(new CBlockChain()))
+            if (!AttachModule(new CWorldLine()))
             {
                 return false;
             }

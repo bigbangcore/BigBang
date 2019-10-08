@@ -2,8 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BIGBANG_BLOCKCHAIN_H
-#define BIGBANG_BLOCKCHAIN_H
+#ifndef BIGBANG_WORLDLINE_H
+#define BIGBANG_WORLDLINE_H
 
 #include <map>
 
@@ -13,11 +13,11 @@
 namespace bigbang
 {
 
-class CBlockChain : public IBlockChain
+class CWorldLine : public IWorldLine
 {
 public:
-    CBlockChain();
-    ~CBlockChain();
+    CWorldLine();
+    ~CWorldLine();
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
     bool GetForkProfile(const uint256& hashFork, CProfile& profile) override;
     bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) override;
@@ -41,8 +41,8 @@ public:
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) override;
     bool ListForkContext(std::vector<CForkContext>& vForkCtxt) override;
     Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
-    Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
-    Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
+    Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) override;
+    Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
     bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) override;
@@ -76,4 +76,4 @@ protected:
 
 } // namespace bigbang
 
-#endif //BIGBANG_BLOCKCHAIN_H
+#endif //BIGBANG_WORLDLINE_H

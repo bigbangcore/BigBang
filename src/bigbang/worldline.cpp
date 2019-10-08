@@ -2,7 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "blockchain.h"
+#include "worldline.h"
 
 #include "delegatecomm.h"
 #include "delegateverify.h"
@@ -17,20 +17,20 @@ namespace bigbang
 {
 
 //////////////////////////////
-// CBlockChain
+// CWorldLine
 
-CBlockChain::CBlockChain()
+CWorldLine::CWorldLine()
   : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
-CBlockChain::~CBlockChain()
+CWorldLine::~CWorldLine()
 {
 }
 
-bool CBlockChain::HandleInitialize()
+bool CWorldLine::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
@@ -47,13 +47,13 @@ bool CBlockChain::HandleInitialize()
     return true;
 }
 
-void CBlockChain::HandleDeinitialize()
+void CWorldLine::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
-bool CBlockChain::HandleInvoke()
+bool CWorldLine::HandleInvoke()
 {
 
     if (!cntrBlock.Initialize(Config() ? Config()->pathData : "./", Config() ? Config()->fDebug : true))
@@ -88,14 +88,14 @@ bool CBlockChain::HandleInvoke()
     return true;
 }
 
-void CBlockChain::HandleHalt()
+void CWorldLine::HandleHalt()
 {
     cntrBlock.Deinitialize();
     cacheEnrolled.Clear();
     cacheAgreement.Clear();
 }
 
-void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
+void CWorldLine::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 {
     mapForkStatus.clear();
 
@@ -122,22 +122,22 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
     }
 }
 
-bool CBlockChain::GetForkProfile(const uint256& hashFork, CProfile& profile)
+bool CWorldLine::GetForkProfile(const uint256& hashFork, CProfile& profile)
 {
     return cntrBlock.RetrieveProfile(hashFork, profile);
 }
 
-bool CBlockChain::GetForkContext(const uint256& hashFork, CForkContext& ctxt)
+bool CWorldLine::GetForkContext(const uint256& hashFork, CForkContext& ctxt)
 {
     return cntrBlock.RetrieveForkContext(hashFork, ctxt);
 }
 
-bool CBlockChain::GetForkAncestry(const uint256& hashFork, vector<pair<uint256, uint256>> vAncestry)
+bool CWorldLine::GetForkAncestry(const uint256& hashFork, vector<pair<uint256, uint256>> vAncestry)
 {
     return cntrBlock.RetrieveAncestry(hashFork, vAncestry);
 }
 
-int CBlockChain::GetBlockCount(const uint256& hashFork)
+int CWorldLine::GetBlockCount(const uint256& hashFork)
 {
     int nCount = 0;
     CBlockIndex* pIndex = nullptr;
@@ -152,7 +152,7 @@ int CBlockChain::GetBlockCount(const uint256& hashFork)
     return nCount;
 }
 
-bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
+bool CWorldLine::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
@@ -164,7 +164,7 @@ bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, 
     return true;
 }
 
-bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
+bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
@@ -183,7 +183,7 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, uint256& ha
     return (pIndex != nullptr);
 }
 
-bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
+bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
@@ -203,7 +203,7 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
     return (!vBlockHash.empty());
 }
 
-bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
+bool CWorldLine::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
@@ -216,7 +216,7 @@ bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int&
     return true;
 }
 
-bool CBlockChain::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<int64>& vTime)
+bool CWorldLine::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<int64>& vTime)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
@@ -237,42 +237,42 @@ bool CBlockChain::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<i
     return true;
 }
 
-bool CBlockChain::GetBlock(const uint256& hashBlock, CBlock& block)
+bool CWorldLine::GetBlock(const uint256& hashBlock, CBlock& block)
 {
     return cntrBlock.Retrieve(hashBlock, block);
 }
 
-bool CBlockChain::GetBlockEx(const uint256& hashBlock, CBlockEx& block)
+bool CWorldLine::GetBlockEx(const uint256& hashBlock, CBlockEx& block)
 {
     return cntrBlock.Retrieve(hashBlock, block);
 }
 
-bool CBlockChain::GetOrigin(const uint256& hashFork, CBlock& block)
+bool CWorldLine::GetOrigin(const uint256& hashFork, CBlock& block)
 {
     return cntrBlock.RetrieveOrigin(hashFork, block);
 }
 
-bool CBlockChain::Exists(const uint256& hashBlock)
+bool CWorldLine::Exists(const uint256& hashBlock)
 {
     return cntrBlock.Exists(hashBlock);
 }
 
-bool CBlockChain::GetTransaction(const uint256& txid, CTransaction& tx)
+bool CWorldLine::GetTransaction(const uint256& txid, CTransaction& tx)
 {
     return cntrBlock.RetrieveTx(txid, tx);
 }
 
-bool CBlockChain::ExistsTx(const uint256& txid)
+bool CWorldLine::ExistsTx(const uint256& txid)
 {
     return cntrBlock.ExistsTx(txid);
 }
 
-bool CBlockChain::GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight)
+bool CWorldLine::GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight)
 {
     return cntrBlock.RetrieveTxLocation(txid, hashFork, nHeight);
 }
 
-bool CBlockChain::GetTxUnspent(const uint256& hashFork, const vector<CTxIn>& vInput, vector<CTxOut>& vOutput)
+bool CWorldLine::GetTxUnspent(const uint256& hashFork, const vector<CTxIn>& vInput, vector<CTxOut>& vOutput)
 {
     vOutput.resize(vInput.size());
     storage::CBlockView view;
@@ -291,22 +291,22 @@ bool CBlockChain::GetTxUnspent(const uint256& hashFork, const vector<CTxIn>& vIn
     return true;
 }
 
-bool CBlockChain::FilterTx(const uint256& hashFork, CTxFilter& filter)
+bool CWorldLine::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
     return cntrBlock.FilterTx(hashFork, filter);
 }
 
-bool CBlockChain::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter)
+bool CWorldLine::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter)
 {
     return cntrBlock.FilterTx(hashFork, nDepth, filter);
 }
 
-bool CBlockChain::ListForkContext(vector<CForkContext>& vForkCtxt)
+bool CWorldLine::ListForkContext(vector<CForkContext>& vForkCtxt)
 {
     return cntrBlock.ListForkContext(vForkCtxt);
 }
 
-Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
+Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
 {
     uint256 txid = txFork.GetHash();
 
@@ -358,7 +358,7 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     return OK;
 }
 
-Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
+Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
 {
     uint256 hash = block.GetHash();
     Errno err = OK;
@@ -484,7 +484,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    update = CBlockChainUpdate(pIndexNew);
+    update = CWorldLineUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
     {
@@ -495,7 +495,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
-Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
+Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
 {
     uint256 hash = block.GetHash();
     Errno err = OK;
@@ -584,14 +584,14 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    update = CBlockChainUpdate(pIndexNew);
+    update = CWorldLineUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     update.vBlockAddNew.push_back(blockex);
 
     return OK;
 }
 
-bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
+bool CWorldLine::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
@@ -612,7 +612,7 @@ bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& 
     return true;
 }
 
-bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
+bool CWorldLine::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
@@ -645,17 +645,17 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
     return true;
 }
 
-bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
+bool CWorldLine::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
 {
     return cntrBlock.GetForkBlockLocator(hashFork, locator);
 }
 
-bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
+bool CWorldLine::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
     return cntrBlock.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
 }
 
-bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
+bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 {
     enrolled.Clear();
 
@@ -695,7 +695,7 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
     return true;
 }
 
-bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
+bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
 {
     agreement.Clear();
 
@@ -750,7 +750,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
     return true;
 }
 
-bool CBlockChain::CheckContainer()
+bool CWorldLine::CheckContainer()
 {
     if (cntrBlock.IsEmpty())
     {
@@ -764,17 +764,17 @@ bool CBlockChain::CheckContainer()
                                       StorageConfig() ? StorageConfig()->nCheckDepth : 1);
 }
 
-bool CBlockChain::RebuildContainer()
+bool CWorldLine::RebuildContainer()
 {
     return false;
 }
 
-bool CBlockChain::InsertGenesisBlock(CBlock& block)
+bool CWorldLine::InsertGenesisBlock(CBlock& block)
 {
     return cntrBlock.Initiate(block.GetHash(), block);
 }
 
-Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
+Errno CWorldLine::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
 {
     txContxt.SetNull();
     for (const CTxIn& txin : tx.vInput)
@@ -797,7 +797,7 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
     return OK;
 }
 
-bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
+bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                                   vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {
     while (pIndexNew != pIndexFork)
@@ -827,7 +827,7 @@ bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockInde
     return true;
 }
 
-bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
+bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
                                             CDelegateAgreement& agreement)
 {
     agreement.Clear();
@@ -866,7 +866,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     return true;
 }
 
-Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward)
+Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward)
 {
     nReward = 0;
     if (block.IsOrigin())

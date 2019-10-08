@@ -226,7 +226,7 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 CDelegatedChannel::CDelegatedChannel()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLine = nullptr;
     pDispatcher = nullptr;
     fBulletin = false;
 }
@@ -243,9 +243,9 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("blockchain", pBlockChain))
+    if (!GetObject("worldline", pWorldLine))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request worldline\n");
         return false;
     }
 
@@ -268,7 +268,7 @@ bool CDelegatedChannel::HandleInitialize()
 void CDelegatedChannel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLine = nullptr;
     pDispatcher = nullptr;
 
     DeregisterHandler(CPeerActiveMessage::MessageType());

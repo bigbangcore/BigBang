@@ -246,13 +246,13 @@ protected:
     void Clear() override;
     Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
     void Pop(const uint256& txid) override;
-    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+    bool SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change) override;
 
 protected:
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLine* pWorldLine;
     std::map<uint256, CTxPoolView> mapPoolView;
     std::unordered_map<uint256, CPooledTx> mapTx;
     std::size_t nLastSequenceNumber;
@@ -266,7 +266,7 @@ public:
     void Clear() override;
     Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
     void Pop(const uint256& txid) override;
-    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+    bool SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change) override;
 
 public:
     bool Exists(const uint256& txid) override;

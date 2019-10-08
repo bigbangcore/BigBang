@@ -127,7 +127,7 @@ protected:
 protected:
     network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLine* pWorldLine;
     ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IService* pService;
