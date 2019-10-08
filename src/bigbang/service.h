@@ -86,7 +86,6 @@ protected:
     ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IWallet* pWallet;
-    CNetwork* pNetwork;
     IForkManager* pForkManager;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;

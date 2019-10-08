@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -58,12 +58,6 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("peernet", pNetwork))
-    {
-        Error("Failed to request network\n");
-        return false;
-    }
-
     if (!GetObject("forkmanager", pForkManager))
     {
         Error("Failed to request forkmanager\n");
@@ -80,7 +74,6 @@ void CService::HandleDeinitialize()
     pTxPoolCntrl = nullptr;
     pDispatcher = nullptr;
     pWallet = nullptr;
-    pNetwork = nullptr;
     pForkManager = nullptr;
 }
 
@@ -140,40 +133,53 @@ void CService::Stop()
 
 int CService::GetPeerCount()
 {
-    CEventPeerNetGetCount eventGetPeerCount(0);
-    if (pNetwork->DispatchEvent(&eventGetPeerCount))
-    {
-        return eventGetPeerCount.result;
-    }
-    return 0;
+    std::promise<std::size_t> promiseCount;
+    std::future<std::size_t> futureCount = promiseCount.get_future();
+    auto spGetPeerCountMsg = CPeerNetGetCountMessage::Create(std::move(promiseCount));
+    PUBLISH_MESSAGE(spGetPeerCountMsg);
+
+    return futureCount.get();
 }
 
 void CService::GetPeers(vector<network::CBbPeerInfo>& vPeerInfo)
 {
     vPeerInfo.clear();
-    CEventPeerNetGetPeers eventGetPeers(0);
-    if (pNetwork->DispatchEvent(&eventGetPeers))
+
+    std::promise<boost::ptr_vector<CPeerInfo>> promiseResult;
+    auto futureResult = promiseResult.get_future();
+    auto spGetPeersMsg = CPeerNetGetPeersMessage::Create(std::move(promiseResult));
+    PUBLISH_MESSAGE(spGetPeersMsg);
+
+    auto resultValue = futureResult.get();
+    vPeerInfo.reserve(resultValue.size());
+    for (unsigned int i = 0; i < resultValue.size(); i++)
     {
-        vPeerInfo.reserve(eventGetPeers.result.size());
-        for (unsigned int i = 0; i < eventGetPeers.result.size(); i++)
-        {
-            vPeerInfo.push_back(static_cast<network::CBbPeerInfo&>(eventGetPeers.result[i]));
-        }
+        vPeerInfo.push_back(static_cast<network::CBbPeerInfo&>(resultValue[i]));
     }
 }
 
 bool CService::AddNode(const CNetHost& node)
 {
-    CEventPeerNetAddNode eventAddNode(0);
-    eventAddNode.data = node;
-    return pNetwork->DispatchEvent(&eventAddNode);
+    std::promise<bool> promiseRet;
+    std::future<bool> futureRet = promiseRet.get_future();
+
+    auto spAddNodeMsg = CPeerNetAddNodeMessage::Create(std::move(promiseRet));
+    spAddNodeMsg->host = node;
+    PUBLISH_MESSAGE(spAddNodeMsg);
+
+    return futureRet.get();
 }
 
 bool CService::RemoveNode(const CNetHost& node)
 {
-    CEventPeerNetRemoveNode eventRemoveNode(0);
-    eventRemoveNode.data = node;
-    return pNetwork->DispatchEvent(&eventRemoveNode);
+    std::promise<bool> promiseRet;
+    std::future<bool> futureRet = promiseRet.get_future();
+
+    auto spRemoveNodeMsg = CPeerNetRemoveNodeMessage::Create(std::move(promiseRet));
+    spRemoveNodeMsg->host = node;
+    PUBLISH_MESSAGE(spRemoveNodeMsg);
+
+    return futureRet.get();
 }
 
 int CService::GetForkCount()
