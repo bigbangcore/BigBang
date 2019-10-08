@@ -99,16 +99,48 @@ public:
     }
 };
 
-class ITxPool : public xengine::CIOActor
+class ITxPoolController;
+class ITxPool : public xengine::IModel
 {
+    friend class ITxPoolController;
+
 public:
     ITxPool()
-      : CIOActor("txpool") {}
-    virtual bool Exists(const uint256& txid) = 0;
-    virtual void Clear() = 0;
+      : IModel("txpool") {}
+    virtual bool Exists(const uint256& txid) const = 0;
     virtual std::size_t Count(const uint256& fork) const = 0;
+    virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
+    virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) const = 0;
+    virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) const = 0;
+    virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) const = 0;
+    virtual void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+                                std::vector<CTransaction>& vtx, int64& nTotalTxFee) const = 0;
+    virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) const = 0;
+
+protected:
+    virtual void Clear() = 0;
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
+    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
+};
+
+class ITxPoolController : public xengine::CIOActor
+{
+public:
+    ITxPoolController()
+      : CIOActor("txpoolcontroller"), pTxPool(nullptr) {}
+    virtual void Clear() = 0;
+    virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
+    virtual void Pop(const uint256& txid) = 0;
+    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
+    const CStorageConfig* StorageConfig()
+    {
+        return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
+    }
+
+public:
+    virtual bool Exists(const uint256& txid) = 0;
+    virtual std::size_t Count(const uint256& fork) const = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
@@ -116,11 +148,27 @@ public:
     virtual void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee) = 0;
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
-    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
-    const CStorageConfig* StorageConfig()
+
+protected:
+    void ClearTxPool()
     {
-        return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
+        pTxPool->Clear();
     }
+    Errno PushIntoTxPool(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
+    {
+        return pTxPool->Push(tx, hashFork, destIn, nValueIn);
+    }
+    void PopFromTxPool(const uint256& txid)
+    {
+        pTxPool->Pop(txid);
+    }
+    bool SynchronizeBlockChainWithTxPool(const CBlockChainUpdate& update, CTxSetChange& change)
+    {
+        return pTxPool->SynchronizeBlockChain(update, change);
+    }
+
+protected:
+    ITxPool* pTxPool;
 };
 
 class IForkManager : public xengine::IBase

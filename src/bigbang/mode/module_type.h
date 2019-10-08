@@ -24,6 +24,7 @@ enum class EModuleType
     RPCMODE,          // CRPCMod
     SERVICE,          // CService
     TXPOOL,           // CTxPool
+    TXPOOLCONTROLLER, // CTxPoolController
     WALLET,           // CWallet
     BLOCKCHAIN,       // CBlockChain
     CONSENSUS,        // CConsensus

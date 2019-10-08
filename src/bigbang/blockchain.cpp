@@ -23,7 +23,7 @@ CBlockChain::CBlockChain()
   : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -38,7 +38,7 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -50,7 +50,7 @@ bool CBlockChain::HandleInitialize()
 void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -436,7 +436,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPool->Exists(txid))
+        if (!pTxPoolCntrl->Exists(txid))
         {
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)

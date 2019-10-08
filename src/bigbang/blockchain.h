@@ -68,7 +68,7 @@ protected:
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    ITxPool* pTxPool;
+    ITxPoolController* pTxPoolCntrl;
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;

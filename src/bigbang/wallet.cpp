@@ -144,7 +144,7 @@ CWallet::CWallet()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 CWallet::~CWallet()
@@ -165,7 +165,7 @@ bool CWallet::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -178,7 +178,7 @@ void CWallet::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
 }
 
 bool CWallet::HandleInvoke()
@@ -785,7 +785,7 @@ bool CWallet::SyncWalletTx(CTxFilter& txFilter)
             vFork.push_back((*mi).second);
         }
 
-        if (!pBlockChain->FilterTx(hashFork, txFilter) || !pTxPool->FilterTx(hashFork, txFilter))
+        if (!pBlockChain->FilterTx(hashFork, txFilter) || !pTxPoolCntrl->FilterTx(hashFork, txFilter))
         {
             return false;
         }
@@ -829,7 +829,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         CInspectWtxFilter filterPool(this, setAddr);
         for (const auto& it : vFork)
         {
-            if (!pTxPool->FilterTx(it, filterPool)) //condition: fork/dest's
+            if (!pTxPoolCntrl->FilterTx(it, filterPool)) //condition: fork/dest's
             {
                 return false;
             }
@@ -886,7 +886,7 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
     if (wtx.nBlockHeight < 0)
     { //compare wtx with txpool
         CTransaction tx;
-        if (!pTxPool->Get(wtx.txid, tx))
+        if (!pTxPoolCntrl->Get(wtx.txid, tx))
         {
             return false;
         }

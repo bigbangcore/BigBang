@@ -204,7 +204,7 @@ public:
         mapSpent.clear();
     }
     void InvalidateSpent(const CTxOutPoint& out, std::vector<uint256>& vInvolvedTx);
-    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
+    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize) const;
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
@@ -216,19 +216,15 @@ class CTxPool : public ITxPool
 public:
     CTxPool();
     ~CTxPool();
-    bool Exists(const uint256& txid) override;
-    void Clear() override;
+    bool Exists(const uint256& txid) const override;
     std::size_t Count(const uint256& fork) const override;
-    Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
-    void Pop(const uint256& txid) override;
     bool Get(const uint256& txid, CTransaction& tx) const override;
-    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
-    void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
-    bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
+    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) const override;
+    void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) const override;
+    bool FilterTx(const uint256& hashFork, CTxFilter& filter) const override;
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
-                        std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
-    bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
-    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+                        std::vector<CTransaction>& vtx, int64& nTotalTxFee) const override;
+    bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) const override;
 
 protected:
     bool HandleInitialize() override;
@@ -247,10 +243,10 @@ protected:
         return ++nLastSequenceNumber;
     }
 
-    void HandleAddTx(const CAddTxMessage& msg);
-    void HandleRemoveTx(const CRemoveTxMessage& msg);
-    void HandleClearTx(const CClearTxMessage& msg);
-    void HandleAddedBlock(const CAddedBlockMessage& msg);
+    void Clear() override;
+    Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
+    void Pop(const uint256& txid) override;
+    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
 
 protected:
     storage::CTxPoolData datTxPool;
@@ -260,6 +256,39 @@ protected:
     std::map<uint256, CTxPoolView> mapPoolView;
     std::unordered_map<uint256, CPooledTx> mapTx;
     std::size_t nLastSequenceNumber;
+};
+
+class CTxPoolController : public ITxPoolController
+{
+public:
+    CTxPoolController();
+    ~CTxPoolController();
+    void Clear() override;
+    Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
+    void Pop(const uint256& txid) override;
+    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+
+public:
+    bool Exists(const uint256& txid) override;
+    std::size_t Count(const uint256& fork) const override;
+    bool Get(const uint256& txid, CTransaction& tx) const override;
+    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
+    void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
+    bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
+    void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+                        std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
+    bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
+
+protected:
+    bool HandleInitialize() override;
+    void HandleDeinitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
+
+    void HandleAddTx(const CAddTxMessage& msg);
+    void HandleRemoveTx(const CRemoveTxMessage& msg);
+    void HandleClearTx(const CClearTxMessage& msg);
+    void HandleAddedBlock(const CAddedBlockMessage& msg);
 };
 
 } // namespace bigbang

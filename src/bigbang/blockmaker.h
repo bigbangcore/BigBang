@@ -123,7 +123,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IForkManager* pForkManager;
-    ITxPool* pTxPool;
+    ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IConsensus* pConsensus;
 };

@@ -165,6 +165,8 @@ struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageOutBound);
 };
 
+//////////// TxPool ///////////////////
+
 /// Add an unconfirmed transaction.
 struct CAddTxMessage : public xengine::CMessage
 {
@@ -173,8 +175,6 @@ struct CAddTxMessage : public xengine::CMessage
     uint256 hashFork;
     CTransaction tx;
 };
-
-//////////// TxPool ///////////////////
 
 /// Added an unconfirmed transaction.
 struct CAddedTxMessage : public xengine::CMessage

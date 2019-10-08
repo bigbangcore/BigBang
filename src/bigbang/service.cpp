@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -40,7 +40,7 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -77,7 +77,7 @@ void CService::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pDispatcher = nullptr;
     pWallet = nullptr;
     pNetwork = nullptr;
@@ -308,12 +308,12 @@ bool CService::GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& ha
 void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     vTxPool.clear();
-    pTxPool->ListTx(hashFork, vTxPool);
+    pTxPoolCntrl->ListTx(hashFork, vTxPool);
 }
 
 bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight)
 {
-    if (pTxPool->Get(txid, tx))
+    if (pTxPoolCntrl->Get(txid, tx))
     {
         int nAnchorHeight;
         if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
@@ -337,11 +337,11 @@ Errno CService::SendTransaction(CTransaction& tx)
 
 bool CService::RemovePendingTx(const uint256& txid)
 {
-    if (!pTxPool->Exists(txid))
+    if (!pTxPoolCntrl->Exists(txid))
     {
         return false;
     }
-    pTxPool->Pop(txid);
+    pTxPoolCntrl->Pop(txid);
     return true;
 }
 
@@ -424,7 +424,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
         return false;
     }
     vector<CTxOut> vUnspent;
-    if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
+    if (!pTxPoolCntrl->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
         return false;
     }
@@ -599,7 +599,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
     int64 nTotalTxFee = 0;
-    pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
+    pTxPoolCntrl->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 

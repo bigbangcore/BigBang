@@ -22,7 +22,7 @@ CDispatcher::CDispatcher()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pForkManager = nullptr;
     pConsensus = nullptr;
     pWallet = nullptr;
@@ -51,7 +51,7 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
+    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -112,7 +112,7 @@ void CDispatcher::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pTxPool = nullptr;
+    pTxPoolCntrl = nullptr;
     pForkManager = nullptr;
     pConsensus = nullptr;
     pWallet = nullptr;
@@ -179,7 +179,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
 
     CTxSetChange changeTxSet;
-    if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))
+    if (!pTxPoolCntrl->SynchronizeBlockChain(updateBlockChain, changeTxSet))
     {
         return ERR_SYS_DATABASE_ERROR;
     }
@@ -242,7 +242,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     uint256 hashFork;
     CDestination destIn;
     int64 nValueIn;
-    err = pTxPool->Push(tx, hashFork, destIn, nValueIn);
+    err = pTxPoolCntrl->Push(tx, hashFork, destIn, nValueIn);
     if (err != OK)
     {
         return err;

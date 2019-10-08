@@ -294,6 +294,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
+        case EModuleType::TXPOOLCONTROLLER:
+        {
+            if (!AttachModule(new CTxPoolController()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::WALLET:
         {
             IWallet* pWallet;
