@@ -277,11 +277,11 @@ public:
                                const std::vector<unsigned char>& vchPublish) = 0;
 };
 
-class IService : public xengine::IBase
+class IService : public xengine::CIOActor
 {
 public:
     IService()
-      : IBase("service") {}
+      : xengine::CIOActor("service") {}
     /* Notify */
     virtual void NotifyBlockChainUpdate(const CBlockChainUpdate& update) = 0;
     virtual void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) = 0;
