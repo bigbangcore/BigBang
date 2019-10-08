@@ -174,8 +174,6 @@ struct CAddTxMessage : public xengine::CMessage
     CTransaction tx;
 };
 
-//////////// Delegate NetChannel //////////
-
 //////////// TxPool ///////////////////
 
 /// Added an unconfirmed transaction.

@@ -46,7 +46,7 @@ public:
     unsigned short nPortDefault;
 };
 
-class CPeerNet : public CIOProc, virtual public CPeerEventListener
+class CPeerNet : public CIOProc
 {
 public:
     CPeerNet(const std::string& strOwnKeyIn);
@@ -86,16 +86,19 @@ protected:
     virtual CPeer* CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound);
     virtual void DestroyPeer(CPeer* pPeer);
     virtual CPeerInfo* GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo = nullptr);
-    bool HandleEvent(CEventPeerNetGetIP& eventGetIP) override;
-    bool HandleEvent(CEventPeerNetGetCount& eventGetCount) override;
-    bool HandleEvent(CEventPeerNetGetPeers& eventGetPeers) override;
-    bool HandleEvent(CEventPeerNetAddNode& eventAddNode) override;
-    bool HandleEvent(CEventPeerNetRemoveNode& eventRemoveNode) override;
-    bool HandleEvent(CEventPeerNetGetBanned& eventGetBanned) override;
-    bool HandleEvent(CEventPeerNetSetBan& eventSetBan) override;
-    bool HandleEvent(CEventPeerNetClrBanned& eventClrBanned) override;
+
+    void HandlePeerGetIP(std::shared_ptr<CPeerNetGetIPMessage> getIPMsg);
+    void HandlePeerGetCount(std::shared_ptr<CPeerNetGetCountMessage> getCountMsg);
+    void HandlePeerGetPeers(std::shared_ptr<CPeerNetGetPeersMessage> getPeersMsg);
+    void HandlePeerAddNode(std::shared_ptr<CPeerNetAddNodeMessage> addNodeMsg);
+    void HandlePeerRemoveNode(std::shared_ptr<CPeerNetRemoveNodeMessage> removeNodeMsg);
+    void HandlePeerGetBanned(std::shared_ptr<CPeerNetGetBannedMessage> getBannedMsg);
+    void HandlePeerSetBan(std::shared_ptr<CPeerNetSetBanMessage> setBanMsg);
+    void HandlePeerClrBanned(std::shared_ptr<CPeerNetClrBannedMessage> clrBannedMsg);
+
     void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
     void HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg);
+
     int GetCandidateNodeCount()
     {
         return epMngr.GetCandidateNodeCount();
