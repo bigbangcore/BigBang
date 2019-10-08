@@ -42,8 +42,8 @@ protected:
     IWallet* pWallet;
     IService* pService;
     IBlockMaker* pBlockMaker;
-    network::INetChannelActor* pNetChannel;
-    network::IDelegatedChannelActor* pDelegatedChannel;
+    network::INetChannel* pNetChannel;
+    network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
 };
 

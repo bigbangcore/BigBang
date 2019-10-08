@@ -286,7 +286,7 @@ bool CDelegatedChannel::HandleInvoke()
         nTimerBulletin = 0;
         fBulletin = false;
     }
-    return network::IDelegatedChannelActor::HandleInvoke();
+    return network::IDelegatedChannel::HandleInvoke();
 }
 
 void CDelegatedChannel::HandleHalt()
@@ -301,7 +301,7 @@ void CDelegatedChannel::HandleHalt()
         fBulletin = false;
     }
 
-    network::IDelegatedChannelActor::HandleHalt();
+    network::IDelegatedChannel::HandleHalt();
     schedPeer.Clear();
     dataChain.Clear();
 }
