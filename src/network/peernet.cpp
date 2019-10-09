@@ -37,8 +37,8 @@ CBbPeerNet::CBbPeerNet()
     nMagicNum = 0;
     nVersion = 0;
     nService = 0;
+    nPrimaryChainHeight = 0;
     fEnclosed = false;
-    pNetChannel = nullptr;
 }
 
 CBbPeerNet::~CBbPeerNet()
@@ -47,12 +47,6 @@ CBbPeerNet::~CBbPeerNet()
 
 bool CBbPeerNet::HandleInitialize()
 {
-    if (!GetObject("netchannel", pNetChannel))
-    {
-        Error("Failed to request peer net datachannel\n");
-        return false;
-    }
-
     RegisterRefHandler<CPeerSubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleSubscribe, this, _1));
     RegisterRefHandler<CPeerUnsubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleUnsubscribe, this, _1));
     RegisterRefHandler<CPeerInvMessageOutBound>(boost::bind(&CBbPeerNet::HandleInv, this, _1));
@@ -66,13 +60,14 @@ bool CBbPeerNet::HandleInitialize()
     RegisterRefHandler<CPeerDistributeMessageOutBound>(boost::bind(&CBbPeerNet::HandleDistribute, this, _1));
     RegisterRefHandler<CPeerPublishMessageOutBound>(boost::bind(&CBbPeerNet::HandlePublish, this, _1));
 
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CBbPeerNet::HandlePrimaryChainHeightUpdate, this, _1));
+
     return true;
 }
 
 void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
-    pNetChannel = nullptr;
 
     DeregisterHandler(CPeerSubscribeMessageOutBound::MessageType());
     DeregisterHandler(CPeerUnsubscribeMessageOutBound::MessageType());
@@ -86,6 +81,8 @@ void CBbPeerNet::HandleDeinitialize()
     DeregisterHandler(CPeerGetDelegatedMessageOutBound::MessageType());
     DeregisterHandler(CPeerDistributeMessageOutBound::MessageType());
     DeregisterHandler(CPeerPublishMessageOutBound::MessageType());
+
+    DeregisterHandler(CAddedBlockMessage::MessageType());
 }
 
 void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)
@@ -215,6 +212,11 @@ void CBbPeerNet::HandlePublish(const CPeerPublishMessageOutBound& publishMsg)
     SendDelegatedMessage(eventPublish.nNonce, PROTO_CMD_PUBLISH, ssPayload);
 }
 
+void CBbPeerNet::HandlePrimaryChainHeightUpdate(const CAddedBlockMessage& addedBlockMsg)
+{
+    nPrimaryChainHeight = addedBlockMsg.update.nLastBlockHeight;
+}
+
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 {
     uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT);
@@ -332,9 +334,7 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
 {
     uint64 nNonce = pPeer->GetNonce();
     int64 nTime = GetNetTime();
-    // TODO
-    int nHeight = 0; // pNetChannel->GetPrimaryChainHeight();
-    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight;
+    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nPrimaryChainHeight;
 }
 
 void CBbPeerNet::HandlePeerWriten(CPeer* pPeer)

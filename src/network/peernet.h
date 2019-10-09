@@ -67,6 +67,8 @@ protected:
     void HandleDistribute(const CPeerDistributeMessageOutBound& distributeMsg);
     void HandlePublish(const CPeerPublishMessageOutBound& publishMsg);
 
+    void HandlePrimaryChainHeightUpdate(const CAddedBlockMessage& addedBlockMsg);
+
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;
     xengine::CPeerInfo* GetPeerInfo(xengine::CPeer* pPeer, xengine::CPeerInfo* pInfo) override;
@@ -86,13 +88,13 @@ protected:
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
 
 protected:
-    INetChannel* pNetChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;
     bool fEnclosed;
     std::string subVersion;
     std::set<boost::asio::ip::tcp::endpoint> setDNSeed;
+    int nPrimaryChainHeight;
 };
 
 } // namespace network
