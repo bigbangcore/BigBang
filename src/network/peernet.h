@@ -21,7 +21,6 @@ class INetChannel : public xengine::CIOActor
 public:
     INetChannel()
       : xengine::CIOActor("netchannel") {}
-    virtual int GetPrimaryChainHeight() = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
     virtual void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) = 0;
     virtual void BroadcastTxInv(const uint256& hashFork) = 0;

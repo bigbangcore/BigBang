@@ -332,7 +332,8 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
 {
     uint64 nNonce = pPeer->GetNonce();
     int64 nTime = GetNetTime();
-    int nHeight = pNetChannel->GetPrimaryChainHeight();
+    // TODO
+    int nHeight = 0; // pNetChannel->GetPrimaryChainHeight();
     ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight;
 }
 

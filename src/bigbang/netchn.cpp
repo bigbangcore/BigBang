@@ -219,18 +219,6 @@ void CNetChannel::HandleHalt()
     }
 }
 
-int CNetChannel::GetPrimaryChainHeight()
-{
-    uint256 hashBlock = uint64(0);
-    int nHeight = 0;
-    int64 nTime = 0;
-    if (pWorldLineCntrl->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime))
-    {
-        return nHeight;
-    }
-    return 0;
-}
-
 bool CNetChannel::IsForkSynchronized(const uint256& hashFork) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
