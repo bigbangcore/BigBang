@@ -188,11 +188,11 @@ public:
     }
 };
 
-class IConsensus : public xengine::IBase
+class IConsensus : public xengine::CIOActor
 {
 public:
     IConsensus()
-      : IBase("consensus") {}
+      : xengine::CIOActor("consensus") {}
     const CMintConfig* MintConfig()
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
