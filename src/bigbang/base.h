@@ -217,11 +217,11 @@ public:
     }
 };
 
-class IWallet : public xengine::IBase
+class IWallet : public xengine::CIOActor
 {
 public:
     IWallet()
-      : IBase("wallet") {}
+      : xengine::CIOActor("wallet") {}
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
