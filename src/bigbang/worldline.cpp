@@ -399,10 +399,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    if (!block.IsVacant())
-    {
-        view.AddTx(block.txMint.GetHash(), block.txMint);
-    }
+    view.AddTx(block.txMint);
 
     CBlockEx blockex(block);
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
