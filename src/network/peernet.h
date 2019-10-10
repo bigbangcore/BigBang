@@ -22,10 +22,6 @@ public:
     INetChannel()
       : xengine::CIOActor("netchannel") {}
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
-    virtual void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) = 0;
-    virtual void BroadcastTxInv(const uint256& hashFork) = 0;
-    virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
-    virtual void UnsubscribeFork(const uint256& hashFork) = 0;
 };
 
 class IDelegatedChannel : public xengine::CIOActor

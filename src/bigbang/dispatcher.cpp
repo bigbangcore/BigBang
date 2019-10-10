@@ -200,8 +200,9 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (!block.IsOrigin() && !block.IsVacant())
     {
-        pNetChannel->BroadcastBlockInv(updateWorldLine.hashFork, block.GetHash());
-        pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
+        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateBlockChain.hashFork, block.GetHash());
+        PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
+        pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
     }
 
     pService->NotifyWorldLineUpdate(updateWorldLine);
@@ -218,7 +219,8 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
         for (const uint256 hashFork : vDeactive)
         {
-            pNetChannel->UnsubscribeFork(hashFork);
+            auto spUnsubscribeForkMsg = CUnsubscribeForkMessage::Create(hashFork);
+            PUBLISH_MESSAGE(spUnsubscribeForkMsg);
         }
     }
 
@@ -264,7 +266,8 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
     if (!nNonce)
     {
-        pNetChannel->BroadcastTxInv(hashFork);
+        auto spBroadcastTxInvMsg = CBroadcastTxInvMessage::Create(hashFork);
+        PUBLISH_MESSAGE(spBroadcastTxInvMsg);
     }
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
@@ -358,7 +361,10 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
         Log("Add origin block in tx (%s), hash=%s\n", ctxt.txidEmbedded.GetHex().c_str(),
             hashFork.GetHex().c_str());
     }
-    pNetChannel->SubscribeFork(hashFork, nNonce);
+
+    auto spSubscribeForkMsg = CSubscribeForkMessage::Create(hashFork, nNonce);
+    PUBLISH_MESSAGE(spSubscribeForkMsg);
+
     Log("Activated fork %s ...\n", hashFork.GetHex().c_str());
 }
 
