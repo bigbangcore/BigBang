@@ -16,11 +16,11 @@ namespace bigbang
 namespace network
 {
 
-class INetChannel : public xengine::CIOActor
+class INetChannelController : public xengine::CIOActor
 {
 public:
-    INetChannel()
-      : xengine::CIOActor("netchannel") {}
+    INetChannelController()
+      : xengine::CIOActor("netchannelcontroller") {}
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
 };
 

@@ -28,7 +28,7 @@ CDispatcher::CDispatcher()
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
-    pNetChannel = nullptr;
+    pNetChannelCtrl = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
@@ -87,7 +87,7 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("netchannel", pNetChannel))
+    if (!GetObject("netchannelcontroller", pNetChannelCtrl))
     {
         Error("Failed to request netchannel\n");
         return false;
@@ -118,7 +118,7 @@ void CDispatcher::HandleDeinitialize()
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
-    pNetChannel = nullptr;
+    pNetChannelCtrl = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
@@ -405,7 +405,7 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
-        if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
+        if (!pForkManager->IsAllowed(hashFork) || !pNetChannelCtrl->IsForkSynchronized(hashFork))
         {
             continue;
         }

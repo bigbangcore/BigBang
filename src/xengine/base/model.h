@@ -19,6 +19,12 @@ public:
       : IBase(strOwnKeyIn) {}
 };
 
+class INetChannelModel : public IModel
+{
+public:
+    INetChannelModel() : IModel("netchannelmodel") {}
+};
+
 } // namespace xengine
 
 #endif // XENGINE_BASE_MODEL_H

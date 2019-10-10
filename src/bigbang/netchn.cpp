@@ -96,6 +96,14 @@ void CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
     }
 }
 
+CNetChannelModel::CNetChannelModel()
+{
+}
+
+CNetChannelModel::~CNetChannelModel()
+{
+}
+
 //////////////////////////////
 // CNetChannel
 
@@ -206,7 +214,7 @@ bool CNetChannel::HandleInvoke()
         nTimerPushTx = 0;
     }
 
-    return true;
+    return network::INetChannelController::HandleInvoke();
 }
 
 void CNetChannel::HandleHalt()
@@ -222,6 +230,8 @@ void CNetChannel::HandleHalt()
         }
         setPushTxFork.clear();
     }
+
+    network::INetChannelController::HandleHalt();
 
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
