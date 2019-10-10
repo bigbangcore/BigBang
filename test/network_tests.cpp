@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestActiveNonce(spActiveMsg->nNonce));
+    BOOST_CHECK(pNetChannel->TestActiveNonce(nTestNonce));
 
     ///////////////////   Subscribe Test  //////////////////
 
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     pNetChannel->SubscribeFork(uint256("testfork"), nTestNonce);
-    BOOST_CHECK(pNetChannel->TestSubscribe(spSubscribeInBound->nNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannel->TestSubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Unsubscribe Test  //////////////////
 
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestUnsubscribe(spUnsubscribeInBound->nNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannel->TestUnsubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Deactive Test  //////////////////
 
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
+    BOOST_CHECK(pNetChannel->TestDeactiveNonce(nTestNonce));
 
     docker.Exit();
 
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestActiveNonce(spActiveMsg->nNonce));
+    BOOST_CHECK(pDelegatedChannel->TestActiveNonce(nTestNonce));
 
     //////////////////  Bulletin Test   /////////////////
 
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestBulletin(spBulletinMsg->nNonce, spBulletinMsg->hashAnchor));
+    BOOST_CHECK(pDelegatedChannel->TestBulletin(nTestNonce, uint256("testHashAchor")));
 
     //////////////////   Deactive Test  /////////////////
 
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(spDeactiveMsg->nNonce));
+    BOOST_CHECK(pDelegatedChannel->TestDeactiveNonce(nTestNonce));
 
     docker.Exit();
 

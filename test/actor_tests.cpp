@@ -237,18 +237,6 @@ vector<shared_ptr<CMessage>> GenerateMessages(int n)
     return vecMessage;
 }
 
-template <typename T>
-vector<CMessage*> GenerateMessagePtr(int n)
-{
-    vector<CMessage*> vecMessage;
-    vecMessage.reserve(n);
-    for (int i = 0; i < n; i++)
-    {
-        vecMessage.push_back(new T);
-    }
-    return vecMessage;
-}
-
 BOOST_AUTO_TEST_CASE(basic)
 {
     CTestMessageA::nHandled = CTestMessageA::nPublish = 0;
@@ -267,27 +255,27 @@ BOOST_AUTO_TEST_CASE(basic)
 
     docker.Run();
 
-    auto Publish = [=](const vector<CMessage*>& vecA, const vector<CMessage*>& vecB,
-                       const vector<CMessage*>& vecC, const vector<CMessage*>& vecD) {
-        for (const auto& spA : vecA)
+    auto Publish = [=](vector<shared_ptr<CMessage>>& vecA, vector<shared_ptr<CMessage>>& vecB,
+                       vector<shared_ptr<CMessage>>& vecC, vector<shared_ptr<CMessage>>& vecD) {
+        for (auto& spA : vecA)
         {
             PUBLISH_MESSAGE(spA);
             CTestMessageA::nPublish++;
         }
 
-        for (const auto& spB : vecB)
+        for (auto& spB : vecB)
         {
             PUBLISH_MESSAGE(spB);
             CTestMessageB::nPublish++;
         }
 
-        for (const auto& spC : vecC)
+        for (auto& spC : vecC)
         {
             PUBLISH_MESSAGE(spC);
             CTestMessageC::nPublish++;
         }
 
-        for (const auto& spD : vecD)
+        for (auto& spD : vecD)
         {
             PUBLISH_MESSAGE(spD);
             CTestMessageD::nPublish++;
@@ -295,28 +283,28 @@ BOOST_AUTO_TEST_CASE(basic)
     };
 
     int nA = 50000, nB = 50000, nC = 50000, nD = 50000;
-    vector<CMessage*> vecA1 = GenerateMessagePtr<CTestMessageA>(nA);
-    vector<CMessage*> vecB1 = GenerateMessagePtr<CTestMessageB>(nB);
-    vector<CMessage*> vecC1 = GenerateMessagePtr<CTestMessageC>(nC);
-    vector<CMessage*> vecD1 = GenerateMessagePtr<CTestMessageD>(nD);
-    vector<CMessage*> vecA2 = GenerateMessagePtr<CTestMessageA>(nA);
-    vector<CMessage*> vecB2 = GenerateMessagePtr<CTestMessageB>(nB);
-    vector<CMessage*> vecC2 = GenerateMessagePtr<CTestMessageC>(nC);
-    vector<CMessage*> vecD2 = GenerateMessagePtr<CTestMessageD>(nD);
-    vector<CMessage*> vecA3 = GenerateMessagePtr<CTestMessageA>(nA);
-    vector<CMessage*> vecB3 = GenerateMessagePtr<CTestMessageB>(nB);
-    vector<CMessage*> vecC3 = GenerateMessagePtr<CTestMessageC>(nC);
-    vector<CMessage*> vecD3 = GenerateMessagePtr<CTestMessageD>(nD);
-    vector<CMessage*> vecA4 = GenerateMessagePtr<CTestMessageA>(nA);
-    vector<CMessage*> vecB4 = GenerateMessagePtr<CTestMessageB>(nB);
-    vector<CMessage*> vecC4 = GenerateMessagePtr<CTestMessageC>(nC);
-    vector<CMessage*> vecD4 = GenerateMessagePtr<CTestMessageD>(nD);
+    vector<shared_ptr<CMessage>> vecA1 = GenerateMessages<CTestMessageA>(nA);
+    vector<shared_ptr<CMessage>> vecB1 = GenerateMessages<CTestMessageB>(nB);
+    vector<shared_ptr<CMessage>> vecC1 = GenerateMessages<CTestMessageC>(nC);
+    vector<shared_ptr<CMessage>> vecD1 = GenerateMessages<CTestMessageD>(nD);
+    vector<shared_ptr<CMessage>> vecA2 = GenerateMessages<CTestMessageA>(nA);
+    vector<shared_ptr<CMessage>> vecB2 = GenerateMessages<CTestMessageB>(nB);
+    vector<shared_ptr<CMessage>> vecC2 = GenerateMessages<CTestMessageC>(nC);
+    vector<shared_ptr<CMessage>> vecD2 = GenerateMessages<CTestMessageD>(nD);
+    vector<shared_ptr<CMessage>> vecA3 = GenerateMessages<CTestMessageA>(nA);
+    vector<shared_ptr<CMessage>> vecB3 = GenerateMessages<CTestMessageB>(nB);
+    vector<shared_ptr<CMessage>> vecC3 = GenerateMessages<CTestMessageC>(nC);
+    vector<shared_ptr<CMessage>> vecD3 = GenerateMessages<CTestMessageD>(nD);
+    vector<shared_ptr<CMessage>> vecA4 = GenerateMessages<CTestMessageA>(nA);
+    vector<shared_ptr<CMessage>> vecB4 = GenerateMessages<CTestMessageB>(nB);
+    vector<shared_ptr<CMessage>> vecC4 = GenerateMessages<CTestMessageC>(nC);
+    vector<shared_ptr<CMessage>> vecD4 = GenerateMessages<CTestMessageD>(nD);
 
     auto begin = chrono::steady_clock::now();
-    thread th1(Publish, cref(vecA1), cref(vecB1), cref(vecC1), cref(vecD1));
-    thread th2(Publish, cref(vecA2), cref(vecB2), cref(vecC2), cref(vecD2));
-    thread th3(Publish, cref(vecA3), cref(vecB3), cref(vecC3), cref(vecD3));
-    thread th4(Publish, cref(vecA4), cref(vecB4), cref(vecC4), cref(vecD4));
+    thread th1(Publish, ref(vecA1), ref(vecB1), ref(vecC1), ref(vecD1));
+    thread th2(Publish, ref(vecA2), ref(vecB2), ref(vecC2), ref(vecD2));
+    thread th3(Publish, ref(vecA3), ref(vecB3), ref(vecC3), ref(vecD3));
+    thread th4(Publish, ref(vecA4), ref(vecB4), ref(vecC4), ref(vecD4));
     th1.join();
     th2.join();
     th3.join();
@@ -379,30 +367,30 @@ void Handle(ListMPSCQueue<T>& queue, const atomic<bool>& fStop, atomic<int>& nHa
 
 template <typename T>
 void PublishSPtr(ListMPSCQueue<T>& queue,
-                 const vector<shared_ptr<T>>& vecA, const vector<shared_ptr<T>>& vecB,
-                 const vector<shared_ptr<T>>& vecC, const vector<shared_ptr<T>>& vecD)
+                 vector<shared_ptr<T>>& vecA, vector<shared_ptr<T>>& vecB,
+                 vector<shared_ptr<T>>& vecC, vector<shared_ptr<T>>& vecD)
 {
     for (auto& spA : vecA)
     {
-        queue.Push(spA);
+        queue.Push(std::move(spA));
         CTestMessageA::nPublish++;
     }
 
     for (auto& spB : vecB)
     {
-        queue.Push(spB);
+        queue.Push(std::move(spB));
         CTestMessageB::nPublish++;
     }
 
     for (auto& spC : vecC)
     {
-        queue.Push(spC);
+        queue.Push(std::move(spC));
         CTestMessageC::nPublish++;
     }
 
     for (auto& spD : vecD)
     {
-        queue.Push(spD);
+        queue.Push(std::move(spD));
         CTestMessageD::nPublish++;
     }
 };
@@ -432,54 +420,8 @@ void PublishPtr(ListMPSCQueue<T>& queue, const vector<T*>& vec)
     }
 };
 
-// CMessage*
-BOOST_AUTO_TEST_CASE(mpscptr)
-{
-    atomic<bool> fStop(false);
-    CTestMessageA::nHandled = CTestMessageA::nPublish = 0;
-    CTestMessageB::nHandled = CTestMessageB::nPublish = 0;
-    CTestMessageC::nHandled = CTestMessageC::nPublish = 0;
-    CTestMessageD::nHandled = CTestMessageD::nPublish = 0;
-
-    ListMPSCQueue<CMessage> msgQueue;
-    atomic<int> nMsgHandled(0);
-    int nMsgA = 500000, nMsgB = 500000, nMsgC = 500000, nMsgD = 500000;
-    vector<CMessage*> vecMsgA = GenerateMessagePtr<CTestMessageA>(nMsgA);
-    vector<CMessage*> vecMsgB = GenerateMessagePtr<CTestMessageB>(nMsgB);
-    vector<CMessage*> vecMsgC = GenerateMessagePtr<CTestMessageC>(nMsgC);
-    vector<CMessage*> vecMsgD = GenerateMessagePtr<CTestMessageD>(nMsgD);
-
-    auto begin = chrono::steady_clock::now();
-    thread msgHandler(Handle<CMessage>, ref(msgQueue), cref(fStop), ref(nMsgHandled));
-    thread msgTh1(PublishPtr<CMessage>, ref(msgQueue), cref(vecMsgA));
-    thread msgTh2(PublishPtr<CMessage>, ref(msgQueue), cref(vecMsgB));
-    thread msgTh3(PublishPtr<CMessage>, ref(msgQueue), cref(vecMsgC));
-    thread msgTh4(PublishPtr<CMessage>, ref(msgQueue), cref(vecMsgD));
-    msgTh1.join();
-    msgTh2.join();
-    msgTh3.join();
-    msgTh4.join();
-
-    int nMsgTotal = (nMsgA + nMsgB + nMsgC + nMsgD);
-    while (nMsgHandled != nMsgTotal)
-    {
-        // cout << "nMsgHandled: " << nMsgHandled << ", nMsgTotal: " << nMsgTotal << endl;
-        this_thread::sleep_for(chrono::milliseconds(1));
-    }
-    auto end = chrono::steady_clock::now();
-
-    fStop = true;
-    msgHandler.join();
-    cout << "MPSC CMessage*: 4 publishers and 1 handler handled " << nMsgTotal << " times, use time: " << (end - begin).count() << " ns. Average: " << (end - begin).count() / nMsgTotal << "ns." << endl;
-
-    BOOST_CHECK(CTestMessageA::nHandled == CTestMessageA::nPublish && CTestMessageA::nHandled == nMsgA);
-    BOOST_CHECK(CTestMessageB::nHandled == CTestMessageB::nPublish && CTestMessageB::nHandled == nMsgB);
-    BOOST_CHECK(CTestMessageC::nHandled == CTestMessageC::nPublish && CTestMessageC::nHandled == nMsgC);
-    BOOST_CHECK(CTestMessageD::nHandled == CTestMessageD::nPublish && CTestMessageD::nHandled == nMsgD);
-}
-
 // shared_ptr<CMessage>
-BOOST_AUTO_TEST_CASE(mpscsptr)
+BOOST_AUTO_TEST_CASE(mpscptr)
 {
     atomic<bool> fStop(false);
     CTestMessageA::nHandled = CTestMessageA::nPublish = 0;
@@ -490,17 +432,29 @@ BOOST_AUTO_TEST_CASE(mpscsptr)
     ListMPSCQueue<CMessage> spMsgQueue;
     atomic<int> nSpMsgHandled(0);
     int nSpMsgA = 500000, nSpMsgB = 500000, nSpMsgC = 500000, nSpMsgD = 500000;
-    vector<shared_ptr<CMessage>> vecSpMsgA = GenerateMessages<CTestMessageA>(nSpMsgA);
-    vector<shared_ptr<CMessage>> vecSpMsgB = GenerateMessages<CTestMessageB>(nSpMsgB);
-    vector<shared_ptr<CMessage>> vecSpMsgC = GenerateMessages<CTestMessageC>(nSpMsgC);
-    vector<shared_ptr<CMessage>> vecSpMsgD = GenerateMessages<CTestMessageD>(nSpMsgD);
+    vector<shared_ptr<CMessage>> vecSpMsgA1 = GenerateMessages<CTestMessageA>(nSpMsgA);
+    vector<shared_ptr<CMessage>> vecSpMsgB1 = GenerateMessages<CTestMessageB>(nSpMsgB);
+    vector<shared_ptr<CMessage>> vecSpMsgC1 = GenerateMessages<CTestMessageC>(nSpMsgC);
+    vector<shared_ptr<CMessage>> vecSpMsgD1 = GenerateMessages<CTestMessageD>(nSpMsgD);
+    vector<shared_ptr<CMessage>> vecSpMsgA2 = GenerateMessages<CTestMessageA>(nSpMsgA);
+    vector<shared_ptr<CMessage>> vecSpMsgB2 = GenerateMessages<CTestMessageB>(nSpMsgB);
+    vector<shared_ptr<CMessage>> vecSpMsgC2 = GenerateMessages<CTestMessageC>(nSpMsgC);
+    vector<shared_ptr<CMessage>> vecSpMsgD2 = GenerateMessages<CTestMessageD>(nSpMsgD);
+    vector<shared_ptr<CMessage>> vecSpMsgA3 = GenerateMessages<CTestMessageA>(nSpMsgA);
+    vector<shared_ptr<CMessage>> vecSpMsgB3 = GenerateMessages<CTestMessageB>(nSpMsgB);
+    vector<shared_ptr<CMessage>> vecSpMsgC3 = GenerateMessages<CTestMessageC>(nSpMsgC);
+    vector<shared_ptr<CMessage>> vecSpMsgD3 = GenerateMessages<CTestMessageD>(nSpMsgD);
+    vector<shared_ptr<CMessage>> vecSpMsgA4 = GenerateMessages<CTestMessageA>(nSpMsgA);
+    vector<shared_ptr<CMessage>> vecSpMsgB4 = GenerateMessages<CTestMessageB>(nSpMsgB);
+    vector<shared_ptr<CMessage>> vecSpMsgC4 = GenerateMessages<CTestMessageC>(nSpMsgC);
+    vector<shared_ptr<CMessage>> vecSpMsgD4 = GenerateMessages<CTestMessageD>(nSpMsgD);
 
     auto begin = chrono::steady_clock::now();
     thread spMsgHandler(Handle<CMessage>, ref(spMsgQueue), cref(fStop), ref(nSpMsgHandled));
-    thread spMsgTh1(PublishSPtr<CMessage>, ref(spMsgQueue), cref(vecSpMsgA), cref(vecSpMsgB), cref(vecSpMsgC), cref(vecSpMsgD));
-    thread spMsgTh2(PublishSPtr<CMessage>, ref(spMsgQueue), cref(vecSpMsgA), cref(vecSpMsgB), cref(vecSpMsgC), cref(vecSpMsgD));
-    thread spMsgTh3(PublishSPtr<CMessage>, ref(spMsgQueue), cref(vecSpMsgA), cref(vecSpMsgB), cref(vecSpMsgC), cref(vecSpMsgD));
-    thread spMsgTh4(PublishSPtr<CMessage>, ref(spMsgQueue), cref(vecSpMsgA), cref(vecSpMsgB), cref(vecSpMsgC), cref(vecSpMsgD));
+    thread spMsgTh1(PublishSPtr<CMessage>, ref(spMsgQueue), ref(vecSpMsgA1), ref(vecSpMsgB1), ref(vecSpMsgC1), ref(vecSpMsgD1));
+    thread spMsgTh2(PublishSPtr<CMessage>, ref(spMsgQueue), ref(vecSpMsgA2), ref(vecSpMsgB2), ref(vecSpMsgC2), ref(vecSpMsgD2));
+    thread spMsgTh3(PublishSPtr<CMessage>, ref(spMsgQueue), ref(vecSpMsgA3), ref(vecSpMsgB3), ref(vecSpMsgC3), ref(vecSpMsgD3));
+    thread spMsgTh4(PublishSPtr<CMessage>, ref(spMsgQueue), ref(vecSpMsgA4), ref(vecSpMsgB4), ref(vecSpMsgC4), ref(vecSpMsgD4));
     spMsgTh1.join();
     spMsgTh2.join();
     spMsgTh3.join();
@@ -543,7 +497,7 @@ BOOST_AUTO_TEST_CASE(spsc)
 
     auto begin = chrono::steady_clock::now();
     thread SPSCHandler(Handle<CMessage>, ref(SPSCQueue), cref(fStop), ref(nSPSCHandled));
-    thread SPSCTh(PublishSPtr<CMessage>, ref(SPSCQueue), cref(vecSPSCA), cref(vecSPSCB), cref(vecSPSCC), cref(vecSPSCD));
+    thread SPSCTh(PublishSPtr<CMessage>, ref(SPSCQueue), ref(vecSPSCA), ref(vecSPSCB), ref(vecSPSCC), ref(vecSPSCD));
     SPSCTh.join();
 
     int nSPSCTotal = (nSPSCA + nSPSCB + nSPSCC + nSPSCD);

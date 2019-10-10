@@ -1175,12 +1175,13 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
     {
         spAddedBlockMsg->nError = AddNewOriginIntoWorldLine(block, spAddedBlockMsg->update);
     }
+    const CWorldLineUpdate& update = spAddedBlockMsg->update;
     PUBLISH_MESSAGE(spAddedBlockMsg);
 
     // Create new fork
     vector<CTransaction> vForkTx;
     vector<uint256> vActive, vDeactive;
-    pForkManager->ForkUpdate(spAddedBlockMsg->update, vForkTx, vActive, vDeactive);
+    pForkManager->ForkUpdate(update, vForkTx, vActive, vDeactive);
 
     for (auto& tx : vForkTx)
     {
@@ -1210,7 +1211,7 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
                     spAddedOriginMsg->nError = OK;
                     spAddedOriginMsg->nNonce = 0;
                     spAddedOriginMsg->hashFork = originBlock.GetHash();
-                    PUBLISH_MESSAGE(spAddedBlockMsg);
+                    PUBLISH_MESSAGE(spAddedOriginMsg);
                 }
                 else
                 {

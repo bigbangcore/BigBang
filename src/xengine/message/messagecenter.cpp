@@ -52,7 +52,7 @@ void CMessageCenter::Subscribe(const uint32 nType, CIOActor* pActor)
     CSubscribeMessage* pMessage = new CSubscribeMessage();
     pMessage->nSubType = nType;
     pMessage->pActor = pActor;
-    Publish(pMessage);
+    Publish(std::shared_ptr<CSubscribeMessage>(pMessage));
 }
 
 void CMessageCenter::Unsubscribe(const uint32 nType, CIOActor* pActor)
@@ -60,21 +60,14 @@ void CMessageCenter::Unsubscribe(const uint32 nType, CIOActor* pActor)
     CUnsubscribeMessage* pMessage = new CUnsubscribeMessage();
     pMessage->nUnsubType = nType;
     pMessage->pActor = pActor;
-    Publish(pMessage);
+    Publish(std::shared_ptr<CUnsubscribeMessage>(pMessage));
 }
 
-void CMessageCenter::Publish(CMessage* pMessage)
-{
-    // DebugLog("message-center", "Publish tag {%s} message to center\n", pMessage->Tag().c_str());
-    queue.Push(pMessage);
-    ++nSize;
-}
-
-void CMessageCenter::Publish(std::shared_ptr<CMessage> spMessage)
+const std::shared_ptr<CMessage> CMessageCenter::Publish(std::shared_ptr<CMessage>&& spMessage)
 {
     // DebugLog("message-center", "Publish tag {%s} message to center\n", spMessage->Tag().c_str());
-    queue.Push(spMessage);
     ++nSize;
+    return queue.Push(std::move(spMessage));
 }
 
 uint64 CMessageCenter::Size()
