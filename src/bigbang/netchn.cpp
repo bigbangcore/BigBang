@@ -2,9 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "netchn.h"
+
 #include <boost/bind.hpp>
 
-#include "netchn.h"
 #include "schedule.h"
 
 using namespace std;
@@ -440,13 +441,25 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             vector<uint256> vTxHash;
             for (const network::CInv& inv : eventInv.data)
             {
-                if ((inv.nType == network::CInv::MSG_TX && !pTxPool->Exists(inv.nHash))
-                    || (inv.nType == network::CInv::MSG_BLOCK && !pBlockChain->Exists(inv.nHash)))
+                if (inv.nType == network::CInv::MSG_TX)
                 {
-                    sched.AddNewInv(inv, nNonce);
-                    if (inv.nType == network::CInv::MSG_TX)
+                    if (!pTxPool->Exists(inv.nHash))
                     {
+                        sched.AddNewInv(inv, nNonce);
                         vTxHash.push_back(inv.nHash);
+                    }
+                }
+                else if (inv.nType == network::CInv::MSG_BLOCK)
+                {
+                    uint256 hashFork;
+                    int nHeight;
+                    if (!pBlockChain->GetBlockLocation(inv.nHash, hashFork, nHeight))
+                    {
+                        sched.AddNewInv(inv, nNonce);
+                    }
+                    else
+                    {
+                        sched.SetLocatorInvBlockHash(nNonce, nHeight, inv.nHash);
                     }
                 }
             }
@@ -508,21 +521,15 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     uint64 nNonce = eventGetBlocks.nNonce;
     uint256& hashFork = eventGetBlocks.hashFork;
     vector<uint256> vBlockHash;
-    if (!pBlockChain->GetBlockInv(hashFork, eventGetBlocks.data, vBlockHash, MAX_GETBLOCKS_COUNT))
+    if (pBlockChain->GetBlockInv(hashFork, eventGetBlocks.data, vBlockHash, MAX_GETBLOCKS_COUNT) && !vBlockHash.empty())
     {
-        CBlock block;
-        if (!pBlockChain->GetBlock(hashFork, block))
+        network::CEventPeerInv eventInv(nNonce, hashFork);
+        for (const uint256& hash : vBlockHash)
         {
-            //DispatchMisbehaveEvent(nNonce,CEndpointManager::DDOS_ATTACK,"eventGetBlocks");
-            //return true;
+            eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
         }
+        pPeerNet->DispatchEvent(&eventInv);
     }
-    network::CEventPeerInv eventInv(nNonce, hashFork);
-    for (const uint256& hash : vBlockHash)
-    {
-        eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
-    }
-    pPeerNet->DispatchEvent(&eventInv);
     return true;
 }
 
@@ -651,10 +658,31 @@ void CNetChannel::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::C
 
 void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
 {
-    network::CEventPeerGetBlocks eventGetBlocks(nNonce, hashFork);
-    if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data))
+    try
     {
-        pPeerNet->DispatchEvent(&eventGetBlocks);
+        CSchedule& sched = GetSchedule(hashFork);
+        int nDepth = sched.GetLocatorDepth(nNonce);
+
+        uint256 hashInvBlock;
+        int nLocatorInvHeight;
+        nLocatorInvHeight = sched.GetLocatorInvBlockHash(nNonce, hashInvBlock);
+
+        network::CEventPeerGetBlocks eventGetBlocks(nNonce, hashFork);
+        if (nLocatorInvHeight > 0)
+        {
+            eventGetBlocks.data.vBlockHash.push_back(hashInvBlock);
+        }
+        if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data, nDepth, MAX_GETBLOCKS_COUNT - 1) && !eventGetBlocks.data.vBlockHash.empty())
+        {
+            Log("DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s.\n",
+                nLocatorInvHeight, hashInvBlock.GetHex().c_str());
+            pPeerNet->DispatchEvent(&eventGetBlocks);
+        }
+        sched.SetLocatorDepth(nNonce, nDepth);
+    }
+    catch (...)
+    {
+        DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "DispatchGetBlocksEvent");
     }
 }
 

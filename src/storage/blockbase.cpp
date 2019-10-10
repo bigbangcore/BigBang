@@ -2,10 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "blockbase.h"
+
 #include <boost/timer/timer.hpp>
 #include <cstdio>
 
-#include "blockbase.h"
 #include "template/template.h"
 
 using namespace std;
@@ -1008,7 +1009,7 @@ bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt)
     return dbBlock.ListForkContext(vForkCtxt);
 }
 
-bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator)
+bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep)
 {
     CReadLock rlock(rwAccess);
 
@@ -1026,19 +1027,34 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
         pIndex = spFork->GetLast();
     }
 
-    locator.vBlockHash.clear();
-    int nStep = 1;
-    while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
+    CBlockIndex* pOldIndex = pIndex;
+    for (int i = 0; i < nDepth; i++)
+    {
+        if (pIndex == NULL || pIndex->GetOriginHash() != hashFork || pIndex->IsOrigin())
+        {
+            nDepth = 0;
+            pIndex = pOldIndex;
+            break;
+        }
+        pIndex = pIndex->pPrev;
+    }
+
+    while (pIndex && pIndex->GetOriginHash() == hashFork)
     {
         locator.vBlockHash.push_back(pIndex->GetBlockHash());
-        for (int i = 0; pIndex && i < nStep; i++)
+        if (pIndex->IsOrigin() || locator.vBlockHash.size() >= nIncStep / 2)
+        {
+            break;
+        }
+        for (int i = 0; pIndex && i < nIncStep; i++)
         {
             pIndex = pIndex->pPrev;
+            nDepth++;
         }
-        if (locator.vBlockHash.size() > 10)
-        {
-            nStep *= 2;
-        }
+    }
+    if (locator.vBlockHash.size() < nIncStep / 2)
+    {
+        nDepth = 0;
     }
 
     return true;
@@ -1068,19 +1084,22 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
             }
             break;
         }
+        pIndex = nullptr;
     }
 
-    pIndex = (pIndex != nullptr ? pIndex->pNext : spFork->GetOrigin()->pNext);
-    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+    if (pIndex != nullptr)
     {
-        vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pNext;
+        while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+        {
+            vBlockHash.push_back(pIndex->GetBlockHash());
+            pIndex = pIndex->pNext;
+        }
+        if (pIndex != nullptr && pIndex != pIndexLast)
+        {
+            vBlockHash.push_back(pIndexLast->GetBlockHash());
+        }
     }
-    if (pIndex != nullptr && pIndex != pIndexLast)
-    {
-        vBlockHash.push_back(pIndexLast->GetBlockHash());
-    }
-
     return true;
 }
 

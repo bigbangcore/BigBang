@@ -645,9 +645,9 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
     return true;
 }
 
-bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
+bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep)
 {
-    return cntrBlock.GetForkBlockLocator(hashFork, locator);
+    return cntrBlock.GetForkBlockLocator(hashFork, locator, nDepth, nIncStep);
 }
 
 bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
