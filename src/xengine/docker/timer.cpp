@@ -32,6 +32,16 @@ bool CTimer::HandleInitialize()
     return true;
 }
 
+bool CTimer::HandleInvoke()
+{
+    return StartActor();
+}
+
+void CTimer::HandleHalt()
+{
+    StopActor();
+}
+
 void CTimer::HandleDeinitialize()
 {
     DeregisterHandler(CSetTimerMessage::MessageType());

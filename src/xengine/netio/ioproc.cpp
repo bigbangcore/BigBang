@@ -116,7 +116,10 @@ CIOClient* CIOProc::CreateIOClient(CIOContainer* pContainer)
 
 bool CIOProc::HandleInvoke()
 {
-    CIOActor::HandleInvoke();
+    if (!StartActor())
+    {
+        return false;
+    }
 
     if (!ioOutBound.Invoke(GetMaxOutBoundCount()))
     {
@@ -131,6 +134,8 @@ bool CIOProc::HandleInvoke()
 
 void CIOProc::HandleHalt()
 {
+    StopActor();
+
     ioOutBound.Halt();
     ioSSLOutBound.Halt();
 
@@ -143,8 +148,6 @@ void CIOProc::HandleHalt()
     //     delete it->second;
     // }
     // mapService.clear();
-
-    CIOActor::HandleHalt();
 }
 
 uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)

@@ -72,6 +72,14 @@ public:
         RegisterRefHandler<CTestMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
         return true;
     }
+    virtual bool HandleInvoke() override
+    {
+        return StartActor();
+    }
+    virtual void HandleHalt() override
+    {
+        StopActor();
+    }
     virtual void HandleDeinitialize() override
     {
         DeregisterHandler(CTestMessageA::MessageType());
@@ -106,7 +114,16 @@ public:
         RegisterPtrHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
         RegisterPtrHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
         RegisterPtrHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+
         return true;
+    }
+    virtual bool HandleInvoke() override
+    {
+        return StartActor();
+    }
+    virtual void HandleHalt() override
+    {
+        StopActor();
     }
     virtual void HandleDeinitialize() override
     {

@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "message/actor.h"
+#include "logger.h"
 
 namespace xengine
 {
@@ -64,12 +65,14 @@ void CMessageCenter::Unsubscribe(const uint32 nType, CIOActor* pActor)
 
 void CMessageCenter::Publish(CMessage* pMessage)
 {
+    // DebugLog("message-center", "Publish tag {%s} message to center\n", pMessage->Tag().c_str());
     queue.Push(pMessage);
     ++nSize;
 }
 
 void CMessageCenter::Publish(std::shared_ptr<CMessage> spMessage)
 {
+    // DebugLog("message-center", "Publish tag {%s} message to center\n", spMessage->Tag().c_str());
     queue.Push(spMessage);
     ++nSize;
 }
@@ -101,6 +104,7 @@ void CMessageCenter::DistributionThreadFunc()
                 auto it = mapMessage.find(spMessage->Type());
                 if (it != mapMessage.end() && !it->second.empty())
                 {
+                    // DebugLog("message-center", "Dispatch tag {%s} message to actors, number is {%d}\n", spMessage->Tag().c_str(), it->second.size());
                     for (auto& pActor : it->second)
                     {
                         pActor->Publish(spMessage);

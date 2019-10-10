@@ -75,6 +75,8 @@ public:
 
 protected:
     bool HandleInitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
     void HandleDeinitialize() override;
     void EnterLoop() override;
     void LeaveLoop() override;
