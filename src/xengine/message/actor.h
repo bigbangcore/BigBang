@@ -41,25 +41,16 @@ public:
 
 protected:
     /**
-     * @brief Override IBase::HandleInitialize().
-     *        Derived class should call RegisterRefHandler in this function.
+     * @brief Start actor worker thread.
+     *        Call it in the beginning of HandleInvoke() commonly.
      */
-    virtual bool HandleInitialize() override;
+    bool StartActor();
 
     /**
-     * @brief Override IBase::HandleInvoke()
+     * @brief Stop actor worker thread.
+     *        Call it in the beginning of HandleHalt() commonly.
      */
-    virtual bool HandleInvoke() override;
-
-    /**
-     * @brief Override IBase::HandleHalt()
-     */
-    virtual void HandleHalt() override;
-
-    /**
-     * @brief Override IBase::HandleDeinitialize()
-     */
-    virtual void HandleDeinitialize() override;
+    void StopActor();
 
     /**
      * @brief Called before message handler thread running.

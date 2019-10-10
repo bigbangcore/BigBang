@@ -46,7 +46,7 @@ set(src
     service.cpp         service.h
     txpool.cpp          txpool.h
     wallet.cpp          wallet.h
-    blockchain.cpp      blockchain.h
+    worldline.cpp      worldline.h
     forkmanager.cpp     forkmanager.h
     datastat.cpp        datastat.h
     event.h

@@ -53,11 +53,15 @@ public:
     virtual bool CheckFirstPow(int nBlockHeight) = 0;
 };
 
-class IBlockChain : public xengine::IBase
+class IWorldLineController;
+class IWorldLine : public xengine::IModel
 {
+    friend class IWorldLineController;
+
 public:
-    IBlockChain()
-      : IBase("blockchain") {}
+    IWorldLine()
+      : IModel("worldline") {}
+
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
     virtual bool GetForkProfile(const uint256& hashFork, CProfile& profile) = 0;
     virtual bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) = 0;
@@ -80,15 +84,19 @@ public:
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) = 0;
     virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
-    virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
-    virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
-    virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
+
+protected:
+    virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
+    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) = 0;
+    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) = 0;
+
+protected:
     const CBasicConfig* Config()
     {
         return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
@@ -99,6 +107,64 @@ public:
     }
 };
 
+class IWorldLineController : public xengine::CIOActor
+{
+public:
+    IWorldLineController()
+      : CIOActor("worldlinecontroller"), pWorldLine(nullptr) {}
+
+    // TODO: remove these functions because of existed in IWorldLine
+    virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
+    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) = 0;
+    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) = 0;
+
+    virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
+    virtual bool GetForkProfile(const uint256& hashFork, CProfile& profile) = 0;
+    virtual bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) = 0;
+    virtual bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) = 0;
+    virtual int GetBlockCount(const uint256& hashFork) = 0;
+    virtual bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) = 0;
+    virtual bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) = 0;
+    virtual bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime) = 0;
+    virtual bool GetLastBlockTime(const uint256& hashFork, int nDepth, std::vector<int64>& vTime) = 0;
+    virtual bool GetBlock(const uint256& hashBlock, CBlock& block) = 0;
+    virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) = 0;
+    virtual bool GetOrigin(const uint256& hashFork, CBlock& block) = 0;
+    virtual bool Exists(const uint256& hashBlock) = 0;
+    virtual bool GetTransaction(const uint256& txid, CTransaction& tx) = 0;
+    virtual bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,
+                              std::vector<CTxOut>& vOutput) = 0;
+    virtual bool ExistsTx(const uint256& txid) = 0;
+    virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
+    virtual bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) = 0;
+    virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
+    virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
+    virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
+    virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) = 0;
+    virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
+    virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
+    virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
+
+protected:
+    Errno AddNewForkContextIntoWorldLine(const CTransaction& txFork, CForkContext& ctxt)
+    {
+        return pWorldLine->AddNewForkContext(txFork, ctxt);
+    }
+    Errno AddNewBlockIntoWorldLine(const CBlock& block, CWorldLineUpdate& update)
+    {
+        return pWorldLine->AddNewBlock(block, update);
+    }
+    Errno AddNewOriginIntoWorldLine(const CBlock& block, CWorldLineUpdate& update)
+    {
+        return pWorldLine->AddNewOrigin(block, update);
+    }
+
+protected:
+    IWorldLine* pWorldLine;
+};
+
 class ITxPoolController;
 class ITxPool : public xengine::IModel
 {
@@ -107,6 +173,8 @@ class ITxPool : public xengine::IModel
 public:
     ITxPool()
       : IModel("txpool") {}
+
+    // TODO: remove these functions because of existed in IWorldLine
     virtual bool Exists(const uint256& txid) const = 0;
     virtual std::size_t Count(const uint256& fork) const = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
@@ -121,7 +189,7 @@ protected:
     virtual void Clear() = 0;
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
-    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
+    virtual bool SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change) = 0;
 };
 
 class ITxPoolController : public xengine::CIOActor
@@ -132,13 +200,12 @@ public:
     virtual void Clear() = 0;
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
-    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
+    virtual bool SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change) = 0;
     const CStorageConfig* StorageConfig()
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
     }
 
-public:
     virtual bool Exists(const uint256& txid) = 0;
     virtual std::size_t Count(const uint256& fork) const = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
@@ -162,9 +229,9 @@ protected:
     {
         pTxPool->Pop(txid);
     }
-    bool SynchronizeBlockChainWithTxPool(const CBlockChainUpdate& update, CTxSetChange& change)
+    bool SynchronizeWorldLineWithTxPool(const CWorldLineUpdate& update, CTxSetChange& change)
     {
-        return pTxPool->SynchronizeBlockChain(update, change);
+        return pTxPool->SynchronizeWorldLine(update, change);
     }
 
 protected:
@@ -179,7 +246,10 @@ public:
     virtual bool IsAllowed(const uint256& hashFork) const = 0;
     virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const = 0;
     virtual bool LoadForkContext(std::vector<uint256>& vActive) = 0;
-    virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
+    virtual void ForkUpdate(const CWorldLineUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
+    virtual void ForkUpdate(const CWorldLineUpdate& update, std::vector<CTransaction>& vForkTx,
+                            std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
+    virtual bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive) = 0;
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
     const CForkConfig* ForkConfig()
@@ -197,7 +267,7 @@ public:
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
     }
-    virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
+    virtual void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
     virtual bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
     virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
@@ -283,7 +353,7 @@ public:
     IService()
       : xengine::CIOActor("service") {}
     /* Notify */
-    virtual void NotifyBlockChainUpdate(const CBlockChainUpdate& update) = 0;
+    virtual void NotifyWorldLineUpdate(const CWorldLineUpdate& update) = 0;
     virtual void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) = 0;
     virtual void NotifyTransactionUpdate(const CTransactionUpdate& update) = 0;
     /* System */
@@ -293,7 +363,7 @@ public:
     virtual void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) = 0;
     virtual bool AddNode(const xengine::CNetHost& node) = 0;
     virtual bool RemoveNode(const xengine::CNetHost& node) = 0;
-    /* Blockchain & Tx Pool*/
+    /* WorldLine & Tx Pool*/
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
     virtual int GetForkHeight(const uint256& hashFork) = 0;

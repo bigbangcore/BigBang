@@ -27,15 +27,15 @@ UtfSetup::~UtfSetup()
     std::cout << ("UTF fixture unloaded!\n");
 }
 
-UtfBlockchain100Setup::UtfBlockchain100Setup()
-  : UtfSetup("UtfBlockchain100Setup")
+UtfWorldLine100Setup::UtfWorldLine100Setup()
+  : UtfSetup("UtfWorldLine100Setup")
 {
-    std::cout << ("UtfBlockchain100Setup - specific fixture loaded!\n");
+    std::cout << ("UtfWorldLine100Setup - specific fixture loaded!\n");
 }
 
-UtfBlockchain100Setup::~UtfBlockchain100Setup()
+UtfWorldLine100Setup::~UtfWorldLine100Setup()
 {
-    std::cout << ("UtfBlockchain100Setup - specific fixture unloaded!\n");
+    std::cout << ("UtfWorldLine100Setup - specific fixture unloaded!\n");
 }
 
 void Shutdown()

@@ -28,14 +28,14 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
-    void UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce);
+    void UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate& updateWorldLine, const CTxSetChange& changeTxSet, const uint64& nNonce);
     void ActivateFork(const uint256& hashFork, const uint64& nNonce);
     bool ProcessForkTx(const uint256& txid, const CTransaction& tx);
     void SyncForkHeight(int nPrimaryHeight);
 
 protected:
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     IForkManager* pForkManager;
     IConsensus* pConsensus;

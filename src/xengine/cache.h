@@ -65,7 +65,7 @@ public:
         {
             (*(ret.first)).value = value;
         }
-        if (nMaxCount != 0 && cntrCache.size() > nMaxCount)
+        else if (nMaxCount != 0 && cntrCache.size() > nMaxCount)
         {
             CKeyValueList& listCache = cntrCache.template get<1>();
             listCache.pop_front();

@@ -18,7 +18,7 @@ public:
     CService();
     ~CService();
     /* Notify */
-    void NotifyBlockChainUpdate(const CBlockChainUpdate& update) override;
+    void NotifyWorldLineUpdate(const CWorldLineUpdate& update) override;
     void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) override;
     void NotifyTransactionUpdate(const CTransactionUpdate& update) override;
     /* System */
@@ -28,7 +28,7 @@ public:
     void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) override;
     bool AddNode(const xengine::CNetHost& node) override;
     bool RemoveNode(const xengine::CNetHost& node) override;
-    /* Blockchain & Tx Pool*/
+    /* WorldLine & Tx Pool*/
     int GetForkCount() override;
     bool HaveFork(const uint256& hashFork) override;
     int GetForkHeight(const uint256& hashFork) override;
@@ -82,7 +82,7 @@ protected:
 
 protected:
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IWallet* pWallet;

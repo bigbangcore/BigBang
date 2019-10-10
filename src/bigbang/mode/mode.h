@@ -7,7 +7,7 @@
 //
 // Concept:
 //  - Mode: Program execution mode. e.g. server, console, miner, dnseed...
-//  - Module: Some mostly independent function. e.g. txpool, httpserver, blockchain...
+//  - Module: Some mostly independent function. e.g. txpool, httpserver, worldline...
 //  - Config: program running depends on configurations from command-line and configuration file.
 //            Divided into several configuration class by need. e.g. network, mint...
 //
@@ -158,7 +158,8 @@ public:
             { EModeType::SERVER,
               { EModuleType::LOCK,
                 EModuleType::COREPROTOCOL,
-                EModuleType::BLOCKCHAIN,
+                EModuleType::WORLDLINE,
+                EModuleType::WORLDLINECONTROLLER,
                 EModuleType::TXPOOL,
                 EModuleType::TXPOOLCONTROLLER,
                 EModuleType::FORKMANAGER,

@@ -176,7 +176,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
 CConsensus::CConsensus()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
@@ -192,9 +192,9 @@ bool CConsensus::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("blockchain", pBlockChain))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request worldline\n");
         return false;
     }
 
@@ -228,12 +228,17 @@ void CConsensus::HandleDeinitialize()
     mapContext.clear();
 
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
 bool CConsensus::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
+
     boost::unique_lock<boost::mutex> lock(mutex);
 
     if (!delegate.Initialize())
@@ -259,6 +264,8 @@ bool CConsensus::HandleInvoke()
 
 void CConsensus::HandleHalt()
 {
+    StopActor();
+
     boost::unique_lock<boost::mutex> lock(mutex);
 
     delegate.Deinitialize();
@@ -268,7 +275,7 @@ void CConsensus::HandleHalt()
     }
 }
 
-void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
+void CConsensus::PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
@@ -292,7 +299,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 
         CDelegateEnrolled enrolled;
 
-        if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
+        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
@@ -309,7 +316,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 
         CDelegateEnrolled enrolled;
 
-        if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
+        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
@@ -394,7 +401,7 @@ bool CConsensus::LoadDelegateTx()
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         CDelegateTxFilter txFilter((*it).second);
-        if (!pBlockChain->FilterTx(hashGenesis, txFilter) || !pTxPoolCntrl->FilterTx(hashGenesis, txFilter))
+        if (!pWorldLineCntrl->FilterTx(hashGenesis, txFilter) || !pTxPoolCntrl->FilterTx(hashGenesis, txFilter))
         {
             return false;
         }
@@ -404,7 +411,7 @@ bool CConsensus::LoadDelegateTx()
 
 bool CConsensus::LoadChain()
 {
-    int nLashBlockHeight = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+    int nLashBlockHeight = pWorldLineCntrl->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
     int nStartHeight = nLashBlockHeight - CONSENSUS_ENROLL_INTERVAL + 1;
     if (nStartHeight < 0)
     {
@@ -413,13 +420,13 @@ bool CConsensus::LoadChain()
     for (int i = nStartHeight; i <= nLashBlockHeight; i++)
     {
         uint256 hashBlock;
-        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
+        if (!pWorldLineCntrl->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
         {
             return false;
         }
         CDelegateEnrolled enrolled;
 
-        if (pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hashBlock, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result);

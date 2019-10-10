@@ -20,7 +20,7 @@ namespace bigbang
 CForkManager::CForkManager()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
     fAllowAnyFork = false;
 }
 
@@ -36,9 +36,9 @@ bool CForkManager::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("blockchain", pBlockChain))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request worldline\n");
         return false;
     }
 
@@ -48,7 +48,7 @@ bool CForkManager::HandleInitialize()
 void CForkManager::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
 }
 
 bool CForkManager::HandleInvoke()
@@ -121,7 +121,7 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
     vector<CForkContext> vForkCtxt;
-    if (!pBlockChain->ListForkContext(vForkCtxt))
+    if (!pWorldLineCntrl->ListForkContext(vForkCtxt))
     {
         return false;
     }
@@ -137,7 +137,7 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
     return true;
 }
 
-void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)
+void CForkManager::ForkUpdate(const CWorldLineUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
@@ -168,10 +168,53 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
                     && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
                 {
                     CForkContext ctxt;
-                    if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
+                    if (pWorldLineCntrl->AddNewForkContext(tx, ctxt) == OK)
                     {
                         AddNewForkContext(ctxt, vActive);
                     }
+                }
+            }
+        }
+    }
+}
+
+void CForkManager::ForkUpdate(const CWorldLineUpdate& update, vector<CTransaction>& vForkTx,
+                              vector<uint256>& vActive, vector<uint256>& vDeactive)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+    CForkSchedule& sched = mapForkSched[update.hashFork];
+    if (!sched.IsJointEmpty())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            if (!block.IsExtended() && !block.IsVacant())
+            {
+                sched.RemoveJoint(block.GetHash(), vActive);
+                if (sched.IsHalted())
+                {
+                    vDeactive.push_back(update.hashFork);
+                }
+            }
+        }
+    }
+    if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            for (const CTransaction& tx : block.vtx)
+            {
+                CTemplateId tid;
+                if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
+                    && !tx.vchData.empty()
+                    && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
+                {
+                    vForkTx.push_back(tx);
+                    // CForkContext ctxt;
+                    // if (pWorldLineCntrl->AddNewForkContext(tx, ctxt) == OK)
+                    // {
+                    //     AddNewForkContext(ctxt, vActive);
+                    // }
                 }
             }
         }
@@ -196,7 +239,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         uint256 hashFork = ctxt.hashFork;
         for (;;)
         {
-            if (pBlockChain->Exists(hashJoint))
+            if (pWorldLineCntrl->Exists(hashJoint))
             {
                 vActive.push_back(hashFork);
                 break;
@@ -210,7 +253,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
             }
 
             CForkContext ctxtParent;
-            if (!pBlockChain->GetForkContext(hashParent, ctxtParent))
+            if (!pWorldLineCntrl->GetForkContext(hashParent, ctxtParent))
             {
                 return false;
             }
@@ -275,7 +318,7 @@ bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashPar
         }
         uint256 hash = hashParent;
         CForkContext ctxtParent;
-        while (hash != 0 && pBlockChain->GetForkContext(hash, ctxtParent))
+        while (hash != 0 && pWorldLineCntrl->GetForkContext(hash, ctxtParent))
         {
             if (setGroupAllowed.count(ctxtParent.hashParent))
             {

@@ -80,10 +80,25 @@ public:
         RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
         return true;
     }
+    virtual bool HandleInvoke() override
+    {
+        return StartActor();
+    }
+    virtual void HandleHalt() override
+    {
+        StopActor();
+    }
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CTimeoutMessageA::MessageType());
+        DeregisterHandler(CTimeoutMessageB::MessageType());
+        DeregisterHandler(CTimeoutMessageC::MessageType());
+    }
 
 protected:
     void HandlerMessageA(const CTimeoutMessageA& msg)
     {
+        cout << "wocalei" << endl;
         CTimeoutMessageA::HandledTimeA = boost::get_system_time();
     }
     void HandlerMessageB(const CTimeoutMessageB& msg)
@@ -108,6 +123,21 @@ public:
         RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
         RegisterRefHandler<CTimeoutMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
         return true;
+    }
+    virtual bool HandleInvoke() override
+    {
+        return StartActor();
+    }
+    virtual void HandleHalt() override
+    {
+        StopActor();
+    }
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler(CTimeoutMessageA::MessageType());
+        DeregisterHandler(CTimeoutMessageB::MessageType());
+        DeregisterHandler(CTimeoutMessageC::MessageType());
+        DeregisterHandler(CTimeoutMessageD::MessageType());
     }
 
 protected:

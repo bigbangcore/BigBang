@@ -119,7 +119,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 CTxPool::CTxPool()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
     nLastSequenceNumber = 0;
 }
 
@@ -129,15 +129,20 @@ CTxPool::~CTxPool()
 
 bool CTxPool::HandleInitialize()
 {
+    if (!ITxPool::HandleInitialize())
+    {
+        return false;
+    }
+
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
         Error("Failed to request coreprotocol\n");
         return false;
     }
 
-    if (!GetObject("blockchain", pBlockChain))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request worldline\n");
         return false;
     }
 
@@ -147,11 +152,18 @@ bool CTxPool::HandleInitialize()
 void CTxPool::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
+
+    ITxPool::HandleDeinitialize();
 }
 
 bool CTxPool::HandleInvoke()
 {
+    if (!ITxPool::HandleInvoke())
+    {
+        return false;
+    }
+
     if (!datTxPool.Initialize(Config()->pathData))
     {
         Error("Failed to initialize txpool data\n");
@@ -174,6 +186,8 @@ void CTxPool::HandleHalt()
         Error("Failed to save txpool data\n");
     }
     Clear();
+
+    ITxPool::HandleHalt();
 }
 
 bool CTxPool::Exists(const uint256& txid) const
@@ -216,7 +230,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     }
 
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return ERR_TRANSACTION_INVALID;
     }
@@ -253,7 +267,7 @@ void CTxPool::Pop(const uint256& txid)
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return;
     }
@@ -366,7 +380,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
     }
 
-    if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vUnspent))
+    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
     {
         return false;
     }
@@ -392,7 +406,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     return true;
 }
 
-bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
+bool CTxPool::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
 {
     change.hashFork = update.hashFork;
 
@@ -553,7 +567,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
     }
 
-    if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
+    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
         return ERR_SYS_STORAGE_ERROR;
     }
@@ -595,9 +609,14 @@ CTxPoolController::~CTxPoolController()
 
 bool CTxPoolController::HandleInitialize()
 {
+    if (!ITxPoolController::HandleInitialize())
+    {
+        return false;
+    }
+
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request txpool\n");
         return false;
     }
 
@@ -611,15 +630,30 @@ bool CTxPoolController::HandleInitialize()
 
 void CTxPoolController::HandleDeinitialize()
 {
+    DeregisterHandler(CAddTxMessage::MessageType());
+    DeregisterHandler(CRemoveTxMessage::MessageType());
+    DeregisterHandler(CClearTxMessage::MessageType());
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+
+    pTxPool = nullptr;
+
+    ITxPoolController::HandleDeinitialize();
 }
 
 bool CTxPoolController::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
+
     return true;
 }
 
 void CTxPoolController::HandleHalt()
 {
+    StopActor();
+
     ClearTxPool();
 }
 
@@ -679,9 +713,9 @@ bool CTxPoolController::FetchInputs(const uint256& hashFork, const CTransaction&
     return pTxPool->FetchInputs(hashFork, tx, vUnspent);
 }
 
-bool CTxPoolController::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
+bool CTxPoolController::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
 {
-    return SynchronizeBlockChainWithTxPool(update, change);
+    return SynchronizeWorldLineWithTxPool(update, change);
 }
 
 void CTxPoolController::HandleAddTx(const CAddTxMessage& msg)
@@ -719,7 +753,7 @@ void CTxPoolController::HandleAddedBlock(const CAddedBlockMessage& msg)
     spSyncMsg->hashFork = msg.hashFork;
     auto& change = spSyncMsg->change;
 
-    SynchronizeBlockChainWithTxPool(update, change);
+    SynchronizeWorldLineWithTxPool(update, change);
 
     PUBLISH_MESSAGE(spSyncMsg);
 }

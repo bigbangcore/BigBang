@@ -61,14 +61,14 @@ public:
 };
 
 // Notify
-class CBlockChainUpdate
+class CWorldLineUpdate
 {
 public:
-    CBlockChainUpdate()
+    CWorldLineUpdate()
     {
         SetNull();
     }
-    CBlockChainUpdate(CBlockIndex* pIndex)
+    CWorldLineUpdate(CBlockIndex* pIndex)
     {
         hashFork = pIndex->GetOriginHash();
         hashParent = pIndex->GetParentHash();

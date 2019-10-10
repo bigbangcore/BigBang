@@ -19,12 +19,7 @@ CIOActor::~CIOActor()
 {
 }
 
-bool CIOActor::HandleInitialize()
-{
-    return true;
-}
-
-bool CIOActor::HandleInvoke()
+bool CIOActor::StartActor()
 {
     if (!ThreadDelayStart(thrIOActorWorker))
     {
@@ -35,13 +30,9 @@ bool CIOActor::HandleInvoke()
     return true;
 }
 
-void CIOActor::HandleHalt()
+void CIOActor::StopActor()
 {
     Stop();
-}
-
-void CIOActor::HandleDeinitialize()
-{
 }
 
 void CIOActor::EnterLoop()

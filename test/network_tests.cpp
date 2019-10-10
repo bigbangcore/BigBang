@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 
-#include "blockchain.h"
+#include "worldline.h"
 #include "blockmaker.h"
 #include "common/message.h"
 #include "consensus.h"
@@ -150,7 +150,8 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(docker.Attach(new CService()));
     BOOST_CHECK(docker.Attach(new CTxPool()));
     BOOST_CHECK(docker.Attach(new CTxPoolController()));
-    BOOST_CHECK(docker.Attach(new CBlockChain()));
+    BOOST_CHECK(docker.Attach(new CWorldLine()));
+    BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
@@ -278,7 +279,8 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CService()));
     BOOST_CHECK(docker.Attach(new CTxPool()));
     BOOST_CHECK(docker.Attach(new CTxPoolController()));
-    BOOST_CHECK(docker.Attach(new CBlockChain()));
+    BOOST_CHECK(docker.Attach(new CWorldLine()));
+    BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
@@ -358,7 +360,8 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     BOOST_CHECK(docker.Attach(new CService()));
     BOOST_CHECK(docker.Attach(new CTxPool()));
     BOOST_CHECK(docker.Attach(new CTxPoolController()));
-    BOOST_CHECK(docker.Attach(new CBlockChain()));
+    BOOST_CHECK(docker.Attach(new CWorldLine()));
+    BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));

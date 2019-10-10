@@ -102,8 +102,12 @@ public:
     bool IsAllowed(const uint256& hashFork) const override;
     bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const override;
     bool LoadForkContext(std::vector<uint256>& vActive) override;
-    void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
-    bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive);
+    // TODO: Remove at the end of message model
+    void ForkUpdate(const CWorldLineUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
+    // Called by worldline controller
+    void ForkUpdate(const CWorldLineUpdate& update, std::vector<CTransaction>& vForkTx,
+                    std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
+    bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive) override;
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
 
@@ -117,7 +121,7 @@ protected:
 protected:
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLineController* pWorldLineCntrl;
     bool fAllowAnyFork;
     std::set<uint256> setForkAllowed;
     std::set<uint256> setGroupAllowed;

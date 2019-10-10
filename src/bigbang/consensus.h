@@ -94,7 +94,7 @@ class CConsensus : public IConsensus
 public:
     CConsensus();
     ~CConsensus();
-    void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) override;
+    void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) override;
     void AddNewTx(const CAssembledTx& tx) override;
     bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;
     bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
@@ -113,7 +113,7 @@ protected:
 protected:
     boost::mutex mutex;
     ICoreProtocol* pCoreProtocol;
-    IBlockChain* pBlockChain;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;

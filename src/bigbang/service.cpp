@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pWorldLineCntrl(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -34,9 +34,9 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("blockchain", pBlockChain))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request worldline\n");
         return false;
     }
 
@@ -70,7 +70,7 @@ bool CService::HandleInitialize()
 void CService::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
     pDispatcher = nullptr;
     pWallet = nullptr;
@@ -79,22 +79,29 @@ void CService::HandleDeinitialize()
 
 bool CService::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
+
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
-        pBlockChain->GetForkStatus(mapForkStatus);
+        pWorldLineCntrl->GetForkStatus(mapForkStatus);
     }
     return true;
 }
 
 void CService::HandleHalt()
 {
+    StopActor();
+
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
         mapForkStatus.clear();
     }
 }
 
-void CService::NotifyBlockChainUpdate(const CBlockChainUpdate& update)
+void CService::NotifyWorldLineUpdate(const CWorldLineUpdate& update)
 {
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
@@ -223,7 +230,7 @@ void CService::ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool f
         for (vector<uint256>::iterator it = vForkHash.begin(); it != vForkHash.end(); ++it)
         {
             CForkContext ctx;
-            if (pBlockChain->GetForkContext(*it, ctx))
+            if (pWorldLineCntrl->GetForkContext(*it, ctx))
             {
                 vFork.push_back(make_pair(*it, ctx.GetProfile()));
             }
@@ -235,7 +242,7 @@ void CService::ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool f
         for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
         {
             CProfile profile;
-            if (pBlockChain->GetForkProfile((*it).first, profile))
+            if (pWorldLineCntrl->GetForkProfile((*it).first, profile))
             {
                 vFork.push_back(make_pair((*it).first, profile));
             }
@@ -266,7 +273,7 @@ bool CService::GetForkGenealogy(const uint256& hashFork, vector<pair<uint256, in
 
 bool CService::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
 {
-    return pBlockChain->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 int CService::GetBlockCount(const uint256& hashFork)
@@ -275,7 +282,7 @@ int CService::GetBlockCount(const uint256& hashFork)
     {
         return (GetForkHeight(hashFork) + 1);
     }
-    return pBlockChain->GetBlockCount(hashFork);
+    return pWorldLineCntrl->GetBlockCount(hashFork);
 }
 
 bool CService::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
@@ -291,24 +298,24 @@ bool CService::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashB
         hashBlock = (*it).second.hashLastBlock;
         return true;
     }
-    return pBlockChain->GetBlockHash(hashFork, nHeight, hashBlock);
+    return pWorldLineCntrl->GetBlockHash(hashFork, nHeight, hashBlock);
 }
 
 bool CService::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
 {
-    return pBlockChain->GetBlockHash(hashFork, nHeight, vBlockHash);
+    return pWorldLineCntrl->GetBlockHash(hashFork, nHeight, vBlockHash);
 }
 
 bool CService::GetBlock(const uint256& hashBlock, CBlock& block, uint256& hashFork, int& nHeight)
 {
-    return pBlockChain->GetBlock(hashBlock, block)
-           && pBlockChain->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCntrl->GetBlock(hashBlock, block)
+           && pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 bool CService::GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight)
 {
-    return pBlockChain->GetBlockEx(hashBlock, block)
-           && pBlockChain->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCntrl->GetBlockEx(hashBlock, block)
+           && pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
@@ -322,18 +329,18 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     if (pTxPoolCntrl->Get(txid, tx))
     {
         int nAnchorHeight;
-        if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
+        if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
         {
             return false;
         }
         nHeight = -1;
         return true;
     }
-    if (!pBlockChain->GetTransaction(txid, tx))
+    if (!pWorldLineCntrl->GetTransaction(txid, tx))
     {
         return false;
     }
-    return pBlockChain->GetTxLocation(txid, hashFork, nHeight);
+    return pWorldLineCntrl->GetTxLocation(txid, hashFork, nHeight);
 }
 
 Errno CService::SendTransaction(CTransaction& tx)
@@ -425,7 +432,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
 {
     uint256 hashFork;
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return false;
     }
@@ -546,7 +553,7 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
 
     nAlgo = CM_CRYPTONIGHT;
     int64 nReward;
-    if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
+    if (!pWorldLineCntrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
         return false;
     }
@@ -590,7 +597,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     }
     int nBits;
     int64 nReward;
-    if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
+    if (!pWorldLineCntrl->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
     {
         return FAILED;
     }
