@@ -214,7 +214,10 @@ void CBbPeerNet::HandlePublish(const CPeerPublishMessageOutBound& publishMsg)
 
 void CBbPeerNet::HandlePrimaryChainHeightUpdate(const CAddedBlockMessage& addedBlockMsg)
 {
-    nPrimaryChainHeight = addedBlockMsg.update.nLastBlockHeight;
+    if (addedBlockMsg.block.nType == CBlock::BLOCK_PRIMARY)
+    {
+        nPrimaryChainHeight = addedBlockMsg.update.nLastBlockHeight;
+    }
 }
 
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
