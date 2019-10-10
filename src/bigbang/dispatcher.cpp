@@ -200,9 +200,9 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (!block.IsOrigin() && !block.IsVacant())
     {
-        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateBlockChain.hashFork, block.GetHash());
+        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateWorldLine.hashFork, block.GetHash());
         PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
-        pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
+        pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
     }
 
     pService->NotifyWorldLineUpdate(updateWorldLine);

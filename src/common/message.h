@@ -267,17 +267,4 @@ struct CAddedBlockMessage : public xengine::CMessage
     CWorldLineUpdate update;
 };
 
-////////////////// Fork /////////////////////
-struct CSubscribeForkMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CSubscribeForkMessage);
-    uint256 hashFork;
-};
-
-struct CUnsubscribeForkMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CUnsubscribeForkMessage);
-    uint256 hashFork;
-};
-
 #endif // COMMON_MESSAGE_H

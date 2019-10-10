@@ -255,10 +255,6 @@ void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMs
         sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock), setKnownPeer);
     }
 
-    auto spInvMsg = CPeerInvMessageOutBound::Create();
-    spInvMsg->hashFork = invMsg.hashFork;
-    spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock));
-
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
@@ -266,7 +262,10 @@ void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMs
             uint64 nNonce = (*it).first;
             if (!setKnownPeer.count(nNonce) && (*it).second.IsSubscribed(invMsg.hashFork))
             {
+                auto spInvMsg = CPeerInvMessageOutBound::Create();
                 spInvMsg->nNonce = nNonce;
+                spInvMsg->hashFork = invMsg.hashFork;
+                spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock));
                 PUBLISH_MESSAGE(spInvMsg);
             }
         }
@@ -300,15 +299,14 @@ void CNetChannel::HandleSubscribeFork(const CSubscribeForkMessage& subscribeMsg)
         }
     }
 
-    auto spSubscribeMsg = CPeerSubscribeMessageOutBound::Create();
-    spSubscribeMsg->nNonce = 0ULL;
-    spSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
-    spSubscribeMsg->vecForks.push_back(subscribeMsg.hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
+            auto spSubscribeMsg = CPeerSubscribeMessageOutBound::Create();
             spSubscribeMsg->nNonce = (*it).first;
+            spSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
+            spSubscribeMsg->vecForks.push_back(subscribeMsg.hashFork);
             PUBLISH_MESSAGE(spSubscribeMsg);
             DispatchGetBlocksEvent(it->first, subscribeMsg.hashFork);
         }
@@ -325,16 +323,14 @@ void CNetChannel::HandleUnsubscribeFork(const CUnsubscribeForkMessage& unsubscri
         }
     }
 
-    auto spUnsubscribeMsg = CPeerUnsubscribeMessageOutBound::Create();
-    spUnsubscribeMsg->nNonce = 0ULL;
-    spUnsubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
-    spUnsubscribeMsg->vecForks.push_back(unsubscribeMsg.hashFork);
-
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
+            auto spUnsubscribeMsg = CPeerUnsubscribeMessageOutBound::Create();
             spUnsubscribeMsg->nNonce = (*it).first;
+            spUnsubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
+            spUnsubscribeMsg->vecForks.push_back(unsubscribeMsg.hashFork);
             PUBLISH_MESSAGE(spUnsubscribeMsg);
         }
     }
