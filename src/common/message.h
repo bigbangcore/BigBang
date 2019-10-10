@@ -14,7 +14,7 @@
 #include "proto.h"
 #include "struct.h"
 
-/////////// NetChannel /////////////
+/////////// Peer-to-Peer /////////////
 
 struct CPeerBasicMessage : public xengine::CMessage
 {
@@ -112,7 +112,7 @@ struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageOutBound);
 };
 
-//////////////////  Delegate NetChannel /////////////////////
+//////////////////  Delegate Peer-to-Peer /////////////////////
 
 struct CPeerDelegateBasicMessage : public xengine::CMessage
 {
@@ -165,7 +165,7 @@ struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageOutBound);
 };
 
-//////////// TxPool ///////////////////
+//////////// Transaction ///////////////////
 
 /// Add an unconfirmed transaction.
 struct CAddTxMessage : public xengine::CMessage
@@ -203,6 +203,16 @@ struct CClearTxMessage : public xengine::CMessage
     uint256 hashFork;
 };
 
+/// Synchronize changed transactions.
+struct CSyncTxChangeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CSyncTxChangeMessage);
+    uint256 hashFork;
+    CTxSetChange change;
+};
+
+////////////////// Block /////////////////////
+
 /// Add a new block.
 struct CAddBlockMessage : public xengine::CMessage
 {
@@ -217,18 +227,24 @@ struct CAddedBlockMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddedBlockMessage);
     uint64 nNonce;
-    int nError;
     uint256 hashFork;
     CBlock block;
+    int nError;
     CWorldLineUpdate update;
 };
 
-/// Synchronize changed transactions.
-struct CSyncTxChangeMessage : public xengine::CMessage
+////////////////// Fork /////////////////////
+struct CSubscribeForkMessage : public xengine::CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CSyncTxChangeMessage);
+    GENERATE_MESSAGE_FUNCTION(CSubscribeForkMessage);
     uint256 hashFork;
-    CTxSetChange change;
 };
+
+struct CUnsubscribeForkMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CUnsubscribeForkMessage);
+    uint256 hashFork;
+};
+
 
 #endif // COMMON_MESSAGE_H

@@ -252,7 +252,7 @@ protected:
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    IWorldLine* pWorldLine;
+    IWorldLineController* pWorldLineCntrl;
     std::map<uint256, CTxPoolView> mapPoolView;
     std::unordered_map<uint256, CPooledTx> mapTx;
     std::size_t nLastSequenceNumber;

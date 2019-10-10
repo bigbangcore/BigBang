@@ -798,7 +798,7 @@ Errno CWorldLine::GetTxContxt(storage::CBlockView& view, const CTransaction& tx,
 }
 
 bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
-                                  vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
+                                 vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {
     while (pIndexNew != pIndexFork)
     {
@@ -828,7 +828,7 @@ bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex
 }
 
 bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                            CDelegateAgreement& agreement)
+                                           CDelegateAgreement& agreement)
 {
     agreement.Clear();
 
@@ -957,6 +957,286 @@ Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBl
     }
 
     return OK;
+}
+
+//////////////////////////////
+// CWorldLineController
+
+CWorldLineController::CWorldLineController()
+  : pForkManager(nullptr)
+{
+}
+
+CWorldLineController::~CWorldLineController()
+{
+}
+
+bool CWorldLineController::HandleInitialize()
+{
+    if (!GetObject("worldline", pWorldLine))
+    {
+        Error("Failed to request worldline\n");
+        return false;
+    }
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager\n");
+        return false;
+    }
+
+    RegisterRefHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
+
+    return true;
+}
+
+void CWorldLineController::HandleDeinitialize()
+{
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+
+    pWorldLine = nullptr;
+    pForkManager = nullptr;
+}
+
+bool CWorldLineController::HandleInvoke()
+{
+    return StartActor();
+}
+
+void CWorldLineController::HandleHalt()
+{
+    StopActor();
+}
+
+Errno CWorldLineController::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
+{
+    return AddNewForkContextIntoWorldLine(txFork, ctxt);
+}
+
+Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
+{
+    return AddNewBlockIntoWorldLine(block, update);
+}
+
+Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
+{
+    return AddNewOriginIntoWorldLine(block, update);
+}
+
+void CWorldLineController::GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)
+{
+    pWorldLine->GetForkStatus(mapForkStatus);
+}
+
+bool CWorldLineController::GetForkProfile(const uint256& hashFork, CProfile& profile)
+{
+    return pWorldLine->GetForkProfile(hashFork, profile);
+}
+
+bool CWorldLineController::GetForkContext(const uint256& hashFork, CForkContext& ctxt)
+{
+    return pWorldLine->GetForkContext(hashFork, ctxt);
+}
+
+bool CWorldLineController::GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry)
+{
+    return pWorldLine->GetForkAncestry(hashFork, vAncestry);
+}
+
+int CWorldLineController::GetBlockCount(const uint256& hashFork)
+{
+    return pWorldLine->GetBlockCount(hashFork);
+}
+
+bool CWorldLineController::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
+{
+    return pWorldLine->GetBlockLocation(hashBlock, hashFork, nHeight);
+}
+
+bool CWorldLineController::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
+{
+    return pWorldLine->GetBlockHash(hashFork, nHeight, hashBlock);
+}
+
+bool CWorldLineController::GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash)
+{
+    return pWorldLine->GetBlockHash(hashFork, nHeight, vBlockHash);
+}
+
+bool CWorldLineController::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
+{
+    return pWorldLine->GetLastBlock(hashFork, hashBlock, nHeight, nTime);
+}
+
+bool CWorldLineController::GetLastBlockTime(const uint256& hashFork, int nDepth, std::vector<int64>& vTime)
+{
+    return pWorldLine->GetLastBlockTime(hashFork, nDepth, vTime);
+}
+
+bool CWorldLineController::GetBlock(const uint256& hashBlock, CBlock& block)
+{
+    return pWorldLine->GetBlock(hashBlock, block);
+}
+
+bool CWorldLineController::GetBlockEx(const uint256& hashBlock, CBlockEx& block)
+{
+    return pWorldLine->GetBlockEx(hashBlock, block);
+}
+
+bool CWorldLineController::GetOrigin(const uint256& hashFork, CBlock& block)
+{
+    return pWorldLine->GetOrigin(hashFork, block);
+}
+
+bool CWorldLineController::Exists(const uint256& hashBlock)
+{
+    return pWorldLine->Exists(hashBlock);
+}
+
+bool CWorldLineController::GetTransaction(const uint256& txid, CTransaction& tx)
+{
+    return pWorldLine->GetTransaction(txid, tx);
+}
+
+bool CWorldLineController::ExistsTx(const uint256& txid)
+{
+    return pWorldLine->ExistsTx(txid);
+}
+
+bool CWorldLineController::GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight)
+{
+    return pWorldLine->GetTxLocation(txid, hashFork, nHeight);
+}
+
+bool CWorldLineController::GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,
+                                        std::vector<CTxOut>& vOutput)
+{
+    return pWorldLine->GetTxUnspent(hashFork, vInput, vOutput);
+}
+
+bool CWorldLineController::FilterTx(const uint256& hashFork, CTxFilter& filter)
+{
+    return pWorldLine->FilterTx(hashFork, filter);
+}
+
+bool CWorldLineController::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter)
+{
+    return pWorldLine->FilterTx(hashFork, nDepth, filter);
+}
+
+bool CWorldLineController::ListForkContext(std::vector<CForkContext>& vForkCtxt)
+{
+    return pWorldLine->ListForkContext(vForkCtxt);
+}
+
+bool CWorldLineController::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
+{
+    return pWorldLine->GetProofOfWorkTarget(hashPrev, nAlgo, nBits, nReward);
+}
+
+bool CWorldLineController::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
+{
+    return pWorldLine->GetBlockMintReward(hashPrev, nReward);
+}
+
+bool CWorldLineController::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
+{
+    return pWorldLine->GetBlockLocator(hashFork, locator);
+}
+
+bool CWorldLineController::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount)
+{
+    return pWorldLine->GetBlockInv(hashFork, locator, vBlockHash, nMaxCount);
+}
+
+bool CWorldLineController::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
+{
+    return pWorldLine->GetBlockDelegateEnrolled(hashBlock, enrolled);
+}
+
+bool CWorldLineController::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
+{
+    return pWorldLine->GetBlockDelegateAgreement(hashBlock, agreement);
+}
+
+void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
+{
+    // Add new block
+    auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->nNonce = msg.nNonce;
+    spAddedBlockMsg->hashFork = msg.hashFork;
+    spAddedBlockMsg->block = msg.block;
+
+    const CBlock& block = msg.block;
+    if (!block.IsOrigin())
+    {
+        spAddedBlockMsg->nError = AddNewBlockIntoWorldLine(block, spAddedBlockMsg->update);
+    }
+    else
+    {
+        spAddedBlockMsg->nError = AddNewOriginIntoWorldLine(block, spAddedBlockMsg->update);
+    }
+    PUBLISH_MESSAGE(spAddedBlockMsg);
+
+    // Create new fork
+    vector<CTransaction> vForkTx;
+    vector<uint256> vActive, vDeactive;
+    pForkManager->ForkUpdate(spAddedBlockMsg->update, vForkTx, vActive, vDeactive);
+
+    for (auto& tx : vForkTx)
+    {
+        CForkContext ctxt;
+        if (AddNewForkContextIntoWorldLine(tx, ctxt) == OK)
+        {
+            pForkManager->AddNewForkContext(ctxt, vActive);
+            // Add new origin block
+            auto spAddedOriginMsg = CAddedBlockMessage::Create();
+            CBlock& originBlock = spAddedOriginMsg->block;
+            try
+            {
+                CBufStream ss;
+                ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+                ss >> originBlock;
+            }
+            catch (...)
+            {
+                originBlock.SetNull();
+            }
+
+            if (originBlock.IsOrigin() && !originBlock.IsPrimary())
+            {
+                Errno err = AddNewOriginIntoWorldLine(originBlock, spAddedOriginMsg->update);
+                if (err == OK)
+                {
+                    spAddedOriginMsg->nError = OK;
+                    spAddedOriginMsg->nNonce = 0;
+                    spAddedOriginMsg->hashFork = originBlock.GetHash();
+                    PUBLISH_MESSAGE(spAddedBlockMsg);
+                }
+                else
+                {
+                    Warn("Add origin block in tx (%s) failed : %s\n", tx.GetHash().GetHex().c_str(), ErrorString(err));
+                }
+            }
+            else
+            {
+                Warn("Invalid origin block found in tx (%s)\n", tx.GetHash().GetHex().c_str());
+            }
+        }
+    }
+
+    for (const uint256 hashFork : vActive)
+    {
+        auto spSubscribeMsg = CSubscribeForkMessage::Create();
+        spSubscribeMsg->hashFork = hashFork;
+        PUBLISH_MESSAGE(spSubscribeMsg);
+    }
+
+    for (const uint256 hashFork : vDeactive)
+    {
+        auto spUnsubscribeMsg = CUnsubscribeForkMessage::Create();
+        spUnsubscribeMsg->hashFork = hashFork;
+        PUBLISH_MESSAGE(spUnsubscribeMsg);
+    }
 }
 
 } // namespace bigbang

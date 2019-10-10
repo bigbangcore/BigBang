@@ -113,7 +113,7 @@ protected:
 protected:
     boost::mutex mutex;
     ICoreProtocol* pCoreProtocol;
-    IWorldLine* pWorldLine;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;

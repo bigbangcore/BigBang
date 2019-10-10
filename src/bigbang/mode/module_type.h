@@ -10,26 +10,27 @@ namespace bigbang
 // module type
 enum class EModuleType
 {
-    LOCK,             // lock file
-    BLOCKMAKER,       // CBlockMaker
-    COREPROTOCOL,     // CCoreProtocol
-    DISPATCHER,       // CDispatcher
-    HTTPGET,          // CHttpGet
-    HTTPSERVER,       // CHttpServer
-    MINER,            // CMiner
-    NETCHANNEL,       // CNetChannel
-    DELEGATEDCHANNEL, // CDelegatedChannel
-    NETWORK,          // CNetwork
-    RPCCLIENT,        // CRPCClient
-    RPCMODE,          // CRPCMod
-    SERVICE,          // CService
-    TXPOOL,           // CTxPool
-    TXPOOLCONTROLLER, // CTxPoolController
-    WALLET,           // CWallet
-    WORLDLINE,       // CWorldLine
-    CONSENSUS,        // CConsensus
-    FORKMANAGER,      // CForkManager
-    DATASTAT,         // CDataStat
+    LOCK,                // lock file
+    BLOCKMAKER,          // CBlockMaker
+    COREPROTOCOL,        // CCoreProtocol
+    DISPATCHER,          // CDispatcher
+    HTTPGET,             // CHttpGet
+    HTTPSERVER,          // CHttpServer
+    MINER,               // CMiner
+    NETCHANNEL,          // CNetChannel
+    DELEGATEDCHANNEL,    // CDelegatedChannel
+    NETWORK,             // CNetwork
+    RPCCLIENT,           // CRPCClient
+    RPCMODE,             // CRPCMod
+    SERVICE,             // CService
+    TXPOOL,              // CTxPool
+    TXPOOLCONTROLLER,    // CTxPoolController
+    WALLET,              // CWallet
+    WORLDLINE,           // CWorldLine
+    WORLDLINECONTROLLER, // CWorldLineController
+    CONSENSUS,           // CConsensus
+    FORKMANAGER,         // CForkManager
+    DATASTAT,            // CDataStat
 };
 
 } // namespace bigbang

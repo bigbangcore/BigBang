@@ -103,7 +103,7 @@ CNetChannel::CNetChannel()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
@@ -127,7 +127,7 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldline", pWorldLine))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -168,7 +168,7 @@ void CNetChannel::HandleDeinitialize()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
@@ -186,15 +186,23 @@ void CNetChannel::HandleDeinitialize()
 
 bool CNetChannel::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
+
     {
         boost::unique_lock<boost::mutex> lock(mtxPushTx);
         nTimerPushTx = 0;
     }
-    return network::INetChannel::HandleInvoke();
+
+    return true;
 }
 
 void CNetChannel::HandleHalt()
 {
+    StopActor();
+
     {
         boost::unique_lock<boost::mutex> lock(mtxPushTx);
         if (nTimerPushTx != 0)
@@ -205,7 +213,6 @@ void CNetChannel::HandleHalt()
         setPushTxFork.clear();
     }
 
-    network::INetChannel::HandleHalt();
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         mapSched.clear();
@@ -217,7 +224,7 @@ int CNetChannel::GetPrimaryChainHeight()
     uint256 hashBlock = uint64(0);
     int nHeight = 0;
     int64 nTime = 0;
-    if (pWorldLine->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime))
+    if (pWorldLineCntrl->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime))
     {
         return nHeight;
     }
@@ -463,7 +470,7 @@ void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
             for (const network::CInv& inv : invMsg.vecInv)
             {
                 if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCntrl->Exists(inv.nHash))
-                    || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLine->Exists(inv.nHash)))
+                    || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCntrl->Exists(inv.nHash)))
                 {
                     sched.AddNewInv(inv, nNonce);
                     if (inv.nType == network::CInv::MSG_TX)
@@ -501,7 +508,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
             {
                 PUBLISH_MESSAGE(spTxMsg);
             }
-            else if (pWorldLine->GetTransaction(inv.nHash, spTxMsg->tx))
+            else if (pWorldLineCntrl->GetTransaction(inv.nHash, spTxMsg->tx))
             {
                 PUBLISH_MESSAGE(spTxMsg);
             }
@@ -515,7 +522,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
             auto spBlockMsg = CPeerBlockMessageOutBound::Create();
             spBlockMsg->nNonce = nNonce;
             spBlockMsg->hashFork = hashFork;
-            if (pWorldLine->GetBlock(inv.nHash, spBlockMsg->block))
+            if (pWorldLineCntrl->GetBlock(inv.nHash, spBlockMsg->block))
             {
                 PUBLISH_MESSAGE(spBlockMsg);
             }
@@ -532,10 +539,10 @@ void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksM
     uint64 nNonce = getBlocksMsg.nNonce;
     const uint256& hashFork = getBlocksMsg.hashFork;
     vector<uint256> vBlockHash;
-    if (!pWorldLine->GetBlockInv(hashFork, getBlocksMsg.blockLocator, vBlockHash, MAX_GETBLOCKS_COUNT))
+    if (!pWorldLineCntrl->GetBlockInv(hashFork, getBlocksMsg.blockLocator, vBlockHash, MAX_GETBLOCKS_COUNT))
     {
         CBlock block;
-        if (!pWorldLine->GetBlock(hashFork, block))
+        if (!pWorldLineCntrl->GetBlock(hashFork, block))
         {
             //DispatchMisbehaveEvent(nNonce,CEndpointManager::DDOS_ATTACK,"eventGetBlocks");
             //return true;
@@ -573,7 +580,7 @@ void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
 
         uint256 hashForkAnchor;
         int nHeightAnchor;
-        if (pWorldLine->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
+        if (pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
             && hashForkAnchor == hashFork)
         {
             set<uint256> setMissingPrevTx;
@@ -631,7 +638,7 @@ void CNetChannel::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
 
         uint256 hashForkPrev;
         int nHeightPrev;
-        if (pWorldLine->GetBlockLocation(block.hashPrev, hashForkPrev, nHeightPrev))
+        if (pWorldLineCntrl->GetBlockLocation(block.hashPrev, hashForkPrev, nHeightPrev))
         {
             if (hashForkPrev == hashFork)
             {
@@ -679,7 +686,7 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
     auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
     spGetBlocksMsg->nNonce = nNonce;
     spGetBlocksMsg->hashFork = hashFork;
-    if (pWorldLine->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
+    if (pWorldLineCntrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
     {
         PUBLISH_MESSAGE(spGetBlocksMsg);
     }
@@ -746,7 +753,7 @@ bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMiss
         const uint256& prev = txin.prevout.hash;
         if (!setMissingPrevTx.count(prev))
         {
-            if (!pTxPoolCntrl->Exists(prev) && !pWorldLine->ExistsTx(prev))
+            if (!pTxPoolCntrl->Exists(prev) && !pWorldLineCntrl->ExistsTx(prev))
             {
                 setMissingPrevTx.insert(prev);
             }
@@ -812,7 +819,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
         CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
         if (pTx != nullptr)
         {
-            if (pWorldLine->ExistsTx(txid))
+            if (pWorldLineCntrl->ExistsTx(txid))
             {
                 return;
             }

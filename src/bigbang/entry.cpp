@@ -328,6 +328,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
+        case EModuleType::WORLDLINECONTROLLER:
+        {
+            if (!AttachModule(new CWorldLineController()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::FORKMANAGER:
         {
             if (!AttachModule(new CForkManager()))

@@ -143,7 +143,7 @@ protected:
 CWallet::CWallet()
 {
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
@@ -159,7 +159,7 @@ bool CWallet::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldline", pWorldLine))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -177,12 +177,16 @@ bool CWallet::HandleInitialize()
 void CWallet::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pTxPoolCntrl = nullptr;
 }
 
 bool CWallet::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
 
     if (!dbWallet.Initialize(Config() ? (Config()->pathData / "wallet") : "./"))
     {
@@ -207,6 +211,8 @@ bool CWallet::HandleInvoke()
 
 void CWallet::HandleHalt()
 {
+    StopActor();
+
     dbWallet.Deinitialize();
     Clear();
 }
@@ -693,7 +699,7 @@ bool CWallet::AddNewFork(const uint256& hashFork, const uint256& hashParent, int
     boost::unique_lock<boost::shared_mutex> wlock(rwWalletTx);
 
     CProfile profile;
-    if (!pWorldLine->GetForkProfile(hashFork, profile))
+    if (!pWorldLineCntrl->GetForkProfile(hashFork, profile))
     {
         return false;
     }
@@ -785,7 +791,7 @@ bool CWallet::SyncWalletTx(CTxFilter& txFilter)
             vFork.push_back((*mi).second);
         }
 
-        if (!pWorldLine->FilterTx(hashFork, txFilter) || !pTxPoolCntrl->FilterTx(hashFork, txFilter))
+        if (!pWorldLineCntrl->FilterTx(hashFork, txFilter) || !pTxPoolCntrl->FilterTx(hashFork, txFilter))
         {
             return false;
         }
@@ -811,7 +817,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
     }
 
     map<uint256, CForkStatus> mapForkStatus;
-    pWorldLine->GetForkStatus(mapForkStatus);
+    pWorldLineCntrl->GetForkStatus(mapForkStatus);
     for (const auto& it : mapForkStatus)
     {
         const auto& hashFork = it.first;
@@ -839,7 +845,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         CInspectWtxFilter filterTx(this, setAddr);
         for (const auto& it : vFork)
         {
-            if (!pWorldLine->FilterTx(it, nDepth, filterTx)) //condition: fork/depth/dest's
+            if (!pWorldLineCntrl->FilterTx(it, nDepth, filterTx)) //condition: fork/depth/dest's
             {
                 return false;
             }
@@ -901,7 +907,7 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
     else
     { //compare wtx with vtx of block
         CTransaction tx;
-        if (!pWorldLine->GetTransaction(wtx.txid, tx))
+        if (!pWorldLineCntrl->GetTransaction(wtx.txid, tx))
         {
             return false;
         }
@@ -1292,7 +1298,7 @@ bool CWallet::UpdateFork()
     map<uint256, CForkStatus> mapForkStatus;
     multimap<uint256, pair<int, uint256>> mapSubline;
 
-    pWorldLine->GetForkStatus(mapForkStatus);
+    pWorldLineCntrl->GetForkStatus(mapForkStatus);
 
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
@@ -1301,7 +1307,7 @@ bool CWallet::UpdateFork()
         if (!mapFork.count(hashFork))
         {
             CProfile profile;
-            if (!pWorldLine->GetForkProfile(hashFork, profile))
+            if (!pWorldLineCntrl->GetForkProfile(hashFork, profile))
             {
                 return false;
             }

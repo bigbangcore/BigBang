@@ -187,7 +187,7 @@ protected:
 protected:
     storage::CWalletDB dbWallet;
     ICoreProtocol* pCoreProtocol;
-    IWorldLine* pWorldLine;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     mutable boost::shared_mutex rwKeyStore;
     mutable boost::shared_mutex rwWalletTx;

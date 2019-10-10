@@ -159,6 +159,7 @@ public:
               { EModuleType::LOCK,
                 EModuleType::COREPROTOCOL,
                 EModuleType::WORLDLINE,
+                EModuleType::WORLDLINECONTROLLER,
                 EModuleType::TXPOOL,
                 EModuleType::TXPOOLCONTROLLER,
                 EModuleType::FORKMANAGER,

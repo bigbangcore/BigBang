@@ -82,7 +82,7 @@ protected:
 
 protected:
     ICoreProtocol* pCoreProtocol;
-    IWorldLine* pWorldLine;
+    IWorldLineController* pWorldLineCntrl;
     ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IWallet* pWallet;

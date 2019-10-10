@@ -226,7 +226,7 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 CDelegatedChannel::CDelegatedChannel()
 {
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pDispatcher = nullptr;
     fBulletin = false;
 }
@@ -243,7 +243,7 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldline", pWorldLine))
+    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -268,7 +268,7 @@ bool CDelegatedChannel::HandleInitialize()
 void CDelegatedChannel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLine = nullptr;
+    pWorldLineCntrl = nullptr;
     pDispatcher = nullptr;
 
     DeregisterHandler(CPeerActiveMessage::MessageType());
@@ -281,16 +281,24 @@ void CDelegatedChannel::HandleDeinitialize()
 
 bool CDelegatedChannel::HandleInvoke()
 {
+    if (!StartActor())
+    {
+        return false;
+    }
+
     {
         boost::unique_lock<boost::mutex> lock(mtxBulletin);
         nTimerBulletin = 0;
         fBulletin = false;
     }
-    return network::IDelegatedChannel::HandleInvoke();
+
+    return true;
 }
 
 void CDelegatedChannel::HandleHalt()
 {
+    StopActor();
+
     {
         boost::unique_lock<boost::mutex> lock(mtxBulletin);
         if (nTimerBulletin != 0)
@@ -301,7 +309,6 @@ void CDelegatedChannel::HandleHalt()
         fBulletin = false;
     }
 
-    network::IDelegatedChannel::HandleHalt();
     schedPeer.Clear();
     dataChain.Clear();
 }
