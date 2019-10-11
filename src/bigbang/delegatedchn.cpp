@@ -587,11 +587,11 @@ void CDelegatedChannel::PushBulletin()
     {
         const uint256& hashAnchor = listHash.front();
 
-        auto spBulletinMsg = CPeerBulletinMessageOutBound::Create();
-        spBulletinMsg->nNonce = 0ULL;
-        spBulletinMsg->hashAnchor = hashAnchor;
-        spBulletinMsg->deletegatedBulletin.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
-        spBulletinMsg->deletegatedBulletin.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+        auto spTempBulletinMsg = CPeerBulletinMessageOutBound::Create();
+        spTempBulletinMsg->nNonce = 0ULL;
+        spTempBulletinMsg->hashAnchor = hashAnchor;
+        spTempBulletinMsg->deletegatedBulletin.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
+        spTempBulletinMsg->deletegatedBulletin.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
 
         for (list<uint256>::iterator it = ++listHash.begin(); it != listHash.end(); ++it)
         {
@@ -599,16 +599,19 @@ void CDelegatedChannel::PushBulletin()
             uint64 bitmap = dataChain.GetDistributeBitmap(hash);
             if (bitmap != 0)
             {
-                spBulletinMsg->deletegatedBulletin.AddBitmap(hash, bitmap);
+                spTempBulletinMsg->deletegatedBulletin.AddBitmap(hash, bitmap);
             }
         }
         for (const uint64& nNonce : vPeer)
         {
             std::shared_ptr<CDelegatedChannelPeer> spPeer = GetPeer(nNonce);
-            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, spBulletinMsg->deletegatedBulletin))
+            if (spPeer != nullptr && spPeer->HaveUnknown(hashAnchor, spTempBulletinMsg->deletegatedBulletin))
             {
-                spPeer->Update(hashAnchor, spBulletinMsg->deletegatedBulletin);
+                spPeer->Update(hashAnchor, spTempBulletinMsg->deletegatedBulletin);
+                auto spBulletinMsg = CPeerBulletinMessageOutBound::Create();
                 spBulletinMsg->nNonce = nNonce;
+                spBulletinMsg->hashAnchor = spTempBulletinMsg->hashAnchor;
+                spBulletinMsg->deletegatedBulletin = spTempBulletinMsg->deletegatedBulletin;
                 PUBLISH_MESSAGE(spBulletinMsg);
             }
         }

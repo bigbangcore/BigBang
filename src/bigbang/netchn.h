@@ -70,17 +70,19 @@ public:
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
-class CNetChannel : public network::INetChannel
+class CNetChannelModel : public xengine::INetChannelModel
+{
+public:
+    CNetChannelModel();
+    ~CNetChannelModel();
+};
+
+class CNetChannel : public network::INetChannelController
 {
 public:
     CNetChannel();
     ~CNetChannel();
-    int GetPrimaryChainHeight() override;
     bool IsForkSynchronized(const uint256& hashFork) const override;
-    void BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock) override;
-    void BroadcastTxInv(const uint256& hashFork) override;
-    void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
-    void UnsubscribeFork(const uint256& hashFork) override;
 
 protected:
     enum
@@ -96,6 +98,11 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
+
+    void HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg);
+    void HandleBroadcastTxInv(const CBroadcastTxInvMessage& invMsg);
+    void HandleSubscribeFork(const CSubscribeForkMessage& subscribeMsg);
+    void HandleUnsubscribeFork(const CUnsubscribeForkMessage& unsubscribeMsg);
 
     void HandleActive(const CPeerActiveMessage& activeMsg);
     void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);

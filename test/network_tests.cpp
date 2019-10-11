@@ -5,7 +5,6 @@
 #include <chrono>
 #include <thread>
 
-#include "worldline.h"
 #include "blockmaker.h"
 #include "common/message.h"
 #include "consensus.h"
@@ -25,6 +24,7 @@
 #include "test_big.h"
 #include "txpool.h"
 #include "wallet.h"
+#include "worldline.h"
 
 using namespace xengine;
 using namespace bigbang;
@@ -184,7 +184,11 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    pNetChannel->SubscribeFork(uint256("testfork"), nTestNonce);
+    auto spSubscribeForkMsg = CSubscribeForkMessage::Create(uint256("testfork"), nTestNonce);
+    PUBLISH_MESSAGE(spSubscribeForkMsg);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     BOOST_CHECK(pNetChannel->TestSubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Unsubscribe Test  //////////////////

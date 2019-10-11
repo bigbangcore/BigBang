@@ -1224,15 +1224,13 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
 
     for (const uint256 hashFork : vActive)
     {
-        auto spSubscribeMsg = CSubscribeForkMessage::Create();
-        spSubscribeMsg->hashFork = hashFork;
+        auto spSubscribeMsg = CSubscribeForkMessage::Create(hashFork, 0);
         PUBLISH_MESSAGE(spSubscribeMsg);
     }
 
     for (const uint256 hashFork : vDeactive)
     {
-        auto spUnsubscribeMsg = CUnsubscribeForkMessage::Create();
-        spUnsubscribeMsg->hashFork = hashFork;
+        auto spUnsubscribeMsg = CUnsubscribeForkMessage::Create(hashFork);
         PUBLISH_MESSAGE(spUnsubscribeMsg);
     }
 }

@@ -28,7 +28,7 @@ CDispatcher::CDispatcher()
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
-    pNetChannel = nullptr;
+    pNetChannelCtrl = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
@@ -87,7 +87,7 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("netchannel", pNetChannel))
+    if (!GetObject("netchannelcontroller", pNetChannelCtrl))
     {
         Error("Failed to request netchannel\n");
         return false;
@@ -118,7 +118,7 @@ void CDispatcher::HandleDeinitialize()
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
-    pNetChannel = nullptr;
+    pNetChannelCtrl = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
@@ -200,7 +200,8 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (!block.IsOrigin() && !block.IsVacant())
     {
-        pNetChannel->BroadcastBlockInv(updateWorldLine.hashFork, block.GetHash());
+        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateWorldLine.hashFork, block.GetHash());
+        PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
         pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
     }
 
@@ -218,7 +219,8 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
         for (const uint256 hashFork : vDeactive)
         {
-            pNetChannel->UnsubscribeFork(hashFork);
+            auto spUnsubscribeForkMsg = CUnsubscribeForkMessage::Create(hashFork);
+            PUBLISH_MESSAGE(spUnsubscribeForkMsg);
         }
     }
 
@@ -264,7 +266,8 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
     if (!nNonce)
     {
-        pNetChannel->BroadcastTxInv(hashFork);
+        auto spBroadcastTxInvMsg = CBroadcastTxInvMessage::Create(hashFork);
+        PUBLISH_MESSAGE(spBroadcastTxInvMsg);
     }
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
@@ -358,7 +361,10 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
         Log("Add origin block in tx (%s), hash=%s\n", ctxt.txidEmbedded.GetHex().c_str(),
             hashFork.GetHex().c_str());
     }
-    pNetChannel->SubscribeFork(hashFork, nNonce);
+
+    auto spSubscribeForkMsg = CSubscribeForkMessage::Create(hashFork, nNonce);
+    PUBLISH_MESSAGE(spSubscribeForkMsg);
+
     Log("Activated fork %s ...\n", hashFork.GetHex().c_str());
 }
 
@@ -399,7 +405,7 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
-        if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
+        if (!pForkManager->IsAllowed(hashFork) || !pNetChannelCtrl->IsForkSynchronized(hashFork))
         {
             continue;
         }

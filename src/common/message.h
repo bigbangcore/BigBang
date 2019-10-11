@@ -112,7 +112,41 @@ struct CPeerBlockMessageOutBound : public CPeerBlockMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerBlockMessageOutBound);
 };
 
-//////////////////  Delegate Peer-to-Peer /////////////////////
+struct CBroadcastBlockInvMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CBroadcastBlockInvMessage);
+    CBroadcastBlockInvMessage(const uint256& hashForkIn, const uint256& hashBlockIn)
+      : hashFork(hashForkIn), hashBlock(hashBlockIn) {}
+    uint256 hashFork;
+    uint256 hashBlock;
+};
+
+struct CBroadcastTxInvMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CBroadcastTxInvMessage);
+    CBroadcastTxInvMessage(const uint256& hashForkIn)
+      : hashFork(hashForkIn) {}
+    uint256 hashFork;
+};
+
+struct CSubscribeForkMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CSubscribeForkMessage);
+    CSubscribeForkMessage(const uint256& hashForkIn, uint64 nNonceIn)
+      : hashFork(hashForkIn), nNonce(nNonceIn) {}
+    uint256 hashFork;
+    uint64 nNonce;
+};
+
+struct CUnsubscribeForkMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CUnsubscribeForkMessage);
+    CUnsubscribeForkMessage(const uint256& hashForkIn)
+      : hashFork(hashForkIn) {}
+    uint256 hashFork;
+};
+
+//////////////////  DelegatedChannel /////////////////////
 
 struct CPeerDelegateBasicMessage : public xengine::CMessage
 {
@@ -232,19 +266,5 @@ struct CAddedBlockMessage : public xengine::CMessage
     int nError;
     CWorldLineUpdate update;
 };
-
-////////////////// Fork /////////////////////
-struct CSubscribeForkMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CSubscribeForkMessage);
-    uint256 hashFork;
-};
-
-struct CUnsubscribeForkMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CUnsubscribeForkMessage);
-    uint256 hashFork;
-};
-
 
 #endif // COMMON_MESSAGE_H
