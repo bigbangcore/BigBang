@@ -177,6 +177,7 @@ public:
                 EModuleType::RPCCLIENT } },
             { EModeType::MINER,
               { EModuleType::HTTPGET,
+                EModuleType::COREPROTOCOL,
                 EModuleType::MINER } }
             // Add new mode-config relationship here.
         };
