@@ -121,9 +121,9 @@ protected:
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
     ICoreProtocol* pCoreProtocol;
-    IWorldLineController* pWorldLineCntrl;
+    IWorldLineController* pWorldLineCtrl;
     IForkManager* pForkManager;
-    ITxPoolController* pTxPoolCntrl;
+    ITxPoolController* pTxPoolCtrl;
     IDispatcher* pDispatcher;
     IConsensus* pConsensus;
 };

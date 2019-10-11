@@ -82,8 +82,8 @@ protected:
 
 protected:
     ICoreProtocol* pCoreProtocol;
-    IWorldLineController* pWorldLineCntrl;
-    ITxPoolController* pTxPoolCntrl;
+    IWorldLineController* pWorldLineCtrl;
+    ITxPoolController* pTxPoolCtrl;
     IDispatcher* pDispatcher;
     IWallet* pWallet;
     IForkManager* pForkManager;

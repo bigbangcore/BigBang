@@ -111,8 +111,8 @@ CNetChannel::CNetChannel()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
 }
@@ -135,13 +135,13 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -181,8 +181,8 @@ void CNetChannel::HandleDeinitialize()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
 
@@ -473,8 +473,8 @@ void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
             vector<uint256> vTxHash;
             for (const network::CInv& inv : invMsg.vecInv)
             {
-                if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCntrl->Exists(inv.nHash))
-                    || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCntrl->Exists(inv.nHash)))
+                if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
+                    || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCtrl->Exists(inv.nHash)))
                 {
                     sched.AddNewInv(inv, nNonce);
                     if (inv.nType == network::CInv::MSG_TX)
@@ -508,11 +508,11 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
             auto spTxMsg = CPeerTxMessageOutBound::Create();
             spTxMsg->nNonce = nNonce;
             spTxMsg->hashFork = hashFork;
-            if (pTxPoolCntrl->Get(inv.nHash, spTxMsg->tx))
+            if (pTxPoolCtrl->Get(inv.nHash, spTxMsg->tx))
             {
                 PUBLISH_MESSAGE(spTxMsg);
             }
-            else if (pWorldLineCntrl->GetTransaction(inv.nHash, spTxMsg->tx))
+            else if (pWorldLineCtrl->GetTransaction(inv.nHash, spTxMsg->tx))
             {
                 PUBLISH_MESSAGE(spTxMsg);
             }
@@ -526,7 +526,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
             auto spBlockMsg = CPeerBlockMessageOutBound::Create();
             spBlockMsg->nNonce = nNonce;
             spBlockMsg->hashFork = hashFork;
-            if (pWorldLineCntrl->GetBlock(inv.nHash, spBlockMsg->block))
+            if (pWorldLineCtrl->GetBlock(inv.nHash, spBlockMsg->block))
             {
                 PUBLISH_MESSAGE(spBlockMsg);
             }
@@ -543,10 +543,10 @@ void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksM
     uint64 nNonce = getBlocksMsg.nNonce;
     const uint256& hashFork = getBlocksMsg.hashFork;
     vector<uint256> vBlockHash;
-    if (!pWorldLineCntrl->GetBlockInv(hashFork, getBlocksMsg.blockLocator, vBlockHash, MAX_GETBLOCKS_COUNT))
+    if (!pWorldLineCtrl->GetBlockInv(hashFork, getBlocksMsg.blockLocator, vBlockHash, MAX_GETBLOCKS_COUNT))
     {
         CBlock block;
-        if (!pWorldLineCntrl->GetBlock(hashFork, block))
+        if (!pWorldLineCtrl->GetBlock(hashFork, block))
         {
             //DispatchMisbehaveEvent(nNonce,CEndpointManager::DDOS_ATTACK,"eventGetBlocks");
             //return true;
@@ -584,7 +584,7 @@ void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
 
         uint256 hashForkAnchor;
         int nHeightAnchor;
-        if (pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
+        if (pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
             && hashForkAnchor == hashFork)
         {
             set<uint256> setMissingPrevTx;
@@ -642,7 +642,7 @@ void CNetChannel::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
 
         uint256 hashForkPrev;
         int nHeightPrev;
-        if (pWorldLineCntrl->GetBlockLocation(block.hashPrev, hashForkPrev, nHeightPrev))
+        if (pWorldLineCtrl->GetBlockLocation(block.hashPrev, hashForkPrev, nHeightPrev))
         {
             if (hashForkPrev == hashFork)
             {
@@ -690,7 +690,7 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
     auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
     spGetBlocksMsg->nNonce = nNonce;
     spGetBlocksMsg->hashFork = hashFork;
-    if (pWorldLineCntrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
+    if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
     {
         PUBLISH_MESSAGE(spGetBlocksMsg);
     }
@@ -757,7 +757,7 @@ bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMiss
         const uint256& prev = txin.prevout.hash;
         if (!setMissingPrevTx.count(prev))
         {
-            if (!pTxPoolCntrl->Exists(prev) && !pWorldLineCntrl->ExistsTx(prev))
+            if (!pTxPoolCtrl->Exists(prev) && !pWorldLineCtrl->ExistsTx(prev))
             {
                 setMissingPrevTx.insert(prev);
             }
@@ -823,7 +823,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
         CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
         if (pTx != nullptr)
         {
-            if (pWorldLineCntrl->ExistsTx(txid))
+            if (pWorldLineCtrl->ExistsTx(txid))
             {
                 return;
             }
@@ -930,7 +930,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
 
     bool fCompleted = true;
     vector<uint256> vTxPool;
-    pTxPoolCntrl->ListTx(hashFork, vTxPool);
+    pTxPoolCtrl->ListTx(hashFork, vTxPool);
     if (!vTxPool.empty() && !mapPeer.empty())
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
