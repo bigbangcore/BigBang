@@ -33,10 +33,10 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nNonceSubmitWork = 2;
     nMinerStatus = -1;
     pHttpGet = nullptr;
-    if (vArgsIn.size() >= 3)
+    if (vArgsIn.size() >= 2)
     {
-        strAddrSpent = vArgsIn[1];
-        strMintKey = vArgsIn[2];
+        strAddrSpent = vArgsIn[0];
+        strMintKey = vArgsIn[1];
     }
 }
 
