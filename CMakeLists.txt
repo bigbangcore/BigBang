@@ -16,7 +16,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_DIR})
 
 execute_process(
         COMMAND git rev-parse HEAD 
-        COMMAND cut -c 1-6
+        COMMAND cut -c 1-16
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         OUTPUT_VARIABLE vGitCommitID
         OUTPUT_STRIP_TRAILING_WHITESPACE)
