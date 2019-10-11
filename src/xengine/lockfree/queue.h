@@ -12,29 +12,24 @@
 namespace xengine
 {
 
-template <typename T, typename U = typename std::add_pointer<T>::type>
+template <typename T>
 class LockFreeQueue
 {
 public:
-    virtual void Push(T* t) = 0;
-    virtual U Pop() = 0;
+    virtual const std::shared_ptr<T> Push(std::shared_ptr<T>&& t) = 0;
+    virtual const std::shared_ptr<T> Pop() = 0;
 };
 
 template <typename T>
-class ListMPSCQueue : public LockFreeQueue<T, const std::shared_ptr<T>>
+class ListMPSCQueue : public LockFreeQueue<T>
 {
 public:
-    typedef T* Ptr;
-    typedef std::shared_ptr<T> SPtr;
-
     struct CNode
     {
-        CNode(Ptr t)
-          : t(t), pNext(nullptr) {}
-        CNode(const SPtr t)
+        CNode(const std::shared_ptr<T>& t)
           : t(t), pNext(nullptr) {}
 
-        const SPtr t;
+        const std::shared_ptr<T> t;
         std::atomic<CNode*> pNext;
     };
 
@@ -49,19 +44,16 @@ public:
         Clear();
     }
 
-    void Push(const Ptr t)
+    const std::shared_ptr<T> Push(std::shared_ptr<T>&& t)
     {
-        Push(SPtr(t));
-    }
-
-    void Push(const SPtr t)
-    {
-        CNode* pNode = new CNode(t);
+        std::shared_ptr<T> sp(std::move(t));
+        CNode* pNode = new CNode(sp);
         CNode* pPrev = pTail.exchange(pNode, std::memory_order_release);
         pPrev->pNext.store(pNode, std::memory_order_relaxed);
+        return sp;
     }
 
-    const SPtr Pop()
+    const std::shared_ptr<T> Pop()
     {
         CNode* pNode = pHead->pNext.load(std::memory_order_relaxed);
         if (pNode)

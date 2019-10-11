@@ -17,7 +17,11 @@
 namespace xengine
 {
 
-#define PUBLISH_MESSAGE(msg) CMessageCenter::GetInstance().Publish(msg)
+/**
+ * @brief A shortcut to publish message.
+ * @warning Don't modify members of msg after calling it, unless you know the consequence. See CMessageCenter::Publish()
+ */
+#define PUBLISH_MESSAGE(msg) CMessageCenter::GetInstance().Publish(std::move(msg))
 
 class CIOActor;
 
@@ -57,16 +61,13 @@ public:
     void Unsubscribe(const uint32 nType, CIOActor* pActor);
 
     /**
-     * @brief Publish a pMessage->Type() message to subscribers.
-     * @param pMessage The message pointer.
-     */
-    void Publish(CMessage* pMessage);
-
-    /**
      * @brief Publish a spMessage->Type() message to subscribers.
-     * @param spMessage The message smart pointer.
+     * @param spMessage The rvalue of message smart pointer. It will be seted nullptr when return.
+     * @return const shared pointer of spMessage.
+     * @warning spMessage will be seted nullptr when return.
+     *          Don't modify members of the original pointer of spMessage after published it, unless you know the consequence.
      */
-    void Publish(std::shared_ptr<CMessage> spMessage);
+    const std::shared_ptr<CMessage> Publish(std::shared_ptr<CMessage>&& spMessage);
 
     /**
      * @brief Get the size of undistributed message.
