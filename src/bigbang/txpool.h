@@ -211,11 +211,11 @@ public:
     std::map<CTxOutPoint, CSpent> mapSpent;
 };
 
-class CTxPool : public ITxPool
+class CTxPoolModel : public ITxPoolModel
 {
 public:
-    CTxPool();
-    ~CTxPool();
+    CTxPoolModel();
+    ~CTxPoolModel();
     bool Exists(const uint256& txid) const override;
     std::size_t Count(const uint256& fork) const override;
     bool Get(const uint256& txid, CTransaction& tx) const override;

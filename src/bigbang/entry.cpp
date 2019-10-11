@@ -288,7 +288,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::TXPOOL:
         {
-            if (!AttachModule(new CTxPool()))
+            if (!AttachModule(new CTxPoolModel()))
             {
                 return false;
             }
@@ -322,7 +322,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::WORLDLINE:
         {
-            if (!AttachModule(new CWorldLine()))
+            if (!AttachModule(new CWorldLineModel()))
             {
                 return false;
             }
