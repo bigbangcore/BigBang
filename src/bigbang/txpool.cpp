@@ -348,7 +348,7 @@ bool CTxPoolModel::FilterTx(const uint256& hashFork, CTxFilter& filter) const
 }
 
 void CTxPoolModel::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
-                             vector<CTransaction>& vtx, int64& nTotalTxFee) const
+                                  vector<CTransaction>& vtx, int64& nTotalTxFee) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);

@@ -795,7 +795,7 @@ Errno CWorldLineModel::GetTxContxt(storage::CBlockView& view, const CTransaction
 }
 
 bool CWorldLineModel::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
-                                 vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
+                                      vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {
     while (pIndexNew != pIndexFork)
     {
@@ -825,7 +825,7 @@ bool CWorldLineModel::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlock
 }
 
 bool CWorldLineModel::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                           CDelegateAgreement& agreement)
+                                                CDelegateAgreement& agreement)
 {
     agreement.Clear();
 

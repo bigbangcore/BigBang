@@ -7,7 +7,6 @@
 #include <map>
 #include <string>
 
-#include "worldline.h"
 #include "blockmaker.h"
 #include "consensus.h"
 #include "core.h"
@@ -25,6 +24,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "worldline.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
