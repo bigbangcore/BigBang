@@ -70,7 +70,14 @@ public:
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
-class CNetChannelModel : public xengine::INetChannelModel
+class INetChannelModel : public IModel
+{
+public:
+    INetChannelModel()
+      : IModel("netchannelmodel") {}
+};
+
+class CNetChannelModel : public INetChannelModel
 {
 public:
     CNetChannelModel();
