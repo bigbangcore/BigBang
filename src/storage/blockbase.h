@@ -162,11 +162,11 @@ public:
     bool RetrieveTx(const uint256& txid, CTransaction& tx);
     bool RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent);
     void AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn = CDestination(), int64 nValueIn = 0);
-    void AddTx(const uint256& txid, const CAssembledTx& tx)
-    {
-        AddTx(txid, tx, tx.destIn, tx.nValueIn);
-    }
+    void AddTx(const CTransaction& tx, const CDestination& destIn = CDestination(), int64 nValueIn = 0);
+    void AddTx(const uint256& txid, const CAssembledTx& tx);
+    void AddTx(const CAssembledTx& tx);
     void RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt = CTxContxt());
+    void RemoveTx(const CTransaction& tx, const CTxContxt& txContxt = CTxContxt());
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);

@@ -132,6 +132,11 @@ bool CBlockView::RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent)
 
 void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn, int64 nValueIn)
 {
+    if (tx.IsNull())
+    {
+        return;
+    }
+
     mapTx[txid] = tx;
     vTxAddNew.push_back(txid);
 
@@ -151,8 +156,31 @@ void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDesti
     }
 }
 
+void CBlockView::AddTx(const CTransaction& tx, const CDestination& destIn, int64 nValueIn)
+{
+    if (tx.IsNull())
+    {
+        return;
+    }
+    AddTx(tx.GetHash(), tx, destIn, nValueIn);
+}
+
+void CBlockView::AddTx(const uint256& txid, const CAssembledTx& tx)
+{
+    AddTx(txid, tx, tx.destIn, tx.nValueIn);
+}
+void CBlockView::AddTx(const CAssembledTx& tx)
+{
+    AddTx(tx, tx.destIn, tx.nValueIn);
+}
+
 void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt)
 {
+    if (tx.IsNull())
+    {
+        return;
+    }
+
     mapTx[txid].SetNull();
     vTxRemove.push_back(txid);
     for (int i = 0; i < tx.vInput.size(); i++)
@@ -162,6 +190,15 @@ void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTx
     }
     mapUnspent[CTxOutPoint(txid, 0)].Disable();
     mapUnspent[CTxOutPoint(txid, 1)].Disable();
+}
+
+void CBlockView::RemoveTx(const CTransaction& tx, const CTxContxt& txContxt)
+{
+    if (tx.IsNull())
+    {
+        return;
+    }
+    RemoveTx(tx.GetHash(), tx, txContxt);
 }
 
 void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoint>& vRemove)
@@ -741,12 +778,9 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
             }
             for (int j = block.vtx.size() - 1; j >= 0; j--)
             {
-                view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
+                view.RemoveTx(block.vtx[j], block.vTxContxt[j]);
             }
-            if (!block.txMint.IsNull())
-            {
-                view.RemoveTx(block.txMint.GetHash(), block.txMint);
-            }
+            view.RemoveTx(block.txMint);
         }
 
         for (int i = vPath.size() - 1; i >= 0; i--)
@@ -757,11 +791,11 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
             {
                 return false;
             }
-            view.AddTx(block.txMint.GetHash(), block.txMint);
+            view.AddTx(block.txMint);
             for (int j = 0; j < block.vtx.size(); j++)
             {
                 const CTxContxt& txContxt = block.vTxContxt[j];
-                view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
+                view.AddTx(block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
             }
         }
     }
