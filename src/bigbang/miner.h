@@ -92,6 +92,7 @@ protected:
     CMinerWork workCurrent;
     uint64 nNonceGetWork;
     uint64 nNonceSubmitWork;
+    ICoreProtocol* pCoreProtocol;
 };
 
 } // namespace bigbang
