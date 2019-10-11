@@ -14,12 +14,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake" CACHE PATH "The path to the cmake directory")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_DIR})
 
+execute_process(
+        COMMAND git rev-parse HEAD 
+        COMMAND cut -c 1-6
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE vGitCommitID
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+add_definitions(-D GIT_VERSION=0x${vGitCommitID})
+
 if(CYGWIN)
     set(CMAKE_CXX_STANDARD_REQUIRED OFF)
 elseif(UNIX)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED OFF)
     set(CMAKE_CXX_EXTENSIONS OFF)
+    
 else()
     message(FATAL_ERROR "Unsupported plantform")
 endif()
