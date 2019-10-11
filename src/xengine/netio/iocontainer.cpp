@@ -247,7 +247,8 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
     {
         if (!IsAllowedRemote(pClient->GetRemote()))
         {
-            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Not in the allowed table.")
+            const boost::asio::ip::tcp::endpoint epRemove = pClient->GetRemote();
+            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Remove: " + epRemove.address().to_string() + ":" + to_string(epRemove.port()) + ", Not in the allowed table.")
                                               .c_str());
             pClient->Close();
             return;
@@ -256,7 +257,8 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
         string strFailCause;
         if (!pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient, strFailCause))
         {
-            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Client accepted fail, cause: " + strFailCause)
+            const boost::asio::ip::tcp::endpoint epRemove = pClient->GetRemote();
+            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Remove: " + epRemove.address().to_string() + ":" + to_string(epRemove.port()) + ", Client accepted fail, cause: " + strFailCause)
                                               .c_str());
             pClient->Close();
             return;
