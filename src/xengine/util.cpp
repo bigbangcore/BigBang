@@ -2,9 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <map>
-
 #include "util.h"
+
+#include <map>
 #if defined(__linux__)
 #include <sys/prctl.h>
 #elif defined(__APPLE__)
@@ -145,23 +145,23 @@ public:
     {
     }
 
-    void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
+    void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn)
     {
         sink = boost::make_shared<sink_t>(
             keywords::open_mode = std::ios::app,
             keywords::file_name = pathData / "logs" / "%Y-%m-%d_%N.log",
-            keywords::rotation_size = 10 * 1024 * 1024,
+            keywords::rotation_size = (int64)1024 * 1024 * nLogFileSizeIn,
             keywords::auto_flush = true);
 
         sink->locked_backend()->set_file_collector(sinks::file::make_collector(
             keywords::target = pathData / "logs-collector",
-            keywords::max_size = 50 * 1024 * 1024,
+            keywords::max_size = (int64)1024 * 1024 * nLogHistorySizeIn,
             keywords::auto_flush = true));
 
         sink->locked_backend()->scan_for_files();
         sink->set_formatter(
             expr::format("%1% : [%2%] <%3%> {%4%} - %5%")
-            % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f")
+            % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
             % channel
             % severity
             % expr::attr<std::string>("ThreadName")
@@ -259,10 +259,10 @@ void StdError(const char* pszName, const char* pszErr)
     }
 }
 
-bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn)
 {
     g_log_init = true;
-    g_log.Init(pathData, debug, daemon);
+    g_log.Init(pathData, debug, daemon, nLogFileSizeIn, nLogHistorySizeIn);
     return true;
 }
 

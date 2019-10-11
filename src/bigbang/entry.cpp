@@ -100,6 +100,18 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         config.ListConfig();
     }
 
+    // check log size
+    if (config.GetConfig()->nLogFileSize < 1 || config.GetConfig()->nLogFileSize > 2048)
+    {
+        cerr << "Log file size beyond range(range: 1 ~ 2048), value: " << config.GetConfig()->nLogFileSize << "\n";
+        return false;
+    }
+    if (config.GetConfig()->nLogHistorySize < 2 || config.GetConfig()->nLogHistorySize > 0x7FFFFFFF)
+    {
+        cerr << "Log history size beyond range(range: 2 ~ 2147483647), value: " << config.GetConfig()->nLogHistorySize << "\n";
+        return false;
+    }
+
     // path
     path& pathData = config.GetConfig()->pathData;
     if (!exists(pathData))
@@ -135,9 +147,9 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER) 
-    && log.SetLogFilePath((pathData / "bigbang.log").string())
-    && !InitLog(pathData,config.GetConfig()->fDebug, config.GetConfig()->fDaemon))
+    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER)
+        && log.SetLogFilePath((pathData / "bigbang.log").string())
+        && !InitLog(pathData, config.GetConfig()->fDebug, config.GetConfig()->fDaemon, config.GetConfig()->nLogFileSize, config.GetConfig()->nLogHistorySize))
     {
         cerr << "Failed to open log file : " << (pathData / "bigbang.log") << "\n";
         return false;
