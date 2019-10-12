@@ -193,6 +193,18 @@ void CNetChannelModel::RemovePeer(uint64 nNonce)
     }
 }
 
+void CNetChannelModel::RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    RemoveUnSynchronizedForkPeer(nNonce, hashFork);
+}
+
+void CNetChannelModel::AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    AddUnSynchronizedForkPeer(nNonce, hashFork);
+}
+
 void CNetChannelModel::AddUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork)
 {
     mapUnsync[hashFork].insert(nNonce);
@@ -950,13 +962,13 @@ void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool
     {
         if (fSync)
         {
-            mapUnsync[hashFork].erase(nNonce);
+            pNetChannelModel->RemoveUnSynchronizedForkPeerMT(nNonce, hashFork);
             CBroadcastTxInvMessage msg(hashFork);
             HandleBroadcastTxInv(msg);
         }
         else
         {
-            mapUnsync[hashFork].insert(nNonce);
+            pNetChannelModel->AddUnSynchronizedForkPeerMT(nNonce, hashFork);
         }
     }
 }

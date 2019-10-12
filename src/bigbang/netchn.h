@@ -83,6 +83,8 @@ public:
     virtual std::map<uint64, CNetChannelPeer> GetAllPeers() const = 0;
     virtual void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashPrimary) = 0;
     virtual void RemovePeer(uint64 nNonce) = 0;
+    virtual void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
+    virtual void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
 };
 
 class CNetChannelModel : public INetChannelModel
@@ -100,6 +102,8 @@ public:
     std::map<uint64, CNetChannelPeer> GetAllPeers() const override;
     void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashFork) override;
     void RemovePeer(uint64 nNonce) override;
+    void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
+    void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
 
 protected:
     const CSchedule& GetSchedule(const uint256& hashFork) const;
