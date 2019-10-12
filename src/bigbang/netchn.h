@@ -75,9 +75,13 @@ public:
     INetChannelModel()
       : IModel("netchannelmodel") {}
     virtual void CleanUpForkScheduler() = 0;
+    virtual bool AddNewForkSchedule(const uint256& hashFork) = 0;
+    virtual bool RemoveForkSchudule(const uint256& hashFork) = 0;
+    virtual std::vector<uint256> GetAllForks() const = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
     virtual bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const = 0;
     virtual std::map<uint64, CNetChannelPeer> GetAllPeers() const = 0;
+    virtual void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashPrimary) = 0;
 };
 
 class CNetChannelModel : public INetChannelModel
@@ -87,13 +91,18 @@ public:
     ~CNetChannelModel();
 
     void CleanUpForkScheduler() override;
+    bool AddNewForkSchedule(const uint256& hashFork) override;
+    bool RemoveForkSchudule(const uint256& hashFork) override;
+    std::vector<uint256> GetAllForks() const;
     bool IsForkSynchronized(const uint256& hashFork) const override;
     bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const override;
     std::map<uint64, CNetChannelPeer> GetAllPeers() const;
+    void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashPrimary);
 
 protected:
     const CSchedule& GetSchedule(const uint256& hashFork) const;
     bool ContainsSchedule(const uint256& hashFork) const;
+    void AddUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork);
 
 private:
     mutable boost::recursive_mutex mtxSched;
