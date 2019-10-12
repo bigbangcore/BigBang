@@ -118,8 +118,8 @@ class CSchedule
     };
 
 public:
-    bool Exists(const network::CInv& inv);
-    void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
+    bool Exists(const network::CInv& inv) const;
+    void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer) const;
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
     void AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
     void RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);

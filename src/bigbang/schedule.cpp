@@ -82,14 +82,14 @@ void COrphan::RemoveBranch(const uint256& root, std::vector<uint256>& vBranch)
 ///////////////////////////////
 // CSchedule
 
-bool CSchedule::Exists(const network::CInv& inv)
+bool CSchedule::Exists(const network::CInv& inv) const
 {
     return mapState.count(inv) != 0;
 }
 
-void CSchedule::GetKnownPeer(const network::CInv& inv, set<uint64>& setKnownPeer)
+void CSchedule::GetKnownPeer(const network::CInv& inv, set<uint64>& setKnownPeer) const
 {
-    map<network::CInv, CInvState>::iterator it = mapState.find(inv);
+    map<network::CInv, CInvState>::const_iterator it = mapState.find(inv);
     if (it != mapState.end())
     {
         setKnownPeer = (*it).second.setKnownPeer;

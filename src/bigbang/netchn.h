@@ -10,7 +10,6 @@
 #include "peernet.h"
 #include "peernet/message.h"
 #include "schedule.h"
-
 namespace bigbang
 {
 
@@ -77,6 +76,8 @@ public:
       : IModel("netchannelmodel") {}
     virtual void CleanUpForkScheduler() = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
+    virtual bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const = 0;
+    virtual std::map<uint64, CNetChannelPeer> GetAllPeers() const = 0;
 };
 
 class CNetChannelModel : public INetChannelModel
@@ -87,6 +88,12 @@ public:
 
     void CleanUpForkScheduler() override;
     bool IsForkSynchronized(const uint256& hashFork) const override;
+    bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const override;
+    std::map<uint64, CNetChannelPeer> GetAllPeers() const;
+
+protected:
+    const CSchedule& GetSchedule(const uint256& hashFork) const;
+    bool ContainsSchedule(const uint256& hashFork) const;
 
 private:
     mutable boost::recursive_mutex mtxSched;

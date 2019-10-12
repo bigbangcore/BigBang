@@ -117,6 +117,37 @@ bool CNetChannelModel::IsForkSynchronized(const uint256& hashFork) const
     return (it == mapUnsync.end() || (*it).second.empty());
 }
 
+bool CNetChannelModel::GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+
+    if (!ContainsSchedule(hashFork))
+    {
+        return false;
+    }
+
+    const CSchedule& sched = GetSchedule(hashFork);
+    sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeers);
+    return true;
+}
+
+bool CNetChannelModel::ContainsSchedule(const uint256& hashFork) const
+{
+    map<uint256, CSchedule>::const_iterator it = mapSched.find(hashFork);
+    return it != mapSched.end();
+}
+
+const CSchedule& CNetChannelModel::GetSchedule(const uint256& hashFork) const
+{
+    return mapSched.find(hashFork)->second;
+}
+
+map<uint64, CNetChannelPeer> CNetChannelModel::GetAllPeers() const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+    return mapPeer;
+}
+
 //////////////////////////////
 // CNetChannel
 
@@ -260,25 +291,22 @@ void CNetChannel::HandleHalt()
 void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)
 {
     set<uint64> setKnownPeer;
+    if (pNetChannelModel->GetKnownPeers(invMsg.hashFork, invMsg.hashBlock, setKnownPeer))
     {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-        CSchedule& sched = GetSchedule(invMsg.hashFork);
-        sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock), setKnownPeer);
+        throw std::runtime_error("Unknown fork for scheduling (GetKnownPeers).");
     }
 
+    auto allPeers = pNetChannelModel->GetAllPeers();
+    for (const auto& peer : allPeers)
     {
-        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        uint64 nNonce = peer.first;
+        if (!setKnownPeer.count(nNonce) && peer.second.IsSubscribed(invMsg.hashFork))
         {
-            uint64 nNonce = (*it).first;
-            if (!setKnownPeer.count(nNonce) && (*it).second.IsSubscribed(invMsg.hashFork))
-            {
-                auto spInvMsg = CPeerInvMessageOutBound::Create();
-                spInvMsg->nNonce = nNonce;
-                spInvMsg->hashFork = invMsg.hashFork;
-                spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock));
-                PUBLISH_MESSAGE(spInvMsg);
-            }
+            auto spInvMsg = CPeerInvMessageOutBound::Create();
+            spInvMsg->nNonce = nNonce;
+            spInvMsg->hashFork = invMsg.hashFork;
+            spInvMsg->vecInv.push_back(network::CInv(network::CInv::MSG_BLOCK, invMsg.hashBlock));
+            PUBLISH_MESSAGE(spInvMsg);
         }
     }
 }
