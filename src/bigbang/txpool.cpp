@@ -644,6 +644,7 @@ bool CTxPoolController::HandleInvoke()
 {
     if (!StartActor())
     {
+        Error("Failed to start actor\n");
         return false;
     }
 

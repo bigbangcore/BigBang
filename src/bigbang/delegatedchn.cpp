@@ -283,6 +283,7 @@ bool CDelegatedChannel::HandleInvoke()
 {
     if (!StartActor())
     {
+        Error("Failed to start actor\n");
         return false;
     }
 
