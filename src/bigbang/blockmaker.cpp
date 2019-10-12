@@ -138,11 +138,16 @@ bool CBlockMaker::HandleInitialize()
             }
         }
     }
+
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CBlockMaker::HandleAddedBlock, this, _1));
+
     return true;
 }
 
 void CBlockMaker::HandleDeinitialize()
 {
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
@@ -156,9 +161,9 @@ void CBlockMaker::HandleDeinitialize()
 
 bool CBlockMaker::HandleInvoke()
 {
-    if (!IBlockMaker::HandleInvoke())
+    if (!StartActor())
     {
-        Error("Failed to invoke IBlockMaker::HandleInvoke()\n");
+        Error("Failed to start actor\n");
         return false;
     }
 
@@ -187,6 +192,8 @@ bool CBlockMaker::HandleInvoke()
 
 void CBlockMaker::HandleHalt()
 {
+    StopActor();
+
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         nMakerStatus = MAKER_EXIT;
@@ -199,29 +206,6 @@ void CBlockMaker::HandleHalt()
     thrExtendedMaker.Interrupt();
     ThreadExit(thrExtendedMaker);
     IBlockMaker::HandleHalt();
-}
-
-bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
-{
-    boost::unique_lock<boost::mutex> lock(mutex);
-
-    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
-    {
-        return true;
-    }
-
-    if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
-    {
-        nMakerStatus = MAKER_RESET;
-        hashLastBlock = eventUpdate.data.hashBlock;
-        nLastBlockTime = eventUpdate.data.nBlockTime;
-        nLastBlockHeight = eventUpdate.data.nBlockHeight;
-        nLastAgreement = eventUpdate.data.nAgreement;
-        nLastWeight = eventUpdate.data.nWeight;
-        cond.notify_all();
-    }
-
-    return true;
 }
 
 bool CBlockMaker::Wait(long nSeconds)
@@ -778,6 +762,34 @@ void CBlockMaker::ExtendedMakerThreadFunc()
         }
     }
     Log("Extended block maker exited\n");
+}
+
+void CBlockMaker::HandleAddedBlock(const CAddedBlockMessage& msg)
+{
+    if (!msg.block.IsPrimary())
+    {
+        return;
+    }
+
+    boost::unique_lock<boost::mutex> lock(mutex);
+    if (msg.update.nLastBlockHeight <= nLastBlockHeight)
+    {
+        return;
+    }
+    if (Interrupted() || currentAgreement.IsProofOfWork() || (msg.block.txMint.nType == CTransaction::TX_STAKE))
+    {
+        nMakerStatus = MAKER_RESET;
+        hashLastBlock = msg.update.hashLastBlock;
+        nLastBlockTime = msg.update.nLastBlockTime;
+        nLastBlockHeight = msg.update.nLastBlockHeight;
+
+        CProofOfSecretShare proof;
+        proof.Load(msg.block.vchProof);
+        nLastAgreement = proof.nAgreement;
+        nLastWeight = proof.nWeight;
+
+        cond.notify_all();
+    }
 }
 
 } // namespace bigbang
