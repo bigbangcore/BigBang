@@ -233,7 +233,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::NETCHANNEL:
         {
-            if (!AttachModule(new CNetChannel()))
+            if (!AttachModule(new CNetChannelController()))
             {
                 return false;
             }
@@ -288,7 +288,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::TXPOOL:
         {
-            if (!AttachModule(new CTxPoolModel()))
+            if (!AttachModule(new CTxPool()))
             {
                 return false;
             }
@@ -322,7 +322,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::WORLDLINE:
         {
-            if (!AttachModule(new CWorldLineModel()))
+            if (!AttachModule(new CWorldLine()))
             {
                 return false;
             }

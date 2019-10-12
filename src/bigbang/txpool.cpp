@@ -114,22 +114,22 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 }
 
 //////////////////////////////
-// CTxPoolModel
+// CTxPool
 
-CTxPoolModel::CTxPoolModel()
+CTxPool::CTxPool()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     nLastSequenceNumber = 0;
 }
 
-CTxPoolModel::~CTxPoolModel()
+CTxPool::~CTxPool()
 {
 }
 
-bool CTxPoolModel::HandleInitialize()
+bool CTxPool::HandleInitialize()
 {
-    if (!ITxPoolModel::HandleInitialize())
+    if (!ITxPool::HandleInitialize())
     {
         return false;
     }
@@ -149,17 +149,17 @@ bool CTxPoolModel::HandleInitialize()
     return true;
 }
 
-void CTxPoolModel::HandleDeinitialize()
+void CTxPool::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
 
-    ITxPoolModel::HandleDeinitialize();
+    ITxPool::HandleDeinitialize();
 }
 
-bool CTxPoolModel::HandleInvoke()
+bool CTxPool::HandleInvoke()
 {
-    if (!ITxPoolModel::HandleInvoke())
+    if (!ITxPool::HandleInvoke())
     {
         return false;
     }
@@ -179,7 +179,7 @@ bool CTxPoolModel::HandleInvoke()
     return true;
 }
 
-void CTxPoolModel::HandleHalt()
+void CTxPool::HandleHalt()
 {
     if (!SaveData())
     {
@@ -187,23 +187,23 @@ void CTxPoolModel::HandleHalt()
     }
     Clear();
 
-    ITxPoolModel::HandleHalt();
+    ITxPool::HandleHalt();
 }
 
-bool CTxPoolModel::Exists(const uint256& txid) const
+bool CTxPool::Exists(const uint256& txid) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     return mapTx.count(txid) != 0;
 }
 
-void CTxPoolModel::Clear()
+void CTxPool::Clear()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     mapPoolView.clear();
     mapTx.clear();
 }
 
-size_t CTxPoolModel::Count(const uint256& fork) const
+size_t CTxPool::Count(const uint256& fork) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(fork);
@@ -214,7 +214,7 @@ size_t CTxPoolModel::Count(const uint256& fork) const
     return 0;
 }
 
-Errno CTxPoolModel::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
+Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     uint256 txid = tx.GetHash();
@@ -256,7 +256,7 @@ Errno CTxPoolModel::Push(const CTransaction& tx, uint256& hashFork, CDestination
     return err;
 }
 
-void CTxPoolModel::Pop(const uint256& txid)
+void CTxPool::Pop(const uint256& txid)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     unordered_map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
@@ -282,7 +282,7 @@ void CTxPoolModel::Pop(const uint256& txid)
     }
 }
 
-bool CTxPoolModel::Get(const uint256& txid, CTransaction& tx) const
+bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     unordered_map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
@@ -294,7 +294,7 @@ bool CTxPoolModel::Get(const uint256& txid, CTransaction& tx) const
     return false;
 }
 
-void CTxPoolModel::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool) const
+void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
@@ -308,7 +308,7 @@ void CTxPoolModel::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>
     }
 }
 
-void CTxPoolModel::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) const
+void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
@@ -322,7 +322,7 @@ void CTxPoolModel::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) con
     }
 }
 
-bool CTxPoolModel::FilterTx(const uint256& hashFork, CTxFilter& filter) const
+bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -347,7 +347,7 @@ bool CTxPoolModel::FilterTx(const uint256& hashFork, CTxFilter& filter) const
     return true;
 }
 
-void CTxPoolModel::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
+void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
                                   vector<CTransaction>& vtx, int64& nTotalTxFee) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
@@ -359,7 +359,7 @@ void CTxPoolModel::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, siz
     }
 }
 
-bool CTxPoolModel::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent) const
+bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);
@@ -406,7 +406,7 @@ bool CTxPoolModel::FetchInputs(const uint256& hashFork, const CTransaction& tx, 
     return true;
 }
 
-bool CTxPoolModel::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
+bool CTxPool::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
 {
     change.hashFork = update.hashFork;
 
@@ -507,7 +507,7 @@ bool CTxPoolModel::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetCh
     return true;
 }
 
-bool CTxPoolModel::LoadData()
+bool CTxPool::LoadData()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
@@ -529,7 +529,7 @@ bool CTxPoolModel::LoadData()
     return true;
 }
 
-bool CTxPoolModel::SaveData()
+bool CTxPool::SaveData()
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -554,7 +554,7 @@ bool CTxPoolModel::SaveData()
     return datTxPool.Save(vTx);
 }
 
-Errno CTxPoolModel::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
+Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
