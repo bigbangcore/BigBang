@@ -25,6 +25,13 @@ class CInvPeer
     };
 
 public:
+    CInvPeer()
+      : nGetBlockLocatorDepth(0), nInvHeight(0)
+    {
+    }
+    ~CInvPeer()
+    {
+    }
     bool Empty(uint32 type)
     {
         return GetKnownList(type).empty();
@@ -78,9 +85,42 @@ public:
     {
         return (!invKnown[0].setAssigned.empty() || !invKnown[1].setAssigned.empty());
     }
+    int GetBlockLocatorDepth()
+    {
+        return nGetBlockLocatorDepth;
+    }
+    void SetBlockLocatorDepth(int nDepth)
+    {
+        nGetBlockLocatorDepth = nDepth;
+    }
+    int GetLocatorInvBlockHash(uint256& hashBlock)
+    {
+        if (nInvHeight <= 0 || hashInvBlock == 0)
+        {
+            return -1;
+        }
+        hashBlock = hashInvBlock;
+        return nInvHeight;
+    }
+    void SetLocatorInvBlockHash(int nHeight, const uint256& hashBlock)
+    {
+        if (nHeight >= nInvHeight)
+        {
+            nInvHeight = nHeight;
+            hashInvBlock = hashBlock;
+        }
+        else
+        {
+            nInvHeight--;
+            hashInvBlock = 0;
+        }
+    }
 
 public:
     CInvPeerState invKnown[2];
+    int nGetBlockLocatorDepth;
+    int nInvHeight;
+    uint256 hashInvBlock;
 };
 
 class COrphan
@@ -135,6 +175,10 @@ public:
     void InvalidateTx(const uint256& txid, std::set<uint64>& setMisbehavePeer);
     bool ScheduleBlockInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fMissingPrev, bool& fEmpty);
     bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount);
+    int GetLocatorDepth(uint64 nPeerNonce);
+    void SetLocatorDepth(uint64 nPeerNonce, int nDepth);
+    int GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock);
+    void SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);

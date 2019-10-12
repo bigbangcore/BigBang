@@ -321,6 +321,44 @@ bool CSchedule::ScheduleTxInv(uint64 nPeerNonce, vector<network::CInv>& vInv, si
     return true;
 }
 
+int CSchedule::GetLocatorDepth(uint64 nPeerNonce)
+{
+    map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
+    if (it != mapPeer.end())
+    {
+        return it->second.GetBlockLocatorDepth();
+    }
+    return 0;
+}
+
+void CSchedule::SetLocatorDepth(uint64 nPeerNonce, int nDepth)
+{
+    map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
+    if (it != mapPeer.end())
+    {
+        it->second.SetBlockLocatorDepth(nDepth);
+    }
+}
+
+int CSchedule::GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock)
+{
+    map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
+    if (it != mapPeer.end())
+    {
+        return it->second.GetLocatorInvBlockHash(hashBlock);
+    }
+    return -1;
+}
+
+void CSchedule::SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock)
+{
+    map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
+    if (it != mapPeer.end())
+    {
+        it->second.SetLocatorInvBlockHash(nHeight, hashBlock);
+    }
+}
+
 void CSchedule::RemoveOrphan(const network::CInv& inv)
 {
     if (inv.nType == network::CInv::MSG_TX)
