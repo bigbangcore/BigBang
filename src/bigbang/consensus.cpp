@@ -176,8 +176,8 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
 CConsensus::CConsensus()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 CConsensus::~CConsensus()
@@ -192,13 +192,13 @@ bool CConsensus::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -228,8 +228,8 @@ void CConsensus::HandleDeinitialize()
     mapContext.clear();
 
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 bool CConsensus::HandleInvoke()
@@ -299,7 +299,7 @@ void CConsensus::PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChang
 
         CDelegateEnrolled enrolled;
 
-        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hash, enrolled))
+        if (pWorldLineCtrl->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
@@ -316,7 +316,7 @@ void CConsensus::PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChang
 
         CDelegateEnrolled enrolled;
 
-        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hash, enrolled))
+        if (pWorldLineCtrl->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
@@ -401,7 +401,7 @@ bool CConsensus::LoadDelegateTx()
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         CDelegateTxFilter txFilter((*it).second);
-        if (!pWorldLineCntrl->FilterTx(hashGenesis, txFilter) || !pTxPoolCntrl->FilterTx(hashGenesis, txFilter))
+        if (!pWorldLineCtrl->FilterTx(hashGenesis, txFilter) || !pTxPoolCtrl->FilterTx(hashGenesis, txFilter))
         {
             return false;
         }
@@ -411,7 +411,7 @@ bool CConsensus::LoadDelegateTx()
 
 bool CConsensus::LoadChain()
 {
-    int nLashBlockHeight = pWorldLineCntrl->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+    int nLashBlockHeight = pWorldLineCtrl->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
     int nStartHeight = nLashBlockHeight - CONSENSUS_ENROLL_INTERVAL + 1;
     if (nStartHeight < 0)
     {
@@ -420,13 +420,13 @@ bool CConsensus::LoadChain()
     for (int i = nStartHeight; i <= nLashBlockHeight; i++)
     {
         uint256 hashBlock;
-        if (!pWorldLineCntrl->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
+        if (!pWorldLineCtrl->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
         {
             return false;
         }
         CDelegateEnrolled enrolled;
 
-        if (pWorldLineCntrl->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        if (pWorldLineCtrl->GetBlockDelegateEnrolled(hashBlock, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result);

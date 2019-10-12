@@ -129,11 +129,13 @@ bool CTemplateExchange::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
 
     const string& addr_m = obj.exchange.strAddr_M;
     const string& addr_s = obj.exchange.strAddr_S;
-    if (!destInstance.ParseString(addr_m)) {
+    if (!destInstance.ParseString(addr_m))
+    {
         return false;
     }
     destSpend_m = destInstance;
-    if (!destInstance.ParseString(addr_s)) {
+    if (!destInstance.ParseString(addr_s))
+    {
         return false;
     }
     destSpend_s = destInstance;

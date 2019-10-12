@@ -20,7 +20,7 @@ namespace bigbang
 CForkManager::CForkManager()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     fAllowAnyFork = false;
 }
 
@@ -36,7 +36,7 @@ bool CForkManager::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -48,7 +48,7 @@ bool CForkManager::HandleInitialize()
 void CForkManager::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
 }
 
 bool CForkManager::HandleInvoke()
@@ -121,7 +121,7 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
     vector<CForkContext> vForkCtxt;
-    if (!pWorldLineCntrl->ListForkContext(vForkCtxt))
+    if (!pWorldLineCtrl->ListForkContext(vForkCtxt))
     {
         return false;
     }
@@ -168,7 +168,7 @@ void CForkManager::ForkUpdate(const CWorldLineUpdate& update, vector<uint256>& v
                     && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
                 {
                     CForkContext ctxt;
-                    if (pWorldLineCntrl->AddNewForkContext(tx, ctxt) == OK)
+                    if (pWorldLineCtrl->AddNewForkContext(tx, ctxt) == OK)
                     {
                         AddNewForkContext(ctxt, vActive);
                     }
@@ -211,7 +211,7 @@ void CForkManager::ForkUpdate(const CWorldLineUpdate& update, vector<CTransactio
                 {
                     vForkTx.push_back(tx);
                     // CForkContext ctxt;
-                    // if (pWorldLineCntrl->AddNewForkContext(tx, ctxt) == OK)
+                    // if (pWorldLineCtrl->AddNewForkContext(tx, ctxt) == OK)
                     // {
                     //     AddNewForkContext(ctxt, vActive);
                     // }
@@ -239,7 +239,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         uint256 hashFork = ctxt.hashFork;
         for (;;)
         {
-            if (pWorldLineCntrl->Exists(hashJoint))
+            if (pWorldLineCtrl->Exists(hashJoint))
             {
                 vActive.push_back(hashFork);
                 break;
@@ -253,7 +253,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
             }
 
             CForkContext ctxtParent;
-            if (!pWorldLineCntrl->GetForkContext(hashParent, ctxtParent))
+            if (!pWorldLineCtrl->GetForkContext(hashParent, ctxtParent))
             {
                 return false;
             }
@@ -318,7 +318,7 @@ bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashPar
         }
         uint256 hash = hashParent;
         CForkContext ctxtParent;
-        while (hash != 0 && pWorldLineCntrl->GetForkContext(hash, ctxtParent))
+        while (hash != 0 && pWorldLineCtrl->GetForkContext(hash, ctxtParent))
         {
             if (setGroupAllowed.count(ctxtParent.hashParent))
             {

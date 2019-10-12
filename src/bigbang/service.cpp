@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pWorldLineCntrl(nullptr), pTxPoolCntrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pWorldLineCtrl(nullptr), pTxPoolCtrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -34,13 +34,13 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -70,8 +70,8 @@ bool CService::HandleInitialize()
 void CService::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pDispatcher = nullptr;
     pWallet = nullptr;
     pForkManager = nullptr;
@@ -86,7 +86,7 @@ bool CService::HandleInvoke()
 
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
-        pWorldLineCntrl->GetForkStatus(mapForkStatus);
+        pWorldLineCtrl->GetForkStatus(mapForkStatus);
     }
     return true;
 }
@@ -230,7 +230,7 @@ void CService::ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool f
         for (vector<uint256>::iterator it = vForkHash.begin(); it != vForkHash.end(); ++it)
         {
             CForkContext ctx;
-            if (pWorldLineCntrl->GetForkContext(*it, ctx))
+            if (pWorldLineCtrl->GetForkContext(*it, ctx))
             {
                 vFork.push_back(make_pair(*it, ctx.GetProfile()));
             }
@@ -242,7 +242,7 @@ void CService::ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool f
         for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
         {
             CProfile profile;
-            if (pWorldLineCntrl->GetForkProfile((*it).first, profile))
+            if (pWorldLineCtrl->GetForkProfile((*it).first, profile))
             {
                 vFork.push_back(make_pair((*it).first, profile));
             }
@@ -273,7 +273,7 @@ bool CService::GetForkGenealogy(const uint256& hashFork, vector<pair<uint256, in
 
 bool CService::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
 {
-    return pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCtrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 int CService::GetBlockCount(const uint256& hashFork)
@@ -282,7 +282,7 @@ int CService::GetBlockCount(const uint256& hashFork)
     {
         return (GetForkHeight(hashFork) + 1);
     }
-    return pWorldLineCntrl->GetBlockCount(hashFork);
+    return pWorldLineCtrl->GetBlockCount(hashFork);
 }
 
 bool CService::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
@@ -298,49 +298,49 @@ bool CService::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashB
         hashBlock = (*it).second.hashLastBlock;
         return true;
     }
-    return pWorldLineCntrl->GetBlockHash(hashFork, nHeight, hashBlock);
+    return pWorldLineCtrl->GetBlockHash(hashFork, nHeight, hashBlock);
 }
 
 bool CService::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
 {
-    return pWorldLineCntrl->GetBlockHash(hashFork, nHeight, vBlockHash);
+    return pWorldLineCtrl->GetBlockHash(hashFork, nHeight, vBlockHash);
 }
 
 bool CService::GetBlock(const uint256& hashBlock, CBlock& block, uint256& hashFork, int& nHeight)
 {
-    return pWorldLineCntrl->GetBlock(hashBlock, block)
-           && pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCtrl->GetBlock(hashBlock, block)
+           && pWorldLineCtrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 bool CService::GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight)
 {
-    return pWorldLineCntrl->GetBlockEx(hashBlock, block)
-           && pWorldLineCntrl->GetBlockLocation(hashBlock, hashFork, nHeight);
+    return pWorldLineCtrl->GetBlockEx(hashBlock, block)
+           && pWorldLineCtrl->GetBlockLocation(hashBlock, hashFork, nHeight);
 }
 
 void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     vTxPool.clear();
-    pTxPoolCntrl->ListTx(hashFork, vTxPool);
+    pTxPoolCtrl->ListTx(hashFork, vTxPool);
 }
 
 bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight)
 {
-    if (pTxPoolCntrl->Get(txid, tx))
+    if (pTxPoolCtrl->Get(txid, tx))
     {
         int nAnchorHeight;
-        if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
+        if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
         {
             return false;
         }
         nHeight = -1;
         return true;
     }
-    if (!pWorldLineCntrl->GetTransaction(txid, tx))
+    if (!pWorldLineCtrl->GetTransaction(txid, tx))
     {
         return false;
     }
-    return pWorldLineCntrl->GetTxLocation(txid, hashFork, nHeight);
+    return pWorldLineCtrl->GetTxLocation(txid, hashFork, nHeight);
 }
 
 Errno CService::SendTransaction(CTransaction& tx)
@@ -350,11 +350,11 @@ Errno CService::SendTransaction(CTransaction& tx)
 
 bool CService::RemovePendingTx(const uint256& txid)
 {
-    if (!pTxPoolCntrl->Exists(txid))
+    if (!pTxPoolCtrl->Exists(txid))
     {
         return false;
     }
-    pTxPoolCntrl->Pop(txid);
+    pTxPoolCtrl->Pop(txid);
     return true;
 }
 
@@ -432,12 +432,12 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
 {
     uint256 hashFork;
     int nHeight;
-    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return false;
     }
     vector<CTxOut> vUnspent;
-    if (!pTxPoolCntrl->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
+    if (!pTxPoolCtrl->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
         return false;
     }
@@ -553,7 +553,7 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
 
     nAlgo = CM_CRYPTONIGHT;
     int64 nReward;
-    if (!pWorldLineCntrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
+    if (!pWorldLineCtrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
         return false;
     }
@@ -597,7 +597,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     }
     int nBits;
     int64 nReward;
-    if (!pWorldLineCntrl->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
+    if (!pWorldLineCtrl->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
     {
         return FAILED;
     }
@@ -612,7 +612,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
     int64 nTotalTxFee = 0;
-    pTxPoolCntrl->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
+    pTxPoolCtrl->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 

@@ -5,12 +5,12 @@
 #ifndef XENGINE_MESSAGE_ACTOR_H
 #define XENGINE_MESSAGE_ACTOR_H
 
+#include <boost/any.hpp>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
-#include <boost/any.hpp>
 #include <memory>
-#include <type_traits>
 #include <set>
+#include <type_traits>
 
 #include "base/controller.h"
 #include "message/actorworker.h"
@@ -116,7 +116,6 @@ private:
     void HandlerThreadFunc();
     /// Message handler callback entry.
     void MessageHandler(std::shared_ptr<CMessage> spMessage);
-
 };
 
 } // namespace xengine

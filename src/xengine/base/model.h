@@ -22,7 +22,8 @@ public:
 class INetChannelModel : public IModel
 {
 public:
-    INetChannelModel() : IModel("netchannelmodel") {}
+    INetChannelModel()
+      : IModel("netchannelmodel") {}
 };
 
 } // namespace xengine

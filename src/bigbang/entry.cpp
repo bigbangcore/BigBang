@@ -7,7 +7,6 @@
 #include <map>
 #include <string>
 
-#include "worldline.h"
 #include "blockmaker.h"
 #include "consensus.h"
 #include "core.h"
@@ -25,6 +24,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "worldline.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -288,7 +288,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::TXPOOL:
         {
-            if (!AttachModule(new CTxPool()))
+            if (!AttachModule(new CTxPoolModel()))
             {
                 return false;
             }
@@ -322,7 +322,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::WORLDLINE:
         {
-            if (!AttachModule(new CWorldLine()))
+            if (!AttachModule(new CWorldLineModel()))
             {
                 return false;
             }

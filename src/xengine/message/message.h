@@ -76,42 +76,42 @@ protected:
  * @brief Create the virtual function of class derived from CMessage: Type() and destructor.
  * @param cls Derived class name.
  */
-#define GENERATE_MESSAGE_FUNCTION(cls)                                                            \
-    template <typename... Args>                                                                   \
-    static std::shared_ptr<cls> Create(Args&&... args)                                            \
-    {                                                                                             \
-        return std::make_shared<cls>(std::forward<Args>(args)...);                                \
-    }                                                                                             \
-    static uint32 MessageType()                                                                   \
-    {                                                                                             \
-        static const uint32 nType = CMessage::NewMessageType();                                   \
-        return nType;                                                                             \
-    }                                                                                             \
-    static std::string MessageTag()                                                               \
-    {                                                                                             \
-        static const std::string strTag = #cls;                                                   \
-        return strTag;                                                                            \
-    }                                                                                             \
-    virtual uint32 Type() const override                                                          \
-    {                                                                                             \
-        return cls::MessageType();                                                                \
-    }                                                                                             \
-    virtual std::string Tag() const override                                                      \
-    {                                                                                             \
-        return cls::MessageTag();                                                                 \
-    }                                                                                             \
-    virtual void Handle(boost::any handler) override                                              \
-    {                                                                                             \
-        try                                                                                       \
-        {                                                                                         \
+#define GENERATE_MESSAGE_FUNCTION(cls)                                                             \
+    template <typename... Args>                                                                    \
+    static std::shared_ptr<cls> Create(Args&&... args)                                             \
+    {                                                                                              \
+        return std::make_shared<cls>(std::forward<Args>(args)...);                                 \
+    }                                                                                              \
+    static uint32 MessageType()                                                                    \
+    {                                                                                              \
+        static const uint32 nType = CMessage::NewMessageType();                                    \
+        return nType;                                                                              \
+    }                                                                                              \
+    static std::string MessageTag()                                                                \
+    {                                                                                              \
+        static const std::string strTag = #cls;                                                    \
+        return strTag;                                                                             \
+    }                                                                                              \
+    virtual uint32 Type() const override                                                           \
+    {                                                                                              \
+        return cls::MessageType();                                                                 \
+    }                                                                                              \
+    virtual std::string Tag() const override                                                       \
+    {                                                                                              \
+        return cls::MessageTag();                                                                  \
+    }                                                                                              \
+    virtual void Handle(boost::any handler) override                                               \
+    {                                                                                              \
+        try                                                                                        \
+        {                                                                                          \
             auto f = boost::any_cast<boost::function<void(const std::shared_ptr<cls>&)>>(handler); \
-            f(SharedFromBase<cls>());                                                             \
-        }                                                                                         \
-        catch (const boost::bad_any_cast&)                                                          \
-        {                                                                                         \
-            auto f = boost::any_cast<boost::function<void(const cls&)>>(handler);                 \
-            f(*this);                                                                             \
-        }                                                                                         \
+            f(SharedFromBase<cls>());                                                              \
+        }                                                                                          \
+        catch (const boost::bad_any_cast&)                                                         \
+        {                                                                                          \
+            auto f = boost::any_cast<boost::function<void(const cls&)>>(handler);                  \
+            f(*this);                                                                              \
+        }                                                                                          \
     }
 
 } // namespace xengine

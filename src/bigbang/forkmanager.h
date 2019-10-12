@@ -121,7 +121,7 @@ protected:
 protected:
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    IWorldLineController* pWorldLineCntrl;
+    IWorldLineController* pWorldLineCtrl;
     bool fAllowAnyFork;
     std::set<uint256> setForkAllowed;
     std::set<uint256> setGroupAllowed;

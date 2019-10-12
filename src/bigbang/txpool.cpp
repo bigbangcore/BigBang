@@ -114,22 +114,22 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 }
 
 //////////////////////////////
-// CTxPool
+// CTxPoolModel
 
-CTxPool::CTxPool()
+CTxPoolModel::CTxPoolModel()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     nLastSequenceNumber = 0;
 }
 
-CTxPool::~CTxPool()
+CTxPoolModel::~CTxPoolModel()
 {
 }
 
-bool CTxPool::HandleInitialize()
+bool CTxPoolModel::HandleInitialize()
 {
-    if (!ITxPool::HandleInitialize())
+    if (!ITxPoolModel::HandleInitialize())
     {
         return false;
     }
@@ -140,7 +140,7 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -149,17 +149,17 @@ bool CTxPool::HandleInitialize()
     return true;
 }
 
-void CTxPool::HandleDeinitialize()
+void CTxPoolModel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
 
-    ITxPool::HandleDeinitialize();
+    ITxPoolModel::HandleDeinitialize();
 }
 
-bool CTxPool::HandleInvoke()
+bool CTxPoolModel::HandleInvoke()
 {
-    if (!ITxPool::HandleInvoke())
+    if (!ITxPoolModel::HandleInvoke())
     {
         return false;
     }
@@ -179,7 +179,7 @@ bool CTxPool::HandleInvoke()
     return true;
 }
 
-void CTxPool::HandleHalt()
+void CTxPoolModel::HandleHalt()
 {
     if (!SaveData())
     {
@@ -187,23 +187,23 @@ void CTxPool::HandleHalt()
     }
     Clear();
 
-    ITxPool::HandleHalt();
+    ITxPoolModel::HandleHalt();
 }
 
-bool CTxPool::Exists(const uint256& txid) const
+bool CTxPoolModel::Exists(const uint256& txid) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     return mapTx.count(txid) != 0;
 }
 
-void CTxPool::Clear()
+void CTxPoolModel::Clear()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     mapPoolView.clear();
     mapTx.clear();
 }
 
-size_t CTxPool::Count(const uint256& fork) const
+size_t CTxPoolModel::Count(const uint256& fork) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(fork);
@@ -214,7 +214,7 @@ size_t CTxPool::Count(const uint256& fork) const
     return 0;
 }
 
-Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
+Errno CTxPoolModel::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     uint256 txid = tx.GetHash();
@@ -230,7 +230,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     }
 
     int nHeight;
-    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return ERR_TRANSACTION_INVALID;
     }
@@ -256,7 +256,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     return err;
 }
 
-void CTxPool::Pop(const uint256& txid)
+void CTxPoolModel::Pop(const uint256& txid)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     unordered_map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
@@ -267,7 +267,7 @@ void CTxPool::Pop(const uint256& txid)
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
-    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return;
     }
@@ -282,7 +282,7 @@ void CTxPool::Pop(const uint256& txid)
     }
 }
 
-bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
+bool CTxPoolModel::Get(const uint256& txid, CTransaction& tx) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     unordered_map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
@@ -294,7 +294,7 @@ bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
     return false;
 }
 
-void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool) const
+void CTxPoolModel::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
@@ -308,7 +308,7 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTx
     }
 }
 
-void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) const
+void CTxPoolModel::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
@@ -322,7 +322,7 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool) const
     }
 }
 
-bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter) const
+bool CTxPoolModel::FilterTx(const uint256& hashFork, CTxFilter& filter) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -347,8 +347,8 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter) const
     return true;
 }
 
-void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
-                             vector<CTransaction>& vtx, int64& nTotalTxFee) const
+void CTxPoolModel::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
+                                  vector<CTransaction>& vtx, int64& nTotalTxFee) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);
@@ -359,7 +359,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
     }
 }
 
-bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent) const
+bool CTxPoolModel::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);
@@ -380,7 +380,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
     }
 
-    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
+    if (!pWorldLineCtrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
     {
         return false;
     }
@@ -406,7 +406,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     return true;
 }
 
-bool CTxPool::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
+bool CTxPoolModel::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
 {
     change.hashFork = update.hashFork;
 
@@ -507,7 +507,7 @@ bool CTxPool::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange&
     return true;
 }
 
-bool CTxPool::LoadData()
+bool CTxPoolModel::LoadData()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
@@ -529,7 +529,7 @@ bool CTxPool::LoadData()
     return true;
 }
 
-bool CTxPool::SaveData()
+bool CTxPoolModel::SaveData()
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -554,7 +554,7 @@ bool CTxPool::SaveData()
     return datTxPool.Save(vTx);
 }
 
-Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
+Errno CTxPoolModel::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
@@ -567,7 +567,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
     }
 
-    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
+    if (!pWorldLineCtrl->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
         return ERR_SYS_STORAGE_ERROR;
     }

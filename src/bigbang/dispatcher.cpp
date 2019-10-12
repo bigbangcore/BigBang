@@ -21,8 +21,8 @@ namespace bigbang
 CDispatcher::CDispatcher()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pForkManager = nullptr;
     pConsensus = nullptr;
     pWallet = nullptr;
@@ -45,13 +45,13 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -111,8 +111,8 @@ bool CDispatcher::HandleInitialize()
 void CDispatcher::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pForkManager = nullptr;
     pConsensus = nullptr;
     pWallet = nullptr;
@@ -147,7 +147,7 @@ void CDispatcher::HandleHalt()
 Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 {
     Errno err = OK;
-    if (!pWorldLineCntrl->Exists(block.hashPrev))
+    if (!pWorldLineCtrl->Exists(block.hashPrev))
     {
         return ERR_MISSING_PREV;
     }
@@ -155,7 +155,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CWorldLineUpdate updateWorldLine;
     if (!block.IsOrigin())
     {
-        err = pWorldLineCntrl->AddNewBlock(block, updateWorldLine);
+        err = pWorldLineCtrl->AddNewBlock(block, updateWorldLine);
         if (err == OK && !block.IsVacant())
         {
             if (!nNonce)
@@ -170,7 +170,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
     else
     {
-        err = pWorldLineCntrl->AddNewOrigin(block, updateWorldLine);
+        err = pWorldLineCtrl->AddNewOrigin(block, updateWorldLine);
     }
 
     if (err != OK || updateWorldLine.IsNull())
@@ -179,7 +179,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
 
     CTxSetChange changeTxSet;
-    if (!pTxPoolCntrl->SynchronizeWorldLine(updateWorldLine, changeTxSet))
+    if (!pTxPoolCtrl->SynchronizeWorldLine(updateWorldLine, changeTxSet))
     {
         return ERR_SYS_DATABASE_ERROR;
     }
@@ -244,7 +244,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     uint256 hashFork;
     CDestination destIn;
     int64 nValueIn;
-    err = pTxPoolCntrl->Push(tx, hashFork, destIn, nValueIn);
+    err = pTxPoolCtrl->Push(tx, hashFork, destIn, nValueIn);
     if (err != OK)
     {
         return err;
@@ -282,7 +282,7 @@ bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination
 {
     uint256 hashFork;
     int nHeight;
-    if (pWorldLineCntrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
     }
@@ -293,7 +293,7 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
 {
     uint256 hashFork;
     int nHeight;
-    if (pWorldLineCntrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
     }
@@ -338,17 +338,17 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
 {
     Log("Activating fork %s ...\n", hashFork.GetHex().c_str());
-    if (!pWorldLineCntrl->Exists(hashFork))
+    if (!pWorldLineCtrl->Exists(hashFork))
     {
         CForkContext ctxt;
-        if (!pWorldLineCntrl->GetForkContext(hashFork, ctxt))
+        if (!pWorldLineCtrl->GetForkContext(hashFork, ctxt))
         {
             Warn("Failed to find fork context %s\n", hashFork.GetHex().c_str());
             return;
         }
 
         CTransaction txFork;
-        if (!pWorldLineCntrl->GetTransaction(ctxt.txidEmbedded, txFork))
+        if (!pWorldLineCtrl->GetTransaction(ctxt.txidEmbedded, txFork))
         {
             Warn("Failed to find tx fork %s\n", hashFork.GetHex().c_str());
             return;
@@ -400,7 +400,7 @@ bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
 void CDispatcher::SyncForkHeight(int nPrimaryHeight)
 {
     map<uint256, CForkStatus> mapForkStatus;
-    pWorldLineCntrl->GetForkStatus(mapForkStatus);
+    pWorldLineCtrl->GetForkStatus(mapForkStatus);
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
@@ -414,7 +414,7 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
         int nDepth = nPrimaryHeight - status.nLastBlockHeight;
 
         if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
-            && pWorldLineCntrl->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
+            && pWorldLineCtrl->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
         {
             uint256 hashPrev = status.hashLastBlock;
             for (int nHeight = status.nLastBlockHeight + 1; nHeight < nPrimaryHeight; nHeight++)

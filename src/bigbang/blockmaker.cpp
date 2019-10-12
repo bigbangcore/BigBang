@@ -63,9 +63,9 @@ CBlockMaker::CBlockMaker()
     nLastBlockHeight(uint64(0)), nLastAgreement(uint64(0)), nLastWeight(0)
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
-    pTxPoolCntrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
@@ -88,7 +88,7 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -100,7 +100,7 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -144,9 +144,9 @@ bool CBlockMaker::HandleInitialize()
 void CBlockMaker::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
-    pTxPoolCntrl = nullptr;
+    pTxPoolCtrl = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
 
@@ -162,7 +162,7 @@ bool CBlockMaker::HandleInvoke()
         return false;
     }
 
-    if (!pWorldLineCntrl->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastBlockHeight, nLastBlockTime))
+    if (!pWorldLineCtrl->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastBlockHeight, nLastBlockTime))
     {
         Error("Failed to invoke GetLastBlock(GenesisBlockHash)\n");
         return false;
@@ -274,7 +274,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 {
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
-    pTxPoolCntrl->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
+    pTxPoolCtrl->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 }
@@ -321,7 +321,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     int nAlgo = nConsensus;
     int nBits;
     int64 nReward;
-    if (!pWorldLineCntrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
+    if (!pWorldLineCtrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
         return false;
     }
@@ -406,7 +406,7 @@ bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, c
     CDestination destSendTo = profile.GetDestination();
 
     int64 nReward;
-    if (!pWorldLineCntrl->GetBlockMintReward(block.hashPrev, nReward))
+    if (!pWorldLineCtrl->GetBlockMintReward(block.hashPrev, nReward))
     {
         return false;
     }
@@ -432,7 +432,7 @@ void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDele
     proof.hashRefBlock = hashRefBlock;
 
     map<uint256, CForkStatus> mapForkStatus;
-    pWorldLineCntrl->GetForkStatus(mapForkStatus);
+    pWorldLineCtrl->GetForkStatus(mapForkStatus);
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
@@ -467,8 +467,8 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
         uint256 hashLastBlock;
         int nLastBlockHeight;
         int64 nLastBlockTime;
-        if (pTxPoolCntrl->Count(hashFork)
-            && pWorldLineCntrl->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastBlockTime)
+        if (pTxPoolCtrl->Count(hashFork)
+            && pWorldLineCtrl->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastBlockTime)
             && nPrimaryBlockHeight == nLastBlockHeight
             && nLastBlockTime < nTime)
         {
@@ -576,14 +576,14 @@ bool CBlockMaker::GetAvailiableDelegatedProfile(const vector<CDestination>& vBal
 bool CBlockMaker::GetAvailiableExtendedFork(set<uint256>& setFork)
 {
     map<uint256, CForkStatus> mapForkStatus;
-    pWorldLineCntrl->GetForkStatus(mapForkStatus);
+    pWorldLineCtrl->GetForkStatus(mapForkStatus);
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         CProfile profile;
         const uint256& hashFork = (*it).first;
         if (hashFork != pCoreProtocol->GetGenesisBlockHash()
             && pForkManager->IsAllowed(hashFork)
-            && pWorldLineCntrl->GetForkProfile(hashFork, profile) && !profile.IsEnclosed())
+            && pWorldLineCtrl->GetForkProfile(hashFork, profile) && !profile.IsEnclosed())
         {
             setFork.insert(hashFork);
         }

@@ -54,12 +54,12 @@ public:
 };
 
 class IWorldLineController;
-class IWorldLine : public xengine::IModel
+class IWorldLineModel : public xengine::IModel
 {
     friend class IWorldLineController;
 
 public:
-    IWorldLine()
+    IWorldLineModel()
       : IModel("worldline") {}
 
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
@@ -113,7 +113,7 @@ public:
     IWorldLineController()
       : CIOActor("worldlinecontroller"), pWorldLine(nullptr) {}
 
-    // TODO: remove these functions because of existed in IWorldLine
+    // TODO: remove these functions because of existed in IWorldLineModel
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) = 0;
@@ -162,19 +162,19 @@ protected:
     }
 
 protected:
-    IWorldLine* pWorldLine;
+    IWorldLineModel* pWorldLine;
 };
 
 class ITxPoolController;
-class ITxPool : public xengine::IModel
+class ITxPoolModel : public xengine::IModel
 {
     friend class ITxPoolController;
 
 public:
-    ITxPool()
+    ITxPoolModel()
       : IModel("txpool") {}
 
-    // TODO: remove these functions because of existed in IWorldLine
+    // TODO: remove these functions because of existed in IWorldLineModel
     virtual bool Exists(const uint256& txid) const = 0;
     virtual std::size_t Count(const uint256& fork) const = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
@@ -235,7 +235,7 @@ protected:
     }
 
 protected:
-    ITxPool* pTxPool;
+    ITxPoolModel* pTxPool;
 };
 
 class IForkManager : public xengine::IBase

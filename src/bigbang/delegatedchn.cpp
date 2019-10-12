@@ -226,7 +226,7 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
 CDelegatedChannel::CDelegatedChannel()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     pDispatcher = nullptr;
     fBulletin = false;
 }
@@ -243,7 +243,7 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -268,7 +268,7 @@ bool CDelegatedChannel::HandleInitialize()
 void CDelegatedChannel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     pDispatcher = nullptr;
 
     DeregisterHandler(CPeerActiveMessage::MessageType());

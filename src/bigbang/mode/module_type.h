@@ -23,10 +23,10 @@ enum class EModuleType
     RPCCLIENT,           // CRPCClient
     RPCMODE,             // CRPCMod
     SERVICE,             // CService
-    TXPOOL,              // CTxPool
+    TXPOOL,              // CTxPoolModel
     TXPOOLCONTROLLER,    // CTxPoolController
     WALLET,              // CWallet
-    WORLDLINE,           // CWorldLine
+    WORLDLINE,           // CWorldLineModel
     WORLDLINECONTROLLER, // CWorldLineController
     CONSENSUS,           // CConsensus
     FORKMANAGER,         // CForkManager
