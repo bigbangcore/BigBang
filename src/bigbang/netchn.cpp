@@ -104,6 +104,19 @@ CNetChannelModel::~CNetChannelModel()
 {
 }
 
+void CNetChannelModel::CleanUpForkScheduler()
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    mapSched.clear();
+}
+
+bool CNetChannelModel::IsForkSynchronized(const uint256& hashFork) const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+    map<uint256, set<uint64>>::const_iterator it = mapUnsync.find(hashFork);
+    return (it == mapUnsync.end() || (*it).second.empty());
+}
+
 //////////////////////////////
 // CNetChannel
 
@@ -115,6 +128,7 @@ CNetChannel::CNetChannel()
     pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pNetChannelModel = nullptr;
 }
 
 CNetChannel::~CNetChannel()
@@ -159,6 +173,12 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("netchannelmodel", pNetChannelModel))
+    {
+        Error("Failed to request netchannel model\n");
+        return false;
+    }
+
     RegisterRefHandler<CBroadcastBlockInvMessage>(boost::bind(&CNetChannel::HandleBroadcastBlockInv, this, _1));
     RegisterRefHandler<CBroadcastTxInvMessage>(boost::bind(&CNetChannel::HandleBroadcastTxInv, this, _1));
     RegisterRefHandler<CSubscribeForkMessage>(boost::bind(&CNetChannel::HandleSubscribeFork, this, _1));
@@ -185,6 +205,7 @@ void CNetChannel::HandleDeinitialize()
     pTxPoolCntrl = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pNetChannelModel = nullptr;
 
     DeregisterHandler(CBroadcastBlockInvMessage::MessageType());
     DeregisterHandler(CBroadcastTxInvMessage::MessageType());
@@ -233,17 +254,7 @@ void CNetChannel::HandleHalt()
 
     network::INetChannelController::HandleHalt();
 
-    {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-        mapSched.clear();
-    }
-}
-
-bool CNetChannel::IsForkSynchronized(const uint256& hashFork) const
-{
-    boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-    map<uint256, set<uint64>>::const_iterator it = mapUnsync.find(hashFork);
-    return (it == mapUnsync.end() || (*it).second.empty());
+    pNetChannelModel->CleanUpForkScheduler();
 }
 
 void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)

@@ -6,8 +6,8 @@
 #define BIGBANG_DISPATCHER_H
 
 #include "base.h"
+#include "netchn.h"
 #include "peernet.h"
-
 namespace bigbang
 {
 
@@ -42,7 +42,7 @@ protected:
     IWallet* pWallet;
     IService* pService;
     IBlockMaker* pBlockMaker;
-    network::INetChannelController* pNetChannelCtrl;
+    INetChannelModel* pNetChannelModel;
     network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
 };

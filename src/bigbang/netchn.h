@@ -75,6 +75,8 @@ class INetChannelModel : public IModel
 public:
     INetChannelModel()
       : IModel("netchannelmodel") {}
+    virtual void CleanUpForkScheduler() = 0;
+    virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
 };
 
 class CNetChannelModel : public INetChannelModel
@@ -82,6 +84,17 @@ class CNetChannelModel : public INetChannelModel
 public:
     CNetChannelModel();
     ~CNetChannelModel();
+
+    void CleanUpForkScheduler() override;
+    bool IsForkSynchronized(const uint256& hashFork) const override;
+
+private:
+    mutable boost::recursive_mutex mtxSched;
+    std::map<uint256, CSchedule> mapSched;
+
+    mutable boost::shared_mutex rwNetPeer;
+    std::map<uint64, CNetChannelPeer> mapPeer;
+    std::map<uint256, std::set<uint64>> mapUnsync;
 };
 
 class CNetChannel : public network::INetChannelController
@@ -89,7 +102,6 @@ class CNetChannel : public network::INetChannelController
 public:
     CNetChannel();
     ~CNetChannel();
-    bool IsForkSynchronized(const uint256& hashFork) const override;
 
 protected:
     enum
@@ -145,6 +157,7 @@ protected:
     ITxPoolController* pTxPoolCntrl;
     IDispatcher* pDispatcher;
     IService* pService;
+    INetChannelModel* pNetChannelModel;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;

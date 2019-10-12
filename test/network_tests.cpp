@@ -156,6 +156,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
+    BOOST_CHECK(docker.Attach(new CNetChannelModel()));
     auto pNetChannel = new CDummyNetChannel();
     BOOST_CHECK(docker.Attach(pNetChannel));
 
@@ -288,6 +289,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannelModel()));
     BOOST_CHECK(docker.Attach(new CNetChannel()));
     auto pDelegatedChannel = new CDummyDelegatedChannel();
     BOOST_CHECK(docker.Attach(pDelegatedChannel));
@@ -369,6 +371,7 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannelModel()));
     BOOST_CHECK(docker.Attach(new CNetChannel()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
 
