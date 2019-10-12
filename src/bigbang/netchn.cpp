@@ -172,16 +172,35 @@ map<uint64, CNetChannelPeer> CNetChannelModel::GetAllPeers() const
     return mapPeer;
 }
 
-void CNetChannelModel::AddPeer(uint64 nNonce, uint64 nService, const uint256& hashPrimary)
+void CNetChannelModel::AddPeer(uint64 nNonce, uint64 nService, const uint256& hashFork)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-    mapPeer[nNonce] = CNetChannelPeer(nService, hashPrimary);
-    AddUnSynchronizedForkPeer(nNonce, hashPrimary);
+    mapPeer[nNonce] = CNetChannelPeer(nService, hashFork);
+    AddUnSynchronizedForkPeer(nNonce, hashFork);
+}
+
+void CNetChannelModel::RemovePeer(uint64 nNonce)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+    if (it != mapPeer.end())
+    {
+        for (const auto& subFork : (*it).second.mapSubscribedFork)
+        {
+            RemoveUnSynchronizedForkPeer(nNonce, subFork.first);
+        }
+        mapPeer.erase(nNonce);
+    }
 }
 
 void CNetChannelModel::AddUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork)
 {
     mapUnsync[hashFork].insert(nNonce);
+}
+
+void CNetChannelModel::RemoveUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork)
+{
+    mapUnsync[hashFork].erase(nNonce);
 }
 
 //////////////////////////////
@@ -446,19 +465,8 @@ void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
             }
         }
     }
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
 
-        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
-        if (it != mapPeer.end())
-        {
-            for (auto& subFork : (*it).second.mapSubscribedFork)
-            {
-                mapUnsync[subFork.first].erase(nNonce);
-            }
-            mapPeer.erase(nNonce);
-        }
-    }
+    pNetChannelModel->RemovePeer(nNonce);
     NotifyPeerUpdate(nNonce, false, deactiveMsg.address);
 }
 

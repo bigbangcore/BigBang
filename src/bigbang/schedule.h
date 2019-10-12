@@ -25,11 +25,11 @@ class CInvPeer
     };
 
 public:
-    bool Empty(uint32 type)
+    bool Empty(uint32 type) const
     {
         return GetKnownList(type).empty();
     }
-    std::size_t GetCount(uint32 type)
+    std::size_t GetCount(uint32 type) const
     {
         return GetKnownList(type).size();
     }
@@ -37,7 +37,15 @@ public:
     {
         return invKnown[type - network::CInv::MSG_TX].listKnown;
     }
+    const CUInt256List& GetKnownList(uint32 type) const
+    {
+        return invKnown[type - network::CInv::MSG_TX].listKnown;
+    }
     std::set<uint256>& GetAssigned(uint32 type)
+    {
+        return invKnown[type - network::CInv::MSG_TX].setAssigned;
+    }
+    const std::set<uint256>& GetAssigned(uint32 type) const
     {
         return invKnown[type - network::CInv::MSG_TX].setAssigned;
     }
@@ -74,7 +82,7 @@ public:
     {
         GetAssigned(inv.nType).erase(inv.nHash);
     }
-    bool IsAssigned()
+    bool IsAssigned() const
     {
         return (!invKnown[0].setAssigned.empty() || !invKnown[1].setAssigned.empty());
     }
