@@ -498,6 +498,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
+                Log("CEventPeerGetData: Get transaction fail, txid: %s\n", inv.nHash.GetHex().c_str());
             }
         }
         else if (inv.nType == network::CInv::MSG_BLOCK)
@@ -510,6 +511,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
+                Log("CEventPeerGetData: Get block fail, block hash: %s\n", inv.nHash.GetHex().c_str());
             }
         }
     }
