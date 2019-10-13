@@ -2,11 +2,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "dispatcher.h"
+
 #include <chrono>
 #include <future>
 #include <thread>
 
-#include "dispatcher.h"
 #include "event.h"
 
 using namespace std;
@@ -308,7 +309,18 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
         {
             Errno err = AddNewTx(tx, nNonce);
-            Log("Send DelegateTx %s (%s)\n", ErrorString(err), tx.GetHash().GetHex().c_str());
+            if (err == OK)
+            {
+                Log("Send DelegateTx success, txid: %s, previd: %s.\n",
+                    tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
+            else
+            {
+                Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.\n",
+                    err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
         }
     }
 

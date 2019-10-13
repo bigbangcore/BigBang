@@ -2,10 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "blockmaker.h"
+
 #include <thread>
 
 #include "address.h"
-#include "blockmaker.h"
 #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/proof.h"
@@ -356,7 +357,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
-    txMint.hashAnchor = block.hashPrev;
+    txMint.hashAnchor = pCoreProtocol->GetGenesisBlockHash();
     txMint.sendTo = destSendTo;
     txMint.nAmount = nReward;
 
@@ -442,7 +443,7 @@ bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, c
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_STAKE;
     txMint.nTimeStamp = block.nTimeStamp;
-    txMint.hashAnchor = block.hashPrev;
+    txMint.hashAnchor = hashFork;
     txMint.sendTo = destSendTo;
     txMint.nAmount = nReward;
 
@@ -509,7 +510,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
             CTransaction& txMint = block.txMint;
             txMint.nType = CTransaction::TX_STAKE;
             txMint.nTimeStamp = block.nTimeStamp;
-            txMint.hashAnchor = hashLastBlock;
+            txMint.hashAnchor = hashFork;
             txMint.sendTo = profile.GetDestination();
             txMint.nAmount = 0;
 

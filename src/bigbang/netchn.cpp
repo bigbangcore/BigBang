@@ -498,6 +498,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
+                Log("CEventPeerGetData: Get transaction fail, txid: %s\n", inv.nHash.GetHex().c_str());
             }
         }
         else if (inv.nType == network::CInv::MSG_BLOCK)
@@ -510,6 +511,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
+                Log("CEventPeerGetData: Get block fail, block hash: %s\n", inv.nHash.GetHex().c_str());
             }
         }
     }
@@ -580,6 +582,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         }
         else
         {
+            Log("CEventPeerTx: GetBlockLocation fail, txid: %s, hashAnchor: %s\n",
+                txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
             sched.InvalidateTx(txid, setMisbehavePeer);
         }
         PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
@@ -620,6 +624,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
             else
             {
+                Log("CEventPeerBlock: hashForkPrev != hashFork, hashForkPrev: %s, hashFork: %s, hashBlockPrev: %s\n",
+                    hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), block.hashPrev.GetHex().c_str());
                 sched.InvalidateBlock(hash, setMisbehavePeer);
             }
         }
@@ -788,6 +794,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             }
             else
             {
+                Log("NetChannel AddNewBlock fail, hashBlock: %s, err: [%d] %s\n", hashBlock.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateBlock(hashBlock, setMisbehavePeer);
             }
         }
@@ -824,6 +831,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             }
             else if (err != ERR_MISSING_PREV)
             {
+                Log("NetChannel AddNewTx fail, txid: %s, err: [%d] %s\n", txid.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateTx(hashTx, setMisbehavePeer);
             }
         }
