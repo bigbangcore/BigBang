@@ -2,8 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "event.h"
 #include "service.h"
+
+#include "event.h"
 
 using namespace std;
 using namespace xengine;
@@ -591,7 +592,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
     txMint.nTimeStamp = block.nTimeStamp;
-    txMint.hashAnchor = block.hashPrev;
+    txMint.hashAnchor = pCoreProtocol->GetGenesisBlockHash();
     txMint.sendTo = CDestination(templMint->GetTemplateId());
     txMint.nAmount = nReward;
 
