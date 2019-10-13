@@ -324,7 +324,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
     }
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, pCoreProtocol->GetGenesisBlockHash());
+        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
         mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
     }
     NotifyPeerUpdate(nNonce, true, eventActive.data);
@@ -773,6 +773,13 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
             {
+                if (Config()->fDebug)
+                {
+                    string strRemoteAddress;
+                    GetPeerAddressInfo(nNonceSender, strRemoteAddress);
+                    Log("NetChannel AddNewBlock success, remote: %s, block: %s\n", strRemoteAddress.c_str(), hashBlock.GetHex().c_str());
+                }
+
                 for (const CTransaction& tx : pBlock->vtx)
                 {
                     uint256 txid = tx.GetHash();
@@ -794,7 +801,9 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             }
             else
             {
-                Log("NetChannel AddNewBlock fail, hashBlock: %s, err: [%d] %s\n", hashBlock.GetHex().c_str(), err, ErrorString(err));
+                string strRemoteAddress;
+                GetPeerAddressInfo(nNonceSender, strRemoteAddress);
+                Log("NetChannel AddNewBlock fail, remote: %s, block: %s, err: [%d] %s\n", strRemoteAddress.c_str(), hashBlock.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateBlock(hashBlock, setMisbehavePeer);
             }
         }
@@ -824,6 +833,13 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
+                if (Config()->fDebug)
+                {
+                    string strRemoteAddress;
+                    GetPeerAddressInfo(nNonceSender, strRemoteAddress);
+                    Log("NetChannel AddNewTx success, remote: %s, txid: %s\n", strRemoteAddress.c_str(), txid.GetHex().c_str());
+                }
+
                 sched.GetNextTx(hashTx, vtx, setTx);
                 sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
@@ -831,7 +847,9 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             }
             else if (err != ERR_MISSING_PREV)
             {
-                Log("NetChannel AddNewTx fail, txid: %s, err: [%d] %s\n", txid.GetHex().c_str(), err, ErrorString(err));
+                string strRemoteAddress;
+                GetPeerAddressInfo(nNonceSender, strRemoteAddress);
+                Log("NetChannel AddNewTx fail, remote: %s, txid: %s, err: [%d] %s\n", strRemoteAddress.c_str(), txid.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateTx(hashTx, setMisbehavePeer);
             }
         }
@@ -945,6 +963,22 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
         }
     }
     return fCompleted;
+}
+
+void CNetChannel::GetPeerAddressInfo(uint64 nNonce, string& strAddrInfo)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    CNetChannelPeer& peer = mapPeer[nNonce];
+    boost::asio::ip::tcp::endpoint ep;
+    peer.addressRemote.ssEndpoint.GetEndpoint(ep);
+    if (ep.address().is_v6())
+    {
+        strAddrInfo = "[" + ep.address().to_string() + "]:" + to_string(ep.port());
+    }
+    else
+    {
+        strAddrInfo = ep.address().to_string() + ":" + to_string(ep.port());
+    }
 }
 
 } // namespace bigbang
