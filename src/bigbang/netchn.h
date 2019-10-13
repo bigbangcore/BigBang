@@ -40,8 +40,8 @@ class CNetChannelPeer
 
 public:
     CNetChannelPeer() {}
-    CNetChannelPeer(uint64 nServiceIn, const uint256& hashPrimary)
-      : nService(nServiceIn)
+    CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary)
+      : nService(nServiceIn), addressRemote(addr)
     {
         mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
     }
@@ -65,6 +65,7 @@ public:
 
 public:
     uint64 nService;
+    network::CAddress addressRemote;
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
@@ -121,6 +122,7 @@ protected:
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
+    void GetPeerAddressInfo(uint64 nNonce, string& strAddrInfo);
 
 protected:
     network::CBbPeerNet* pPeerNet;
