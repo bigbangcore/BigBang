@@ -427,11 +427,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
         {
-            Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
-            std::stringstream ss;
-            ss << txid.GetHex() << ":" << block.hashPrev.GetHex() << ":" << block.GetHash().GetHex();
-            StdDebug("missing previous", ss.str().c_str());
-            pTxPool->Pop(txid);
+            Log("AddNewBlock Get txContxt Error([%d] %s) : %s \n", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
         if (!pTxPool->Exists(txid))
