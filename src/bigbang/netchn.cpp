@@ -96,18 +96,18 @@ void CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
     }
 }
 
-CNetChannelModel::CNetChannelModel()
+CNetChannel::CNetChannel()
 {
 }
 
-CNetChannelModel::~CNetChannelModel()
+CNetChannel::~CNetChannel()
 {
 }
 
 //////////////////////////////
-// CNetChannel
+// CNetChannelController
 
-CNetChannel::CNetChannel()
+CNetChannelController::CNetChannelController()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
@@ -117,11 +117,11 @@ CNetChannel::CNetChannel()
     pDispatcher = nullptr;
 }
 
-CNetChannel::~CNetChannel()
+CNetChannelController::~CNetChannelController()
 {
 }
 
-bool CNetChannel::HandleInitialize()
+bool CNetChannelController::HandleInitialize()
 {
     if (!GetObject("peernet", pPeerNet))
     {
@@ -159,25 +159,25 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CBroadcastBlockInvMessage>(boost::bind(&CNetChannel::HandleBroadcastBlockInv, this, _1));
-    RegisterRefHandler<CBroadcastTxInvMessage>(boost::bind(&CNetChannel::HandleBroadcastTxInv, this, _1));
-    RegisterRefHandler<CSubscribeForkMessage>(boost::bind(&CNetChannel::HandleSubscribeFork, this, _1));
-    RegisterRefHandler<CUnsubscribeForkMessage>(boost::bind(&CNetChannel::HandleUnsubscribeFork, this, _1));
+    RegisterRefHandler<CBroadcastBlockInvMessage>(boost::bind(&CNetChannelController::HandleBroadcastBlockInv, this, _1));
+    RegisterRefHandler<CBroadcastTxInvMessage>(boost::bind(&CNetChannelController::HandleBroadcastTxInv, this, _1));
+    RegisterRefHandler<CSubscribeForkMessage>(boost::bind(&CNetChannelController::HandleSubscribeFork, this, _1));
+    RegisterRefHandler<CUnsubscribeForkMessage>(boost::bind(&CNetChannelController::HandleUnsubscribeFork, this, _1));
 
-    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CNetChannel::HandleActive, this, _1));
-    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannel::HandleDeactive, this, _1));
-    RegisterRefHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannel::HandleSubscribe, this, _1));
-    RegisterRefHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannel::HandleUnsubscribe, this, _1));
-    RegisterRefHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannel::HandleInv, this, _1));
-    RegisterRefHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannel::HandleGetData, this, _1));
-    RegisterRefHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannel::HandleGetBlocks, this, _1));
-    RegisterRefHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannel::HandlePeerTx, this, _1));
-    RegisterRefHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannel::HandlePeerBlock, this, _1));
+    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CNetChannelController::HandleActive, this, _1));
+    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannelController::HandleDeactive, this, _1));
+    RegisterRefHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannelController::HandleSubscribe, this, _1));
+    RegisterRefHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannelController::HandleUnsubscribe, this, _1));
+    RegisterRefHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannelController::HandleInv, this, _1));
+    RegisterRefHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannelController::HandleGetData, this, _1));
+    RegisterRefHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannelController::HandleGetBlocks, this, _1));
+    RegisterRefHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannelController::HandlePeerTx, this, _1));
+    RegisterRefHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannelController::HandlePeerBlock, this, _1));
 
     return true;
 }
 
-void CNetChannel::HandleDeinitialize()
+void CNetChannelController::HandleDeinitialize()
 {
     pPeerNet = nullptr;
     pCoreProtocol = nullptr;
@@ -202,10 +202,11 @@ void CNetChannel::HandleDeinitialize()
     DeregisterHandler(CPeerBlockMessageInBound::MessageType());
 }
 
-bool CNetChannel::HandleInvoke()
+bool CNetChannelController::HandleInvoke()
 {
     if (!StartActor())
     {
+        Error("Failed to start actor\n");
         return false;
     }
 
@@ -217,7 +218,7 @@ bool CNetChannel::HandleInvoke()
     return network::INetChannelController::HandleInvoke();
 }
 
-void CNetChannel::HandleHalt()
+void CNetChannelController::HandleHalt()
 {
     StopActor();
 
@@ -239,14 +240,14 @@ void CNetChannel::HandleHalt()
     }
 }
 
-bool CNetChannel::IsForkSynchronized(const uint256& hashFork) const
+bool CNetChannelController::IsForkSynchronized(const uint256& hashFork) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
     map<uint256, set<uint64>>::const_iterator it = mapUnsync.find(hashFork);
     return (it == mapUnsync.end() || (*it).second.empty());
 }
 
-void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)
+void CNetChannelController::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)
 {
     set<uint64> setKnownPeer;
     {
@@ -272,7 +273,7 @@ void CNetChannel::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMs
     }
 }
 
-void CNetChannel::HandleBroadcastTxInv(const CBroadcastTxInvMessage& invMsg)
+void CNetChannelController::HandleBroadcastTxInv(const CBroadcastTxInvMessage& invMsg)
 {
     boost::unique_lock<boost::mutex> lock(mtxPushTx);
     if (nTimerPushTx == 0)
@@ -281,7 +282,7 @@ void CNetChannel::HandleBroadcastTxInv(const CBroadcastTxInvMessage& invMsg)
         {
             setPushTxFork.insert(invMsg.hashFork);
         }
-        nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
+        nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannelController::PushTxTimerFunc, this, _1));
     }
     else
     {
@@ -289,7 +290,7 @@ void CNetChannel::HandleBroadcastTxInv(const CBroadcastTxInvMessage& invMsg)
     }
 }
 
-void CNetChannel::HandleSubscribeFork(const CSubscribeForkMessage& subscribeMsg)
+void CNetChannelController::HandleSubscribeFork(const CSubscribeForkMessage& subscribeMsg)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
@@ -313,7 +314,7 @@ void CNetChannel::HandleSubscribeFork(const CSubscribeForkMessage& subscribeMsg)
     }
 }
 
-void CNetChannel::HandleUnsubscribeFork(const CUnsubscribeForkMessage& unsubscribeMsg)
+void CNetChannelController::HandleUnsubscribeFork(const CUnsubscribeForkMessage& unsubscribeMsg)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
@@ -336,7 +337,7 @@ void CNetChannel::HandleUnsubscribeFork(const CUnsubscribeForkMessage& unsubscri
     }
 }
 
-void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
+void CNetChannelController::HandleActive(const CPeerActiveMessage& activeMsg)
 {
     uint64 nNonce = activeMsg.nNonce;
     if ((activeMsg.address.nService & network::NODE_NETWORK))
@@ -369,7 +370,7 @@ void CNetChannel::HandleActive(const CPeerActiveMessage& activeMsg)
     NotifyPeerUpdate(nNonce, true, activeMsg.address);
 }
 
-void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
+void CNetChannelController::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
 {
     uint64 nNonce = deactiveMsg.nNonce;
     {
@@ -402,7 +403,7 @@ void CNetChannel::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
     NotifyPeerUpdate(nNonce, false, deactiveMsg.address);
 }
 
-void CNetChannel::HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeMsg)
+void CNetChannelController::HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeMsg)
 {
     uint64 nNonce = subscribeMsg.nNonce;
     const uint256& hashFork = subscribeMsg.hashFork;
@@ -433,7 +434,7 @@ void CNetChannel::HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeM
     }
 }
 
-void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessageInBound& unsubscribeMsg)
+void CNetChannelController::HandleUnsubscribe(const CPeerUnsubscribeMessageInBound& unsubscribeMsg)
 {
     uint64 nNonce = unsubscribeMsg.nNonce;
     const uint256& hashFork = unsubscribeMsg.hashFork;
@@ -456,7 +457,7 @@ void CNetChannel::HandleUnsubscribe(const CPeerUnsubscribeMessageInBound& unsubs
     }
 }
 
-void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
+void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
 {
     uint64 nNonce = invMsg.nNonce;
     const uint256& hashFork = invMsg.hashFork;
@@ -497,7 +498,7 @@ void CNetChannel::HandleInv(const CPeerInvMessageInBound& invMsg)
     }
 }
 
-void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
+void CNetChannelController::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
 {
     uint64 nNonce = getDataMsg.nNonce;
     const uint256& hashFork = getDataMsg.hashFork;
@@ -538,7 +539,7 @@ void CNetChannel::HandleGetData(const CPeerGetDataMessageInBound& getDataMsg)
     }
 }
 
-void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksMsg)
+void CNetChannelController::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksMsg)
 {
     uint64 nNonce = getBlocksMsg.nNonce;
     const uint256& hashFork = getBlocksMsg.hashFork;
@@ -563,7 +564,7 @@ void CNetChannel::HandleGetBlocks(const CPeerGetBlocksMessageInBound& getBlocksM
     PUBLISH_MESSAGE(spInvMsg);
 }
 
-void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
+void CNetChannelController::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
 {
     uint64 nNonce = txMsg.nNonce;
     const uint256& hashFork = txMsg.hashFork;
@@ -621,7 +622,7 @@ void CNetChannel::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
     }
 }
 
-void CNetChannel::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
+void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
 {
     uint64 nNonce = blockMsg.nNonce;
     const uint256& hashFork = blockMsg.hashFork;
@@ -666,7 +667,7 @@ void CNetChannel::HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg)
     }
 }
 
-CSchedule& CNetChannel::GetSchedule(const uint256& hashFork)
+CSchedule& CNetChannelController::GetSchedule(const uint256& hashFork)
 {
     map<uint256, CSchedule>::iterator it = mapSched.find(hashFork);
     if (it == mapSched.end())
@@ -676,7 +677,7 @@ CSchedule& CNetChannel::GetSchedule(const uint256& hashFork)
     return ((*it).second);
 }
 
-void CNetChannel::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer)
+void CNetChannelController::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer)
 {
     CNetworkPeerUpdate update;
     update.nPeerNonce = nNonce;
@@ -685,7 +686,7 @@ void CNetChannel::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::C
     pService->NotifyNetworkPeerUpdate(update);
 }
 
-void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
+void CNetChannelController::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
 {
     auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
     spGetBlocksMsg->nNonce = nNonce;
@@ -696,7 +697,7 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
     }
 }
 
-void CNetChannel::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonus)
+void CNetChannelController::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonus)
 {
     auto spNetRewardMsg = CPeerNetRewardMessage::Create();
     spNetRewardMsg->nNonce = nNonce;
@@ -704,7 +705,7 @@ void CNetChannel::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonu
     PUBLISH_MESSAGE(spNetRewardMsg);
 }
 
-void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason, const std::string& strCaller)
+void CNetChannelController::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseReason reason, const std::string& strCaller)
 {
     if (!strCaller.empty())
     {
@@ -717,7 +718,7 @@ void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseR
     PUBLISH_MESSAGE(spNetCloseMsg);
 }
 
-void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched)
+void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched)
 {
     auto spGetData = CPeerGetDataMessageOutBound::Create();
     spGetData->nNonce = nNonce;
@@ -749,7 +750,7 @@ void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSched
     }
 }
 
-bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMissingPrevTx)
+bool CNetChannelController::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMissingPrevTx)
 {
     setMissingPrevTx.clear();
     for (const CTxIn& txin : tx.vInput)
@@ -766,7 +767,7 @@ bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMiss
     return (!setMissingPrevTx.empty());
 }
 
-void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
+void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
                               set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
     vector<uint256> vBlockHash;
@@ -808,7 +809,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
     }
 }
 
-void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
+void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                            set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
     set<uint256> setTx;
@@ -849,7 +850,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
     }
 }
 
-void CNetChannel::PostAddNew(const uint256& hashFork, CSchedule& sched,
+void CNetChannelController::PostAddNew(const uint256& hashFork, CSchedule& sched,
                              set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
     for (const uint64 nNonceSched : setSchedPeer)
@@ -866,7 +867,7 @@ void CNetChannel::PostAddNew(const uint256& hashFork, CSchedule& sched,
     }
 }
 
-void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync)
+void CNetChannelController::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync)
 {
     bool fInverted = false;
     {
@@ -893,7 +894,7 @@ void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool
     }
 }
 
-void CNetChannel::PushTxTimerFunc(uint32 nTimerId)
+void CNetChannelController::PushTxTimerFunc(uint32 nTimerId)
 {
     boost::unique_lock<boost::mutex> lock(mtxPushTx);
     if (nTimerPushTx == nTimerId)
@@ -912,7 +913,7 @@ void CNetChannel::PushTxTimerFunc(uint32 nTimerId)
                     ++it;
                 }
             }
-            nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
+            nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannelController::PushTxTimerFunc, this, _1));
         }
         else
         {
@@ -921,7 +922,7 @@ void CNetChannel::PushTxTimerFunc(uint32 nTimerId)
     }
 }
 
-bool CNetChannel::PushTxInv(const uint256& hashFork)
+bool CNetChannelController::PushTxInv(const uint256& hashFork)
 {
     // if (!IsForkSynchronized(hashFork))
     // {

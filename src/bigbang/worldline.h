@@ -14,11 +14,11 @@
 namespace bigbang
 {
 
-class CWorldLineModel : public IWorldLineModel
+class CWorldLine : public IWorldLine
 {
 public:
-    CWorldLineModel();
-    ~CWorldLineModel();
+    CWorldLine();
+    ~CWorldLine();
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
     bool GetForkProfile(const uint256& hashFork, CProfile& profile) override;
     bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) override;

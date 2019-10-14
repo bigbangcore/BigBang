@@ -8,6 +8,8 @@
 #include "base.h"
 #include "event.h"
 #include "key.h"
+#include "message.h"
+
 namespace bigbang
 {
 
@@ -58,12 +60,11 @@ public:
     CTemplateMintPtr templMint;
 };
 
-class CBlockMaker : public IBlockMaker, virtual public CBlockMakerEventListener
+class CBlockMaker : public IBlockMaker
 {
 public:
     CBlockMaker();
     ~CBlockMaker();
-    bool HandleEvent(CEventBlockMakerUpdate& eventUpdate) override;
 
 protected:
     bool HandleInitialize() override;
@@ -93,6 +94,7 @@ protected:
     bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
     bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
 
+    void HandleAddedBlock(const CAddedBlockMessage& msg);
 private:
     enum
     {

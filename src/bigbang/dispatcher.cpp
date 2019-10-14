@@ -318,20 +318,6 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate
         }
     }
 
-    CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
-    if (pBlockMakerUpdate != nullptr)
-    {
-        CProofOfSecretShare proof;
-        proof.Load(block.vchProof);
-        pBlockMakerUpdate->data.hashBlock = updateWorldLine.hashLastBlock;
-        pBlockMakerUpdate->data.nBlockTime = updateWorldLine.nLastBlockTime;
-        pBlockMakerUpdate->data.nBlockHeight = updateWorldLine.nLastBlockHeight;
-        pBlockMakerUpdate->data.nAgreement = proof.nAgreement;
-        pBlockMakerUpdate->data.nWeight = proof.nWeight;
-        pBlockMakerUpdate->data.nMintType = block.txMint.nType;
-        pBlockMaker->PostEvent(pBlockMakerUpdate);
-    }
-
     SyncForkHeight(updateWorldLine.nLastBlockHeight);
 }
 

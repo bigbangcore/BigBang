@@ -17,16 +17,16 @@ enum class EModuleType
     HTTPGET,             // CHttpGet
     HTTPSERVER,          // CHttpServer
     MINER,               // CMiner
-    NETCHANNEL,          // CNetChannel
+    NETCHANNEL,          // CNetChannelController
     DELEGATEDCHANNEL,    // CDelegatedChannel
     NETWORK,             // CNetwork
     RPCCLIENT,           // CRPCClient
     RPCMODE,             // CRPCMod
     SERVICE,             // CService
-    TXPOOL,              // CTxPoolModel
+    TXPOOL,              // CTxPool
     TXPOOLCONTROLLER,    // CTxPoolController
     WALLET,              // CWallet
-    WORLDLINE,           // CWorldLineModel
+    WORLDLINE,           // CWorldLine
     WORLDLINECONTROLLER, // CWorldLineController
     CONSENSUS,           // CConsensus
     FORKMANAGER,         // CForkManager

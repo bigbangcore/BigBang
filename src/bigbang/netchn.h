@@ -70,18 +70,18 @@ public:
     std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
 };
 
-class CNetChannelModel : public xengine::INetChannelModel
-{
-public:
-    CNetChannelModel();
-    ~CNetChannelModel();
-};
-
-class CNetChannel : public network::INetChannelController
+class CNetChannel : public xengine::INetChannel
 {
 public:
     CNetChannel();
     ~CNetChannel();
+};
+
+class CNetChannelController : public network::INetChannelController
+{
+public:
+    CNetChannelController();
+    ~CNetChannelController();
     bool IsForkSynchronized(const uint256& hashFork) const override;
 
 protected:
