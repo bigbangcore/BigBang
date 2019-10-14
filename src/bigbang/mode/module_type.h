@@ -17,7 +17,7 @@ enum class EModuleType
     HTTPGET,             // CHttpGet
     HTTPSERVER,          // CHttpServer
     MINER,               // CMiner
-    NETCHANNEL,          // CNetChannel
+    NETCHANNEL,          // CNetChannelController
     DELEGATEDCHANNEL,    // CDelegatedChannel
     NETWORK,             // CNetwork
     RPCCLIENT,           // CRPCClient

@@ -233,7 +233,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::NETCHANNEL:
         {
-            if (!AttachModule(new CNetChannelModel()) || !AttachModule(new CNetChannel()))
+            if (!AttachModule(new CNetChannel()) || !AttachModule(new CNetChannelController()))
             {
                 return false;
             }

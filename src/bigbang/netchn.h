@@ -13,12 +13,12 @@
 namespace bigbang
 {
 
-class CNetChannelPeer
+class CNetChannelControllerPeer
 {
-    class CNetChannelPeerFork
+    class CNetChannelControllerPeerFork
     {
     public:
-        CNetChannelPeerFork()
+        CNetChannelControllerPeerFork()
           : fSynchronized(false) {}
         enum
         {
@@ -40,18 +40,18 @@ class CNetChannelPeer
     };
 
 public:
-    CNetChannelPeer() {}
-    CNetChannelPeer(uint64 nServiceIn, const uint256& hashPrimary)
+    CNetChannelControllerPeer() {}
+    CNetChannelControllerPeer(uint64 nServiceIn, const uint256& hashPrimary)
       : nService(nServiceIn)
     {
-        mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelControllerPeerFork()));
     }
     bool IsSynchronized(const uint256& hashFork) const;
     bool SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted);
     void AddKnownTx(const uint256& hashFork, const std::vector<uint256>& vTxHash);
     void Subscribe(const uint256& hashFork)
     {
-        mapSubscribedFork.insert(std::make_pair(hashFork, CNetChannelPeerFork()));
+        mapSubscribedFork.insert(std::make_pair(hashFork, CNetChannelControllerPeerFork()));
     }
     void Unsubscribe(const uint256& hashFork)
     {
@@ -66,11 +66,17 @@ public:
 
 public:
     uint64 nService;
-    std::map<uint256, CNetChannelPeerFork> mapSubscribedFork;
+    std::map<uint256, CNetChannelControllerPeerFork> mapSubscribedFork;
 };
 
 class INetChannelModel : public IModel
 {
+public:
+    typedef bool ScheduleBlockInvRetBool;
+    typedef bool ScheduleTxInvRetBool;
+    typedef bool PrevMissingBool;
+    typedef std::pair<uint64, std::tuple<ScheduleBlockInvRetBool, PrevMissingBool, ScheduleTxInvRetBool>> ScheduleResultPair;
+
 public:
     INetChannelModel()
       : IModel("netchannelmodel") {}
@@ -80,18 +86,21 @@ public:
     virtual std::vector<uint256> GetAllForks() const = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
     virtual bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const = 0;
-    virtual std::map<uint64, CNetChannelPeer> GetAllPeers() const = 0;
+    virtual std::map<uint64, CNetChannelControllerPeer> GetAllPeers() const = 0;
     virtual void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashPrimary) = 0;
     virtual void RemovePeer(uint64 nNonce) = 0;
     virtual void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
     virtual void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
+    virtual void SchedulePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) = 0;
 };
 
-class CNetChannelModel : public INetChannelModel
+class CNetChannel : public INetChannelModel
 {
+    friend class INetChannelController;
+
 public:
-    CNetChannelModel();
-    ~CNetChannelModel();
+    CNetChannel();
+    ~CNetChannel();
 
     void CleanUpForkScheduler() override;
     bool AddNewForkSchedule(const uint256& hashFork) override;
@@ -99,32 +108,34 @@ public:
     std::vector<uint256> GetAllForks() const;
     bool IsForkSynchronized(const uint256& hashFork) const override;
     bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const override;
-    std::map<uint64, CNetChannelPeer> GetAllPeers() const override;
+    std::map<uint64, CNetChannelControllerPeer> GetAllPeers() const override;
     void AddPeer(uint64 nNonce, uint64 nService, const uint256& hashFork) override;
     void RemovePeer(uint64 nNonce) override;
     void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
     void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
+    void SchedulePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) override;
 
 protected:
     const CSchedule& GetSchedule(const uint256& hashFork) const;
     bool ContainsSchedule(const uint256& hashFork) const;
     void AddUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork);
     void RemoveUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork);
+    void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched, std::vector<ScheduleResultPair>& schedResult);
 
-private:
+protected:
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;
 
     mutable boost::shared_mutex rwNetPeer;
-    std::map<uint64, CNetChannelPeer> mapPeer;
+    std::map<uint64, CNetChannelControllerPeer> mapPeer;
     std::map<uint256, std::set<uint64>> mapUnsync;
 };
 
-class CNetChannel : public network::INetChannelController
+class CNetChannelController : public network::INetChannelController
 {
 public:
-    CNetChannel();
-    ~CNetChannel();
+    CNetChannelController();
+    ~CNetChannelController();
 
 protected:
     enum
@@ -181,13 +192,6 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     INetChannelModel* pNetChannelModel;
-
-    mutable boost::recursive_mutex mtxSched;
-    std::map<uint256, CSchedule> mapSched;
-
-    mutable boost::shared_mutex rwNetPeer;
-    std::map<uint64, CNetChannelPeer> mapPeer;
-    std::map<uint256, std::set<uint64>> mapUnsync;
 
     mutable boost::mutex mtxPushTx;
     uint32 nTimerPushTx;
