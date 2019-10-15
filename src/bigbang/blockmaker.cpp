@@ -319,22 +319,6 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
     return profile.templMint->BuildBlockSignature(hashSig, vchMintSig, block.vchSig);
 }
 
-bool CBlockMaker::DispatchBlock(CBlock& block)
-{
-    int nWait = block.nTimeStamp - GetNetTime();
-    if (nWait > 0 && !Wait(nWait))
-    {
-        return false;
-    }
-    Errno err = pDispatcher->AddNewBlock(block);
-    if (err != OK)
-    {
-        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
-        return false;
-    }
-    return true;
-}
-
 bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 {
     int nConsensus = CM_CRYPTONIGHT;
@@ -374,11 +358,33 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
         return false;
     }
 
+    if (Interrupted())
+    {
+        return false;
+    }
+
+    int nWait = block.nTimeStamp - GetNetTime();
+    if (nWait > 0 && !Wait(nWait))
+    {
+        return false;
+    }
+
     txMint.nTimeStamp = block.nTimeStamp;
-
     ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
+    if (!SignBlock(block, profile))
+    {
+        Error("Sign block failed.\n");
+        return false;
+    }
 
-    return SignBlock(block, profile);
+    Errno err = pDispatcher->AddNewBlock(block);
+    if (err != OK)
+    {
+        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+        return false;
+    }
+
+    return true;
 }
 
 void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight)
@@ -389,10 +395,27 @@ void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgr
         CBlockMakerProfile& profile = (*it).second;
         if (CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile, agreement.nWeight))
         {
-            if (DispatchBlock(block))
+            int nWait = block.nTimeStamp - GetNetTime();
+            if (nWait > 0 && !Wait(nWait))
             {
-                CreatePiggyback(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrevHeight);
+                return;
             }
+
+            ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
+            if (!SignBlock(block, profile))
+            {
+                Error("Sign block failed.\n");
+                return;
+            }
+
+            Errno err = pDispatcher->AddNewBlock(block);
+            if (err != OK)
+            {
+                Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+                return;
+            }
+
+            CreatePiggyback(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrevHeight);
         }
     }
 }
@@ -447,9 +470,7 @@ bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, c
     txMint.sendTo = destSendTo;
     txMint.nAmount = nReward;
 
-    ArrangeBlockTx(block, hashFork, profile);
-
-    return SignBlock(block, profile);
+    return true;
 }
 
 void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
@@ -478,7 +499,19 @@ void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDele
 
             if (CreateDelegatedBlock(block, hashFork, profile, agreement.nWeight))
             {
-                DispatchBlock(block);
+                ArrangeBlockTx(block, hashFork, profile);
+                if (!SignBlock(block, profile))
+                {
+                    Error("Sign block failed.\n");
+                }
+                else
+                {
+                    Errno err = pDispatcher->AddNewBlock(block);
+                    if (err != OK)
+                    {
+                        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+                    }
+                }
             }
         }
     }
@@ -517,7 +550,11 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
             ArrangeBlockTx(block, hashFork, profile);
             if (!block.vtx.empty() && SignBlock(block, profile))
             {
-                DispatchBlock(block);
+                Errno err = pDispatcher->AddNewBlock(block);
+                if (err != OK)
+                {
+                    Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+                }
             }
         }
     }
@@ -536,7 +573,6 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     proof.Load(block.vchProof);
 
     int nBits = proof.nBits;
-    Log("difficulty : (%d)", nBits);
     vector<unsigned char> vchProofOfWork;
     block.GetSerializedProofOfWorkData(vchProofOfWork);
 
@@ -545,9 +581,12 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 
     int64& nHashRate = pHashAlgo->nHashRate;
 
+    Log("Proof-of-work start compute, difficulty bits: (%d)", nBits);
+
     while (!Interrupted())
     {
-        uint256 hashTarget = (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev));
+        int nRunBits = pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev);
+        uint256 hashTarget = (~uint256(uint64(0)) >> nRunBits);
         if (nHashRate == 0)
             nHashRate = 1;
         for (int i = 0; i < nHashRate; i++)
@@ -559,8 +598,8 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                 proof.nNonce = nNonce;
                 proof.Save(block.vchProof);
 
-                Log("Proof-of-work(%s) block found (%ld)\nhash : %s\ntarget : %s\n",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
+                Log("Proof-of-work(%s) block found (%ld)\nhash : %s\ntarget : (%d) %s\n",
+                    pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), nRunBits, hashTarget.GetHex().c_str());
                 return true;
             }
             nNonce += 256;
@@ -577,6 +616,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
             nHashRate *= 2;
         }
     }
+    Log("Proof-of-work compute interrupted.");
     return false;
 }
 
@@ -721,12 +761,9 @@ void CBlockMaker::BlockMakerThreadFunc()
 
             if (agree.IsProofOfWork())
             {
-                if (CreateProofOfWorkBlock(block))
+                if (!CreateProofOfWorkBlock(block))
                 {
-                    if (Interrupted() || !DispatchBlock(block))
-                    {
-                        nNextStatus = MAKER_RESET;
-                    }
+                    nNextStatus = MAKER_RESET;
                 }
             }
             else
