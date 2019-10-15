@@ -75,7 +75,16 @@ public:
     typedef bool ScheduleBlockInvRetBool;
     typedef bool ScheduleTxInvRetBool;
     typedef bool PrevMissingBool;
-    typedef std::pair<uint64, std::tuple<ScheduleBlockInvRetBool, PrevMissingBool, ScheduleTxInvRetBool>> ScheduleResultPair;
+    typedef bool SyncBool;
+    typedef uint256 HashForkType;
+    typedef std::tuple<ScheduleBlockInvRetBool,
+                       PrevMissingBool,
+                       ScheduleTxInvRetBool,
+                       SyncBool,
+                       HashForkType,
+                       std::vector<bigbang::network::CInv>>
+        ScheduleResultType;
+    typedef std::pair<uint64, ScheduleResultType> ScheduleResultPair;
 
 public:
     INetChannelModel()
@@ -83,6 +92,7 @@ public:
     virtual void CleanUpForkScheduler() = 0;
     virtual bool AddNewForkSchedule(const uint256& hashFork) = 0;
     virtual bool RemoveForkSchudule(const uint256& hashFork) = 0;
+    virtual bool AddNewInvSchedule(uint64 nNonce, const uint256& hashFork, const network::CInv& inv) = 0;
     virtual std::vector<uint256> GetAllForks() const = 0;
     virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
     virtual bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const = 0;
@@ -91,7 +101,14 @@ public:
     virtual void RemovePeer(uint64 nNonce) = 0;
     virtual void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
     virtual void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) = 0;
-    virtual void SchedulePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) = 0;
+    virtual void ScheduleDeactivePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) = 0;
+    virtual bool ScheduleActivePeerInv(uint64 nNonce, const uint256& hashFork, std::vector<ScheduleResultPair>& schedResult) = 0;
+    virtual bool SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync, bool& fInverted) = 0;
+    virtual bool ContainsScheduleMT(const uint256& hashFork) const = 0;
+    virtual bool ContainsPeerMT(uint64 nNonce) const = 0;
+    virtual void SubscribePeerFork(uint64 nNonce, const uint256& hashFork) = 0;
+    virtual void UnsubscribePeerFork(uint64 nNonce, const uint256& hashFork) = 0;
+    virtual void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash) = 0;
 };
 
 class CNetChannel : public INetChannelModel
@@ -105,6 +122,7 @@ public:
     void CleanUpForkScheduler() override;
     bool AddNewForkSchedule(const uint256& hashFork) override;
     bool RemoveForkSchudule(const uint256& hashFork) override;
+    bool AddNewInvSchedule(uint64 nNonce, const uint256& hashFork, const network::CInv& inv) override;
     std::vector<uint256> GetAllForks() const;
     bool IsForkSynchronized(const uint256& hashFork) const override;
     bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const override;
@@ -113,10 +131,27 @@ public:
     void RemovePeer(uint64 nNonce) override;
     void RemoveUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
     void AddUnSynchronizedForkPeerMT(uint64 nNonce, const uint256& hashFork) override;
-    void SchedulePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) override;
+    void ScheduleDeactivePeerInv(uint64 nNonce, std::vector<ScheduleResultPair>& schedResult) override;
+    bool ScheduleActivePeerInv(uint64 nNonce, const uint256& hashFork, std::vector<ScheduleResultPair>& schedResult) override;
+    bool SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync, bool& fInverted) override;
+    bool ContainsScheduleMT(const uint256& hashFork) const override;
+    bool ContainsPeerMT(uint64 nNonce) const override;
+    void SubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
+    void UnsubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
+    void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash);
 
 protected:
+    enum
+    {
+        MAX_GETBLOCKS_COUNT = 128
+    };
+    enum
+    {
+        MAX_PEER_SCHED_COUNT = 8
+    };
+
     const CSchedule& GetSchedule(const uint256& hashFork) const;
+    CSchedule& GetSchedule(const uint256& hashFork);
     bool ContainsSchedule(const uint256& hashFork) const;
     void AddUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork);
     void RemoveUnSynchronizedForkPeer(uint64 nNonce, const uint256& hashFork);
@@ -167,12 +202,11 @@ protected:
     void HandlePeerTx(const CPeerTxMessageInBound& txMsg);
     void HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg);
 
-    CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
     void DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
-    void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched);
+    void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer);
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
                      std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);

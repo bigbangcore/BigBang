@@ -68,7 +68,7 @@ Errno CCoreProtocol::Debug(const Errno& err, const char* pszFunc, const char* ps
     return err;
 }
 
-const uint256& CCoreProtocol::GetGenesisBlockHash()
+const uint256& CCoreProtocol::GetGenesisBlockHash() const
 {
     return hashGenesisBlock;
 }
@@ -84,7 +84,7 @@ PubKey : fe8455584d820639d140dad74d2644d742616ae2433e61c0423ec350c2226b78
 Secret : 9f1e445c2a8e74fabbb7c53e31323b2316112990078cbd8d27b2cd7100a1648d
 */
 
-void CCoreProtocol::GetGenesisBlock(CBlock& block)
+void CCoreProtocol::GetGenesisBlock(CBlock& block) const
 {
     const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("da915f7d9e1b1f6ed99fd816ff977a7d1f17cc95ba0209eef770fb9d00638b49")));
 
