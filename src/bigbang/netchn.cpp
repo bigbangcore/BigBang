@@ -195,6 +195,31 @@ void CNetChannel::AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const s
     mapPeer[nNonce].AddKnownTx(hashFork, vTxHash);
 }
 
+bool CNetChannel::IsPeerEmpty() const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+    return mapPeer.empty();
+}
+
+void CNetChannel::MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<MakeTxInvResultPair>& txInvResult)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    for (map<uint64, CNetChannelControllerPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+    {
+        CNetChannelControllerPeer& peer = it->second;
+        if (peer.IsSubscribed(hashFork))
+        {
+
+            MakeTxInvResultType vecInv;
+            peer.MakeTxInv(hashFork, vTxPool, vecInv, network::CInv::MAX_INV_COUNT);
+            if (!vecInv.empty())
+            {
+                txInvResult.emplace_back(std::make_pair(it->first, vecInv));
+            }
+        }
+    }
+}
+
 bool CNetChannel::ContainsPeerMT(uint64 nNonce) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
@@ -1125,27 +1150,20 @@ bool CNetChannelController::PushTxInv(const uint256& hashFork)
     bool fCompleted = true;
     vector<uint256> vTxPool;
     pTxPoolCntrl->ListTx(hashFork, vTxPool);
-    if (!vTxPool.empty() && !mapPeer.empty())
+    if (!vTxPool.empty() && !pNetChannelModel->IsPeerEmpty())
     {
-        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelControllerPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        std::vector<INetChannelModel::MakeTxInvResultPair> vResult;
+        pNetChannelModel->MakeTxInv(hashFork, vTxPool, vResult);
+        for (const auto& result : vResult)
         {
-            CNetChannelControllerPeer& peer = it->second;
-            if (peer.IsSubscribed(hashFork))
+            auto spInvMsg = CPeerInvMessageOutBound::Create();
+            spInvMsg->nNonce = result.first;
+            spInvMsg->hashFork = hashFork;
+            spInvMsg->vecInv = result.second;
+            PUBLISH_MESSAGE(spInvMsg);
+            if (fCompleted && result.second.size() == network::CInv::MAX_INV_COUNT)
             {
-                auto spInvMsg = CPeerInvMessageOutBound::Create();
-                spInvMsg->nNonce = it->first;
-                spInvMsg->hashFork = hashFork;
-
-                peer.MakeTxInv(hashFork, vTxPool, spInvMsg->vecInv, network::CInv::MAX_INV_COUNT);
-                if (!spInvMsg->vecInv.empty())
-                {
-                    PUBLISH_MESSAGE(spInvMsg);
-                    if (fCompleted && spInvMsg->vecInv.size() == network::CInv::MAX_INV_COUNT)
-                    {
-                        fCompleted = false;
-                    }
-                }
+                fCompleted = false;
             }
         }
     }

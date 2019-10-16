@@ -85,6 +85,8 @@ public:
                        std::vector<bigbang::network::CInv>>
         ScheduleResultType;
     typedef std::pair<uint64, ScheduleResultType> ScheduleResultPair;
+    typedef std::vector<network::CInv> MakeTxInvResultType;
+    typedef std::pair<uint64, MakeTxInvResultType> MakeTxInvResultPair;
 
 public:
     INetChannelModel()
@@ -109,6 +111,8 @@ public:
     virtual void SubscribePeerFork(uint64 nNonce, const uint256& hashFork) = 0;
     virtual void UnsubscribePeerFork(uint64 nNonce, const uint256& hashFork) = 0;
     virtual void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash) = 0;
+    virtual bool IsPeerEmpty() const = 0;
+    virtual void MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<MakeTxInvResultPair>& txInvResult) = 0;
 };
 
 class CNetChannel : public INetChannelModel
@@ -139,6 +143,8 @@ public:
     void SubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
     void UnsubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
     void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash);
+    bool IsPeerEmpty() const override;
+    void MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<MakeTxInvResultPair>& txInvResult) override;
 
 protected:
     enum
