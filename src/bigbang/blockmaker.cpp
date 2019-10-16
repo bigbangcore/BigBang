@@ -363,11 +363,12 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
         return false;
     }
 
-    int nWait = block.nTimeStamp - GetNetTime();
+    // Cancel wait time, publish block now
+    /*int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
         return false;
-    }
+    }*/
 
     txMint.nTimeStamp = block.nTimeStamp;
     ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
@@ -580,8 +581,10 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     uint256& nNonce = *((uint256*)&vchProofOfWork[vchProofOfWork.size() - sizeof(uint256)]);
 
     int64& nHashRate = pHashAlgo->nHashRate;
+    int64 nHashComputeCount = 0;
+    int64 nHashCmputeBeginTime = GetTime();
 
-    Log("Proof-of-work start compute, difficulty bits: (%d)", nBits);
+    Log("Proof-of-work: start hash compute, difficulty bits: (%d)", nBits);
 
     while (!Interrupted())
     {
@@ -592,14 +595,16 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
         for (int i = 0; i < nHashRate; i++)
         {
             uint256 hash = pHashAlgo->Hash(vchProofOfWork);
+            nHashComputeCount++;
             if (hash <= hashTarget)
             {
                 block.nTimeStamp = nTime;
                 proof.nNonce = nNonce;
                 proof.Save(block.vchProof);
 
-                Log("Proof-of-work(%s) block found (%ld)\nhash : %s\ntarget : (%d) %s\n",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), nRunBits, hashTarget.GetHex().c_str());
+                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, time:%lds), difficulty bits: (%d)\nhash :   %s\ntarget : %s\n",
+                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, GetTime() - nHashCmputeBeginTime,
+                    nRunBits, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
             nNonce += 256;
@@ -616,7 +621,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
             nHashRate *= 2;
         }
     }
-    Log("Proof-of-work compute interrupted.");
+    Log("Proof-of-work: compute interrupted.");
     return false;
 }
 
@@ -735,7 +740,7 @@ void CBlockMaker::BlockMakerThreadFunc()
                         pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
 
-                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
+                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus=%s.", agree.nAgreement.GetHex().c_str(),
                             nLastBlockHeight + 1, agree.nWeight,
                             agree.IsProofOfWork() ? "pow" : "dpos");
                         break;
