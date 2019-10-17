@@ -44,7 +44,6 @@ set(src
     miner.cpp           miner.h
     schedule.cpp        schedule.h
     service.cpp         service.h
-    txpool.cpp          txpool.h
     wallet.cpp          wallet.h
     worldline.cpp      worldline.h
     forkmanager.cpp     forkmanager.h
@@ -70,10 +69,18 @@ set(mode_src
     mode/module_type.h
 )
 
+set(txpool_src
+    txpool/txset.h
+    txpool/txpoolview.cpp           txpool/txpoolview.h
+    txpool/txpool.cpp               txpool/txpool.h
+    txpool/txpoolcontroller.cpp     txpool/txpoolcontroller.h
+)
+
 set(sources
     ${auto_files}
     ${src}
     ${mode_src}
+    ${txpool_src}
 )
 
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
