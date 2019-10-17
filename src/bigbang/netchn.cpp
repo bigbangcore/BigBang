@@ -943,7 +943,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
     pTxPool->ListTx(hashFork, vTxPool);
     if (!vTxPool.empty() && !mapPeer.empty())
     {
-        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+        boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
             CNetChannelPeer& peer = it->second;
