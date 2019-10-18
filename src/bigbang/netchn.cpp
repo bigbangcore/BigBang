@@ -220,6 +220,125 @@ void CNetChannel::MakeTxInv(const uint256& hashFork, const std::vector<uint256>&
     }
 }
 
+bool CNetChannel::ReceiveScheduleTx(uint64 nNonce, const uint256& hashFork, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return false;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    return sched.ReceiveTx(nNonce, txid, tx, setSchedPeer);
+}
+
+bool CNetChannel::ReceiveScheduleBlock(uint64 nNonce, const uint256& hashFork, const uint256& blockHash, const CBlock& block, std::set<uint64>& setSchedPeer)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return false;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    return sched.ReceiveBlock(nNonce, blockHash, block, setSchedPeer);
+}
+
+void CNetChannel::InvalidateScheduleTx(const uint256& hashFork, const uint256& txid, std::set<uint64>& setMisbehavePeer)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.InvalidateTx(txid, setMisbehavePeer);
+}
+
+void CNetChannel::InvalidateScheduleBlock(const uint256& hashFork, const uint256& blockHash, std::set<uint64>& setMisbehavePeer)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.InvalidateBlock(blockHash, setMisbehavePeer);
+}
+
+void CNetChannel::AddScheduleOrphanTxPrev(const uint256& hashFork, const uint256& txid, const uint256& prevtxid)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.AddOrphanTxPrev(txid, prevtxid);
+}
+
+void CNetChannel::AddOrphanBlockPrev(const uint256& hashFork, const uint256& blockHash, const uint256& prevHash)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.AddOrphanBlockPrev(blockHash, prevHash);
+}
+
+CTransaction* CNetChannel::GetScheduleTransaction(const uint256& hashFork, const uint256& txid, uint64& nNonceSender)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return nullptr;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    return sched.GetTransaction(txid, nNonceSender);
+}
+
+void CNetChannel::GetScheduleNextTx(const uint256& hashFork, const uint256& txid, std::vector<uint256>& vNextTx)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+    std::set<uint256> setNextTx;
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.GetNextTx(txid, vNextTx, setNextTx);
+}
+
+void CNetChannel::RemoveScheduleInv(const uint256& hashFork, const network::CInv& inv, std::set<uint64>& setSchedPeer)
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return;
+    }
+
+    CSchedule& sched = GetSchedule(hashFork);
+    sched.RemoveInv(inv, setSchedPeer);
+}
+
+bool CNetChannel::ExistsScheduleInv(const uint256& hashFork, const network::CInv& inv) const
+{
+    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+    if (!ContainsSchedule(hashFork))
+    {
+        return false;
+    }
+    const CSchedule& sched = GetSchedule(hashFork);
+    return sched.Exists(inv);
+}
+
 bool CNetChannel::ContainsPeerMT(uint64 nNonce) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
@@ -776,12 +895,9 @@ void CNetChannelController::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
 
     try
     {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
 
         set<uint64> setSchedPeer, setMisbehavePeer;
-        CSchedule& sched = GetSchedule(hashFork);
-
-        if (!sched.ReceiveTx(nNonce, txid, tx, setSchedPeer))
+        if (!pNetChannelModel->ReceiveScheduleTx(nNonce, hashFork, txid, tx, setSchedPeer))
         {
             throw runtime_error("Failed to receive tx");
         }
@@ -794,19 +910,19 @@ void CNetChannelController::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
             set<uint256> setMissingPrevTx;
             if (!GetMissingPrevTx(tx, setMissingPrevTx))
             {
-                AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
+                AddNewTx(hashFork, txid, setSchedPeer, setMisbehavePeer);
             }
             else
             {
                 for (const uint256& prev : setMissingPrevTx)
                 {
-                    sched.AddOrphanTxPrev(txid, prev);
+                    pNetChannelModel->AddScheduleOrphanTxPrev(hashFork, txid, prev);
                     network::CInv inv(network::CInv::MSG_TX, prev);
-                    if (!sched.Exists(inv))
+                    if (!pNetChannelModel->ExistsScheduleInv(hashFork, inv))
                     {
                         for (const uint64 nNonceSched : setSchedPeer)
                         {
-                            sched.AddNewInv(inv, nNonceSched);
+                            pNetChannelModel->AddNewInvSchedule(nNonceSched, hashFork, inv);
                         }
                     }
                 }
@@ -814,10 +930,10 @@ void CNetChannelController::HandlePeerTx(const CPeerTxMessageInBound& txMsg)
         }
         else
         {
-            sched.InvalidateTx(txid, setMisbehavePeer);
+            pNetChannelModel->InvalidateScheduleTx(hashFork, txid, setMisbehavePeer);
             setMisbehavePeer.clear();
         }
-        PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
+        PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
     }
     catch (...)
     {
@@ -834,12 +950,8 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
 
     try
     {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-
         set<uint64> setSchedPeer, setMisbehavePeer;
-        CSchedule& sched = GetSchedule(hashFork);
-
-        if (!sched.ReceiveBlock(nNonce, hash, block, setSchedPeer))
+        if (!pNetChannelModel->ReceiveScheduleBlock(nNonce, hashFork, hash, block, setSchedPeer))
         {
             throw runtime_error("Failed to receive block");
         }
@@ -850,19 +962,19 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
         {
             if (hashForkPrev == hashFork)
             {
-                AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer);
+                AddNewBlock(hashFork, hash, setSchedPeer, setMisbehavePeer);
             }
             else
             {
-                sched.InvalidateBlock(hash, setMisbehavePeer);
+                pNetChannelModel->InvalidateScheduleBlock(hashFork, hash, setMisbehavePeer);
             }
         }
         else
         {
-            sched.AddOrphanBlockPrev(hash, block.hashPrev);
+            pNetChannelModel->AddOrphanBlockPrev(hashFork, hash, block.hashPrev);
         }
 
-        PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
+        PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
     }
     catch (...)
     {
@@ -988,8 +1100,7 @@ bool CNetChannelController::GetMissingPrevTx(const CTransaction& tx, set<uint256
     return (!setMissingPrevTx.empty());
 }
 
-void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                                        set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
+void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& hash, set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
     vector<uint256> vBlockHash;
     vBlockHash.push_back(hash);
@@ -998,7 +1109,7 @@ void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& 
         uint256 hashBlock = vBlockHash[i];
         uint64 nNonceSender = 0;
         CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
-        if (pBlock != nullptr)
+        if (pBlock)
         {
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
@@ -1030,49 +1141,49 @@ void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& 
     }
 }
 
-void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
-                                     set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
+void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txid, set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
-    set<uint256> setTx;
-    vector<uint256> vtx;
+    vector<uint256> vTxChain;
 
-    vtx.push_back(txid);
+    vTxChain.push_back(txid);
     int nAddNewTx = 0;
-    for (size_t i = 0; i < vtx.size(); i++)
+    for (size_t i = 0; i < vTxChain.size(); i++)
     {
-        uint256 hashTx = vtx[i];
+        uint256 hashTx = vTxChain[i];
         uint64 nNonceSender = 0;
-        CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
-        if (pTx != nullptr)
+        CTransaction* pTx = pNetChannelModel->GetScheduleTransaction(hashTx, nNonceSender);
+        if (pTx)
         {
-            if (pWorldLineCntrl->ExistsTx(txid))
+            if (pWorldLineCntrl->ExistsTx(vTxChain[i]))
             {
-                return;
+                pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vTxChain);
+                pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
             }
-
-            Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
-            if (err == OK)
+            else
             {
-                sched.GetNextTx(hashTx, vtx, setTx);
-                sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
-                DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
-                nAddNewTx++;
-            }
-            else if (err != ERR_MISSING_PREV)
-            {
-                sched.InvalidateTx(hashTx, setMisbehavePeer);
+                Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
+                if (err == OK)
+                {
+                    pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vTxChain);
+                    pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+                    DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
+                    nAddNewTx++;
+                }
+                else if (err != ERR_MISSING_PREV)
+                {
+                    pNetChannelModel->InvalidateScheduleTx(hashFork, hashTx, setMisbehavePeer);
+                }
             }
         }
     }
-    if (nAddNewTx)
+    if (nAddNewTx > 0)
     {
         CBroadcastTxInvMessage msg(hashFork);
         HandleBroadcastTxInv(msg);
     }
 }
 
-void CNetChannelController::PostAddNew(const uint256& hashFork, CSchedule& sched,
-                                       set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
+void CNetChannelController::PostAddNew(const uint256& hashFork, set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
 {
     for (const uint64 nNonceSched : setSchedPeer)
     {

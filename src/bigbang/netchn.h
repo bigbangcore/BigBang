@@ -113,6 +113,16 @@ public:
     virtual void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash) = 0;
     virtual bool IsPeerEmpty() const = 0;
     virtual void MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<MakeTxInvResultPair>& txInvResult) = 0;
+    virtual bool ReceiveScheduleTx(uint64 nNonce, const uint256& hashFork, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer) = 0;
+    virtual void InvalidateScheduleTx(const uint256& hashFork, const uint256& txid, std::set<uint64>& setMisbehavePeer) = 0;
+    virtual void AddScheduleOrphanTxPrev(const uint256& hashFork, const uint256& txid, const uint256& prevtxid) = 0;
+    virtual bool ExistsScheduleInv(const uint256& hashFork, const network::CInv& inv) const = 0;
+    virtual bool ReceiveScheduleBlock(uint64 nNonce, const uint256& hashFork, const uint256& blockHash, const CBlock& block, std::set<uint64>& setSchedPeer) = 0;
+    virtual void InvalidateScheduleBlock(const uint256& hashFork, const uint256& blockHash, std::set<uint64>& setMisbehavePeer) = 0;
+    virtual void AddOrphanBlockPrev(const uint256& hashFork, const uint256& blockHash, const uint256& prevHash) = 0;
+    virtual CTransaction* GetScheduleTransaction(const uint256& hashFork, const uint256& txid, uint64& nNonceSender) = 0;
+    virtual void GetScheduleNextTx(const uint256& hashFork, const uint256& txid, std::vector<uint256>& vNextTx) = 0;
+    virtual void RemoveScheduleInv(const uint256& hashFork, const network::CInv& inv, std::set<uint64>& setSchedPeer) = 0;
 };
 
 class CNetChannel : public INetChannelModel
@@ -142,9 +152,19 @@ public:
     bool ContainsPeerMT(uint64 nNonce) const override;
     void SubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
     void UnsubscribePeerFork(uint64 nNonce, const uint256& hashFork) override;
-    void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash);
+    void AddKnownTxPeer(uint64 nNonce, const uint256& hashFork, const std::vector<uint256>& vTxHash) override;
     bool IsPeerEmpty() const override;
     void MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<MakeTxInvResultPair>& txInvResult) override;
+    bool ReceiveScheduleTx(uint64 nNonce, const uint256& hashFork, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer) override;
+    void InvalidateScheduleTx(const uint256& hashFork, const uint256& txid, std::set<uint64>& setMisbehavePeer) override;
+    void AddScheduleOrphanTxPrev(const uint256& hashFork, const uint256& txid, const uint256& prevtxid) override;
+    bool ExistsScheduleInv(const uint256& hashFork, const network::CInv& inv) const override;
+    bool ReceiveScheduleBlock(uint64 nNonce, const uint256& hashFork, const uint256& blockHash, const CBlock& block, std::set<uint64>& setSchedPeer) override;
+    void InvalidateScheduleBlock(const uint256& hashFork, const uint256& blockHash, std::set<uint64>& setMisbehavePeer) override;
+    void AddOrphanBlockPrev(const uint256& hashFork, const uint256& blockHash, const uint256& prevHash) override;
+    CTransaction* GetScheduleTransaction(const uint256& hashFork, const uint256& txid, uint64& nNonceSender) override;
+    void GetScheduleNextTx(const uint256& hashFork, const uint256& txid, std::vector<uint256>& vNextTx) override;
+    void RemoveScheduleInv(const uint256& hashFork, const network::CInv& inv, std::set<uint64>& setSchedPeer) override;
 
 protected:
     enum
@@ -214,12 +234,9 @@ protected:
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
     void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer);
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
-    void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
-    void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
-                  std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
-    void PostAddNew(const uint256& hashFork, CSchedule& sched,
-                    std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void AddNewBlock(const uint256& hashFork, const uint256& hash, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void AddNewTx(const uint256& hashFork, const uint256& txid, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void PostAddNew(const uint256& hashFork, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);

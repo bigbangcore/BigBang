@@ -114,7 +114,7 @@ class CSchedule
     public:
         CInvState()
           : nAssigned(0), objReceived(CNil()) {}
-        bool IsReceived()
+        bool IsReceived() const
         {
             return (objReceived.type() != typeid(CNil));
         }

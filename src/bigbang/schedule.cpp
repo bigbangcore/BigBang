@@ -27,7 +27,7 @@ void COrphan::Remove(const uint256& hash)
     multimap<uint256, uint256>::iterator it = mapOrphanByPrev.begin();
     while (it != mapOrphanByPrev.end())
     {
-        if ((*it).second == hash)
+        if (it->second == hash)
         {
             mapOrphanByPrev.erase(it++);
         }
@@ -43,7 +43,7 @@ void COrphan::GetNext(const uint256& prev, vector<uint256>& vNext)
     for (multimap<uint256, uint256>::iterator it = mapOrphanByPrev.lower_bound(prev);
          it != mapOrphanByPrev.upper_bound(prev); ++it)
     {
-        vNext.push_back((*it).second);
+        vNext.push_back(it->second);
     }
 }
 
@@ -52,9 +52,9 @@ void COrphan::GetNext(const uint256& prev, vector<uint256>& vNext, set<uint256>&
     for (multimap<uint256, uint256>::iterator it = mapOrphanByPrev.lower_bound(prev);
          it != mapOrphanByPrev.upper_bound(prev); ++it)
     {
-        if (setHash.insert((*it).second).second)
+        if (setHash.insert(it->second).second)
         {
-            vNext.push_back((*it).second);
+            vNext.push_back(it->second);
         }
     }
 }
@@ -92,7 +92,7 @@ void CSchedule::GetKnownPeer(const network::CInv& inv, set<uint64>& setKnownPeer
     map<network::CInv, CInvState>::const_iterator it = mapState.find(inv);
     if (it != mapState.end())
     {
-        setKnownPeer = (*it).second.setKnownPeer;
+        setKnownPeer = it->second.setKnownPeer;
     }
 }
 
@@ -206,7 +206,7 @@ CTransaction* CSchedule::GetTransaction(const uint256& txid, uint64& nNonceSende
     map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_TX, txid));
     if (it != mapState.end())
     {
-        CInvState& state = (*it).second;
+        const CInvState& state = (*it).second;
         if (state.IsReceived())
         {
             nNonceSender = state.nAssigned;
