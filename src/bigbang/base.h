@@ -115,8 +115,8 @@ public:
 
     // TODO: remove these functions because of existed in IWorldLine
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
-    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) = 0;
-    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) = 0;
+    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) = 0;
+    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) = 0;
 
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
     virtual bool GetForkProfile(const uint256& hashFork, CProfile& profile) = 0;

@@ -22,7 +22,8 @@
 #include "proto.h"
 #include "service.h"
 #include "test_big.h"
-#include "txpool.h"
+#include "txpool/txpool.h"
+#include "txpool/txpoolcontroller.h"
 #include "wallet.h"
 #include "worldline.h"
 

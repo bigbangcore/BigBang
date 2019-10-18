@@ -1009,14 +1009,34 @@ Errno CWorldLineController::AddNewForkContext(const CTransaction& txFork, CForkC
     return AddNewForkContextIntoWorldLine(txFork, ctxt);
 }
 
-Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
+Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce)
 {
-    return AddNewBlockIntoWorldLine(block, update);
+    // TODO: Remove it when upgrade CDispatcher
+    Errno err = AddNewBlockIntoWorldLine(block, update);
+
+    auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->nNonce = nNonce;
+    spAddedBlockMsg->hashFork = update.hashFork;
+    spAddedBlockMsg->block = block;
+    spAddedBlockMsg->update = update;
+    PUBLISH_MESSAGE(spAddedBlockMsg);
+
+    return err;
 }
 
-Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
+Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce)
 {
-    return AddNewOriginIntoWorldLine(block, update);
+    // TODO: Remove it when upgrade CDispatcher
+    Errno err = AddNewOriginIntoWorldLine(block, update);
+
+    auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->nNonce = nNonce;
+    spAddedBlockMsg->hashFork = update.hashFork;
+    spAddedBlockMsg->block = block;
+    spAddedBlockMsg->update = update;
+    PUBLISH_MESSAGE(spAddedBlockMsg);
+
+    return err;
 }
 
 void CWorldLineController::GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)
