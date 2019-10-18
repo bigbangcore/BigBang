@@ -155,7 +155,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CWorldLineUpdate updateWorldLine;
     if (!block.IsOrigin())
     {
-        err = pWorldLineCtrl->AddNewBlock(block, updateWorldLine);
+        err = pWorldLineCtrl->AddNewBlock(block, updateWorldLine, nNonce);
         if (err == OK && !block.IsVacant())
         {
             if (!nNonce)
@@ -170,7 +170,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
     else
     {
-        err = pWorldLineCtrl->AddNewOrigin(block, updateWorldLine);
+        err = pWorldLineCtrl->AddNewOrigin(block, updateWorldLine, nNonce);
     }
 
     if (err != OK || updateWorldLine.IsNull())
