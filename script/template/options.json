@@ -31,6 +31,14 @@
             "default": false,
             "format": "-purge",
             "desc": "Purge database and blockfile"
+        },  
+        {
+            "name": "nLogLevel",
+            "type": "int",
+            "opt": "loglevel",
+            "default": 1,
+            "format": "-loglevel",
+            "desc": "Set log level (default: 1. 0-DEBUG, 1-INFO, 2-WARNING, 3-ERROR)"
         }
     ],
     "CForkConfigOption": [

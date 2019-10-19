@@ -5,6 +5,7 @@
 #include "mode/basic_config.h"
 
 #include "mode/config_macro.h"
+#include "logger.h"
 
 namespace bigbang
 {
@@ -33,6 +34,15 @@ bool CBasicConfig::PostLoad()
         pathData /= "testnet";
     }
     nMagicNum = fTestNet ? TESTNET_MAGICNUM : MAINNET_MAGICNUM;
+
+    if (nLogLevel < xengine::severity_level::DEBUG || nLogLevel > xengine::severity_level::ERROR)
+    {
+        nLogLevel = xengine::severity_level::INFO;
+    }
+    if (fDebug)
+    {
+        nLogLevel = xengine::severity_level::DEBUG;
+    }
 
     return true;
 }
