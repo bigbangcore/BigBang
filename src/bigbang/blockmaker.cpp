@@ -292,6 +292,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
                 {
                     nTotalTxFee -= block.vtx[i].nTxFee;
                     block.vtx.erase(block.vtx.begin() + i);
+                    --i;
                 }
             }
         }
