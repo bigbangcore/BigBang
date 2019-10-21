@@ -94,10 +94,11 @@ namespace src = boost::log::sources;
 typedef src::severity_channel_logger_mt<severity_level, std::string> sclmt_type;
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, sclmt_type)
 
-void StdDebug(const char* pszName, const char* pszErr);
-void StdLog(const char* pszName, const char* pszErr);
-void StdWarn(const char* pszName, const char* pszErr);
-void StdError(const char* pszName, const char* pszErr);
+void StdTrace(const char* pszName, const char* pszFormat, ...);
+void StdDebug(const char* pszName, const char* pszFormat, ...);
+void StdLog(const char* pszName, const char* pszFormat, ...);
+void StdWarn(const char* pszName, const char* pszFormat, ...);
+void StdError(const char* pszName, const char* pszFormat, ...);
 
 bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn);
 

@@ -22,6 +22,7 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <cstdarg>
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -203,59 +204,93 @@ public:
 static CBoostLog g_log;
 static bool volatile g_log_init = false;
 
-void StdDebug(const char* pszName, const char* pszErr)
+void StdTrace(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-void StdLog(const char* pszName, const char* pszErr)
+void StdDebug(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-void StdWarn(const char* pszName, const char* pszErr)
+void StdLog(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-void StdError(const char* pszName, const char* pszErr)
+void StdWarn(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
+    }
+}
+
+void StdError(const char* pszName, const char* pszFormat, ...)
+{
+    if (g_log_init)
+    {
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
