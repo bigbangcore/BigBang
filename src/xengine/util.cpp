@@ -203,6 +203,20 @@ public:
 static CBoostLog g_log;
 static bool volatile g_log_init = false;
 
+void StdTrace(const char* pszName, const char* pszErr)
+{
+    if (g_log_init)
+    {
+        std::string str(pszErr);
+        if (str[str.length() - 1] == '\n')
+        {
+            str.resize(str.length() - 1);
+        }
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
+    }
+}
+
 void StdDebug(const char* pszName, const char* pszErr)
 {
     if (g_log_init)
