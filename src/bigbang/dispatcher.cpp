@@ -25,12 +25,12 @@ CDispatcher::CDispatcher()
     pBlockChain = nullptr;
     pTxPool = nullptr;
     pForkManager = nullptr;
-    pConsensus = nullptr;
+    // pConsensus = nullptr;
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
 
@@ -64,11 +64,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus\n");
-        return false;
-    }
+    // if (!GetObject("consensus", pConsensus))
+    // {
+    //     Error("Failed to request consensus\n");
+    //     return false;
+    // }
 
     if (!GetObject("wallet", pWallet))
     {
@@ -94,11 +94,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("delegatedchannel", pDelegatedChannel))
-    {
-        Error("Failed to request delegatedchannel\n");
-        return false;
-    }
+    // if (!GetObject("delegatedchannel", pDelegatedChannel))
+    // {
+    //     Error("Failed to request delegatedchannel\n");
+    //     return false;
+    // }
 
     if (!GetObject("datastat", pDataStat))
     {
@@ -115,12 +115,12 @@ void CDispatcher::HandleDeinitialize()
     pBlockChain = nullptr;
     pTxPool = nullptr;
     pForkManager = nullptr;
-    pConsensus = nullptr;
+    // pConsensus = nullptr;
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
 
@@ -171,7 +171,8 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
     else
     {
-        err = pBlockChain->AddNewOrigin(block, updateBlockChain);
+        // err = pBlockChain->AddNewOrigin(block, updateBlockChain);
+        err = ERR_BLOCK_INVALID_FORK;
     }
 
     if (err != OK || updateBlockChain.IsNull())
@@ -185,14 +186,14 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return ERR_SYS_DATABASE_ERROR;
     }
 
-    if (block.IsOrigin())
-    {
-        if (!pWallet->AddNewFork(updateBlockChain.hashFork, updateBlockChain.hashParent,
-                                 updateBlockChain.nOriginHeight))
-        {
-            return ERR_SYS_DATABASE_ERROR;
-        }
-    }
+    // if (block.IsOrigin())
+    // {
+    //     if (!pWallet->AddNewFork(updateBlockChain.hashFork, updateBlockChain.hashParent,
+    //                              updateBlockChain.nOriginHeight))
+    //     {
+    //         return ERR_SYS_DATABASE_ERROR;
+    //     }
+    // }
 
     if (!pWallet->SynchronizeTxSet(changeTxSet))
     {
@@ -207,21 +208,21 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     pService->NotifyBlockChainUpdate(updateBlockChain);
 
-    if (!block.IsVacant())
-    {
-        vector<uint256> vActive, vDeactive;
-        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
+    // if (!block.IsVacant())
+    // {
+    //     vector<uint256> vActive, vDeactive;
+    //     pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
 
-        for (const uint256 hashFork : vActive)
-        {
-            ActivateFork(hashFork, nNonce);
-        }
+    //     for (const uint256 hashFork : vActive)
+    //     {
+    //         ActivateFork(hashFork, nNonce);
+    //     }
 
-        for (const uint256 hashFork : vDeactive)
-        {
-            pNetChannel->UnsubscribeFork(hashFork);
-        }
-    }
+    //     for (const uint256 hashFork : vDeactive)
+    //     {
+    //         pNetChannel->UnsubscribeFork(hashFork);
+    //     }
+    // }
 
     if (block.IsPrimary())
     {
@@ -268,61 +269,63 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
         pNetChannel->BroadcastTxInv(hashFork);
     }
 
-    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
-    }
+    // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    // {
+    //     pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
+    // }
 
     return OK;
 }
 
 bool CDispatcher::AddNewDistribute(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    // return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    return true;
 }
 
 bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    // return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    return true;
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
-    if (!strCmd.empty())
-    {
-        std::string cmd = strCmd;
-        std::string block_hash = updateBlockChain.hashFork.GetHex();
-        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
-        {
-            block_hash += " " + ite->GetHash().GetHex();
-        }
-        boost::replace_all(cmd, "%s", block_hash);
-        std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
-    }
-    CDelegateRoutine routineDelegate;
-    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
-    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+    // if (!strCmd.empty())
+    // {
+    //     std::string cmd = strCmd;
+    //     std::string block_hash = updateBlockChain.hashFork.GetHex();
+    //     for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
+    //     {
+    //         block_hash += " " + ite->GetHash().GetHex();
+    //     }
+    //     boost::replace_all(cmd, "%s", block_hash);
+    //     std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+    // }
+    // CDelegateRoutine routineDelegate;
+    // pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+    // pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+    //                                  routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
 
-    for (const CTransaction& tx : routineDelegate.vEnrollTx)
-    {
-        if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
-        {
-            Errno err = AddNewTx(tx, nNonce);
-            if (err == OK)
-            {
-                Log("Send DelegateTx success, txid: %s, previd: %s.\n",
-                    tx.GetHash().GetHex().c_str(),
-                    tx.vInput[0].prevout.hash.GetHex().c_str());
-            }
-            else
-            {
-                Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.\n",
-                    err, ErrorString(err), tx.GetHash().GetHex().c_str(),
-                    tx.vInput[0].prevout.hash.GetHex().c_str());
-            }
-        }
-    }
+    // for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    // {
+    //     if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
+    //     {
+    //         Errno err = AddNewTx(tx, nNonce);
+    //         if (err == OK)
+    //         {
+    //             Log("Send DelegateTx success, txid: %s, previd: %s.\n",
+    //                 tx.GetHash().GetHex().c_str(),
+    //                 tx.vInput[0].prevout.hash.GetHex().c_str());
+    //         }
+    //         else
+    //         {
+    //             Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.\n",
+    //                 err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+    //                 tx.vInput[0].prevout.hash.GetHex().c_str());
+    //         }
+    //     }
+    // }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
     if (pBlockMakerUpdate != nullptr)
@@ -338,7 +341,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pBlockMaker->PostEvent(pBlockMakerUpdate);
     }
 
-    SyncForkHeight(updateBlockChain.nLastBlockHeight);
+    // SyncForkHeight(updateBlockChain.nLastBlockHeight);
 }
 
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
@@ -400,40 +403,40 @@ bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
     return true;
 }
 
-void CDispatcher::SyncForkHeight(int nPrimaryHeight)
-{
-    map<uint256, CForkStatus> mapForkStatus;
-    pBlockChain->GetForkStatus(mapForkStatus);
-    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
-    {
-        const uint256& hashFork = (*it).first;
-        CForkStatus& status = (*it).second;
-        if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
-        {
-            continue;
-        }
+// void CDispatcher::SyncForkHeight(int nPrimaryHeight)
+// {
+//     map<uint256, CForkStatus> mapForkStatus;
+//     pBlockChain->GetForkStatus(mapForkStatus);
+//     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+//     {
+//         const uint256& hashFork = (*it).first;
+//         CForkStatus& status = (*it).second;
+//         if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
+//         {
+//             continue;
+//         }
 
-        vector<int64> vTimeStamp;
-        int nDepth = nPrimaryHeight - status.nLastBlockHeight;
+//         vector<int64> vTimeStamp;
+//         int nDepth = nPrimaryHeight - status.nLastBlockHeight;
 
-        if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
-            && pBlockChain->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
-        {
-            uint256 hashPrev = status.hashLastBlock;
-            for (int nHeight = status.nLastBlockHeight + 1; nHeight < nPrimaryHeight; nHeight++)
-            {
-                CBlock block;
-                block.nType = CBlock::BLOCK_VACANT;
-                block.hashPrev = hashPrev;
-                block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
-                if (AddNewBlock(block) != OK)
-                {
-                    break;
-                }
-                hashPrev = block.GetHash();
-            }
-        }
-    }
-}
+//         if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
+//             && pBlockChain->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
+//         {
+//             uint256 hashPrev = status.hashLastBlock;
+//             for (int nHeight = status.nLastBlockHeight + 1; nHeight < nPrimaryHeight; nHeight++)
+//             {
+//                 CBlock block;
+//                 block.nType = CBlock::BLOCK_VACANT;
+//                 block.hashPrev = hashPrev;
+//                 block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
+//                 if (AddNewBlock(block) != OK)
+//                 {
+//                     break;
+//                 }
+//                 hashPrev = block.GetHash();
+//             }
+//         }
+//     }
+// }
 
 } // namespace bigbang
