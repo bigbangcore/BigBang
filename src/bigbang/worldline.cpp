@@ -23,7 +23,7 @@ CWorldLine::CWorldLine()
   : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
-    pTxPoolCntrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 CWorldLine::~CWorldLine()
@@ -38,7 +38,7 @@ bool CWorldLine::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -50,13 +50,13 @@ bool CWorldLine::HandleInitialize()
 void CWorldLine::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pTxPoolCntrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 bool CWorldLine::HandleInvoke()
 {
 
-    if (!cntrBlock.Initialize(Config() ? Config()->pathData : "./", Config() ? Config()->fDebug : true))
+    if (!blockBase.Initialize(Config() ? Config()->pathData : "./", Config() ? Config()->fDebug : true))
     {
         Error("Failed to initialize container\n");
         return false;
@@ -64,17 +64,17 @@ bool CWorldLine::HandleInvoke()
 
     if (!CheckContainer())
     {
-        cntrBlock.Clear();
+        blockBase.Clear();
         Log("Block container is invalid,try rebuild from block storage\n");
         // Rebuild ...
         if (!RebuildContainer())
         {
-            cntrBlock.Clear();
+            blockBase.Clear();
             Error("Failed to rebuild Block container,reconstruct all\n");
         }
     }
 
-    if (cntrBlock.IsEmpty())
+    if (blockBase.IsEmpty())
     {
         CBlock block;
         pCoreProtocol->GetGenesisBlock(block);
@@ -90,7 +90,7 @@ bool CWorldLine::HandleInvoke()
 
 void CWorldLine::HandleHalt()
 {
-    cntrBlock.Deinitialize();
+    blockBase.Deinitialize();
     cacheEnrolled.Clear();
     cacheAgreement.Clear();
 }
@@ -100,7 +100,7 @@ void CWorldLine::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
     mapForkStatus.clear();
 
     multimap<int, CBlockIndex*> mapForkIndex;
-    cntrBlock.ListForkIndex(mapForkIndex);
+    blockBase.ListForkIndex(mapForkIndex);
     for (multimap<int, CBlockIndex*>::iterator it = mapForkIndex.begin(); it != mapForkIndex.end(); ++it)
     {
         CBlockIndex* pIndex = (*it).second;
@@ -124,24 +124,24 @@ void CWorldLine::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 
 bool CWorldLine::GetForkProfile(const uint256& hashFork, CProfile& profile)
 {
-    return cntrBlock.RetrieveProfile(hashFork, profile);
+    return blockBase.RetrieveProfile(hashFork, profile);
 }
 
 bool CWorldLine::GetForkContext(const uint256& hashFork, CForkContext& ctxt)
 {
-    return cntrBlock.RetrieveForkContext(hashFork, ctxt);
+    return blockBase.RetrieveForkContext(hashFork, ctxt);
 }
 
 bool CWorldLine::GetForkAncestry(const uint256& hashFork, vector<pair<uint256, uint256>> vAncestry)
 {
-    return cntrBlock.RetrieveAncestry(hashFork, vAncestry);
+    return blockBase.RetrieveAncestry(hashFork, vAncestry);
 }
 
 int CWorldLine::GetBlockCount(const uint256& hashFork)
 {
     int nCount = 0;
     CBlockIndex* pIndex = nullptr;
-    if (cntrBlock.RetrieveFork(hashFork, &pIndex))
+    if (blockBase.RetrieveFork(hashFork, &pIndex))
     {
         while (pIndex != nullptr)
         {
@@ -155,7 +155,7 @@ int CWorldLine::GetBlockCount(const uint256& hashFork)
 bool CWorldLine::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight)
 {
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    if (!blockBase.RetrieveIndex(hashBlock, &pIndex))
     {
         return false;
     }
@@ -167,7 +167,7 @@ bool CWorldLine::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, i
 bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
 {
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
+    if (!blockBase.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
     {
         return false;
     }
@@ -186,7 +186,7 @@ bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, uint256& has
 bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint256>& vBlockHash)
 {
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
+    if (!blockBase.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
     {
         return false;
     }
@@ -206,7 +206,7 @@ bool CWorldLine::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint2
 bool CWorldLine::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
 {
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
+    if (!blockBase.RetrieveFork(hashFork, &pIndex))
     {
         return false;
     }
@@ -219,7 +219,7 @@ bool CWorldLine::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& 
 bool CWorldLine::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<int64>& vTime)
 {
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
+    if (!blockBase.RetrieveFork(hashFork, &pIndex))
     {
         return false;
     }
@@ -239,44 +239,44 @@ bool CWorldLine::GetLastBlockTime(const uint256& hashFork, int nDepth, vector<in
 
 bool CWorldLine::GetBlock(const uint256& hashBlock, CBlock& block)
 {
-    return cntrBlock.Retrieve(hashBlock, block);
+    return blockBase.Retrieve(hashBlock, block);
 }
 
 bool CWorldLine::GetBlockEx(const uint256& hashBlock, CBlockEx& block)
 {
-    return cntrBlock.Retrieve(hashBlock, block);
+    return blockBase.Retrieve(hashBlock, block);
 }
 
 bool CWorldLine::GetOrigin(const uint256& hashFork, CBlock& block)
 {
-    return cntrBlock.RetrieveOrigin(hashFork, block);
+    return blockBase.RetrieveOrigin(hashFork, block);
 }
 
 bool CWorldLine::Exists(const uint256& hashBlock)
 {
-    return cntrBlock.Exists(hashBlock);
+    return blockBase.Exists(hashBlock);
 }
 
 bool CWorldLine::GetTransaction(const uint256& txid, CTransaction& tx)
 {
-    return cntrBlock.RetrieveTx(txid, tx);
+    return blockBase.RetrieveTx(txid, tx);
 }
 
 bool CWorldLine::ExistsTx(const uint256& txid)
 {
-    return cntrBlock.ExistsTx(txid);
+    return blockBase.ExistsTx(txid);
 }
 
 bool CWorldLine::GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight)
 {
-    return cntrBlock.RetrieveTxLocation(txid, hashFork, nHeight);
+    return blockBase.RetrieveTxLocation(txid, hashFork, nHeight);
 }
 
 bool CWorldLine::GetTxUnspent(const uint256& hashFork, const vector<CTxIn>& vInput, vector<CTxOut>& vOutput)
 {
     vOutput.resize(vInput.size());
     storage::CBlockView view;
-    if (!cntrBlock.GetForkBlockView(hashFork, view))
+    if (!blockBase.GetForkBlockView(hashFork, view))
     {
         return false;
     }
@@ -293,17 +293,17 @@ bool CWorldLine::GetTxUnspent(const uint256& hashFork, const vector<CTxIn>& vInp
 
 bool CWorldLine::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
-    return cntrBlock.FilterTx(hashFork, filter);
+    return blockBase.FilterTx(hashFork, filter);
 }
 
 bool CWorldLine::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter)
 {
-    return cntrBlock.FilterTx(hashFork, nDepth, filter);
+    return blockBase.FilterTx(hashFork, nDepth, filter);
 }
 
 bool CWorldLine::ListForkContext(vector<CForkContext>& vForkCtxt)
 {
-    return cntrBlock.ListForkContext(vForkCtxt);
+    return blockBase.ListForkContext(vForkCtxt);
 }
 
 Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
@@ -334,7 +334,7 @@ Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ct
     uint256 hashFork = block.GetHash();
 
     CForkContext ctxtParent;
-    if (!cntrBlock.RetrieveForkContext(profile.hashParent, ctxtParent))
+    if (!blockBase.RetrieveForkContext(profile.hashParent, ctxtParent))
     {
         Log("AddNewForkContext Retrieve parent context Error: %s \n", profile.hashParent.ToString().c_str());
         return ERR_MISSING_PREV;
@@ -349,7 +349,7 @@ Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ct
     }
 
     ctxt = CForkContext(block.GetHash(), block.hashPrev, txid, profile);
-    if (!cntrBlock.AddNewForkContext(ctxt))
+    if (!blockBase.AddNewForkContext(ctxt))
     {
         Log("AddNewForkContext Already Exists : %s \n", hashFork.ToString().c_str());
         return ERR_ALREADY_HAVE;
@@ -363,7 +363,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     uint256 hash = block.GetHash();
     Errno err = OK;
 
-    if (cntrBlock.Exists(hash))
+    if (blockBase.Exists(hash))
     {
         Log("AddNewBlock Already Exists : %s \n", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
@@ -377,7 +377,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     }
 
     CBlockIndex* pIndexPrev;
-    if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
+    if (!blockBase.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
         Log("AddNewBlock Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -393,7 +393,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     }
 
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
+    if (!blockBase.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
         Log("AddNewBlock Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -433,7 +433,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
             Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPoolCntrl->Exists(txid))
+        if (!pTxPoolCtrl->Exists(txid))
         {
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)
@@ -455,7 +455,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     }
 
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!blockBase.AddNew(hash, blockex, &pIndexNew))
     {
         Log("AddNewBlock Storage AddNew Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -468,14 +468,14 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     }
 
     CBlockIndex* pIndexFork = nullptr;
-    if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
+    if (blockBase.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
         return OK;
     }
 
-    if (!cntrBlock.CommitBlockView(view, pIndexNew))
+    if (!blockBase.CommitBlockView(view, pIndexNew))
     {
         Log("AddNewBlock Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -497,7 +497,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     uint256 hash = block.GetHash();
     Errno err = OK;
 
-    if (cntrBlock.Exists(hash))
+    if (blockBase.Exists(hash))
     {
         Log("AddNewOrigin Already Exists : %s \n", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
@@ -511,14 +511,14 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     }
 
     CBlockIndex* pIndexPrev;
-    if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
+    if (!blockBase.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
         Log("AddNewOrigin Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
     CProfile parent;
-    if (!cntrBlock.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
+    if (!blockBase.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
     {
         Log("AddNewOrigin Retrieve parent profile Error: %s \n", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -532,7 +532,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     }
 
     CBlockIndex* pIndexDuplicated;
-    if (cntrBlock.RetrieveFork(profile.strName, &pIndexDuplicated))
+    if (blockBase.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
         Log("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s\n",
             hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
@@ -543,7 +543,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
 
     if (profile.IsIsolated())
     {
-        if (!cntrBlock.GetBlockView(view))
+        if (!blockBase.GetBlockView(view))
         {
             Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
@@ -551,7 +551,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     }
     else
     {
-        if (!cntrBlock.GetBlockView(block.hashPrev, view, false))
+        if (!blockBase.GetBlockView(block.hashPrev, view, false))
         {
             Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
@@ -566,7 +566,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
 
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!blockBase.AddNew(hash, blockex, &pIndexNew))
     {
         Log("AddNewOrigin Storage AddNew Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -575,7 +575,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     Log("AddNew Origin Block : %s \n", hash.ToString().c_str());
     Log("    %s\n", pIndexNew->ToString().c_str());
 
-    if (!cntrBlock.CommitBlockView(view, pIndexNew))
+    if (!blockBase.CommitBlockView(view, pIndexNew))
     {
         Log("AddNewOrigin Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -591,7 +591,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
 bool CWorldLine::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
-    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
+    if (!blockBase.RetrieveIndex(hashPrev, &pIndexPrev))
     {
         Log("GetProofOfWorkTarget : Retrieve Prev Index Error: %s \n", hashPrev.ToString().c_str());
         return false;
@@ -612,7 +612,7 @@ bool CWorldLine::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& n
 bool CWorldLine::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
-    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
+    if (!blockBase.RetrieveIndex(hashPrev, &pIndexPrev))
     {
         Log("Get block reward: Retrieve Prev Index Error, hashPrev: %s\n", hashPrev.ToString().c_str());
         return false;
@@ -644,12 +644,12 @@ bool CWorldLine::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
 
 bool CWorldLine::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
 {
-    return cntrBlock.GetForkBlockLocator(hashFork, locator);
+    return blockBase.GetForkBlockLocator(hashFork, locator);
 }
 
 bool CWorldLine::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
-    return cntrBlock.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
+    return blockBase.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
 }
 
 bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
@@ -662,7 +662,7 @@ bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnr
     }
 
     CBlockIndex* pIndex;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    if (!blockBase.RetrieveIndex(hashBlock, &pIndex))
     {
         Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
         return false;
@@ -680,7 +680,7 @@ bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnr
         pIndex = pIndex->pPrev;
     }
 
-    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHash(), vBlockRange, nDelegateWeightRatio,
+    if (!blockBase.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHash(), vBlockRange, nDelegateWeightRatio,
                                          enrolled.mapWeight, enrolled.mapEnrollData))
     {
         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
@@ -702,7 +702,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
     }
 
     CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    if (!blockBase.RetrieveIndex(hashBlock, &pIndex))
     {
         Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
         return false;
@@ -715,7 +715,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
     }
 
     CBlock block;
-    if (!cntrBlock.Retrieve(pIndex, block))
+    if (!blockBase.Retrieve(pIndex, block))
     {
         Log("GetBlockDelegateAgreement : Retrieve block Error: %s \n", hashBlock.ToString().c_str());
         return false;
@@ -749,15 +749,15 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
 
 bool CWorldLine::CheckContainer()
 {
-    if (cntrBlock.IsEmpty())
+    if (blockBase.IsEmpty())
     {
         return true;
     }
-    if (!cntrBlock.Exists(pCoreProtocol->GetGenesisBlockHash()))
+    if (!blockBase.Exists(pCoreProtocol->GetGenesisBlockHash()))
     {
         return false;
     }
-    return cntrBlock.CheckConsistency(StorageConfig() ? StorageConfig()->nCheckLevel : 1,
+    return blockBase.CheckConsistency(StorageConfig() ? StorageConfig()->nCheckLevel : 1,
                                       StorageConfig() ? StorageConfig()->nCheckDepth : 1);
 }
 
@@ -768,7 +768,7 @@ bool CWorldLine::RebuildContainer()
 
 bool CWorldLine::InsertGenesisBlock(CBlock& block)
 {
-    return cntrBlock.Initiate(block.GetHash(), block);
+    return blockBase.Initiate(block.GetHash(), block);
 }
 
 Errno CWorldLine::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
@@ -795,7 +795,7 @@ Errno CWorldLine::GetTxContxt(storage::CBlockView& view, const CTransaction& tx,
 }
 
 bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
-                                 vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
+                                      vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {
     while (pIndexNew != pIndexFork)
     {
@@ -803,7 +803,7 @@ bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex
         if (pIndexNew->GetBlockTime() >= nLastBlockTime)
         {
             CBlockEx block;
-            if (!cntrBlock.Retrieve(pIndexNew, block))
+            if (!blockBase.Retrieve(pIndexNew, block))
             {
                 return false;
             }
@@ -813,7 +813,7 @@ bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex
         else
         {
             CBlockEx block;
-            if (!cntrBlock.Retrieve(pIndexFork, block))
+            if (!blockBase.Retrieve(pIndexFork, block))
             {
                 return false;
             }
@@ -825,7 +825,7 @@ bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex
 }
 
 bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                           CDelegateAgreement& agreement)
+                                                CDelegateAgreement& agreement)
 {
     agreement.Clear();
 
@@ -921,7 +921,7 @@ Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBl
         }
 
         CBlockIndex* pIndexRef = nullptr;
-        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
+        if (!blockBase.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
@@ -929,7 +929,7 @@ Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBl
         if (block.IsExtended())
         {
             CBlock blockPrev;
-            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
+            if (!blockBase.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
             {
                 return ERR_MISSING_PREV;
             }
@@ -1009,14 +1009,34 @@ Errno CWorldLineController::AddNewForkContext(const CTransaction& txFork, CForkC
     return AddNewForkContextIntoWorldLine(txFork, ctxt);
 }
 
-Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
+Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce)
 {
-    return AddNewBlockIntoWorldLine(block, update);
+    // TODO: Remove it when upgrade CDispatcher
+    Errno err = AddNewBlockIntoWorldLine(block, update);
+
+    auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->nNonce = nNonce;
+    spAddedBlockMsg->hashFork = update.hashFork;
+    spAddedBlockMsg->block = block;
+    spAddedBlockMsg->update = update;
+    PUBLISH_MESSAGE(spAddedBlockMsg);
+
+    return err;
 }
 
-Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
+Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce)
 {
-    return AddNewOriginIntoWorldLine(block, update);
+    // TODO: Remove it when upgrade CDispatcher
+    Errno err = AddNewOriginIntoWorldLine(block, update);
+
+    auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->nNonce = nNonce;
+    spAddedBlockMsg->hashFork = update.hashFork;
+    spAddedBlockMsg->block = block;
+    spAddedBlockMsg->update = update;
+    PUBLISH_MESSAGE(spAddedBlockMsg);
+
+    return err;
 }
 
 void CWorldLineController::GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)

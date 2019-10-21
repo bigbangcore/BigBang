@@ -248,8 +248,8 @@ protected:
 protected:
     network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;
-    IWorldLineController* pWorldLineCntrl;
-    ITxPoolController* pTxPoolCntrl;
+    IWorldLineController* pWorldLineCtrl;
+    ITxPoolController* pTxPoolCtrl;
     IDispatcher* pDispatcher;
     IService* pService;
     INetChannelModel* pNetChannelModel;

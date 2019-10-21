@@ -68,8 +68,8 @@ protected:
 
 protected:
     ICoreProtocol* pCoreProtocol;
-    ITxPoolController* pTxPoolCntrl;
-    storage::CBlockBase cntrBlock;
+    ITxPoolController* pTxPoolCtrl;
+    storage::CBlockBase blockBase;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 };
@@ -80,8 +80,8 @@ public:
     CWorldLineController();
     ~CWorldLineController();
     Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
-    Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) override;
-    Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) override;
+    Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) override;
+    Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) override;
 
 public:
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;

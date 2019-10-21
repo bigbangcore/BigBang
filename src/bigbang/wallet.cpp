@@ -143,8 +143,8 @@ protected:
 CWallet::CWallet()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 CWallet::~CWallet()
@@ -159,13 +159,13 @@ bool CWallet::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
     }
 
-    if (!GetObject("txpoolcontroller", pTxPoolCntrl))
+    if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         Error("Failed to request txpool\n");
         return false;
@@ -177,14 +177,15 @@ bool CWallet::HandleInitialize()
 void CWallet::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
-    pTxPoolCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
+    pTxPoolCtrl = nullptr;
 }
 
 bool CWallet::HandleInvoke()
 {
     if (!StartActor())
     {
+        Error("Failed to start actor\n");
         return false;
     }
 
@@ -699,7 +700,7 @@ bool CWallet::AddNewFork(const uint256& hashFork, const uint256& hashParent, int
     boost::unique_lock<boost::shared_mutex> wlock(rwWalletTx);
 
     CProfile profile;
-    if (!pWorldLineCntrl->GetForkProfile(hashFork, profile))
+    if (!pWorldLineCtrl->GetForkProfile(hashFork, profile))
     {
         return false;
     }
@@ -791,7 +792,7 @@ bool CWallet::SyncWalletTx(CTxFilter& txFilter)
             vFork.push_back((*mi).second);
         }
 
-        if (!pWorldLineCntrl->FilterTx(hashFork, txFilter) || !pTxPoolCntrl->FilterTx(hashFork, txFilter))
+        if (!pWorldLineCtrl->FilterTx(hashFork, txFilter) || !pTxPoolCtrl->FilterTx(hashFork, txFilter))
         {
             return false;
         }
@@ -817,7 +818,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
     }
 
     map<uint256, CForkStatus> mapForkStatus;
-    pWorldLineCntrl->GetForkStatus(mapForkStatus);
+    pWorldLineCtrl->GetForkStatus(mapForkStatus);
     for (const auto& it : mapForkStatus)
     {
         const auto& hashFork = it.first;
@@ -835,7 +836,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         CInspectWtxFilter filterPool(this, setAddr);
         for (const auto& it : vFork)
         {
-            if (!pTxPoolCntrl->FilterTx(it, filterPool)) //condition: fork/dest's
+            if (!pTxPoolCtrl->FilterTx(it, filterPool)) //condition: fork/dest's
             {
                 return false;
             }
@@ -845,7 +846,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         CInspectWtxFilter filterTx(this, setAddr);
         for (const auto& it : vFork)
         {
-            if (!pWorldLineCntrl->FilterTx(it, nDepth, filterTx)) //condition: fork/depth/dest's
+            if (!pWorldLineCtrl->FilterTx(it, nDepth, filterTx)) //condition: fork/depth/dest's
             {
                 return false;
             }
@@ -892,7 +893,7 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
     if (wtx.nBlockHeight < 0)
     { //compare wtx with txpool
         CTransaction tx;
-        if (!pTxPoolCntrl->Get(wtx.txid, tx))
+        if (!pTxPoolCtrl->Get(wtx.txid, tx))
         {
             return false;
         }
@@ -907,7 +908,7 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
     else
     { //compare wtx with vtx of block
         CTransaction tx;
-        if (!pWorldLineCntrl->GetTransaction(wtx.txid, tx))
+        if (!pWorldLineCtrl->GetTransaction(wtx.txid, tx))
         {
             return false;
         }
@@ -1298,7 +1299,7 @@ bool CWallet::UpdateFork()
     map<uint256, CForkStatus> mapForkStatus;
     multimap<uint256, pair<int, uint256>> mapSubline;
 
-    pWorldLineCntrl->GetForkStatus(mapForkStatus);
+    pWorldLineCtrl->GetForkStatus(mapForkStatus);
 
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
@@ -1307,7 +1308,7 @@ bool CWallet::UpdateFork()
         if (!mapFork.count(hashFork))
         {
             CProfile profile;
-            if (!pWorldLineCntrl->GetForkProfile(hashFork, profile))
+            if (!pWorldLineCtrl->GetForkProfile(hashFork, profile))
             {
                 return false;
             }

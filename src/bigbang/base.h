@@ -115,8 +115,8 @@ public:
 
     // TODO: remove these functions because of existed in IWorldLine
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
-    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update) = 0;
-    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update) = 0;
+    virtual Errno AddNewBlock(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) = 0;
+    virtual Errno AddNewOrigin(const CBlock& block, CWorldLineUpdate& update, uint64 nNonce) = 0;
 
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
     virtual bool GetForkProfile(const uint256& hashFork, CProfile& profile) = 0;
@@ -262,7 +262,7 @@ class IConsensus : public xengine::CIOActor
 {
 public:
     IConsensus()
-      : xengine::CIOActor("consensus") {}
+      : CIOActor("consensus") {}
     const CMintConfig* MintConfig()
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
@@ -276,11 +276,11 @@ public:
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
 };
 
-class IBlockMaker : public xengine::CEventProc
+class IBlockMaker : public xengine::CIOActor
 {
 public:
     IBlockMaker()
-      : CEventProc("blockmaker") {}
+      : CIOActor("blockmaker") {}
     const CMintConfig* MintConfig()
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
@@ -291,7 +291,7 @@ class IWallet : public xengine::CIOActor
 {
 public:
     IWallet()
-      : xengine::CIOActor("wallet") {}
+      : CIOActor("wallet") {}
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
@@ -351,7 +351,7 @@ class IService : public xengine::CIOActor
 {
 public:
     IService()
-      : xengine::CIOActor("service") {}
+      : CIOActor("service") {}
     /* Notify */
     virtual void NotifyWorldLineUpdate(const CWorldLineUpdate& update) = 0;
     virtual void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) = 0;

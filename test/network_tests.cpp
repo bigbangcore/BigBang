@@ -22,7 +22,8 @@
 #include "proto.h"
 #include "service.h"
 #include "test_big.h"
-#include "txpool.h"
+#include "txpool/txpool.h"
+#include "txpool/txpoolcontroller.h"
 #include "wallet.h"
 #include "worldline.h"
 
@@ -67,7 +68,7 @@ protected:
     }
 };
 
-class CDummyNetChannel : public CNetChannel
+class CDummyNetChannelController : public CNetChannelController
 {
 public:
     bool TestActiveNonce(uint64 nNonce)
@@ -173,7 +174,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestActiveNonce(nTestNonce));
+    BOOST_CHECK(pNetChannelCtrl->TestActiveNonce(nTestNonce));
 
     ///////////////////   Subscribe Test  //////////////////
 
@@ -190,7 +191,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestSubscribe(nTestNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannelCtrl->TestSubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Unsubscribe Test  //////////////////
 
@@ -202,7 +203,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestUnsubscribe(nTestNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannelCtrl->TestUnsubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Deactive Test  //////////////////
 
@@ -213,7 +214,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannel->TestDeactiveNonce(nTestNonce));
+    BOOST_CHECK(pNetChannelCtrl->TestDeactiveNonce(nTestNonce));
 
     docker.Exit();
 

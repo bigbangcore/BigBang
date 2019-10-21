@@ -32,11 +32,12 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nNonceGetWork = 1;
     nNonceSubmitWork = 2;
     nMinerStatus = -1;
+    pCoreProtocol = nullptr;
     pHttpGet = nullptr;
-    if (vArgsIn.size() >= 3)
+    if (vArgsIn.size() >= 2)
     {
-        strAddrSpent = vArgsIn[1];
-        strMintKey = vArgsIn[2];
+        strAddrSpent = vArgsIn[0];
+        strMintKey = vArgsIn[1];
     }
 }
 
@@ -46,6 +47,11 @@ CMiner::~CMiner()
 
 bool CMiner::HandleInitialize()
 {
+    if (!GetObject("coreprotocol", pCoreProtocol))
+    {
+        Error("Failed to request coreprotocol\n");
+        return false;
+    }
     if (!GetObject("httpget", pHttpGet))
     {
         cerr << "Failed to request httpget\n";
@@ -56,6 +62,7 @@ bool CMiner::HandleInitialize()
 
 void CMiner::HandleDeinitialize()
 {
+    pCoreProtocol = nullptr;
     pHttpGet = nullptr;
 }
 
@@ -343,18 +350,7 @@ uint256 CMiner::GetHashTarget(const CMinerWork& work, int64 nTime)
 {
     int64 nPrevTime = work.nPrevTime;
     int nBits = work.nBits;
-
-    if (nTime - nPrevTime < BLOCK_TARGET_SPACING)
-    {
-        return (nBits + 1);
-    }
-
-    nBits -= (nTime - nPrevTime - BLOCK_TARGET_SPACING) / PROOF_OF_WORK_DECAY_STEP;
-    if (nBits < 16)
-    {
-        nBits = 16;
-    }
-    return ((~uint256(uint64(0)) >> nBits));
+    return (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nPrevTime));
 }
 
 void CMiner::LaunchFetcher()

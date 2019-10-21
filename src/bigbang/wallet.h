@@ -187,8 +187,8 @@ protected:
 protected:
     storage::CWalletDB dbWallet;
     ICoreProtocol* pCoreProtocol;
-    IWorldLineController* pWorldLineCntrl;
-    ITxPoolController* pTxPoolCntrl;
+    IWorldLineController* pWorldLineCtrl;
+    ITxPoolController* pTxPoolCtrl;
     mutable boost::shared_mutex rwKeyStore;
     mutable boost::shared_mutex rwWalletTx;
     std::map<crypto::CPubKey, CWalletKeyStore> mapKeyStore;

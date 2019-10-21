@@ -49,77 +49,12 @@ public:
 };
 
 //////////////////////////////
-// CTxPoolView
-void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, vector<uint256>& vInvolvedTx)
-{
-    vector<CTxOutPoint> vOutPoint;
-    vOutPoint.push_back(out);
-    for (std::size_t i = 0; i < vOutPoint.size(); i++)
-    {
-        uint256 txidNextTx;
-        if (GetSpent(vOutPoint[i], txidNextTx))
-        {
-            CPooledTx* pNextTx = nullptr;
-            if ((pNextTx = Get(txidNextTx)) != nullptr)
-            {
-                for (const CTxIn& txin : pNextTx->vInput)
-                {
-                    SetUnspent(txin.prevout);
-                }
-                CTxOutPoint out0(txidNextTx, 0);
-                if (IsSpent(out0))
-                {
-                    vOutPoint.push_back(out0);
-                }
-                else
-                {
-                    mapSpent.erase(out0);
-                }
-                CTxOutPoint out1(txidNextTx, 1);
-                if (IsSpent(out1))
-                {
-                    vOutPoint.push_back(out1);
-                }
-                else
-                {
-                    mapSpent.erase(out1);
-                }
-                setTxLinkIndex.erase(txidNextTx);
-                vInvolvedTx.push_back(txidNextTx);
-            }
-        }
-    }
-}
-
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize) const
-{
-    size_t nTotalSize = 0;
-    nTotalTxFee = 0;
-
-    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    CPooledTxLinkSetBySequenceNumber::const_iterator it = idxTxLinkSeq.begin();
-    for (; it != idxTxLinkSeq.end(); ++it)
-    {
-        if ((*it).ptx && (*it).ptx->GetTxTime() <= nBlockTime)
-        {
-            if (nTotalSize + (*it).ptx->nSerializeSize > nMaxSize)
-            {
-                break;
-            }
-            vtx.push_back(*static_cast<CTransaction*>((*it).ptx));
-            nTotalSize += (*it).ptx->nSerializeSize;
-            nTotalTxFee += (*it).ptx->nTxFee;
-        }
-    }
-}
-
-//////////////////////////////
 // CTxPool
 
 CTxPool::CTxPool()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
     nLastSequenceNumber = 0;
 }
 
@@ -140,7 +75,7 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("worldlinecontroller", pWorldLineCntrl))
+    if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
         Error("Failed to request worldline\n");
         return false;
@@ -152,7 +87,7 @@ bool CTxPool::HandleInitialize()
 void CTxPool::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pWorldLineCntrl = nullptr;
+    pWorldLineCtrl = nullptr;
 
     ITxPool::HandleDeinitialize();
 }
@@ -230,7 +165,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     }
 
     int nHeight;
-    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return ERR_TRANSACTION_INVALID;
     }
@@ -267,7 +202,7 @@ void CTxPool::Pop(const uint256& txid)
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
-    if (!pWorldLineCntrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
         return;
     }
@@ -348,7 +283,7 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter) const
 }
 
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
-                             vector<CTransaction>& vtx, int64& nTotalTxFee) const
+                                  vector<CTransaction>& vtx, int64& nTotalTxFee) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);
@@ -380,7 +315,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
     }
 
-    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
+    if (!pWorldLineCtrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
     {
         return false;
     }
@@ -567,7 +502,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
     }
 
-    if (!pWorldLineCntrl->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
+    if (!pWorldLineCtrl->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
         return ERR_SYS_STORAGE_ERROR;
     }
@@ -594,168 +529,6 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     txView.AddNew(txid, (*mi).second);
 
     return OK;
-}
-
-//////////////////////////////
-// CTxPoolController
-
-CTxPoolController::CTxPoolController()
-{
-}
-
-CTxPoolController::~CTxPoolController()
-{
-}
-
-bool CTxPoolController::HandleInitialize()
-{
-    if (!ITxPoolController::HandleInitialize())
-    {
-        return false;
-    }
-
-    if (!GetObject("txpool", pTxPool))
-    {
-        Error("Failed to request txpool\n");
-        return false;
-    }
-
-    RegisterRefHandler<CAddTxMessage>(boost::bind(&CTxPoolController::HandleAddTx, this, _1));
-    RegisterRefHandler<CRemoveTxMessage>(boost::bind(&CTxPoolController::HandleRemoveTx, this, _1));
-    RegisterRefHandler<CClearTxMessage>(boost::bind(&CTxPoolController::HandleClearTx, this, _1));
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CTxPoolController::HandleAddedBlock, this, _1));
-
-    return true;
-}
-
-void CTxPoolController::HandleDeinitialize()
-{
-    DeregisterHandler(CAddTxMessage::MessageType());
-    DeregisterHandler(CRemoveTxMessage::MessageType());
-    DeregisterHandler(CClearTxMessage::MessageType());
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-
-    pTxPool = nullptr;
-
-    ITxPoolController::HandleDeinitialize();
-}
-
-bool CTxPoolController::HandleInvoke()
-{
-    if (!StartActor())
-    {
-        return false;
-    }
-
-    return true;
-}
-
-void CTxPoolController::HandleHalt()
-{
-    StopActor();
-
-    ClearTxPool();
-}
-
-bool CTxPoolController::Exists(const uint256& txid)
-{
-    return pTxPool->Exists(txid);
-}
-
-void CTxPoolController::Clear()
-{
-    ClearTxPool();
-}
-
-size_t CTxPoolController::Count(const uint256& fork) const
-{
-    return pTxPool->Count(fork);
-}
-
-Errno CTxPoolController::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
-{
-    return PushIntoTxPool(tx, hashFork, destIn, nValueIn);
-}
-
-void CTxPoolController::Pop(const uint256& txid)
-{
-    return PopFromTxPool(txid);
-}
-
-bool CTxPoolController::Get(const uint256& txid, CTransaction& tx) const
-{
-    return pTxPool->Get(txid, tx);
-}
-
-void CTxPoolController::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
-{
-    pTxPool->ListTx(hashFork, vTxPool);
-}
-
-void CTxPoolController::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
-{
-    pTxPool->ListTx(hashFork, vTxPool);
-}
-
-bool CTxPoolController::FilterTx(const uint256& hashFork, CTxFilter& filter)
-{
-    return pTxPool->FilterTx(hashFork, filter);
-}
-
-void CTxPoolController::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
-                                       vector<CTransaction>& vtx, int64& nTotalTxFee)
-{
-    pTxPool->ArrangeBlockTx(hashFork, nBlockTime, nMaxSize, vtx, nTotalTxFee);
-}
-
-bool CTxPoolController::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
-{
-    return pTxPool->FetchInputs(hashFork, tx, vUnspent);
-}
-
-bool CTxPoolController::SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change)
-{
-    return SynchronizeWorldLineWithTxPool(update, change);
-}
-
-void CTxPoolController::HandleAddTx(const CAddTxMessage& msg)
-{
-    auto spAddedMsg = CAddedTxMessage::Create();
-
-    Push(msg.tx, spAddedMsg->hashFork, spAddedMsg->destIn, spAddedMsg->nValueIn);
-
-    PUBLISH_MESSAGE(spAddedMsg);
-}
-
-void CTxPoolController::HandleRemoveTx(const CRemoveTxMessage& msg)
-{
-    auto& txId = msg.txId;
-    Pop(txId);
-}
-
-void CTxPoolController::HandleClearTx(const CClearTxMessage& msg)
-{
-    if (msg.hashFork == 0)
-    {
-        ClearTxPool();
-    }
-    else
-    {
-        // TODO: remove one fork tx;
-    }
-}
-
-void CTxPoolController::HandleAddedBlock(const CAddedBlockMessage& msg)
-{
-    auto& update = msg.update;
-
-    auto spSyncMsg = CSyncTxChangeMessage::Create();
-    spSyncMsg->hashFork = msg.hashFork;
-    auto& change = spSyncMsg->change;
-
-    SynchronizeWorldLineWithTxPool(update, change);
-
-    PUBLISH_MESSAGE(spSyncMsg);
 }
 
 } // namespace bigbang

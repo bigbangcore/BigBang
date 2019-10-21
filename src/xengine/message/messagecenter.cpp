@@ -6,8 +6,8 @@
 
 #include <memory>
 
-#include "message/actor.h"
 #include "logger.h"
+#include "message/actor.h"
 
 namespace xengine
 {
