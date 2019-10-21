@@ -31,7 +31,6 @@ public:
     virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                    const CDelegateAgreement& agreement) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
-    virtual int GetProofOfWorkRunTimeBits(int nBits, int64 nTime, int64 nPrevTime) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
     virtual bool CheckFirstPow(int nBlockHeight) override;
     virtual bool CheckSpecialHeight(int nBlockHeight) override;

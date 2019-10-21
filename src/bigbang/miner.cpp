@@ -338,24 +338,6 @@ void CMiner::CancelRPC()
     }
 }
 
-uint256 CMiner::GetHashTarget(const CMinerWork& work, int64 nTime)
-{
-    int64 nPrevTime = work.nPrevTime;
-    int nBits = work.nBits;
-
-    if (nTime - nPrevTime < BLOCK_TARGET_SPACING)
-    {
-        return (nBits + 1);
-    }
-
-    nBits -= (nTime - nPrevTime - BLOCK_TARGET_SPACING) / PROOF_OF_WORK_DECAY_STEP;
-    if (nBits < 16)
-    {
-        nBits = 16;
-    }
-    return ((~uint256(uint64(0)) >> nBits));
-}
-
 void CMiner::LaunchFetcher()
 {
     while (nMinerStatus != MINER_EXIT)
@@ -408,14 +390,13 @@ void CMiner::LaunchMiner()
         if (work.nAlgo == CM_CRYPTONIGHT)
         {
             cout << "Get cryptonight work,prev block hash : " << work.hashPrev.GetHex() << "\n";
-            uint256 hashTarget = GetHashTarget(work, nTime);
+            uint256 hashTarget = (~uint256(uint64(0)) >> work.nBits);
             while (nMinerStatus == MINER_RUN)
             {
                 int64 t = GetTime();
                 if (t > nTime)
                 {
                     nTime = t;
-                    hashTarget = GetHashTarget(work, t);
                 }
                 for (int i = 0; i < 100 * 1024; i++, nNonce++)
                 {

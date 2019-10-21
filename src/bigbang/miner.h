@@ -66,7 +66,6 @@ protected:
     bool GetWork();
     bool SubmitWork(const std::vector<unsigned char>& vchWorkData);
     void CancelRPC();
-    uint256 GetHashTarget(const CMinerWork& work, int64 nTime);
 
 private:
     enum
