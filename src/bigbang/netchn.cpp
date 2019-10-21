@@ -825,8 +825,8 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
         vector<uint256> vTxHash;
         for (const network::CInv& inv : invMsg.vecInv)
         {
-            if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCntrl->Exists(inv.nHash))
-                || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCntrl->Exists(inv.nHash)))
+            if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
+                || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCtrl->Exists(inv.nHash)))
             {
                 pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
                 if (inv.nType == network::CInv::MSG_TX)
@@ -1181,7 +1181,7 @@ void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txi
         CTransaction* pTx = pNetChannelModel->GetScheduleTransaction(hashFork, hashTx, nNonceSender);
         if (pTx)
         {
-            if (pWorldLineCntrl->ExistsTx(vTxChain[i]))
+            if (pWorldLineCtrl->ExistsTx(vTxChain[i]))
             {
                 pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vTxChain);
                 pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
@@ -1287,7 +1287,7 @@ bool CNetChannelController::PushTxInv(const uint256& hashFork)
 
     bool fCompleted = true;
     vector<uint256> vTxPool;
-    pTxPoolCntrl->ListTx(hashFork, vTxPool);
+    pTxPoolCtrl->ListTx(hashFork, vTxPool);
     if (!vTxPool.empty() && !pNetChannelModel->IsPeerEmpty())
     {
         std::vector<INetChannelModel::MakeTxInvResultPair> vResult;
