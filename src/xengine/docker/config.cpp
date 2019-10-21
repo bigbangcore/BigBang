@@ -56,8 +56,6 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
         po::notify(vm);
         pathRoot = strRoot;
         pathConfile = strConfig;
-        if (!STD_DEBUG)
-            STD_DEBUG = fDebug;
 
         if (fHelp)
         {

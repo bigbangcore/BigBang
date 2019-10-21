@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
+    InitLog(dataPath.c_str(), true, false, false);
     xengine::CLog log;
 
     BOOST_CHECK(docker.Initialize(pCfg, &log));
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
+    InitLog(dataPath.c_str(), true, false, false);
     xengine::CLog log;
 
     BOOST_CHECK(docker.Initialize(pCfg, &log));
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
+    InitLog(dataPath.c_str(), true, false, false);
     xengine::CLog log;
 
     BOOST_CHECK(docker.Initialize(pCfg, &log));

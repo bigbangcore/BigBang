@@ -36,9 +36,9 @@
             "name": "nLogLevel",
             "type": "int",
             "opt": "loglevel",
-            "default": 1,
+            "default": 2,
             "format": "-loglevel",
-            "desc": "Set log level (default: 1. 0-DEBUG, 1-INFO, 2-WARNING, 3-ERROR)"
+            "desc": "Set log level (default: 2(INFO). 0-TRACE, 1-DEBUG, 2-INFO, 3-WARNING, 4-ERROR)"
         }
     ],
     "CForkConfigOption": [

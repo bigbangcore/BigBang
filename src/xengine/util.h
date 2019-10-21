@@ -60,13 +60,6 @@ inline std::string GetUniversalTime()
     return ss.str();
 }
 
-inline std::string PulsFileLine(const char* file, int line, const char* info)
-{
-    std::stringstream ss;
-    ss << file << "(" << line << ") " << info;
-    return ss.str();
-}
-
 class CTicks
 {
 public:
@@ -236,6 +229,8 @@ inline std::size_t ParseHexString(const std::string& str, unsigned char* p, std:
 {
     return ParseHexString(str.c_str(), p, n);
 }
+
+std::string FormatString(const char* pszFormat, ...);
 
 #ifdef __GNUG__
 #include <cxxabi.h>

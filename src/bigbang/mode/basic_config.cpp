@@ -35,7 +35,7 @@ bool CBasicConfig::PostLoad()
     }
     nMagicNum = fTestNet ? TESTNET_MAGICNUM : MAINNET_MAGICNUM;
 
-    if (nLogLevel < xengine::severity_level::DEBUG || nLogLevel > xengine::severity_level::ERROR)
+    if (nLogLevel < xengine::severity_level::TRACE || nLogLevel > xengine::severity_level::ERROR)
     {
         nLogLevel = xengine::severity_level::INFO;
     }
