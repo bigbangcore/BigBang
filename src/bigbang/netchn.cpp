@@ -680,8 +680,8 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
         }
         if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data, nDepth, MAX_GETBLOCKS_COUNT - 1) && !eventGetBlocks.data.vBlockHash.empty())
         {
-            Log("DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s.\n",
-                nLocatorInvHeight, hashInvBlock.GetHex().c_str());
+            Log("DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s, hashFork: %s.\n",
+                nLocatorInvHeight, hashInvBlock.GetHex().c_str(), hashFork.GetHex().c_str());
             pPeerNet->DispatchEvent(&eventGetBlocks);
         }
         sched.SetLocatorDepth(nNonce, nDepth);
@@ -770,14 +770,33 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
         CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
         if (pBlock != nullptr)
         {
+            if (!pBlock->IsPrimary() && !pBlock->IsVacant())
+            {
+                CProofOfPiggyback proof;
+                proof.Load(pBlock->vchProof);
+
+                uint256 hashForkRef;
+                int nHeightRef;
+                if (!pBlockChain->GetBlockLocation(proof.hashRefBlock, hashForkRef, nHeightRef))
+                {
+                    Log("NetChannel get ref block fail, peer: %s, block: %s, fork: %s, refblock: %s\n",
+                        GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(),
+                        hashFork.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str());
+
+                    set<uint64> setKnownPeer;
+                    sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+                    setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+                    return;
+                }
+            }
+
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
             {
                 if (Config()->fDebug)
                 {
-                    string strRemoteAddress;
-                    GetPeerAddressInfo(nNonceSender, strRemoteAddress);
-                    Log("NetChannel AddNewBlock success, remote: %s, block: %s\n", strRemoteAddress.c_str(), hashBlock.GetHex().c_str());
+                    Log("NetChannel AddNewBlock success, peer: %s, block: %s\n",
+                        GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
                 }
 
                 for (const CTransaction& tx : pBlock->vtx)
@@ -801,9 +820,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             }
             else
             {
-                string strRemoteAddress;
-                GetPeerAddressInfo(nNonceSender, strRemoteAddress);
-                Log("NetChannel AddNewBlock fail, remote: %s, block: %s, err: [%d] %s\n", strRemoteAddress.c_str(), hashBlock.GetHex().c_str(), err, ErrorString(err));
+                Log("NetChannel AddNewBlock fail, peer: %s, block: %s, err: [%d] %s\n",
+                    GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateBlock(hashBlock, setMisbehavePeer);
             }
         }
@@ -835,9 +853,8 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             {
                 if (Config()->fDebug)
                 {
-                    string strRemoteAddress;
-                    GetPeerAddressInfo(nNonceSender, strRemoteAddress);
-                    Log("NetChannel AddNewTx success, remote: %s, txid: %s\n", strRemoteAddress.c_str(), txid.GetHex().c_str());
+                    Log("NetChannel AddNewTx success, peer: %s, txid: %s\n",
+                        GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
                 }
 
                 sched.GetNextTx(hashTx, vtx, setTx);
@@ -847,9 +864,8 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             }
             else if (err != ERR_MISSING_PREV)
             {
-                string strRemoteAddress;
-                GetPeerAddressInfo(nNonceSender, strRemoteAddress);
-                Log("NetChannel AddNewTx fail, remote: %s, txid: %s, err: [%d] %s\n", strRemoteAddress.c_str(), txid.GetHex().c_str(), err, ErrorString(err));
+                Log("NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s\n",
+                    GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateTx(hashTx, setMisbehavePeer);
             }
         }
@@ -965,20 +981,17 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
     return fCompleted;
 }
 
-void CNetChannel::GetPeerAddressInfo(uint64 nNonce, string& strAddrInfo)
+const string CNetChannel::GetPeerAddressInfo(uint64 nNonce)
 {
-    boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+    boost::shared_lock<boost::shared_mutex> wlock(rwNetPeer);
     CNetChannelPeer& peer = mapPeer[nNonce];
     boost::asio::ip::tcp::endpoint ep;
     peer.addressRemote.ssEndpoint.GetEndpoint(ep);
     if (ep.address().is_v6())
     {
-        strAddrInfo = "[" + ep.address().to_string() + "]:" + to_string(ep.port());
+        return string("[") + ep.address().to_string() + "]:" + to_string(ep.port());
     }
-    else
-    {
-        strAddrInfo = ep.address().to_string() + ":" + to_string(ep.port());
-    }
+    return ep.address().to_string() + ":" + to_string(ep.port());
 }
 
 } // namespace bigbang

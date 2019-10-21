@@ -122,7 +122,7 @@ protected:
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
-    void GetPeerAddressInfo(uint64 nNonce, string& strAddrInfo);
+    const string GetPeerAddressInfo(uint64 nNonce);
 
 protected:
     network::CBbPeerNet* pPeerNet;
