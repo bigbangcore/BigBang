@@ -527,7 +527,6 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
 bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo)
 {
-    const int64 nTimePrev = block.nTimeStamp - BLOCK_TARGET_SPACING;
     block.nTimeStamp -= 25;
     if (GetNetTime() > block.nTimeStamp)
     {
@@ -547,9 +546,9 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 
     int64& nHashRate = pHashAlgo->nHashRate;
 
+    uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
     while (!Interrupted())
     {
-        uint256 hashTarget = (~uint256(uint64(0)) >> pCoreProtocol->GetProofOfWorkRunTimeBits(nBits, nTime, nTimePrev));
         if (nHashRate == 0)
             nHashRate = 1;
         for (int i = 0; i < nHashRate; i++)
