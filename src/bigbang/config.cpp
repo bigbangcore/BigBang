@@ -52,7 +52,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     {
         emMode = EModeType::SERVER;
     }
-    else if (exec == "bigbang-miner" || cmd == "miner")
+    else if (exec == "bigbang-miner")
     {
         emMode = EModeType::MINER;
     }
