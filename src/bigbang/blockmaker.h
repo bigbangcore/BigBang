@@ -81,17 +81,17 @@ protected:
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
     bool DispatchBlock(CBlock& block);
     bool CreateProofOfWorkBlock(CBlock& block);
-    void ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight);
-    void ProcessExtended(const CDelegateAgreement& agreement, const uint256& hashPrimaryBlock,
-                         int64 nPrimaryBlockTime, const int32 nPrimaryBlockHeight);
-    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, std::size_t nWeight);
+    // void ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight);
+    // void ProcessExtended(const CDelegateAgreement& agreement, const uint256& hashPrimaryBlock,
+    //                      int64 nPrimaryBlockTime, const int32 nPrimaryBlockHeight);
+    // bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, std::size_t nWeight);
     bool CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo);
-    void CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                         const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight);
-    void CreateExtended(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                        const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
-    bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
-    bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
+    // void CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+    //                      const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight);
+    // void CreateExtended(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+    //                     const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
+    // bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
+    // bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
     void Test();
 
 private:
@@ -103,12 +103,12 @@ private:
         MAKER_HOLD = 3
     };
     void BlockMakerThreadFunc();
-    void ExtendedMakerThreadFunc();
+    // void ExtendedMakerThreadFunc();
 
 protected:
     mutable boost::shared_mutex rwAccess;
     xengine::CThread thrMaker;
-    xengine::CThread thrExtendedMaker;
+    // xengine::CThread thrExtendedMaker;
     boost::mutex mutex;
     boost::condition_variable cond;
     int nMakerStatus;
@@ -120,13 +120,13 @@ protected:
     CDelegateAgreement currentAgreement;
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
-    std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
+    // std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IForkManager* pForkManager;
     ITxPool* pTxPool;
     IDispatcher* pDispatcher;
-    IConsensus* pConsensus;
+    // IConsensus* pConsensus;
 };
 
 } // namespace bigbang

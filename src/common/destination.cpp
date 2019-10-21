@@ -6,7 +6,7 @@
 
 #include "block.h"
 #include "key.h"
-#include "template/exchange.h"
+// #include "template/exchange.h"
 #include "template/mint.h"
 #include "template/template.h"
 #include "transaction.h"
@@ -159,12 +159,12 @@ bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnc
 bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                      const std::vector<uint8>& vchSig, int nForkHeight, const uint256& fork) const
 {
-    if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
-    {
-        std::shared_ptr<CTemplateExchange> sp = std::make_shared<CTemplateExchange>(vchSig);
-        return sp->VerifySignature(hash, vchSig, nForkHeight, fork);
-    }
-    else
+    // if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
+    // {
+    //     std::shared_ptr<CTemplateExchange> sp = std::make_shared<CTemplateExchange>(vchSig);
+    //     return sp->VerifySignature(hash, vchSig, nForkHeight, fork);
+    // }
+    // else
     {
         bool fCompleted = false;
         return VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted) && fCompleted;
