@@ -55,7 +55,7 @@ class CTestNetCoreProtocol : public CCoreProtocol
 {
 public:
     CTestNetCoreProtocol();
-    void GetGenesisBlock(CBlock& block) override;
+    void GetGenesisBlock(CBlock& block) const override;
 };
 
 } // namespace bigbang

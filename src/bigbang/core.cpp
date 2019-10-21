@@ -672,7 +672,7 @@ Secret : ab14e1de9a0e805df0c79d50e1b065304814a247e7d52fc51fd0782e0eec27d6
 PubKey : 310be18f947a56f92541adbad67374facad61ab814c53fa5541488bea62fb47d
 Secret : 14e1abd0802f7065b55f5076d0d2cfbea159abd540a977e8d3afd4b3061bf47f
 */
-void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
+void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block) const
 {
     const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("ff2d3a109b53b4dc0b01f5a373bd88c3ed569afb2e76ab076a269ce9f90d008e")));
 
