@@ -458,6 +458,12 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    // v1.0 function
+    if (!tx.vchData.empty())
+    {
+        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
+    }
+
     vector<uint8> vchSig;
     if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
@@ -505,6 +511,12 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    // v1.0 function
+    if (!tx.vchData.empty())
+    {
+        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
     }
 
     // record destIn in vchSig
