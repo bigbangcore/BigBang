@@ -40,6 +40,10 @@
 #include "common/int-util.h"
 #include "warnings.h"
 
+#ifdef __CYGWIN__
+#define MAP_HUGETLB 0x40000
+#endif
+
 static inline void* padd(void* p, size_t i)
 {
     return (char*)p + i;

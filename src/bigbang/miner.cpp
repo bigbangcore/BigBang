@@ -403,7 +403,7 @@ void CMiner::LaunchMiner()
         }
 
         uint32& nTime = *((uint32*)&work.vchWorkData[4]);
-        uint256& nNonce = *(uint256*)&work.vchWorkData[work.vchWorkData.size() - sizeof(uint256)];
+        uint64_t& nNonce = *(uint64_t*)&work.vchWorkData[work.vchWorkData.size() - sizeof(uint64_t)];
 
         if (work.nAlgo == CM_CRYPTONIGHT)
         {
@@ -417,7 +417,7 @@ void CMiner::LaunchMiner()
                     nTime = t;
                     hashTarget = GetHashTarget(work, t);
                 }
-                for (int i = 0; i < 100 * 1024; i++, nNonce += 256)
+                for (int i = 0; i < 100 * 1024; i++, nNonce++)
                 {
                     uint256 hash = crypto::CryptoPowHash(&work.vchWorkData[0], work.vchWorkData.size());
                     if (hash <= hashTarget)

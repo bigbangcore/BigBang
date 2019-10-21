@@ -542,7 +542,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     block.GetSerializedProofOfWorkData(vchProofOfWork);
 
     uint32& nTime = *((uint32*)&vchProofOfWork[4]);
-    uint256& nNonce = *((uint256*)&vchProofOfWork[vchProofOfWork.size() - sizeof(uint256)]);
+    uint64_t& nNonce = *((uint64_t*)&vchProofOfWork[vchProofOfWork.size() - sizeof(uint64_t)]);
 
     int64& nHashRate = pHashAlgo->nHashRate;
 
@@ -564,7 +564,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                     pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
-            nNonce += 256;
+            nNonce++;
         }
 
         int64 nNetTime = GetNetTime();
