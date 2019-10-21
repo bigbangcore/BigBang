@@ -206,7 +206,7 @@ CTransaction* CSchedule::GetTransaction(const uint256& txid, uint64& nNonceSende
     map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_TX, txid));
     if (it != mapState.end())
     {
-        const CInvState& state = (*it).second;
+        CInvState& state = (*it).second;
         if (state.IsReceived())
         {
             nNonceSender = state.nAssigned;

@@ -123,6 +123,8 @@ public:
     virtual CTransaction* GetScheduleTransaction(const uint256& hashFork, const uint256& txid, uint64& nNonceSender) = 0;
     virtual void GetScheduleNextTx(const uint256& hashFork, const uint256& txid, std::vector<uint256>& vNextTx) = 0;
     virtual void RemoveScheduleInv(const uint256& hashFork, const network::CInv& inv, std::set<uint64>& setSchedPeer) = 0;
+    virtual CBlock* GetScheduleBlock(const uint256& hashFork, const uint256& hashBlock, uint64& nNonceSender) = 0;
+    virtual void GetScheduleNextBlock(const uint256& hashFork, const uint256& hashBlock, vector<uint256>& vNextBlock) = 0;
 };
 
 class CNetChannel : public INetChannelModel
@@ -165,6 +167,8 @@ public:
     CTransaction* GetScheduleTransaction(const uint256& hashFork, const uint256& txid, uint64& nNonceSender) override;
     void GetScheduleNextTx(const uint256& hashFork, const uint256& txid, std::vector<uint256>& vNextTx) override;
     void RemoveScheduleInv(const uint256& hashFork, const network::CInv& inv, std::set<uint64>& setSchedPeer) override;
+    CBlock* GetScheduleBlock(const uint256& hashFork, const uint256& hashBlock, uint64& nNonceSender) override;
+    void GetScheduleNextBlock(const uint256& hashFork, const uint256& hashBlock, vector<uint256>& vNextBlock) override;
 
 protected:
     enum
