@@ -139,7 +139,7 @@ public:
     bool AddNewForkSchedule(const uint256& hashFork) override;
     bool RemoveForkSchudule(const uint256& hashFork) override;
     bool AddNewInvSchedule(uint64 nNonce, const uint256& hashFork, const network::CInv& inv) override;
-    std::vector<uint256> GetAllForks() const;
+    std::vector<uint256> GetAllForks() const override;
     bool IsForkSynchronized(const uint256& hashFork) const override;
     bool GetKnownPeers(const uint256& hashFork, const uint256& hashBlock, std::set<uint64>& setKnownPeers) const override;
     std::map<uint64, CNetChannelControllerPeer> GetAllPeers() const override;
