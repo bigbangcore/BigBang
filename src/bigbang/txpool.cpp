@@ -279,7 +279,7 @@ bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
 void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
         CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
@@ -293,11 +293,11 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTx
 void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
-        for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+        const CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
+        for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
             vTxPool.push_back((*mi).hashTX);
         }
@@ -308,14 +308,14 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it == mapPoolView.end())
     {
         return true;
     }
 
-    CPooledTxLinkSetByTxHash& idxTx = (*it).second.setTxLinkIndex.get<0>();
-    for (CPooledTxLinkSetByTxHash::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+    const CPooledTxLinkSetByTxHash& idxTx = (*it).second.setTxLinkIndex.get<0>();
+    for (CPooledTxLinkSetByTxHash::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
     {
         if ((*mi).ptx && (filter.setDest.count((*mi).ptx->sendTo) || filter.setDest.count((*mi).ptx->destIn)))
         {
