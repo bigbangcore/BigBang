@@ -497,6 +497,7 @@ bool CTxPool::LoadData()
     vector<pair<uint256, pair<uint256, CAssembledTx>>> vTx;
     if (!datTxPool.Load(vTx))
     {
+        StdTrace("[TxPool][TRACE]", "Load Data failed");
         return false;
     }
 
@@ -545,6 +546,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
+            StdTrace("[TxPool][TRACE]", "TX conflicting input, prevout %s spent", tx.vInput[i].prevout.hash.ToString());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
@@ -552,6 +554,8 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
 
     if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
+        StdTrace("[TxPool][TRACE]", "storage error, hashFork: %s, txid: %s", hashFork.ToString().c_str(),
+                 txid.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -560,6 +564,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (vPrevOutput[i].IsNull())
         {
+            StdTrace("[TxPool][TRACE]", "PrevOutPut: %s is null", vPrevOutput[i].ToString());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         nValueIn += vPrevOutput[i].nAmount;
