@@ -546,7 +546,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
-            StdTrace("[TxPool][TRACE]", "TX conflicting input, prevout %s spent", tx.vInput[i].prevout.hash.ToString());
+            StdTrace("[TxPool][TRACE]", "TX conflicting input, prevout %s spent", tx.vInput[i].prevout.hash.ToString().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
@@ -564,7 +564,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (vPrevOutput[i].IsNull())
         {
-            StdTrace("[TxPool][TRACE]", "PrevOutPut: %s is null", vPrevOutput[i].ToString());
+            StdTrace("[TxPool][TRACE]", "PrevOutPut: %s is null", vPrevOutput[i].ToString().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         nValueIn += vPrevOutput[i].nAmount;

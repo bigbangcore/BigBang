@@ -8,6 +8,7 @@
 #include <cstdio>
 
 #include "template/template.h"
+#include "util.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -392,12 +393,14 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
 {
     if (Exists(hash))
     {
+        StdTrace("[BlockBase][TRACE]", "Exist Block: %s", hash.ToString().c_str());
         return false;
     }
 
     uint32 nFile, nOffset;
     if (!tsBlock.Write(block, nFile, nOffset))
     {
+        StdTrace("[BlockBase][TRACE]", "Write block %s failed", hash.ToString().c_str());
         return false;
     }
     {
@@ -406,11 +409,13 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset);
         if (pIndexNew == nullptr)
         {
+            StdTrace("[BlockBase][TRACE]", "AddNewIndex faild: %s", hash.ToString().c_str());
             return false;
         }
 
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
+            StdTrace("[BlockBase][TRACE]", "AddNewBlock failed: %s", hash.ToString().c_str());
             mapIndex.erase(hash);
             delete pIndexNew;
             return false;
@@ -420,6 +425,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         {
             if (!UpdateDelegate(hash, block, CDiskPos(nFile, nOffset)))
             {
+                StdTrace("[BlockBase][TRACE]", "UpdateDElegate failed: %s", hash.ToString().c_str());
                 dbBlock.RemoveBlock(hash);
                 mapIndex.erase(hash);
                 delete pIndexNew;
@@ -455,6 +461,7 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
 
         if (!(pIndex = GetIndex(hash)))
         {
+
             return false;
         }
     }
@@ -574,6 +581,7 @@ bool CBlockBase::RetrieveAncestry(const uint256& hash, vector<pair<uint256, uint
     CForkContext ctxt;
     if (!dbBlock.RetrieveForkContext(hash, ctxt))
     {
+        StdTrace("[BlockBase][TRACE]", "Ancestry Retrieve hashFork %s failed", hash.ToString().c_str());
         return false;
     }
 
