@@ -10,6 +10,7 @@
 // #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/proof.h"
+#include "util.h"
 
 using namespace std;
 using namespace xengine;
@@ -343,6 +344,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.find(nConsensus);
     if (it == mapWorkProfile.end())
     {
+        StdTrace("[blockmaker]", "did not find Work profile");
         return false;
     }
 
@@ -354,6 +356,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     int64 nReward;
     if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
+        StdTrace("[blockmaker]", "Get PoW Target failed");
         return false;
     }
 
@@ -373,6 +376,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
     if (!CreateProofOfWork(block, mapHashAlgo[profile.nAlgo]))
     {
+        StdTrace("[blockmaker]", "Create PoW Block failed");
         return false;
     }
 
@@ -653,6 +657,9 @@ void CBlockMaker::BlockMakerThreadFunc()
         nPrimaryBlockHeight = nLastBlockHeight;
     }
 
+    StdTrace("[blockmaker]", "hashLastBlock: %s, LastBlockTime: %d, \n LastBlockHeight: %d",
+             hashLastBlock.ToString().c_str(), nLastBlockTime, nLastBlockHeight);
+
     for (;;)
     {
         CDelegateAgreement agree;
@@ -730,6 +737,14 @@ void CBlockMaker::BlockMakerThreadFunc()
                         nNextStatus = MAKER_RESET;
                     }
                 }
+                else
+                {
+                    StdTrace("[blockmaker]", "Create PoW Block failed.");
+                }
+            }
+            else
+            {
+                StdTrace("[blockmaker]", "agree is  not PoW");
             }
             // else
             // {
