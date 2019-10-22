@@ -279,10 +279,10 @@ bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
 void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
+        const CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
         for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
             vTxPool.push_back(make_pair((*mi).hashTX, (*mi).ptx->nSerializeSize));
@@ -293,11 +293,11 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTx
 void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
-        for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+        const CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
+        for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
             vTxPool.push_back((*mi).hashTX);
         }
@@ -308,14 +308,14 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
-    map<uint256, CTxPoolView>::iterator it = mapPoolView.find(hashFork);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it == mapPoolView.end())
     {
         return true;
     }
 
-    CPooledTxLinkSetByTxHash& idxTx = (*it).second.setTxLinkIndex.get<0>();
-    for (CPooledTxLinkSetByTxHash::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+    const CPooledTxLinkSetByTxHash& idxTx = (*it).second.setTxLinkIndex.get<0>();
+    for (CPooledTxLinkSetByTxHash::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
     {
         if ((*mi).ptx && (filter.setDest.count((*mi).ptx->sendTo) || filter.setDest.count((*mi).ptx->destIn)))
         {
@@ -497,6 +497,7 @@ bool CTxPool::LoadData()
     vector<pair<uint256, pair<uint256, CAssembledTx>>> vTx;
     if (!datTxPool.Load(vTx))
     {
+        StdTrace("[TxPool][TRACE]", "Load Data failed");
         return false;
     }
 
@@ -545,6 +546,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
+            StdTrace("[TxPool][TRACE]", "TX conflicting input, prevout %s spent", tx.vInput[i].prevout.hash.ToString().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
@@ -552,6 +554,8 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
 
     if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
+        StdTrace("[TxPool][TRACE]", "storage error, hashFork: %s, txid: %s", hashFork.ToString().c_str(),
+                 txid.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -560,6 +564,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (vPrevOutput[i].IsNull())
         {
+            StdTrace("[TxPool][TRACE]", "PrevOutPut: %s is null", vPrevOutput[i].ToString().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         nValueIn += vPrevOutput[i].nAmount;
