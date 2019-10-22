@@ -25,7 +25,6 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "git_version.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -44,6 +43,8 @@
 using namespace std;
 using namespace xengine;
 using namespace boost::filesystem;
+
+const char* GetGitVersion();
 
 namespace bigbang
 {
@@ -84,8 +85,8 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     // version
     if (config.GetConfig()->fVersion)
     {
-        cout << "Bigbang version is v" << VERSION_STR <<  endl;
-        printf("git commit id is: %s\n",GIT_VERSION);
+        cout << "Bigbang version is v" << VERSION_STR << endl;
+        printf("git commit id is: %s\n", GetGitVersion());
         return false;
     }
 

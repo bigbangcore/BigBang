@@ -10,6 +10,7 @@
 #include <iostream>
 #include <numeric>
 
+#include "git_version.h"
 #include "rpc/rpc_error.h"
 #include "util.h"
 
@@ -17,6 +18,11 @@ using namespace xengine;
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
+
+const char* GetGitVersion()
+{
+    return GIT_VERSION;
+}
 
 namespace bigbang
 {
