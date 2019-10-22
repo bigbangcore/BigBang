@@ -282,7 +282,7 @@ void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTx
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
+        const CPooledTxLinkSetBySequenceNumber& idxTx = (*it).second.setTxLinkIndex.get<1>();
         for (CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
         {
             vTxPool.push_back(make_pair((*mi).hashTX, (*mi).ptx->nSerializeSize));
