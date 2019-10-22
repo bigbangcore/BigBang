@@ -907,7 +907,8 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             }
             else
             {
-                return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+                // return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
         }
     }
