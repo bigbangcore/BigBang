@@ -85,7 +85,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetConfig()->fVersion)
     {
         cout << "Bigbang version is v" << VERSION_STR <<  endl;
-        printf("git commit id is: %08x\n",GIT_VERSION);
+        printf("git commit id is: %s\n",GIT_VERSION);
         return false;
     }
 
