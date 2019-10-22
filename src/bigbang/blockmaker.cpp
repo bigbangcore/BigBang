@@ -317,6 +317,7 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
     vector<unsigned char> vchMintSig;
     if (!profile.keyMint.Sign(hashSig, vchMintSig))
     {
+        StdTrace("[blockmaker][TRACE]", "keyMint Sign failed. hashSig: %s", hashSig.ToString().c_str());
         return false;
     }
     return profile.templMint->BuildBlockSignature(hashSig, vchMintSig, block.vchSig);
@@ -327,6 +328,7 @@ bool CBlockMaker::DispatchBlock(CBlock& block)
     int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
+        StdTrace("[blockmaker][TRACE]", "Wait failed nWait: %d", nWait);
         return false;
     }
     Errno err = pDispatcher->AddNewBlock(block);
@@ -344,7 +346,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.find(nConsensus);
     if (it == mapWorkProfile.end())
     {
-        StdTrace("[blockmaker]", "did not find Work profile");
+        StdTrace("[blockmaker][TRACE]", "did not find Work profile");
         return false;
     }
 
@@ -356,7 +358,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     int64 nReward;
     if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
-        StdTrace("[blockmaker]", "Get PoW Target failed");
+        StdTrace("[blockmaker][TRACE]", "Get PoW Target failed");
         return false;
     }
 
@@ -376,7 +378,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
     if (!CreateProofOfWork(block, mapHashAlgo[profile.nAlgo]))
     {
-        StdTrace("[blockmaker]", "Create PoW Block failed");
+        StdTrace("[blockmaker][TRACE]", "Create PoW Block failed");
         return false;
     }
 
@@ -657,7 +659,7 @@ void CBlockMaker::BlockMakerThreadFunc()
         nPrimaryBlockHeight = nLastBlockHeight;
     }
 
-    StdTrace("[blockmaker]", "hashLastBlock: %s, LastBlockTime: %d, \n LastBlockHeight: %d",
+    StdTrace("[blockmaker][TRACE]", "hashLastBlock: %s, LastBlockTime: %d, \n LastBlockHeight: %d",
              hashLastBlock.ToString().c_str(), nLastBlockTime, nLastBlockHeight);
 
     for (;;)
@@ -739,12 +741,12 @@ void CBlockMaker::BlockMakerThreadFunc()
                 }
                 else
                 {
-                    StdTrace("[blockmaker]", "Create PoW Block failed.");
+                    StdTrace("[blockmaker][TRACE]", "Create PoW Block failed.");
                 }
             }
             else
             {
-                StdTrace("[blockmaker]", "agree is  not PoW");
+                StdTrace("[blockmaker][TRACE]", "agree is  not PoW");
             }
             // else
             // {
