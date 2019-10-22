@@ -577,6 +577,13 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         return true;
     }
 
+    // special height, fixed difficulty
+    if (CheckSpecialHeight(pIndexPrev->GetBlockHeight()))
+    {
+        nBits = nProofOfWorkInit;
+        return true;
+    }
+
     nBits = pIndex->nProofBits;
     int64 nSpacing = 0;
     int64 nWeight = 0;
