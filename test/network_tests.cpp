@@ -68,7 +68,7 @@ protected:
     }
 };
 
-class CDummyNetChannelController : public CNetChannelController
+class CDummyNetChannel : public CNetChannel
 {
 public:
     bool TestActiveNonce(uint64 nNonce)
@@ -157,8 +157,9 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
-    auto pNetChannelCtrl = new CDummyNetChannelController();
-    BOOST_CHECK(docker.Attach(pNetChannelCtrl));
+    BOOST_CHECK(docker.Attach(new CNetChannelController()));
+    auto pNetChannel = new CDummyNetChannel();
+    BOOST_CHECK(docker.Attach(pNetChannel));
 
     BOOST_CHECK(docker.Run());
 
@@ -173,7 +174,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannelCtrl->TestActiveNonce(nTestNonce));
+    BOOST_CHECK(pNetChannel->TestActiveNonce(nTestNonce));
 
     ///////////////////   Subscribe Test  //////////////////
 
@@ -190,7 +191,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannelCtrl->TestSubscribe(nTestNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannel->TestSubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Unsubscribe Test  //////////////////
 
@@ -202,7 +203,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannelCtrl->TestUnsubscribe(nTestNonce, uint256("testfork")));
+    BOOST_CHECK(pNetChannel->TestUnsubscribe(nTestNonce, uint256("testfork")));
 
     ///////////////////   Deactive Test  //////////////////
 
@@ -213,7 +214,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BOOST_CHECK(pNetChannelCtrl->TestDeactiveNonce(nTestNonce));
+    BOOST_CHECK(pNetChannel->TestDeactiveNonce(nTestNonce));
 
     docker.Exit();
 
@@ -289,6 +290,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannel()));
     BOOST_CHECK(docker.Attach(new CNetChannelController()));
     auto pDelegatedChannel = new CDummyDelegatedChannel();
     BOOST_CHECK(docker.Attach(pDelegatedChannel));
@@ -370,6 +372,7 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
     BOOST_CHECK(docker.Attach(new CDispatcher()));
+    BOOST_CHECK(docker.Attach(new CNetChannel()));
     BOOST_CHECK(docker.Attach(new CNetChannelController()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
 

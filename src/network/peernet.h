@@ -21,7 +21,6 @@ class INetChannelController : public xengine::CIOActor
 public:
     INetChannelController()
       : xengine::CIOActor("netchannelcontroller") {}
-    virtual bool IsForkSynchronized(const uint256& hashFork) const = 0;
 };
 
 class IDelegatedChannel : public xengine::CIOActor

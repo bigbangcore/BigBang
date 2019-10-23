@@ -15,8 +15,8 @@ class CCoreProtocol : public ICoreProtocol
 public:
     CCoreProtocol();
     virtual ~CCoreProtocol();
-    virtual const uint256& GetGenesisBlockHash() override;
-    virtual void GetGenesisBlock(CBlock& block) override;
+    virtual const uint256& GetGenesisBlockHash() const override;
+    virtual void GetGenesisBlock(CBlock& block) const override;
     virtual Errno ValidateTransaction(const CTransaction& tx) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
@@ -55,7 +55,7 @@ class CTestNetCoreProtocol : public CCoreProtocol
 {
 public:
     CTestNetCoreProtocol();
-    void GetGenesisBlock(CBlock& block) override;
+    void GetGenesisBlock(CBlock& block) const override;
 };
 
 } // namespace bigbang
