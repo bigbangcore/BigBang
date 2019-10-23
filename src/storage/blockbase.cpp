@@ -311,7 +311,7 @@ void CBlockBase::Clear()
     ClearCache();
 }
 
-bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis)
+bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust)
 {
     if (!IsEmpty())
     {
@@ -334,7 +334,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
 
     {
         CWriteLock wlock(rwAccess);
-        CBlockIndex* pIndexNew = AddNewIndex(hashGenesis, blockGenesis, nFile, nOffset);
+        CBlockIndex* pIndexNew = AddNewIndex(hashGenesis, blockGenesis, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
             return false;
@@ -389,7 +389,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     return true;
 }
 
-bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew)
+bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust)
 {
     if (Exists(hash))
     {
@@ -406,7 +406,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     {
         CWriteLock wlock(rwAccess);
 
-        CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset);
+        CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
             StdTrace("[BlockBase][TRACE]", "AddNewIndex faild: %s", hash.ToString().c_str());
@@ -1602,7 +1602,7 @@ CBlockIndex* CBlockBase::GetOriginIndex(const uint256& txidMint) const
     return nullptr;
 }
 
-CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset)
+CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust)
 {
     CBlockIndex* pIndexNew = new CBlockIndex(block, nFile, nOffset);
     if (pIndexNew != nullptr)
@@ -1611,7 +1611,6 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         pIndexNew->phashBlock = &((*mi).first);
 
         int64 nMoneySupply = block.GetBlockMint();
-        uint64 nChainTrust = block.GetBlockTrust();
         uint64 nRandBeacon = block.GetBlockBeacon();
         CBlockIndex* pIndexPrev = nullptr;
         map<uint256, CBlockIndex*>::iterator miPrev = mapIndex.find(block.hashPrev);

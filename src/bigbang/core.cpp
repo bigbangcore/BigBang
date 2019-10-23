@@ -17,7 +17,8 @@ using namespace xengine;
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
-static const int PROOF_OF_WORK_BITS_LIMIT = 8;
+static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
+static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
 static const int PROOF_OF_WORK_BITS_INIT = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
@@ -89,7 +90,8 @@ namespace bigbang
 
 CCoreProtocol::CCoreProtocol()
 {
-    nProofOfWorkLimit = PROOF_OF_WORK_BITS_LIMIT;
+    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
+    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
@@ -556,6 +558,51 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
+uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement)
+{
+    if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
+    {
+        return uint64(0);
+    }
+    else if (block.IsProofOfWork())
+    {
+        // PoW difficulty = 2 ^ nBits
+        CProofOfHashWorkCompact proof;
+        proof.Load(block.vchProof);
+        return 1 << proof.nBits;
+    }
+    else
+    {
+        // Get the last PoW block nAlgo
+        int nAlgo;
+        const CBlockIndex* pIndex = pIndexPrev;
+        while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+        {
+            pIndex = pIndex->pPrev;
+        }
+        if (!pIndex->IsProofOfWork())
+        {
+            nAlgo = CM_CRYPTONIGHT;
+        }
+        else
+        {
+            nAlgo = pIndex->nProofAlgo;
+        }
+
+        // DPoS difficulty = weight * (2 ^ nBits) 
+        int nBits;
+        int64 nReward;
+        if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
+        {
+            return uint256(uint64(agreement.nWeight)) << nBits;
+        }
+        else
+        {
+            return uint64(0);
+        }
+    }
+}
+
 bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward)
 {
     if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
@@ -603,11 +650,11 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLimit)
+    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
     {
         nBits--;
     }
-    else if (nSpacing < nProofOfWorkLowerTarget)
+    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
     {
         nBits++;
     }

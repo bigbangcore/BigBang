@@ -62,8 +62,9 @@ protected:
     bool GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                          std::vector<CBlockEx>& vBlockAddNew, std::vector<CBlockEx>& vBlockRemove);
     // bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                //    CDelegateAgreement& agreement);
-    Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward);
+    //    CDelegateAgreement& agreement);
+    Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
+                      int64& nReward, CDelegateAgreement& agreement);
 
 protected:
     boost::shared_mutex rwAccess;

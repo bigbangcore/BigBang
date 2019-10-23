@@ -106,35 +106,6 @@ public:
         }
         return 0;
     }
-    uint64 GetBlockTrust() const
-    {
-        if (IsVacant())
-        {
-            return 0;
-        }
-        else if (vchProof.empty())
-        {
-            return 1;
-        }
-        else if (IsProofOfWork())
-        {
-            CProofOfHashWorkCompact proof;
-            proof.Load(vchProof);
-            if (proof.nBits > 10)
-            {
-                return proof.nBits - 10;
-            }
-            else
-            {
-                return 1;
-            }
-        }
-        else
-        {
-            return (uint64)vchProof[0] + 255;
-        }
-        return 0;
-    }
     int64 GetBlockMint(int64 nValueIn) const
     {
         return (txMint.nAmount - nValueIn);
@@ -246,7 +217,7 @@ public:
     uint32 nTimeStamp;
     uint32 nHeight;
     uint64 nRandBeacon;
-    uint64 nChainTrust;
+    uint256 nChainTrust;
     int64 nMoneySupply;
     uint8 nProofAlgo;
     uint8 nProofBits;
@@ -266,7 +237,7 @@ public:
         nType = 0;
         nTimeStamp = 0;
         nHeight = 0;
-        nChainTrust = 0;
+        nChainTrust = uint64(0);
         nRandBeacon = 0;
         nMoneySupply = 0;
         nProofAlgo = 0;
@@ -286,7 +257,7 @@ public:
         nType = block.nType;
         nTimeStamp = block.nTimeStamp;
         nHeight = 0;
-        nChainTrust = 0;
+        nChainTrust = uint64(0);
         nMoneySupply = 0;
         nRandBeacon = 0;
         if (IsProofOfWork() && block.vchProof.size() >= CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
@@ -380,7 +351,8 @@ public:
             << " prev=" << (pPrev ? pPrev->GetBlockHash().ToString() : "nullptr")
             << " height=" << nHeight
             << " type=" << GetBlockType()
-            << " time=" << nTimeStamp;
+            << " time=" << nTimeStamp
+            << " trust=" << nChainTrust.ToString();
         return oss.str();
     }
 };

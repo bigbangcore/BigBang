@@ -383,8 +383,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     int64 nReward;
-
-    err = VerifyBlock(hash, block, pIndexPrev, nReward);
+    CDelegateAgreement agreement;
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement);
     if (err != OK)
     {
         Log("AddNewBlock Verify Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
@@ -451,8 +451,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
+    // Get block trust
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
     {
         Log("AddNewBlock Storage AddNew Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -562,10 +565,12 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
+    // Get block trust
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
-
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
     {
         Log("AddNewOrigin Storage AddNew Error : %s \n", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -586,6 +591,24 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     return OK;
 }
+
+    // uint320 GetBlockTrust() const
+    // {
+    //     if (IsVacant() && vchProof.empty())
+    //     {
+    //         return uint320();
+    //     }
+    //     else if (IsProofOfWork())
+    //     {
+    //         CProofOfHashWorkCompact proof;
+    //         proof.Load(vchProof);
+    //         return uint320(0, (~uint256(uint64(0)) << proof.nBits));
+    //     }
+    //     else
+    //     {
+    //         return uint320((uint64)vchProof[0], uint256(uint64(0)));
+    //     }
+    // }
 
 bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
 {
@@ -766,7 +789,8 @@ bool CBlockChain::RebuildContainer()
 
 bool CBlockChain::InsertGenesisBlock(CBlock& block)
 {
-    return cntrBlock.Initiate(block.GetHash(), block);
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block);
+    return cntrBlock.Initiate(block.GetHash(), block, nChainTrust);
 }
 
 Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
@@ -861,7 +885,8 @@ bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockInde
 //     return true;
 // }
 
-Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward)
+Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, 
+                               int64& nReward, CDelegateAgreement& agreement)
 {
     nReward = 0;
     if (block.IsOrigin())
@@ -876,7 +901,6 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_INVALID_FORK;
         }
 
-        CDelegateAgreement agreement;
         // if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement))
         // {
         //     return ERR_BLOCK_PROOF_OF_STAKE_INVALID;

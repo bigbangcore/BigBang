@@ -217,8 +217,8 @@ public:
     bool IsEmpty() const;
     bool Exists(const uint256& hash) const;
     bool ExistsTx(const uint256& txid);
-    bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis);
-    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew);
+    bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
+    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
@@ -258,7 +258,7 @@ protected:
     CBlockIndex* GetOrCreateIndex(const uint256& hash);
     CBlockIndex* GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, std::vector<CBlockIndex*>& vPath);
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
-    CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset);
+    CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
     boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);
