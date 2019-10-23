@@ -168,7 +168,7 @@ bool CBbPeerNet::HandleEvent(CEventPeerPublish& eventPublish)
 
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 {
-    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT);
+    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT, "CreatePeer");
     CBbPeer* pPeer = new CBbPeer(this, pClient, nNonce, fInBound, nMagicNum, nTimerId);
     if (pPeer == nullptr)
     {
@@ -267,7 +267,8 @@ void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
             if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_PUBLISH)
             {
                 nElapse += nTimeout[inv.nType];
-                uint32 nTimerId = SetTimer(nNonce, nElapse);
+                string strFunc = string("InvTimer: nNonce: ") + to_string(nNonce) + ", Inv: [" + to_string(inv.nType) + "] " + inv.nHash.GetHex();
+                uint32 nTimerId = SetTimer(nNonce, nElapse, strFunc);
                 CancelTimer(pBbPeer->Request(inv, nTimerId));
             }
         }
@@ -635,7 +636,7 @@ uint32 CBbPeerNet::SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse
     {
         CancelTimer(nOldTimerId);
     }
-    return SetTimer(nNonce, nElapse);
+    return SetTimer(nNonce, nElapse, "PingTimer");
 }
 
 uint32 CBbPeerNet::CreateSeq(uint64 nNonce)

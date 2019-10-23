@@ -335,7 +335,7 @@ int CHttpGet::ActivateConn(CIOClient* pClient, CEventHttpGet& eventGet)
         return HTTPGET_ACTIVATE_FAILED;
     }
 
-    uint32 nTimerId = httpReqData.nTimeout > 0 ? SetTimer(nNonce, httpReqData.nTimeout) : 0;
+    uint32 nTimerId = httpReqData.nTimeout > 0 ? SetTimer(nNonce, httpReqData.nTimeout, "CHttpGet ActivateConn") : 0;
     mapGetClient.insert(make_pair(nNonce, pGetClient));
 
     pGetClient->Activate(httpReqData, nTimerId);
@@ -343,7 +343,7 @@ int CHttpGet::ActivateConn(CIOClient* pClient, CEventHttpGet& eventGet)
     return HTTPGET_OK;
 }
 
-void CHttpGet::Timeout(uint64 nNonce, uint32 nTimerId)
+void CHttpGet::Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn)
 {
     for (multimap<uint64, CHttpGetClient*>::iterator it = mapGetClient.lower_bound(nNonce);
          it != mapGetClient.upper_bound(nNonce); ++it)
@@ -398,7 +398,7 @@ bool CHttpGet::HandleEvent(CEventHttpGet& eventGet)
         {
             if (pGetClient->IsIdle())
             {
-                uint32 nTimerId = httpReqData.nTimeout > 0 ? SetTimer(nNonce, httpReqData.nTimeout) : 0;
+                uint32 nTimerId = httpReqData.nTimeout > 0 ? SetTimer(nNonce, httpReqData.nTimeout, "CHttpGet eventGet") : 0;
                 pGetClient->Activate(httpReqData, nTimerId);
             }
             else

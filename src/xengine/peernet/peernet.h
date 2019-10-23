@@ -59,7 +59,7 @@ protected:
     void EnterLoop() override;
     void LeaveLoop() override;
     void HeartBeat() override;
-    void Timeout(uint64 nNonce, uint32 nTimerId) override;
+    void Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn) override;
     std::size_t GetMaxOutBoundCount() override;
     bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause) override;
     bool ClientConnected(CIOClient* pClient) override;

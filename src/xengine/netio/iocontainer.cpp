@@ -307,7 +307,7 @@ bool CIOOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout)
         return false;
     }
 
-    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout);
+    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout, "CIOOutBound ConnectTo");
     pClient->Connect(epRemote, boost::bind(&CIOOutBound::HandleConnect, this,
                                            pClient, epRemote, nTimerId, _1));
 
@@ -497,7 +497,7 @@ bool CIOSSLOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout, co
         return false;
     }
 
-    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout);
+    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout, "CIOSSLOutBound ConnectTo");
     pClient->Connect(epRemote, boost::bind(&CIOSSLOutBound::HandleConnect, this,
                                            pClient, epRemote, nTimerId, _1));
     setInuseClient.insert(pClient);
