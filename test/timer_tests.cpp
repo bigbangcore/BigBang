@@ -98,7 +98,6 @@ public:
 protected:
     void HandlerMessageA(const CTimeoutMessageA& msg)
     {
-        cout << "wocalei" << endl;
         CTimeoutMessageA::HandledTimeA = boost::get_system_time();
     }
     void HandlerMessageB(const CTimeoutMessageB& msg)
