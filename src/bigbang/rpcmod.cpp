@@ -779,6 +779,16 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     data.nHeight = height;
     int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
     data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth);
+    if (block.IsProofOfWork())
+    {
+        CProofOfHashWorkCompact proof;
+        proof.Load(block.vchProof);
+        data.nBits = proof.nBits;
+    }
+    else
+    {
+        data.nBits = 0;
+    }
     for (const CTransaction& tx : block.vtx)
     {
         data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth));

@@ -479,6 +479,10 @@
                 "type": "uint",
                 "desc": "block time"
             },
+            "bits": {
+                "type": "uint",
+                "desc": "nBits"
+            },
             "prev": {
                 "type": "string",
                 "desc": "previous block hash",
