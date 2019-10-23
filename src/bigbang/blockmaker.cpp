@@ -378,7 +378,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
     if (!CreateProofOfWork(block, mapHashAlgo[profile.nAlgo]))
     {
-        StdTrace("[blockmaker][TRACE]", "Create PoW Block failed");
+        StdTrace("[blockmaker][TRACE]", "Create PoW failed");
         return false;
     }
 
