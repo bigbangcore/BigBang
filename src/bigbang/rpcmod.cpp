@@ -2,6 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "rpcmod.h"
+
 #include "json/json_spirit_reader_template.h"
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
@@ -11,7 +13,6 @@
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
-#include "rpcmod.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -1490,7 +1491,13 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
                                                           + ErrorString(err));
     }
-
+    std::stringstream ss;
+    for (auto& obj : txNew.vInput)
+    {
+        ss << (int)obj.prevout.n << ":" << obj.prevout.hash.GetHex().c_str() << ";";
+    }
+    std::cout << ss.str();
+    StdDebug("[SendFrom][DEBUG]", "txNew hash:%s; input:%s", txNew.GetHash().GetHex().c_str(), ss.str().c_str());
     return MakeCSendFromResultPtr(txNew.GetHash().GetHex());
 }
 
