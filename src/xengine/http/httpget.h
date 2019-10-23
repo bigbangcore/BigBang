@@ -75,7 +75,7 @@ protected:
     void HostFailToResolve(const CNetHost& host) override;
     bool ClientConnected(CIOClient* pClient) override;
     void ClientFailToConnect(const boost::asio::ip::tcp::endpoint& epRemote) override;
-    void Timeout(uint64 nNonce, uint32 nTimerId) override;
+    void Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn) override;
     int ActivateConn(CIOClient* pClient, CEventHttpGet& eventGet);
     bool PostResponse(const std::string& strIOModule, CEventHttpGetRsp* pEventResp);
     void PostError(const CEventHttpGet& eventGet, int nErrCode);

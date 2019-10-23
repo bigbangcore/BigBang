@@ -23,11 +23,12 @@ namespace xengine
 class CIOTimer
 {
 public:
-    CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, int64 nExpiryAtIn);
+    CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, const std::string& strFunctionIn, int64 nExpiryAtIn);
 
 public:
     uint32 nTimerId;
     uint64 nNonce;
+    std::string strFunction;
     int64 nExpiryAt;
 };
 
@@ -66,7 +67,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    uint32 SetTimer(uint64 nNonce, int64 nElapse);
+    uint32 SetTimer(uint64 nNonce, int64 nElapse, const std::string& strFunctionIn);
     void CancelTimer(uint32 nTimerId);
     void CancelClientTimers(uint64 nNonce);
 
@@ -82,7 +83,7 @@ protected:
     virtual void EnterLoop();
     virtual void LeaveLoop();
     virtual void HeartBeat();
-    virtual void Timeout(uint64 nNonce, uint32 nTimerId);
+    virtual void Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn);
     virtual std::size_t GetMaxOutBoundCount();
     virtual bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause);
     virtual bool ClientConnected(CIOClient* pClient);

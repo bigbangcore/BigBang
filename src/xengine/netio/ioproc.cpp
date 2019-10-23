@@ -18,8 +18,8 @@ namespace xengine
 ///////////////////////////////
 // CIOTimer
 
-CIOTimer::CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, int64 nExpiryAtIn)
-  : nTimerId(nTimerIdIn), nNonce(nNonceIn), nExpiryAt(nExpiryAtIn)
+CIOTimer::CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, const std::string& strFunctionIn, int64 nExpiryAtIn)
+  : nTimerId(nTimerIdIn), nNonce(nNonceIn), strFunction(strFunctionIn), nExpiryAt(nExpiryAtIn)
 {
 }
 
@@ -154,7 +154,7 @@ void CIOProc::HandleHalt()
     mapService.clear();
 }
 
-uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)
+uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse, const std::string& strFunctionIn)
 {
     static uint32 nTimerId = 0;
     while (nTimerId == 0 || mapTimerById.count(nTimerId))
@@ -162,7 +162,7 @@ uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)
         nTimerId++;
     }
     map<uint32, CIOTimer>::iterator it;
-    it = mapTimerById.insert(make_pair(nTimerId, CIOTimer(nTimerId, nNonce, GetTime() + nElapse))).first;
+    it = mapTimerById.insert(make_pair(nTimerId, CIOTimer(nTimerId, nNonce, strFunctionIn, GetTime() + nElapse))).first;
     CIOTimer* pTimer = &(*it).second;
     mapTimerByExpiry.insert(make_pair(pTimer->nExpiryAt, nTimerId));
 
@@ -273,7 +273,7 @@ void CIOProc::HeartBeat()
 {
 }
 
-void CIOProc::Timeout(uint64 nNonce, uint32 nTimerId)
+void CIOProc::Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn)
 {
 }
 
@@ -366,7 +366,7 @@ void CIOProc::IOProcPollTimer()
             }
             else
             {
-                Timeout(nNonce, nTimerId);
+                Timeout(nNonce, nTimerId, (*it).second.strFunction);
             }
         }
     }

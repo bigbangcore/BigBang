@@ -114,7 +114,7 @@ void CPeerNet::HeartBeat()
     }
 }
 
-void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId)
+void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn)
 {
     CPeer* pPeer = GetPeer(nNonce);
     if (pPeer != nullptr)
@@ -123,6 +123,7 @@ void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId)
         {
             return;
         }
+        StdDebug("PeerNet", "Timeout: %s", strFunctionIn.c_str());
         RemovePeer(pPeer, CEndpointManager::RESPONSE_FAILURE);
     }
 }

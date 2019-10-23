@@ -801,7 +801,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
             {
-                StdDebug("NetChannel", "NetChannel AddNewBlock success, peer: %s, block: %s\n",
+                StdDebug("NetChannel", "NetChannel AddNewBlock success, peer: %s, block: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
 
                 for (const CTransaction& tx : pBlock->vtx)
@@ -863,7 +863,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
-                StdDebug("NetChannel", "NetChannel AddNewTx success, peer: %s, txid: %s\n",
+                StdDebug("NetChannel", "NetChannel AddNewTx success, peer: %s, txid: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
 
                 sched.GetNextTx(hashTx, vtx, setTx);
