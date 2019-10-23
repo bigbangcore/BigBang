@@ -17,7 +17,8 @@ using namespace xengine;
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
-static const int PROOF_OF_WORK_BITS_LIMIT = 8;
+static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
+static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
 static const int PROOF_OF_WORK_BITS_INIT = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
@@ -89,7 +90,8 @@ namespace bigbang
 
 CCoreProtocol::CCoreProtocol()
 {
-    nProofOfWorkLimit = PROOF_OF_WORK_BITS_LIMIT;
+    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
+    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
@@ -648,11 +650,11 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLimit)
+    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
     {
         nBits--;
     }
-    else if (nSpacing < nProofOfWorkLowerTarget)
+    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
     {
         nBits++;
     }

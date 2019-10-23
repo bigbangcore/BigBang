@@ -47,7 +47,8 @@ protected:
 
 protected:
     uint256 hashGenesisBlock;
-    int nProofOfWorkLimit;
+    int nProofOfWorkLowerLimit;
+    int nProofOfWorkUpperLimit;
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
