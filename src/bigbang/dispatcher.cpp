@@ -291,17 +291,17 @@ bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest,
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
-    // if (!strCmd.empty())
-    // {
-    //     std::string cmd = strCmd;
-    //     std::string block_hash = updateBlockChain.hashFork.GetHex();
-    //     for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
-    //     {
-    //         block_hash += " " + ite->GetHash().GetHex();
-    //     }
-    //     boost::replace_all(cmd, "%s", block_hash);
-    //     std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
-    // }
+    if (!strCmd.empty())
+     {
+         std::string cmd = strCmd;
+         std::string block_hash = updateBlockChain.hashFork.GetHex();
+         for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
+         {
+             block_hash += " " + ite->GetHash().GetHex();
+         }
+         boost::replace_all(cmd, "%s", block_hash);
+         std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+     }
     // CDelegateRoutine routineDelegate;
     // pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     // pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
