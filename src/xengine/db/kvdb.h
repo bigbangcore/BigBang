@@ -165,7 +165,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Read error: %s", e.what());
         }
 
         return false;
@@ -192,7 +192,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Write error: %s", e.what());
         }
 
         return false;
@@ -218,7 +218,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Erase error: %s", e.what());
         }
 
         return false;
@@ -249,7 +249,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Walk all error: %s", e.what());
         }
 
         return false;
@@ -280,7 +280,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Walk by walker error: %s", e.what());
         }
 
         return false;
@@ -315,7 +315,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CKVDB", "Walk by walker from specific position error: %s", e.what());
         }
 
         return false;

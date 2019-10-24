@@ -174,7 +174,7 @@ void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
             }
             catch (exception& e)
             {
-                ErrorLog(__PRETTY_FUNCTION__, e.what());
+                LOG_ERROR("CMPSecretShare", "Enroll error: %s", e.what());
             }
         }
     }

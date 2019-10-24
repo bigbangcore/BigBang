@@ -80,9 +80,9 @@ std::string FormatString(const char* pszFormat, ...)
         str.resize(size);
         va_start(ap, pszFormat);
         len = vsnprintf(const_cast<char*>(str.data()), size, pszFormat, ap);
+        va_end(ap);
     } while ((len < 0 || len >= size) && (size *= 2));
 
-    va_end(ap);
     return str.substr(0, len + 1);
 }
 

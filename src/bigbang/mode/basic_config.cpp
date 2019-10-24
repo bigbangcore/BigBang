@@ -4,8 +4,8 @@
 
 #include "mode/basic_config.h"
 
-#include "mode/config_macro.h"
 #include "logger.h"
+#include "mode/config_macro.h"
 
 namespace bigbang
 {

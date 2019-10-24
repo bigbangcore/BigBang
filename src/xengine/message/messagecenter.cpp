@@ -65,7 +65,7 @@ void CMessageCenter::Unsubscribe(const uint32 nType, CIOActor* pActor)
 
 const std::shared_ptr<CMessage> CMessageCenter::Publish(std::shared_ptr<CMessage>&& spMessage)
 {
-    // DebugLog("message-center", "Publish tag {%s} message to center\n", spMessage->Tag().c_str());
+    // LOG_TRACE("message-center", "Publish tag (%s) message to center", spMessage->Tag().c_str());
     ++nSize;
     return queue.Push(std::move(spMessage));
 }
@@ -97,7 +97,7 @@ void CMessageCenter::DistributionThreadFunc()
                 auto it = mapMessage.find(spMessage->Type());
                 if (it != mapMessage.end() && !it->second.empty())
                 {
-                    // DebugLog("message-center", "Dispatch tag {%s} message to actors, number is {%d}\n", spMessage->Tag().c_str(), it->second.size());
+                    // LOG_TRACE("message-center", "Dispatch tag (%s) message to actors, number is (%d)", spMessage->Tag().c_str(), it->second.size());
                     for (auto& pActor : it->second)
                     {
                         pActor->Publish(spMessage);

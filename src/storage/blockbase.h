@@ -208,6 +208,7 @@ protected:
 class CBlockBase
 {
     friend class CBlockView;
+    LOGGER_CHANNEL("blockbase");
 
 public:
     CBlockBase();
@@ -269,42 +270,9 @@ protected:
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
     void ClearCache();
     bool LoadDB();
-    bool SetupLog(const boost::filesystem::path& pathDataLocation, bool fDebug);
-    void Log(const char* pszIdent, const char* pszFormat, ...)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        log(pszIdent, "[INFO]", pszFormat, ap);
-        va_end(ap);
-    }
-    void Debug(const char* pszIdent, const char* pszFormat, ...)
-    {
-        if (fDebugLog)
-        {
-            va_list ap;
-            va_start(ap, pszFormat);
-            log(pszIdent, "[DEBUG]", pszFormat, ap);
-            va_end(ap);
-        }
-    }
-    void Warn(const char* pszIdent, const char* pszFormat, ...)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        log(pszIdent, "[WARN]", pszFormat, ap);
-        va_end(ap);
-    }
-    void Error(const char* pszIdent, const char* pszFormat, ...)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        log(pszIdent, "[ERROR]", pszFormat, ap);
-        va_end(ap);
-    }
 
 protected:
     mutable xengine::CRWAccess rwAccess;
-    xengine::CLog log;
     bool fDebugLog;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;

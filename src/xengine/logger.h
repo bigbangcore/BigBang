@@ -36,100 +36,119 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(channel, "Channel", std::string);
 BOOST_LOG_ATTRIBUTE_KEYWORD(threadName, "ThreadName", std::string);
 BOOST_LOG_ATTRIBUTE_KEYWORD(scope, "Scope", attrs::named_scope::value_type);
 
-// Log macros
-#define LOG(nLevel, pszName, pszFormat, ...)                                                             \
-    {                                                                                                    \
-        BOOST_LOG_SCOPED_THREAD_TAG(threadName.get_name(), GetThreadName());                             \
-        BOOST_LOG_NAMED_SCOPE("");                                                                       \
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, nLevel) << FormatString(pszFormat, ##__VA_ARGS__); \
+// INFO macros
+#define LOG(nLevel, pszName, pszFormat, ...)                                                                               \
+    {                                                                                                                      \
+        BOOST_LOG_SCOPED_THREAD_TAG(xengine::threadName.get_name(), xengine::GetThreadName());                             \
+        BOOST_LOG_FUNCTION();                                                                                         \
+        BOOST_LOG_CHANNEL_SEV(xengine::logger::get(), pszName, nLevel) << xengine::FormatString(pszFormat, ##__VA_ARGS__); \
     }
 
 /**
- * @brief Log trace message
+ * @brief INFO trace message
  */
 #define LOG_TRACE(pszName, pszFormat, ...) \
-    LOG(severity_level::TRACE, pszName, pszFormat, ##__VA_ARGS__)
+    LOG(xengine::severity_level::TRACE, pszName, pszFormat, ##__VA_ARGS__)
 
 /**
- * @brief Log debug message
+ * @brief INFO debug message
  */
 #define LOG_DEBUG(pszName, pszFormat, ...) \
-    LOG(severity_level::DEBUG, pszName, pszFormat, ##__VA_ARGS__)
+    LOG(xengine::severity_level::DEBUG, pszName, pszFormat, ##__VA_ARGS__)
 
 /**
- * @brief Log info message
+ * @brief INFO info message
  */
 #define LOG_INFO(pszName, pszFormat, ...) \
-    LOG(severity_level::INFO, pszName, pszFormat, ##__VA_ARGS__);
+    LOG(xengine::severity_level::INFO, pszName, pszFormat, ##__VA_ARGS__);
 
 /**
- * @brief Log warn message
+ * @brief INFO warn message
  */
 #define LOG_WARN(pszName, pszFormat, ...) \
-    LOG(severity_level::WARN, pszName, pszFormat, ##__VA_ARGS__);
+    LOG(xengine::severity_level::WARN, pszName, pszFormat, ##__VA_ARGS__);
 
 /**
- * @brief Log error message
+ * @brief INFO error message
  */
 #define LOG_ERROR(pszName, pszFormat, ...) \
-    LOG(severity_level::ERROR, pszName, pszFormat, ##__VA_ARGS__);
+    LOG(xengine::severity_level::ERROR, pszName, pszFormat, ##__VA_ARGS__);
+
+/**
+ * @brief Save a channel name for logger
+ */
+class CLogChannel final
+{
+public:
+    CLogChannel(const std::string& strChannelIn)
+      : pstrChannelRef(&strChannelIn), fNew(false) {}
+
+    CLogChannel(const char* pszChannelIn)
+      : pstrChannelRef(new std::string(pszChannelIn)), fNew(true) {}
+
+    CLogChannel(const CLogChannel& channel)
+      : pstrChannelRef(channel.fNew ? new std::string(*channel.pstrChannelRef) : channel.pstrChannelRef), fNew(channel.fNew) {}
+
+    CLogChannel& operator=(const CLogChannel& channel)
+    {
+        return *this;
+    }
+
+    const CLogChannel& operator=(const CLogChannel& channel) const
+    {
+        return *this;
+    }
+
+    ~CLogChannel()
+    {
+        if (fNew)
+        {
+            delete pstrChannelRef;
+        }
+    }
+
+    const char* Channel() const
+    {
+        return pstrChannelRef->c_str();
+    }
+
+private:
+    const std::string* pstrChannelRef;
+    const bool fNew;
+};
+
+/**
+ * @brief Register channel name in a class declaration.
+ * @param chan A std::string or const char* variable
+ */
+#define LOGGER_CHANNEL(chan) \
+protected:                   \
+    const xengine::CLogChannel __log_channel = chan
+
+/// @brief INFO trace message in a class which has called LOGGER_CHANNEL()
+#define TRACE(pszFormat, ...) LOG_TRACE(__log_channel.Channel(), pszFormat, ##__VA_ARGS__)
+
+/// @brief INFO debug message in a class which has called LOGGER_CHANNEL()
+#define DEBUG(pszFormat, ...) LOG_DEBUG(__log_channel.Channel(), pszFormat, ##__VA_ARGS__)
+
+/// @brief INFO info message in a class which has called LOGGER_CHANNEL()
+#define INFO(pszFormat, ...) LOG_INFO(__log_channel.Channel(), pszFormat, ##__VA_ARGS__)
+
+/// @brief INFO warn message in a class which has called LOGGER_CHANNEL()
+#define WARN(pszFormat, ...) LOG_WARN(__log_channel.Channel(), pszFormat, ##__VA_ARGS__)
+
+/// @brief INFO error message in a class which has called LOGGER_CHANNEL()
+#define ERROR(pszFormat, ...) LOG_ERROR(__log_channel.Channel(), pszFormat, ##__VA_ARGS__)
 
 /**
  * @brief Initialize logger
+ * @param pathData Root directory of log. INFO file wiil be saved in "pathData/logs/".
+ * @param nLevel Logger level
+ * @param fConsole Output console log or not
+ * @param fDebug Output source file name and line or not
  */
-bool InitLog(const boost::filesystem::path& pathData, const int nLevel, const bool fDaemon, const bool fDebug);
-
-void inline DebugLog(const char* pszName, const char* pszErr)
-{
-    LOG_DEBUG(pszName, pszErr);
-}
-
-void inline InfoLog(const char* pszName, const char* pszErr)
-{
-    LOG_INFO(pszName, pszErr);
-}
-
-void inline WarnLog(const char* pszName, const char* pszErr)
-{
-    LOG_WARN(pszName, pszErr);
-}
-
-void inline ErrorLog(const char* pszName, const char* pszErr)
-{
-    LOG_ERROR(pszName, pszErr);
-}
-
-void inline DebugLog(const std::string& pszName, const char* pszFormat, ...)
-{
-    va_list ap;
-    va_start(ap, pszFormat);
-    LOG_DEBUG(pszName, pszFormat, ap);
-    va_end(ap);
-}
-
-void inline InfoLog(const std::string& pszName, const char* pszFormat, ...)
-{
-    va_list ap;
-    va_start(ap, pszFormat);
-    LOG_INFO(pszName, pszFormat, ap);
-    va_end(ap);
-}
-
-void inline WarnLog(const std::string& pszName, const char* pszFormat, ...)
-{
-    va_list ap;
-    va_start(ap, pszFormat);
-    LOG_WARN(pszName, pszFormat, ap);
-    va_end(ap);
-}
-
-void inline ErrorLog(const std::string& pszName, const char* pszFormat, ...)
-{
-    va_list ap;
-    va_start(ap, pszFormat);
-    LOG_ERROR(pszName, pszFormat, ap);
-    va_end(ap);
-}
+bool InitLog(const boost::filesystem::path& pathData, const severity_level nLevel,
+             const bool fConsole, const bool fDebug);
 
 } // namespace xengine
 #endif // XENGINE_LOGGER_H

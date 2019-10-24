@@ -36,6 +36,8 @@ protected:
 
 class CDelegateDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CDelegateDB");
+
 public:
     CDelegateDB()
       : cacheDelegate(MAX_CACHE_COUNT) {}

@@ -39,7 +39,6 @@ public:
 
 protected:
     bool HandleInitialize() override;
-    Errno Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...);
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
 

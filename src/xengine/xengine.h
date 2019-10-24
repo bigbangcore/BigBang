@@ -14,7 +14,6 @@
 #include <db/kvdb.h>
 #include <docker/config.h>
 #include <docker/docker.h>
-#include <docker/log.h>
 #include <docker/thread.h>
 #include <docker/timertask.h>
 #include <entry/entry.h>
@@ -27,6 +26,7 @@
 #include <http/httpsse.h>
 #include <http/httptype.h>
 #include <http/httputil.h>
+#include <logger.h>
 #include <message/actor.h>
 #include <message/message.h>
 #include <message/messagecenter.h>

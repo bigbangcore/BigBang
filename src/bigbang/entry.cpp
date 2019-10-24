@@ -137,15 +137,15 @@ bool CBbEntry::Initialize(int argc, char* argv[])
 
     // log
     if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER)
-        && log.SetModeName("bigbang")
-        && !InitLog(pathData, config.GetConfig()->nLogLevel, config.GetConfig()->fDaemon, config.GetConfig()->fDebug))
+        && !InitLog(pathData, (xengine::severity_level)(config.GetConfig()->nLogLevel),
+                    !config.GetConfig()->fDaemon, config.GetConfig()->fDebug))
     {
         cerr << "Failed to init log system in path: " << (pathData / "logs") << std::endl;
         return false;
     }
 
     // docker
-    if (!docker.Initialize(config.GetConfig(), &log))
+    if (!docker.Initialize(config.GetConfig()))
     {
         cerr << "Failed to initialize docker\n";
         return false;

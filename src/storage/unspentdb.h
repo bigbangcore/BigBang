@@ -53,6 +53,9 @@ public:
 
 class CForkUnspentDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CForkUnspentDB");
+
+private:
     typedef std::map<CTxOutPoint, CTxOut> MapType;
     class CDblMap
     {
@@ -114,6 +117,8 @@ protected:
 
 class CUnspentDB
 {
+    LOGGER_CHANNEL("CUnspentDB");
+
 public:
     CUnspentDB();
     bool Initialize(const boost::filesystem::path& pathData);

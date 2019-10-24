@@ -135,6 +135,7 @@ private:
     void MessageHandler(std::shared_ptr<CMessage> spMessage);
 
 protected:
+    std::string strName;
     boost::asio::io_service ioService;
     boost::asio::io_service::strand ioStrand;
     CThread thrIOActorWorker;

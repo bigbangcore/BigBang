@@ -50,23 +50,23 @@ static void SetColor(logging::formatting_ostream& strm, const severity_level nLe
 #if defined(__linux__) || defined(__APPLE__)
     switch (nLevel)
     {
-    case TRACE:
+    case severity_level::TRACE:
         // cyan
         strm << "\033[36m";
         break;
-    case DEBUG:
+    case severity_level::DEBUG:
         // white
         strm << "\033[37m";
         break;
-    case INFO:
+    case severity_level::INFO:
         // green
         strm << "\033[32m";
         break;
-    case WARN:
+    case severity_level::WARN:
         // yellow
         strm << "\033[33m";
         break;
-    case ERROR:
+    case severity_level::ERROR:
         // red
         strm << "\033[31m";
         break;
@@ -87,7 +87,7 @@ static void ResetColor(logging::formatting_ostream& strm)
 #endif
 }
 
-// Log format: "%1%%2% : [%3%] <%4%> {%5%} - (%6%:%7%:)%8%%9%"
+// INFO format: "%1%%2% : [%3%] <%4%> {%5%} - (%6%:%7%:%8%)%9%%10%"
 //  1: Set color by severity
 //  2: Date time
 //  3: Channel
@@ -95,8 +95,9 @@ static void ResetColor(logging::formatting_ostream& strm)
 //  5: Thread name
 //  6: __FILE__
 //  7: __LINE__
-//  8: Message
-//  9: Reset Color
+//  8: __FUNC__
+//  9: Message
+//  10: Reset Color
 static void Formatter(logging::record_view const& rec, logging::formatting_ostream& strm, const bool fColor, const bool fDebug)
 {
     logging::value_ref<severity_level> level = logging::extract<severity_level>(severity.get_name(), rec);
@@ -124,11 +125,11 @@ static void Formatter(logging::record_view const& rec, logging::formatting_ostre
     strm << "{" << logging::extract<std::string>(threadName.get_name(), rec) << "}";
     strm << " - ";
 
-    if (fDebug)
+    if (fDebug || level == severity_level::TRACE)
     {
         //  6: __FILE__
         //  7: __LINE__
-        auto named_scope_formatter = expr::stream << expr::format_named_scope(scope, boost::log::keywords::format = "(%F:%l)");
+        auto named_scope_formatter = expr::stream << expr::format_named_scope(scope, boost::log::keywords::format = "(%F:%l:%C)");
         named_scope_formatter(rec, strm);
     }
 
@@ -159,8 +160,8 @@ public:
         }
     }
 
-    bool Init(const boost::filesystem::path& pathData, const int nLevel,
-              const bool fDaemon, const bool fDebug)
+    bool Init(const boost::filesystem::path& pathData, const severity_level nLevel,
+              const bool fConsole, const bool fDebug)
     {
         if (sink)
         {
@@ -188,7 +189,7 @@ public:
         sink->set_filter(filter);
         logging::core::get()->add_sink(sink);
 
-        if (!fDaemon)
+        if (fConsole)
         {
             // initialize console sink
             typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
@@ -209,9 +210,10 @@ private:
     boost::shared_ptr<sink_t> sink;
 };
 
-bool InitLog(const boost::filesystem::path& pathData, const int nLevel, const bool fDaemon, const bool fDebug)
+bool InitLog(const boost::filesystem::path& pathData, const severity_level nLevel,
+             const bool fConsole, const bool fDebug)
 {
-    return CLogger::getInstance().Init(pathData, nLevel, fDaemon, fDebug);
+    return CLogger::getInstance().Init(pathData, nLevel, fConsole, fDebug);
 }
 
 } // namespace xengine

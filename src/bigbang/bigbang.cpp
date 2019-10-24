@@ -27,11 +27,11 @@ int main(int argc, char** argv)
     }
     catch (std::exception& e)
     {
-        xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("bigbang", e.what());
     }
     catch (...)
     {
-        xengine::ErrorLog(__PRETTY_FUNCTION__, "unknown");
+        LOG_ERROR("bigbang", "Unknown error");
     }
 
     entry.Exit();

@@ -118,12 +118,12 @@ bool CConfig::PostLoad()
         }
         catch (rpc::CRPCException& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, (e.strMessage + rpc::strHelpTips).c_str());
+            ERROR("Post loaded error: %s\n%s", e.strMessage.c_str(), rpc::strHelpTips.c_str());
             return false;
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            ERROR("Post loaded error: %s", e.what());
             return false;
         }
     }

@@ -60,47 +60,47 @@ CDocker* IBase::Docker()
 
 bool IBase::Initialize()
 {
-    Log("Initializing...\n");
+    INFO("Initializing..");
     if (!HandleInitialize())
     {
-        Log("Failed to initialize.\n");
+        INFO("Failed to initialize");
         return false;
     }
-    Log("Initialized.\n");
+    INFO("Initialized");
     status = STATUS_INITIALIZED;
     return true;
 }
 
 void IBase::Deinitialize()
 {
-    Log("Deinitializing...\n");
+    INFO("Deinitializing..");
 
     HandleDeinitialize();
 
-    Log("Deinitialized...\n");
+    INFO("Deinitialized..");
     status = STATUS_ATTACHED;
 }
 
 bool IBase::Invoke()
 {
-    Log("Invoking...\n");
+    INFO("Invoking..");
     if (!HandleInvoke())
     {
-        Log("Failed to invoke\n");
+        INFO("Failed to invoke");
         return false;
     }
-    Log("Invoked.\n");
+    INFO("Invoked");
     status = STATUS_INVOKED;
     return true;
 }
 
 void IBase::Halt()
 {
-    Log("Halting...\n");
+    INFO("Halting..");
 
     HandleHalt();
 
-    Log("Halted.\n");
+    INFO("Halted");
     status = STATUS_INITIALIZED;
 }
 
@@ -124,60 +124,8 @@ void IBase::HandleHalt()
 
 void IBase::FatalError()
 {
-    Log("Fatal Error!!!!!\n");
+    INFO("Fatal Error!!!!!");
     pDocker->FatalError(strOwnKey.c_str());
-}
-
-void IBase::Log(const char* pszFormat, ...)
-{
-    if (pDocker != nullptr)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        pDocker->LogOutput(strOwnKey.c_str(), "[INFO]", pszFormat, ap);
-        va_end(ap);
-    }
-}
-
-void IBase::Debug(const char* pszFormat, ...)
-{
-    if (pDocker != nullptr && pDocker->GetConfig()->fDebug)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        pDocker->LogOutput(strOwnKey.c_str(), "[DEBUG]", pszFormat, ap);
-        va_end(ap);
-    }
-}
-
-void IBase::VDebug(const char* pszFormat, va_list ap)
-{
-    if (pDocker != nullptr && pDocker->GetConfig()->fDebug)
-    {
-        pDocker->LogOutput(strOwnKey.c_str(), "[DEBUG]", pszFormat, ap);
-    }
-}
-
-void IBase::Warn(const char* pszFormat, ...)
-{
-    if (pDocker != nullptr)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        pDocker->LogOutput(strOwnKey.c_str(), "[WARN]", pszFormat, ap);
-        va_end(ap);
-    }
-}
-
-void IBase::Error(const char* pszFormat, ...)
-{
-    if (pDocker != nullptr)
-    {
-        va_list ap;
-        va_start(ap, pszFormat);
-        pDocker->LogOutput(strOwnKey.c_str(), "[ERROR]", pszFormat, ap);
-        va_end(ap);
-    }
 }
 
 bool IBase::ThreadStart(CThread& thr)

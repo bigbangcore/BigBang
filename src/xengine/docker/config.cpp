@@ -76,7 +76,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CConfig", "Load error: %s", e.what());
         return false;
     }
     return true;

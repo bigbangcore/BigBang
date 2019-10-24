@@ -11,6 +11,7 @@
 
 #include "docker/docker.h"
 #include "event/event.h"
+#include "logger.h"
 
 namespace xengine
 {
@@ -25,6 +26,8 @@ typedef enum
 
 class IBase : virtual public CEventListener
 {
+    LOGGER_CHANNEL(strOwnKey);
+
 public:
     IBase();
     IBase(const std::string& strOwnKeyIn);
@@ -48,11 +51,6 @@ protected:
     template <typename T>
     bool GetObject(const std::string& key, T*& pObj);
     void FatalError();
-    void Log(const char* pszFormat, ...);
-    void Debug(const char* pszFormat, ...);
-    void VDebug(const char* pszFormat, va_list ap);
-    void Warn(const char* pszFormat, ...);
-    void Error(const char* pszFormat, ...);
     bool ThreadStart(CThread& thr);
     bool ThreadDelayStart(CThread& thr);
     void ThreadExit(CThread& thr);

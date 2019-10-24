@@ -23,7 +23,7 @@ bool CIOActor::StartActor()
 {
     if (!ThreadDelayStart(thrIOActorWorker))
     {
-        Error("Failed to start thread\n");
+        ERROR("Failed to start thread");
         return false;
     }
 
