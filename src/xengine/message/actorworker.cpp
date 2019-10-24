@@ -80,6 +80,10 @@ void CIOActorWorker::HandlerThreadFunc()
         // TODO: Replace newer api
         ErrorLog("", "Failed to run CIOActorWorker io_service: %s\n", err.what());
     }
+    catch (const std::exception& e)
+    {
+        ErrorLog("", "Failed to run CIOActorWorker io_service: %s\n", e.what());
+    }
     catch (...)
     {
         // TODO: Replace newer api

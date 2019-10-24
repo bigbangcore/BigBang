@@ -648,8 +648,9 @@ void CNetChannelController::HandleHalt()
 
 void CNetChannelController::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)
 {
+
     set<uint64> setKnownPeer;
-    if (pNetChannelModel->GetKnownPeers(invMsg.hashFork, invMsg.hashBlock, setKnownPeer))
+    if (!pNetChannelModel->GetKnownPeers(invMsg.hashFork, invMsg.hashBlock, setKnownPeer))
     {
         throw std::runtime_error("Unknown fork for scheduling (GetKnownPeers).");
     }
