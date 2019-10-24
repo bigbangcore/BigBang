@@ -69,8 +69,7 @@ CBbEntry::~CBbEntry()
 
 bool CBbEntry::Initialize(int argc, char* argv[])
 {
-    StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
-
+    
     if (!config.Load(argc, argv, GetDefaultDataDir(), "bigbang.conf") || !config.PostLoad())
     {
         cerr << "Failed to load/parse arguments and config file\n";
@@ -166,7 +165,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         cerr << "Failed to initialize docker\n";
         return false;
     }
-
+    StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
     // modules
     return InitializeModules(config.GetModeType());
 }

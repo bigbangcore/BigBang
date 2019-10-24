@@ -246,6 +246,7 @@ void CTxPool::Pop(const uint256& txid)
     {
         return;
     }
+    StdTrace("[TxPool][TRACE]", "Pop : %s.",txid.GetHex().c_str());
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
