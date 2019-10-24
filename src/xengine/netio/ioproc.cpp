@@ -358,6 +358,7 @@ void CIOProc::IOProcPollTimer()
         if (it != mapTimerById.end())
         {
             uint64 nNonce = (*it).second.nNonce;
+            std::string strFuncTemp = (*it).second.strFunction;
             mapTimerById.erase(it);
             if (nNonce == 0)
             {
@@ -366,7 +367,7 @@ void CIOProc::IOProcPollTimer()
             }
             else
             {
-                Timeout(nNonce, nTimerId, (*it).second.strFunction);
+                Timeout(nNonce, nTimerId, strFuncTemp);
             }
         }
     }
