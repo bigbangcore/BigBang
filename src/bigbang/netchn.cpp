@@ -259,10 +259,10 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         if (!mapSched.insert(make_pair(hashFork, CSchedule())).second)
         {
-            Log("SubscribeFork: mapSched insert fail, hashFork: %s\n", hashFork.GetHex().c_str());
+            StdLog("NetChannel", "SubscribeFork: mapSched insert fail, hashFork: %s", hashFork.GetHex().c_str());
             return;
         }
-        Log("SubscribeFork: mapSched insert success, hashFork: %s\n", hashFork.GetHex().c_str());
+        StdLog("NetChannel", "SubscribeFork: mapSched insert success, hashFork: %s", hashFork.GetHex().c_str());
     }
 
     network::CEventPeerSubscribe eventSubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
@@ -284,10 +284,10 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         if (!mapSched.erase(hashFork))
         {
-            Log("UnsubscribeFork: mapSched erase fail, hashFork: %s\n", hashFork.GetHex().c_str());
+            StdLog("NetChannel", "UnsubscribeFork: mapSched erase fail, hashFork: %s", hashFork.GetHex().c_str());
             return;
         }
-        Log("UnsubscribeFork: mapSched erase success, hashFork: %s\n", hashFork.GetHex().c_str());
+        StdLog("NetChannel", "UnsubscribeFork: mapSched erase success, hashFork: %s", hashFork.GetHex().c_str());
     }
 
     network::CEventPeerUnsubscribe eventUnsubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
@@ -502,7 +502,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
-                Log("CEventPeerGetData: Get transaction fail, txid: %s\n", inv.nHash.GetHex().c_str());
+                StdLog("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s", inv.nHash.GetHex().c_str());
             }
         }
         else if (inv.nType == network::CInv::MSG_BLOCK)
@@ -515,7 +515,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             else
             {
                 // TODO: Penalize
-                Log("CEventPeerGetData: Get block fail, block hash: %s\n", inv.nHash.GetHex().c_str());
+                StdLog("NetChannel", "CEventPeerGetData: Get block fail, block hash: %s", inv.nHash.GetHex().c_str());
             }
         }
     }
@@ -538,7 +538,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     }
     else
     {
-        Log("CEventPeerGetBlocks GetBlockInv fail or vBlockHash is empty, hashFork: %s\n", hashFork.GetHex().c_str());
+        StdLog("NetChannel", "CEventPeerGetBlocks GetBlockInv fail or vBlockHash is empty, hashFork: %s", hashFork.GetHex().c_str());
     }
     return true;
 }
@@ -590,8 +590,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         }
         else
         {
-            Log("CEventPeerTx: GetBlockLocation fail, txid: %s, hashAnchor: %s\n",
-                txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+            StdLog("NetChannel", "CEventPeerTx: GetBlockLocation fail, txid: %s, hashAnchor: %s",
+                   txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
             sched.InvalidateTx(txid, setMisbehavePeer);
         }
         PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
@@ -632,8 +632,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
             else
             {
-                Log("CEventPeerBlock: hashForkPrev != hashFork, hashForkPrev: %s, hashFork: %s, hashBlockPrev: %s\n",
-                    hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), block.hashPrev.GetHex().c_str());
+                StdLog("NetChannel", "CEventPeerBlock: hashForkPrev != hashFork, hashForkPrev: %s, hashFork: %s, hashBlockPrev: %s",
+                       hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), block.hashPrev.GetHex().c_str());
                 sched.InvalidateBlock(hash, setMisbehavePeer);
             }
         }
@@ -688,8 +688,8 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
         }
         if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data, nDepth, MAX_GETBLOCKS_COUNT - 1) && !eventGetBlocks.data.vBlockHash.empty())
         {
-            Log("DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s, hashFork: %s.\n",
-                nLocatorInvHeight, hashInvBlock.GetHex().c_str(), hashFork.GetHex().c_str());
+            StdLog("NetChannel", "DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s, hashFork: %s.",
+                   nLocatorInvHeight, hashInvBlock.GetHex().c_str(), hashFork.GetHex().c_str());
             pPeerNet->DispatchEvent(&eventGetBlocks);
         }
         sched.SetLocatorDepth(nNonce, nDepth);
@@ -711,7 +711,7 @@ void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseR
 {
     if (!strCaller.empty())
     {
-        Log("DispatchMisbehaveEvent : %s\n", strCaller.c_str());
+        StdLog("NetChannel", "DispatchMisbehaveEvent : %s", strCaller.c_str());
     }
 
     CEventPeerNetClose eventClose(nNonce);
@@ -787,9 +787,9 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 int nHeightRef;
                 if (!pBlockChain->GetBlockLocation(proof.hashRefBlock, hashForkRef, nHeightRef))
                 {
-                    Log("NetChannel get ref block fail, peer: %s, block: %s, fork: %s, refblock: %s\n",
-                        GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(),
-                        hashFork.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str());
+                    StdLog("NetChannel", "NetChannel get ref block fail, peer: %s, block: %s, fork: %s, refblock: %s",
+                           GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(),
+                           hashFork.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str());
 
                     set<uint64> setKnownPeer;
                     sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
@@ -818,8 +818,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             }
             else if (err == ERR_ALREADY_HAVE && pBlock->IsVacant())
             {
-                Log("NetChannel AddNewBlock: block already have, peer: %s, block: %s\n",
-                    GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
+                StdLog("NetChannel", "NetChannel AddNewBlock: block already have, peer: %s, block: %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
                 set<uint64> setKnownPeer;
                 sched.GetNextBlock(hashBlock, vBlockHash);
                 sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
@@ -827,15 +827,15 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             }
             else
             {
-                Log("NetChannel AddNewBlock fail, peer: %s, block: %s, err: [%d] %s\n",
-                    GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(), err, ErrorString(err));
+                StdLog("NetChannel", "NetChannel AddNewBlock fail, peer: %s, block: %s, err: [%d] %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateBlock(hashBlock, setMisbehavePeer);
             }
         }
         else
         {
-            Log("NetChannel sched GetBlock fail, peer: %s, block: %s\n",
-                GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
+            StdLog("NetChannel", "NetChannel sched GetBlock fail, peer: %s, block: %s",
+                   GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
         }
     }
 }
@@ -871,17 +871,22 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
             }
-            else if (err != ERR_MISSING_PREV)
+            else if (err != ERR_MISSING_PREV && err != ERR_TRANSACTION_CONFLICTING_INPUT)
             {
-                Log("NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s\n",
-                    GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
+                StdLog("NetChannel", "NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
                 sched.InvalidateTx(hashTx, setMisbehavePeer);
+            }
+            else
+            {
+                StdLog("NetChannel", "NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
             }
         }
         else
         {
-            Log("NetChannel sched GetTransaction fail, peer: %s, txid: %s\n",
-                GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
+            StdLog("NetChannel", "NetChannel sched GetTransaction fail, peer: %s, txid: %s",
+                   GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
         }
     }
     if (nAddNewTx)
