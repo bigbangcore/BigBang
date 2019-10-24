@@ -1042,11 +1042,14 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
     {
 
         std::cout << "next block hash " << nextBlockHash.ToString() << std::endl;
-        auto spAddBlockMsg = CAddBlockMessage::Create();
-        if (pWorldLineCtrl->GetBlock(nextBlockHash, spAddBlockMsg->block))
+        uint64 nNonceSenderTemp = 0;
+        CBlock* pBlock = pNetChannelModel->GetScheduleBlock(hashFork, nextBlockHash, nNonceSenderTemp);
+        if (pBlock)
         {
+            auto spAddBlockMsg = CAddBlockMessage::Create();
             spAddBlockMsg->hashFork = hashFork;
-            spAddBlockMsg->nNonce = nNonceSender;
+            spAddBlockMsg->nNonce = nNonceSenderTemp;
+            spAddBlockMsg->block = *pBlock;
             PUBLISH_MESSAGE(spAddBlockMsg);
         }
         else
