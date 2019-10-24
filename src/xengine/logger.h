@@ -92,11 +92,13 @@ public:
 
     CLogChannel& operator=(const CLogChannel& channel)
     {
+        (void)channel;
         return *this;
     }
 
     const CLogChannel& operator=(const CLogChannel& channel) const
     {
+        (void)channel;
         return *this;
     }
 

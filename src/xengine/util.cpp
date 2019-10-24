@@ -4,6 +4,7 @@
 
 #include "util.h"
 
+#include <cstdarg>
 #include <map>
 #if defined(__linux__)
 #include <sys/prctl.h>
