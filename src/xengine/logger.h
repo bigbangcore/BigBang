@@ -25,7 +25,8 @@ enum severity_level : uint8_t
     DEBUG,
     INFO,
     WARN,
-    ERROR
+    ERROR,
+    IGNORE,
 };
 
 typedef src::severity_channel_logger_mt<severity_level, std::string> sclmt_type;

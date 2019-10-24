@@ -168,6 +168,8 @@ protected:
 
 BOOST_AUTO_TEST_CASE(basic)
 {
+    InitLog(boost::filesystem::path(), severity_level::TRACE, true, true);
+
     CDocker docker;
     docker.Initialize(new CConfig);
 

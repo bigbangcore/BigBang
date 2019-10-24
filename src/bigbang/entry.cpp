@@ -136,9 +136,10 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER)
-        && !InitLog(pathData, (xengine::severity_level)(config.GetConfig()->nLogLevel),
-                    !config.GetConfig()->fDaemon, config.GetConfig()->fDebug))
+    xengine::severity_level nLevel = (config.GetModeType() == EModeType::CONSOLE)
+                                         ? severity_level::IGNORE
+                                         : (xengine::severity_level)(config.GetConfig()->nLogLevel);
+    if (!InitLog(pathData, nLevel, !config.GetConfig()->fDaemon, config.GetConfig()->fDebug))
     {
         cerr << "Failed to init log system in path: " << (pathData / "logs") << std::endl;
         return false;

@@ -23,10 +23,6 @@ namespace keywords = boost::log::keywords;
 namespace xengine
 {
 
-typedef sinks::text_file_backend backend_t;
-typedef sinks::unbounded_fifo_queue queue_t;
-typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
-
 template <typename CharT, typename TraitsT>
 inline std::basic_ostream<CharT, TraitsT>& operator<<(
     std::basic_ostream<CharT, TraitsT>& strm, severity_level lvl)
@@ -145,6 +141,11 @@ static void Formatter(logging::record_view const& rec, logging::formatting_ostre
 
 class CLogger : public boost::noncopyable
 {
+    typedef sinks::text_file_backend backend_t;
+    typedef sinks::unbounded_fifo_queue queue_t;
+    typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
+    typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
+
 public:
     static CLogger& getInstance()
     {
@@ -158,46 +159,51 @@ public:
         {
             sink->locked_backend()->flush();
         }
+        if (sink_console)
+        {
+            sink_console->locked_backend()->flush();
+        }
     }
 
     bool Init(const boost::filesystem::path& pathData, const severity_level nLevel,
               const bool fConsole, const bool fDebug)
     {
-        if (sink)
+        if (sink || sink_console)
         {
             return true;
         }
 
-        // Create log directory
-        boost::filesystem::path logPath = pathData / "logs";
-        if (!boost::filesystem::exists(logPath))
+        if (!pathData.empty())
         {
-            if (!boost::filesystem::create_directories(logPath))
+            // Create log directory
+            boost::filesystem::path logPath = pathData / "logs";
+            if (!boost::filesystem::exists(logPath))
             {
-                return false;
+                if (!boost::filesystem::create_directories(logPath))
+                {
+                    return false;
+                }
             }
-        }
 
-        // initialize file sink
-        sink = boost::make_shared<sink_t>(
-            keywords::open_mode = std::ios::app,
-            keywords::file_name = pathData / "logs" / "bigbang_%N.log",
-            keywords::rotation_size = 10 * 1024 * 1024,
-            keywords::auto_flush = true);
-        sink->set_formatter(boost::bind(&Formatter, _1, _2, false, fDebug));
-        auto filter = severity >= nLevel;
-        sink->set_filter(filter);
-        logging::core::get()->add_sink(sink);
+            // initialize file sink
+            sink = boost::make_shared<sink_t>(
+                keywords::open_mode = std::ios::app,
+                keywords::file_name = pathData / "logs" / "bigbang_%N.log",
+                keywords::rotation_size = 10 * 1024 * 1024,
+                keywords::auto_flush = true);
+            sink->set_formatter(boost::bind(&Formatter, _1, _2, false, fDebug));
+            sink->set_filter(severity >= nLevel);
+            logging::core::get()->add_sink(sink);
+        }
 
         if (fConsole)
         {
             // initialize console sink
-            typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
-            boost::shared_ptr<text_sink> sink_console = boost::make_shared<text_sink>();
+            sink_console = boost::make_shared<text_sink>();
             boost::shared_ptr<std::ostream> stream(&std::clog, boost::null_deleter());
             sink_console->locked_backend()->add_stream(stream);
             sink_console->set_formatter(boost::bind(&Formatter, _1, _2, true, fDebug));
-            sink_console->set_filter(filter);
+            sink_console->set_filter(severity >= nLevel);
             logging::core::get()->add_sink(sink_console);
         }
 
@@ -208,6 +214,7 @@ public:
 
 private:
     boost::shared_ptr<sink_t> sink;
+    boost::shared_ptr<text_sink> sink_console;
 };
 
 bool InitLog(const boost::filesystem::path& pathData, const severity_level nLevel,
