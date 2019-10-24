@@ -130,6 +130,8 @@ void CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
     if (mapState.size() < MAX_INV_COUNT && peer.GetCount(inv.nType) < nMaxPeerInv)
     {
         mapState[inv].setKnownPeer.insert(nPeerNonce);
+        std::cout << "******AddNewInv" << inv.nHash.ToString() << " peer nonce" << nPeerNonce
+                  << std::endl;
         peer.AddNewInv(inv);
     }
 }
@@ -288,8 +290,10 @@ bool CSchedule::ScheduleBlockInv(uint64 nPeerNonce, vector<network::CInv>& vInv,
     map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
     if (it != mapPeer.end())
     {
+        std::cout << "finded peer nonce" << nPeerNonce << std::endl;
         CInvPeer& peer = (*it).second;
         fEmpty = peer.Empty(network::CInv::MSG_BLOCK);
+        std::cout << "peer is assigned " << (peer.IsAssigned() ? "true" : "false") << std::endl;
         if (!peer.IsAssigned())
         {
             bool fReceivedAll;
@@ -297,6 +301,7 @@ bool CSchedule::ScheduleBlockInv(uint64 nPeerNonce, vector<network::CInv>& vInv,
             if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_BLOCK, vInv, nMaxCount, fReceivedAll))
             {
                 fMissingPrev = fReceivedAll;
+                std::cout << "vInv size " << vInv.size() << std::endl;
                 return (!fReceivedAll || peer.GetCount(network::CInv::MSG_BLOCK) < MAX_PEER_BLOCK_INV_COUNT);
             }
         }
@@ -339,13 +344,16 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
     size_t nReceived = 0;
     vInv.clear();
     CUInt256List& listKnown = peer.GetKnownList(type);
+    std::cout << "listknown size " << listKnown.size() << std::endl;
     for (const uint256& hash : listKnown)
     {
         network::CInv inv(type, hash);
         CInvState& state = mapState[inv];
+        std::cout << "state.nAssigned " << state.nAssigned << std::endl;
         if (state.nAssigned == 0)
         {
             state.nAssigned = nPeerNonce;
+            std::cout << "vInv pusback " << inv.nHash.ToString() << std::endl;
             vInv.push_back(inv);
             peer.Assign(inv);
             if (vInv.size() >= nMaxCount)

@@ -479,7 +479,7 @@ void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSched
     {
         blockRetBool = false;
     }
-
+    std::cout << "vecInv size " << vecInv.size() << std::endl;
     schedResult.emplace_back(
         std::make_pair(nNonce,
                        std::make_tuple(blockRetBool,
@@ -827,6 +827,7 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
         {
             pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
         }
+        std::cout << "handle peer inv schedule peer inv" << std::endl;
         SchedulePeerInv(nNonce, hashFork, true);
     }
     catch (...)
@@ -970,13 +971,15 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
         {
             throw runtime_error("Failed to receive block");
         }
-
+        std::cout << "recv block " << hash.ToString() << " hash prev " << block.hashPrev.ToString()
+                  << std::endl;
         uint256 hashForkPrev;
         int nHeightPrev;
         if (pWorldLineCtrl->GetBlockLocation(block.hashPrev, hashForkPrev, nHeightPrev))
         {
             if (hashForkPrev == hashFork)
             {
+                std::cout << "add new block " << hash.ToString() << std::endl;
                 AddNewBlock(hashFork, hash, setSchedPeer, setMisbehavePeer);
             }
             else
@@ -986,6 +989,7 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
         }
         else
         {
+            std::cout << "add orphan block " << hash.ToString() << std::endl;
             pNetChannelModel->AddOrphanBlockPrev(hashFork, hash, block.hashPrev);
         }
 
@@ -1008,6 +1012,7 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
     set<uint64> setSchedPeer, setMisbehavePeer;
     if (err == OK)
     {
+        std::cout << "############## Added success Block " << hashBlock.ToString() << std::endl;
         for (const CTransaction& tx : addedMsg.block.vtx)
         {
             uint256 txid = tx.GetHash();
@@ -1031,18 +1036,25 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
     {
         pNetChannelModel->InvalidateScheduleBlock(hashFork, hashBlock, setMisbehavePeer);
     }
+    std::cout << "nextBlock size " << vNextBlockHash.size() << std::endl;
 
-    for (const uint256& blockHash : vNextBlockHash)
+    for (const uint256& nextBlockHash : vNextBlockHash)
     {
+
+        std::cout << "next block hash " << nextBlockHash.ToString() << std::endl;
         auto spAddBlockMsg = CAddBlockMessage::Create();
-        if (pWorldLineCtrl->GetBlock(blockHash, spAddBlockMsg->block))
+        if (pWorldLineCtrl->GetBlock(nextBlockHash, spAddBlockMsg->block))
         {
             spAddBlockMsg->hashFork = hashFork;
             spAddBlockMsg->nNonce = nNonceSender;
             PUBLISH_MESSAGE(spAddBlockMsg);
         }
+        else
+        {
+            std::cout << "get next block failed" << std::endl;
+        }
     }
-
+    std::cout << "setSchedPeer size " << setSchedPeer.size() << std::endl;
     PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
 }
 
@@ -1162,6 +1174,8 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
 
         if (fPrevMissing)
         {
+            //static uint64_t count = 0;
+            //std::cout << "prevmissing true dispatch getblocks " << count++ << std::endl;
             DispatchGetBlocksEvent(nNonce, hashFork);
         }
 
@@ -1172,8 +1186,10 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
 
         SetPeerSyncStatus(nNonce, hashFork, fSync);
 
+        std::cout << "top vecInv size " << vecInv.size() << std::endl;
         if (!vecInv.empty())
         {
+            std::cout << "sent getdata" << std::endl;
             auto spGetData = CPeerGetDataMessageOutBound::Create();
             spGetData->nNonce = nNonce;
             spGetData->hashFork = hashFork;
@@ -1255,6 +1271,7 @@ void CNetChannelController::PostAddNew(const uint256& hashFork, set<uint64>& set
     {
         if (!setMisbehavePeer.count(nNonceSched))
         {
+            std::cout << "post and new schedule peer inv" << std::endl;
             SchedulePeerInv(nNonceSched, hashFork, true);
         }
     }
