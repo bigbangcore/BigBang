@@ -401,7 +401,7 @@ public:
 
         while (n < vBatch.size())
         {
-            uint32 nFile, nOffset;
+            uint32 nFile = 0, nOffset = 0;
             std::string pathFile;
             if (!GetLastFilePath(nFile, pathFile))
             {

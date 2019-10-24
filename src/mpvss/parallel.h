@@ -25,8 +25,6 @@
  */
 class ParallelComputer
 {
-    LOGGER_CHANNEL("parallel");
-
 public:
     ParallelComputer(uint8_t nNum = std::thread::hardware_concurrency())
       : nParallelNum(nNum)
@@ -73,7 +71,7 @@ public:
                 }
                 catch (const std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -121,7 +119,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -165,7 +163,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -211,7 +209,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -260,7 +258,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -311,7 +309,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    ERROR(e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
