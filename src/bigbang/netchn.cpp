@@ -523,12 +523,10 @@ bool CNetChannel::ScheduleActivePeerInv(uint64 nNonce, const uint256& hashFork, 
 
 CNetChannelController::CNetChannelController()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     pTxPoolCtrl = nullptr;
     pService = nullptr;
-    pDispatcher = nullptr;
     pNetChannelModel = nullptr;
 }
 
@@ -538,12 +536,6 @@ CNetChannelController::~CNetChannelController()
 
 bool CNetChannelController::HandleInitialize()
 {
-    if (!GetObject("peernet", pPeerNet))
-    {
-        ERROR("Failed to request peer net\n");
-        return false;
-    }
-
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
         ERROR("Failed to request coreprotocol\n");
@@ -568,12 +560,6 @@ bool CNetChannelController::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher\n");
-        return false;
-    }
-
     if (!GetObject("netchannelmodel", pNetChannelModel))
     {
         ERROR("Failed to request netchannel model\n");
@@ -595,17 +581,18 @@ bool CNetChannelController::HandleInitialize()
     RegisterRefHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannelController::HandlePeerTx, this, _1));
     RegisterRefHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannelController::HandlePeerBlock, this, _1));
 
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CNetChannelController::HandleAddedNewBlock, this, _1));
+    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CNetChannelController::HandleAddedNewTx, this, _1));
+
     return true;
 }
 
 void CNetChannelController::HandleDeinitialize()
 {
-    pPeerNet = nullptr;
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     pTxPoolCtrl = nullptr;
     pService = nullptr;
-    pDispatcher = nullptr;
     pNetChannelModel = nullptr;
 
     DeregisterHandler(CBroadcastBlockInvMessage::MessageType());
@@ -661,8 +648,9 @@ void CNetChannelController::HandleHalt()
 
 void CNetChannelController::HandleBroadcastBlockInv(const CBroadcastBlockInvMessage& invMsg)
 {
+
     set<uint64> setKnownPeer;
-    if (pNetChannelModel->GetKnownPeers(invMsg.hashFork, invMsg.hashBlock, setKnownPeer))
+    if (!pNetChannelModel->GetKnownPeers(invMsg.hashFork, invMsg.hashBlock, setKnownPeer))
     {
         throw std::runtime_error("Unknown fork for scheduling (GetKnownPeers).");
     }
@@ -839,6 +827,7 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
         {
             pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
         }
+
         SchedulePeerInv(nNonce, hashFork, true);
     }
     catch (...)
@@ -1009,6 +998,97 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
     }
 }
 
+void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedMsg)
+{
+    Errno err = static_cast<Errno>(addedMsg.nError);
+    const uint256& hashFork = addedMsg.hashFork;
+    const CBlock& block = addedMsg.block;
+    const uint256& hashBlock = addedMsg.block.GetHash();
+    const uint64& nNonceSender = addedMsg.nNonce;
+    std::vector<uint256> vNextBlockHash;
+    set<uint64> setSchedPeer, setMisbehavePeer;
+    if (err == OK)
+    {
+        for (const CTransaction& tx : addedMsg.block.vtx)
+        {
+            uint256 txid = tx.GetHash();
+            pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, txid), setSchedPeer);
+        }
+
+        set<uint64> setKnownPeer;
+        pNetChannelModel->GetScheduleNextBlock(hashFork, hashBlock, vNextBlockHash);
+        pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+        DispatchAwardEvent(nNonceSender, CEndpointManager::VITAL_DATA);
+        setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+    }
+    else if (err == ERR_ALREADY_HAVE && block.IsVacant())
+    {
+        set<uint64> setKnownPeer;
+        pNetChannelModel->GetScheduleNextBlock(hashFork, hashBlock, vNextBlockHash);
+        pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+        setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+    }
+    else
+    {
+        pNetChannelModel->InvalidateScheduleBlock(hashFork, hashBlock, setMisbehavePeer);
+    }
+
+    for (const uint256& nextBlockHash : vNextBlockHash)
+    {
+        uint64 nNonceSenderTemp = 0;
+        CBlock* pBlock = pNetChannelModel->GetScheduleBlock(hashFork, nextBlockHash, nNonceSenderTemp);
+        if (pBlock)
+        {
+            auto spAddBlockMsg = CAddBlockMessage::Create();
+            spAddBlockMsg->hashFork = hashFork;
+            spAddBlockMsg->nNonce = nNonceSenderTemp;
+            spAddBlockMsg->block = *pBlock;
+            PUBLISH_MESSAGE(spAddBlockMsg);
+        }
+    }
+
+    PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
+}
+
+void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
+{
+    Errno err = static_cast<Errno>(addedMsg.nError);
+    const uint256& hashFork = addedMsg.hashFork;
+    const uint256& hashTx = addedMsg.tx.GetHash();
+    const uint64& nNonceSender = addedMsg.nNonce;
+    std::vector<uint256> vNextTxChain;
+    set<uint64> setSchedPeer, setMisbehavePeer;
+    if (err == OK)
+    {
+        pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vNextTxChain);
+        pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+        DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
+
+        CBroadcastTxInvMessage msg(hashFork);
+        HandleBroadcastTxInv(msg);
+    }
+    else if (err != ERR_MISSING_PREV)
+    {
+        pNetChannelModel->InvalidateScheduleTx(hashFork, hashTx, setMisbehavePeer);
+    }
+
+    for (const uint256& txHash : vNextTxChain)
+    {
+        uint64 nNonceSenderTemp = 0;
+        CTransaction* pTx = pNetChannelModel->GetScheduleTransaction(hashFork, txHash, nNonceSenderTemp);
+        if (pTx)
+        {
+            auto spAddTxMsg = CAddTxMessage::Create();
+            spAddTxMsg->nNonce = nNonceSenderTemp;
+            spAddTxMsg->hashFork = hashFork;
+            spAddTxMsg->tx = *pTx;
+            PUBLISH_MESSAGE(spAddTxMsg);
+        }
+    }
+
+    PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
+}
+
 void CNetChannelController::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer)
 {
     CNetworkPeerUpdate update;
@@ -1138,32 +1218,11 @@ void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& 
         CBlock* pBlock = pNetChannelModel->GetScheduleBlock(hashFork, hashBlock, nNonceSender);
         if (pBlock)
         {
-            Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
-            if (err == OK)
-            {
-                for (const CTransaction& tx : pBlock->vtx)
-                {
-                    uint256 txid = tx.GetHash();
-                    pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, txid), setSchedPeer);
-                }
-
-                set<uint64> setKnownPeer;
-                pNetChannelModel->GetScheduleNextBlock(hashFork, hashBlock, vBlockHash);
-                pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
-                DispatchAwardEvent(nNonceSender, CEndpointManager::VITAL_DATA);
-                setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
-            }
-            else if (err == ERR_ALREADY_HAVE && pBlock->IsVacant())
-            {
-                set<uint64> setKnownPeer;
-                pNetChannelModel->GetScheduleNextBlock(hashFork, hashBlock, vBlockHash);
-                pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
-                setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
-            }
-            else
-            {
-                pNetChannelModel->InvalidateScheduleBlock(hashFork, hashBlock, setMisbehavePeer);
-            }
+            auto spAddNewBlockMsg = CAddBlockMessage::Create();
+            spAddNewBlockMsg->block = *pBlock;
+            spAddNewBlockMsg->hashFork = hashFork;
+            spAddNewBlockMsg->nNonce = nNonceSender;
+            PUBLISH_MESSAGE(spAddNewBlockMsg);
         }
     }
 }
@@ -1173,40 +1232,27 @@ void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txi
     vector<uint256> vTxChain;
 
     vTxChain.push_back(txid);
-    int nAddNewTx = 0;
     for (size_t i = 0; i < vTxChain.size(); i++)
     {
-        uint256 hashTx = vTxChain[i];
+        const uint256& hashTx = vTxChain[i];
         uint64 nNonceSender = 0;
         CTransaction* pTx = pNetChannelModel->GetScheduleTransaction(hashFork, hashTx, nNonceSender);
         if (pTx)
         {
-            if (pWorldLineCtrl->ExistsTx(vTxChain[i]))
+            if (pWorldLineCtrl->ExistsTx(hashTx))
             {
                 pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vTxChain);
                 pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
             }
             else
             {
-                Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
-                if (err == OK)
-                {
-                    pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vTxChain);
-                    pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
-                    DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
-                    nAddNewTx++;
-                }
-                else if (err != ERR_MISSING_PREV)
-                {
-                    pNetChannelModel->InvalidateScheduleTx(hashFork, hashTx, setMisbehavePeer);
-                }
+                auto spAddTxMsg = CAddTxMessage::Create();
+                spAddTxMsg->nNonce = nNonceSender;
+                spAddTxMsg->hashFork = hashFork;
+                spAddTxMsg->tx = *pTx;
+                PUBLISH_MESSAGE(spAddTxMsg);
             }
         }
-    }
-    if (nAddNewTx > 0)
-    {
-        CBroadcastTxInvMessage msg(hashFork);
-        HandleBroadcastTxInv(msg);
     }
 }
 

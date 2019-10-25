@@ -232,6 +232,9 @@ protected:
     void HandlePeerTx(const CPeerTxMessageInBound& txMsg);
     void HandlePeerBlock(const CPeerBlockMessageInBound& blockMsg);
 
+    void HandleAddedNewBlock(const CAddedBlockMessage& addedMsg);
+    void HandleAddedNewTx(const CAddedTxMessage& addedMsg);
+
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
     void DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
@@ -246,11 +249,9 @@ protected:
     bool PushTxInv(const uint256& hashFork);
 
 protected:
-    network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
     ITxPoolController* pTxPoolCtrl;
-    IDispatcher* pDispatcher;
     IService* pService;
     INetChannelModel* pNetChannelModel;
 

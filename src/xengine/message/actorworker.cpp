@@ -79,6 +79,10 @@ void CIOActorWorker::HandlerThreadFunc()
     {
         LOG_ERROR(strName, "Worker thread error: %s", err.what());
     }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR(strName, "Failed to run CIOActorWorker io_service: %s\n", e.what());
+    }
     catch (...)
     {
         LOG_ERROR(strName, "Worker thread unknown error");
