@@ -90,18 +90,6 @@ public:
     CLogChannel(const CLogChannel& channel)
       : pstrChannelRef(channel.fNew ? new std::string(*channel.pstrChannelRef) : channel.pstrChannelRef), fNew(channel.fNew) {}
 
-    CLogChannel& operator=(const CLogChannel& channel)
-    {
-        (void)channel;
-        return *this;
-    }
-
-    const CLogChannel& operator=(const CLogChannel& channel) const
-    {
-        (void)channel;
-        return *this;
-    }
-
     ~CLogChannel()
     {
         if (fNew)
