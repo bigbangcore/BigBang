@@ -81,7 +81,7 @@ void CIOActorWorker::HandlerThreadFunc()
     }
     catch (const std::exception& e)
     {
-        ErrorLog("", "Failed to run CIOActorWorker io_service: %s\n", e.what());
+        LOG_ERROR(strName, "Failed to run CIOActorWorker io_service: %s\n", e.what());
     }
     catch (...)
     {
