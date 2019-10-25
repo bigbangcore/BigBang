@@ -1091,8 +1091,13 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
         pIndex = pIndex->pPrev;
     }
 
-    while (pIndex && pIndex->GetOriginHash() == hashFork)
+    while (pIndex)
     {
+        if (pIndex->GetOriginHash() != hashFork)
+        {
+            nDepth = 0;
+            break;
+        }
         locator.vBlockHash.push_back(pIndex->GetBlockHash());
         if (pIndex->IsOrigin())
         {
@@ -1103,15 +1108,9 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
         {
             break;
         }
-        for (int i = 0; pIndex && i < nIncStep; i++)
+        for (int i = 0; i < nIncStep && pIndex && !pIndex->IsOrigin(); i++)
         {
             pIndex = pIndex->pPrev;
-            if (pIndex->IsOrigin())
-            {
-                locator.vBlockHash.push_back(pIndex->GetBlockHash());
-                nDepth = 0;
-                break;
-            }
             nDepth++;
         }
     }
