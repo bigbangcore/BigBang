@@ -71,7 +71,7 @@ public:
                 }
                 catch (const std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -119,7 +119,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -163,7 +163,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -209,7 +209,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -258,7 +258,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });
@@ -309,7 +309,7 @@ public:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("parallel", e.what());
                     return false;
                 }
             });

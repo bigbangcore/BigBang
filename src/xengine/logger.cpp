@@ -4,7 +4,6 @@
 #include "logger.h"
 
 #include <boost/log/attributes.hpp>
-#include <boost/log/expressions.hpp>
 #include <boost/log/sinks.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/sources/logger.hpp>
@@ -23,13 +22,13 @@ namespace keywords = boost::log::keywords;
 
 namespace xengine
 {
-bool STD_DEBUG = false;
 
 template <typename CharT, typename TraitsT>
 inline std::basic_ostream<CharT, TraitsT>& operator<<(
     std::basic_ostream<CharT, TraitsT>& strm, severity_level lvl)
 {
     static const char* const str[] = {
+        "TRACE",
         "DEBUG",
         "INFO",
         "WARN",
@@ -42,97 +41,116 @@ inline std::basic_ostream<CharT, TraitsT>& operator<<(
     return strm;
 }
 
-BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level)
-BOOST_LOG_ATTRIBUTE_KEYWORD(channel, "Channel", std::string)
-
-static void console_formatter(logging::record_view const& rec, logging::formatting_ostream& strm)
+static void SetColor(logging::formatting_ostream& strm, const severity_level nLevel)
 {
-    logging::value_ref<severity_level> level = logging::extract<severity_level>("Severity", rec);
-
-    auto date_time_formatter = expr::stream << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f");
-    date_time_formatter(rec, strm);
-    strm << "|" << logging::extract<std::string>("Channel", rec);
-    switch (level.get())
+#if defined(__linux__) || defined(__APPLE__)
+    switch (nLevel)
     {
-    case DEBUG:
-        strm << "\033[0m";
+    case severity_level::TRACE:
+        // cyan
+        strm << "\033[36m";
         break;
-    case INFO:
+    case severity_level::DEBUG:
+        // white
+        strm << "\033[37m";
+        break;
+    case severity_level::INFO:
+        // green
         strm << "\033[32m";
         break;
-    case WARN:
+    case severity_level::WARN:
+        // yellow
         strm << "\033[33m";
         break;
-    case ERROR:
+    case severity_level::ERROR:
+        // red
         strm << "\033[31m";
         break;
     default:
+        // clear
+        strm << "\033[0m";
         break;
     }
-    strm << ":" << logging::extract<severity_level>("Severity", rec);
-    strm << "|" << logging::extract<std::string>("ThreadName", rec);
-    strm << "|" << rec[expr::smessage];
-    strm << "\033[0m";
+#else
+#endif
 }
 
-typedef sinks::text_file_backend backend_t;
-typedef sinks::unbounded_fifo_queue queue_t;
-typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
+static void ResetColor(logging::formatting_ostream& strm)
+{
+#if defined(__linux__) || defined(__APPLE__)
+    strm << "\033[0m";
+#else
+#endif
+}
+
+// INFO format: "%1%%2% : [%3%] <%4%> {%5%} - (%6%:%7%:%8%)%9%%10%"
+//  1: Set color by severity
+//  2: Date time
+//  3: Channel
+//  4: Severity string
+//  5: Thread name
+//  6: __FILE__
+//  7: __LINE__
+//  8: __FUNC__
+//  9: Message
+//  10: Reset Color
+static void Formatter(logging::record_view const& rec, logging::formatting_ostream& strm, const bool fColor, const bool fDebug)
+{
+    logging::value_ref<severity_level> level = logging::extract<severity_level>(severity.get_name(), rec);
+
+    //  1: Set color by severity
+    if (fColor)
+    {
+        SetColor(strm, level.get());
+    }
+
+    //  2: Date time
+    auto date_time_formatter = expr::stream << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f");
+    date_time_formatter(rec, strm);
+    strm << " : ";
+
+    //  3: Channel
+    strm << "[" << logging::extract<std::string>(channel.get_name(), rec) << "]";
+    strm << " ";
+
+    //  4: Severity string
+    strm << "<" << logging::extract<severity_level>(severity.get_name(), rec) << ">";
+    strm << " ";
+
+    //  5: Thread name
+    strm << "{" << logging::extract<std::string>(threadName.get_name(), rec) << "}";
+    strm << " - ";
+
+    if (fDebug || level == severity_level::TRACE)
+    {
+        //  6: __FILE__
+        //  7: __LINE__
+        auto named_scope_formatter = expr::stream << expr::format_named_scope(scope, boost::log::keywords::format = "(%F:%l:%C)");
+        named_scope_formatter(rec, strm);
+    }
+
+    //  8: Message
+    strm << rec[expr::smessage];
+
+    //  9: Reset Color
+    if (fColor)
+    {
+        ResetColor(strm);
+    }
+}
 
 class CLogger : public boost::noncopyable
 {
+    typedef sinks::text_file_backend backend_t;
+    typedef sinks::unbounded_fifo_queue queue_t;
+    typedef sinks::asynchronous_sink<backend_t, queue_t> sink_t;
+    typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
+
 public:
     static CLogger& getInstance()
     {
-        static CLogger* singleton = new CLogger();
-        return *singleton;
-    }
-
-    bool IsInited() const
-    {
-        return fIsInited.load();
-    }
-
-    void Init(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
-    {
-        sink = boost::make_shared<sink_t>(
-            keywords::open_mode = std::ios::app,
-            keywords::file_name = pathData / "logs" / "bigbang_%N.log",
-            keywords::rotation_size = 10 * 1024 * 1024,
-            keywords::auto_flush = true);
-
-        sink->set_formatter(
-            expr::format("%1% : [%2%] <%3%> {%4%} - %5%")
-            % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f")
-            % channel
-            % severity
-            % expr::attr<std::string>("ThreadName")
-            % expr::smessage);
-
-        typedef expr::channel_severity_filter_actor<std::string, severity_level> min_severity_filter;
-        min_severity_filter min_severity = expr::channel_severity_filter(channel, severity);
-        severity_level sl = fDebug ? DEBUG : INFO;
-        min_severity["bigbang"] = WARN;
-        min_severity["CDelegate"] = WARN;
-        min_severity["storage"] = WARN;
-        auto filter = min_severity || sl <= severity;
-        sink->set_filter(filter);
-
-        logging::core::get()->add_sink(sink);
-
-        if (!fDaemon)
-        {
-            typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
-            boost::shared_ptr<text_sink> sink_console = boost::make_shared<text_sink>();
-            boost::shared_ptr<std::ostream> stream(&std::clog, boost::null_deleter());
-            sink_console->locked_backend()->add_stream(stream);
-            sink_console->set_formatter(&console_formatter);
-            sink_console->set_filter(filter);
-            logging::core::get()->add_sink(sink_console);
-        }
-
-        logging::add_common_attributes();
-        fIsInited = true;
+        static CLogger singleton;
+        return singleton;
     }
 
     ~CLogger()
@@ -141,39 +159,68 @@ public:
         {
             sink->locked_backend()->flush();
         }
+        if (sink_console)
+        {
+            sink_console->locked_backend()->flush();
+        }
+    }
+
+    bool Init(const boost::filesystem::path& pathData, const severity_level nLevel,
+              const bool fConsole, const bool fDebug)
+    {
+        if (sink || sink_console)
+        {
+            return true;
+        }
+
+        if (!pathData.empty())
+        {
+            // Create log directory
+            boost::filesystem::path logPath = pathData / "logs";
+            if (!boost::filesystem::exists(logPath))
+            {
+                if (!boost::filesystem::create_directories(logPath))
+                {
+                    return false;
+                }
+            }
+
+            // initialize file sink
+            sink = boost::make_shared<sink_t>(
+                keywords::open_mode = std::ios::app,
+                keywords::file_name = pathData / "logs" / "bigbang_%N.log",
+                keywords::rotation_size = 10 * 1024 * 1024,
+                keywords::auto_flush = true);
+            sink->set_formatter(boost::bind(&Formatter, _1, _2, false, fDebug));
+            sink->set_filter(severity >= nLevel);
+            logging::core::get()->add_sink(sink);
+        }
+
+        if (fConsole)
+        {
+            // initialize console sink
+            sink_console = boost::make_shared<text_sink>();
+            boost::shared_ptr<std::ostream> stream(&std::clog, boost::null_deleter());
+            sink_console->locked_backend()->add_stream(stream);
+            sink_console->set_formatter(boost::bind(&Formatter, _1, _2, true, fDebug));
+            sink_console->set_filter(severity >= nLevel);
+            logging::core::get()->add_sink(sink_console);
+        }
+
+        logging::add_common_attributes();
+        logging::core::get()->add_global_attribute(scope.get_name(), attrs::named_scope());
+        return true;
     }
 
 private:
     boost::shared_ptr<sink_t> sink;
-    std::atomic<bool> fIsInited{ false };
+    boost::shared_ptr<text_sink> sink_console;
 };
 
-void XLog(const char* pszName, const char* pszErr, severity_level level)
+bool InitLog(const boost::filesystem::path& pathData, const severity_level nLevel,
+             const bool fConsole, const bool fDebug)
 {
-    if (CLogger::getInstance().IsInited())
-    {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(logger::get(), pszName, level) << str;
-    }
+    return CLogger::getInstance().Init(pathData, nLevel, fConsole, fDebug);
 }
 
-bool InitLog(const boost::filesystem::path& pathData, bool fDebug, bool fDaemon)
-{
-    boost::filesystem::path logPath = pathData / "logs";
-    if (!boost::filesystem::exists(logPath))
-    {
-        if (!boost::filesystem::create_directories(logPath))
-        {
-            return false;
-        }
-    }
-
-    CLogger::getInstance().Init(pathData, fDebug, fDaemon);
-    return true;
-}
 } // namespace xengine

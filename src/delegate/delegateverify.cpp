@@ -49,7 +49,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CDelegateVerify", "Verify proof error: %s", e.what());
         return false;
     }
 

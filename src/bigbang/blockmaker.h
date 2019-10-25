@@ -95,6 +95,7 @@ protected:
     bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
 
     void HandleAddedBlock(const CAddedBlockMessage& msg);
+
 private:
     enum
     {

@@ -188,19 +188,19 @@ bool CConsensus::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool");
         return false;
     }
 
@@ -216,7 +216,7 @@ bool CConsensus::HandleInitialize()
 
             delegate.AddNewDelegate(ctxt.GetDestination());
 
-            Log("AddNew delegate : %s\n", CAddress(ctxt.GetDestination()).ToString().c_str());
+            INFO("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
         }
     }
 
@@ -236,7 +236,7 @@ bool CConsensus::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 
@@ -244,19 +244,19 @@ bool CConsensus::HandleInvoke()
 
     if (!delegate.Initialize())
     {
-        Error("Failed to initialize delegate\n");
+        ERROR("Failed to initialize delegate");
         return false;
     }
 
     if (!LoadDelegateTx())
     {
-        Error("Failed to load delegate tx\n");
+        ERROR("Failed to load delegate tx");
         return false;
     }
 
     if (!LoadChain())
     {
-        Error("Failed to load chain\n");
+        ERROR("Failed to load chain");
         return false;
     }
 

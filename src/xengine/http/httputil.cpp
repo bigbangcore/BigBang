@@ -42,7 +42,7 @@ const ptime CHttpUtil::ParseRFC1123DayTime(const string& strDayTime)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CHttpUtil", "Parse RFC1123 time (%s) error: %s", strDayTime.c_str(), e.what());
     }
     return ptime(boost::date_time::not_a_date_time);
 }
@@ -62,7 +62,7 @@ const string CHttpUtil::FormatRFC1123DayTime(const ptime& pt)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CHttpUtil", "Format RFC1123 time (%s) error: %s", to_simple_string(pt).c_str(), e.what());
     }
     return "";
 }
@@ -95,7 +95,7 @@ bool CHttpUtil::Base64Decode(const std::string& strEncoded, std::string& strDeco
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CHttpUtil", "Decode base64 string (%s) error: %s", strEncoded.c_str(), e.what());
         return false;
     }
     return true;

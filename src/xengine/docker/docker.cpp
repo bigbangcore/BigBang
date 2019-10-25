@@ -32,13 +32,12 @@ CDocker::~CDocker()
     Exit();
 }
 
-bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
+bool CDocker::Initialize(CConfig* pConfigIn)
 {
     fActived = false;
     fShutdown = false;
 
     pConfig = pConfigIn;
-    pLog = pLogIn;
 
     if (pConfig == nullptr)
     {
@@ -55,11 +54,11 @@ bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
 
     tmNet.Clear();
 
-    Log("\n\n\n\n\n\n\n\n");
-    Log("WALL-E is being activatied...\n");
+    INFO("\n\n\n\n\n\n\n");
+    INFO("WALL-E is being activatied..");
 
-    Log("#### Configuration : \n%s\n", pConfig->ListConfig().c_str());
-    Log("##################\n");
+    INFO("#### Configuration : \n%s", pConfig->ListConfig().c_str());
+    INFO("##################");
 
     return true;
 }
@@ -309,7 +308,7 @@ void CDocker::Exit()
         pThreadTimer = nullptr;
     }
 
-    Log("WALL-E is deactivatied.\n");
+    INFO("WALL-E is deactivatied");
 }
 
 IBase* CDocker::GetObject(const string& key)
@@ -329,14 +328,6 @@ void CDocker::FatalError(const std::string& key)
 {
 }
 
-void CDocker::LogOutput(const char* key, const char* strPrefix, const char* pszFormat, va_list ap)
-{
-    if (pLog != nullptr)
-    {
-        (*pLog)(key, strPrefix, pszFormat, ap);
-    }
-}
-
 bool CDocker::ThreadStart(CThread& thr)
 {
     try
@@ -348,7 +339,7 @@ bool CDocker::ThreadStart(CThread& thr)
     }
     catch (exception& e)
     {
-        LogException(thr.strThreadName.c_str(), &e);
+        ERROR("Thread (%s) start error: %s", thr.strThreadName.c_str(), e.what());
     }
     return false;
 }
@@ -362,7 +353,7 @@ bool CDocker::ThreadDelayStart(CThread& thr)
     }
     catch (exception& e)
     {
-        LogException(thr.strThreadName.c_str(), &e);
+        ERROR("Thread (%s) delay start error: %s", thr.strThreadName.c_str(), e.what());
     }
     return false;
 }
@@ -374,7 +365,7 @@ void CDocker::ThreadExit(CThread& thr)
 
 void CDocker::ThreadRun(CThread& thr)
 {
-    Log("Thread %s started\n", thr.strThreadName.c_str());
+    INFO("Thread %s started", thr.strThreadName.c_str());
     SetThreadName(thr.strThreadName.c_str());
     try
     {
@@ -385,14 +376,14 @@ void CDocker::ThreadRun(CThread& thr)
     catch (std::exception& e)
     {
         thr.fRunning = false;
-        LogException(thr.strThreadName.c_str(), &e);
+        ERROR("Thread (%s) run error: %s", thr.strThreadName.c_str(), e.what());
     }
     catch (...)
     {
         thr.fRunning = false;
         throw; // support pthread_cancel()
     }
-    Log("Thread %s exiting\n", thr.strThreadName.c_str());
+    INFO("Thread %s exiting", thr.strThreadName.c_str());
 }
 
 void CDocker::ThreadDelayRun(CThread& thr)
@@ -401,7 +392,7 @@ void CDocker::ThreadDelayRun(CThread& thr)
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         if (!fActived)
         {
-            Log("Thread %s delay to invoke\n", thr.strThreadName.c_str());
+            INFO("Thread %s delay to invoke", thr.strThreadName.c_str());
         }
         while (!fActived && !fShutdown)
         {
@@ -414,7 +405,7 @@ void CDocker::ThreadDelayRun(CThread& thr)
     }
     else
     {
-        Log("Thread %s is not running before shutdown\n", thr.strThreadName.c_str());
+        INFO("Thread %s is not running before shutdown", thr.strThreadName.c_str());
     }
 }
 
@@ -535,22 +526,6 @@ const CConfig* CDocker::GetConfig()
 const string CDocker::GetWarnings()
 {
     return "";
-}
-
-void CDocker::Log(const char* pszFormat, ...)
-{
-    va_list ap;
-    va_start(ap, pszFormat);
-    LogOutput("docker", "[INFO]", pszFormat, ap);
-    va_end(ap);
-}
-
-void CDocker::LogException(const char* pszThread, std::exception* pex)
-{
-    ostringstream oss;
-    oss << "(" << (pszThread != nullptr ? pszThread : "") << "): " << ((pex != nullptr) ? pex->what() : "unknown") << '\n';
-    va_list ap;
-    LogOutput("docker", "[ERROR]", oss.str().c_str(), ap);
 }
 
 void CDocker::TimerProc()

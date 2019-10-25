@@ -18,6 +18,8 @@ namespace storage
 
 class CForkDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CForkDB");
+
 public:
     CForkDB() {}
     bool Initialize(const boost::filesystem::path& pathData);

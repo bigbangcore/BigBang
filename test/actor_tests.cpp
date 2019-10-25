@@ -244,6 +244,7 @@ BOOST_AUTO_TEST_CASE(basic)
     CTestMessageC::nHandled = CTestMessageC::nPublish = 0;
     CTestMessageD::nHandled = CTestMessageD::nPublish = 0;
 
+    InitLog(boost::filesystem::path(), severity_level::TRACE, true, true);
     CDocker docker;
     docker.Initialize(new CConfig);
 

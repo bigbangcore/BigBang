@@ -11,8 +11,8 @@ namespace xengine
 {
 
 CIOActorWorker::CIOActorWorker(const std::string& strNameIn)
-  : thrIOActorWorker(strNameIn, boost::bind(&CIOActorWorker::HandlerThreadFunc, this)),
-    ioStrand(ioService), ioWork(ioService)
+  : strName(strNameIn), ioStrand(ioService), ioWork(ioService),
+    thrIOActorWorker(strNameIn, boost::bind(&CIOActorWorker::HandlerThreadFunc, this))
 {
 }
 
@@ -77,13 +77,11 @@ void CIOActorWorker::HandlerThreadFunc()
     }
     catch (const boost::system::system_error& err)
     {
-        // TODO: Replace newer api
-        ErrorLog("", "Failed to run CIOActorWorker io_service: %s\n", err.what());
+        LOG_ERROR(strName, "Worker thread error: %s", err.what());
     }
     catch (...)
     {
-        // TODO: Replace newer api
-        ErrorLog("", "Failed to run CIOActorWorker io_service: unknown error\n");
+        LOG_ERROR(strName, "Worker thread unknown error");
     }
 
     LeaveLoop();

@@ -164,7 +164,7 @@ bool CIOInBound::Invoke(const tcp::endpoint& epListen, size_t nMaxConnection, co
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CIOInBound", "Invoke error: %s", e.what());
     }
 
     acceptorService.close();
@@ -200,7 +200,7 @@ bool CIOInBound::BuildWhiteList(const vector<string>& vAllowMask)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CIOInBound", "Build whitelist error: %s", e.what());
         return false;
     }
     return true;
@@ -221,7 +221,7 @@ bool CIOInBound::IsAllowedRemote(const tcp::endpoint& ep)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CIOInBound", "Check remote (%s) allowed or not error: %s", strAddress.c_str(), e.what());
     }
     return (vWhiteList.empty());
 }
@@ -233,11 +233,11 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
         if (queIdleClient.size() <= 1 || !IsAllowedRemote(pClient->GetRemote())
             || !pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient))
         {
-            ErrorLog(__PRETTY_FUNCTION__, (string("Accept error ") + epService.address().to_string()
-                                           + ". Idle client size: " + to_string(queIdleClient.size())
-                                           + ". Is allowed: " + to_string(IsAllowedRemote(pClient->GetRemote()))
-                                           + ". Accepted: " + to_string(pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient)))
-                                              .c_str());
+            LOG_ERROR("CIOInBound", "Service (%s) accept remote (%s) failed."
+                                    "Idle client: %u. Is allowed: %d. Accepted: %d",
+                      epService.address().to_string().c_str(), pClient->GetRemoteAddress().c_str(),
+                      queIdleClient.size(),
+                      pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient));
             pClient->Close();
         }
 
@@ -254,8 +254,9 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
     }
     else
     {
-        ErrorLog(__PRETTY_FUNCTION__,
-                 (string("Other error ") + epService.address().to_string() + ". " + err.message()).c_str());
+        LOG_ERROR("CIOInBound", "Service (%s) accept remote (%s) other error: %s",
+                  epService.address().to_string().c_str(), pClient->GetRemoteAddress().c_str(), err.message().c_str());
+
         if (err != boost::asio::error::operation_aborted)
         {
             acceptorService.close();
@@ -372,7 +373,7 @@ bool CIOSSLOption::SetupSSLContext(boost::asio::ssl::context& ctx) const
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CIOSSLOption", "Setup SSL context error: %s", e.what());
         return false;
     }
     return true;
@@ -433,7 +434,7 @@ CIOClient* CIOSSLOutBound::ClientAlloc(const CIOSSLOption& optSSL)
         }
         catch (exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CIOSSLOutBound", "Alloc client error: %s", e.what());
             return nullptr;
         }
     }

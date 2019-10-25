@@ -103,7 +103,7 @@ bool CIOProc::DispatchEvent(CEvent* pEvent)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        ERROR("Dispatch event: %s", e.what());
         return false;
     }
     return fResult;
@@ -118,13 +118,13 @@ bool CIOProc::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 
     if (!ioOutBound.Invoke(GetMaxOutBoundCount()))
     {
-        Error("Failed to invoke IOOutBound\n");
+        ERROR("Failed to invoke IOOutBound");
         return false;
     }
 

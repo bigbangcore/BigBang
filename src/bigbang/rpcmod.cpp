@@ -163,25 +163,25 @@ bool CRPCMod::HandleInitialize()
 {
     if (!GetObject("httpserver", pHttpServer))
     {
-        Error("Failed to request httpserver\n");
+        ERROR("Failed to request httpserver");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        ERROR("Failed to request service");
         return false;
     }
 
     if (!GetObject("datastat", pDataStat))
     {
-        Error("Failed to request datastat\n");
+        ERROR("Failed to request datastat");
         return false;
     }
 
@@ -243,7 +243,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
                 if (fWriteRPCLog)
                 {
-                    Debug("request : %s\n", lmdMask(spReq->Serialize()).c_str());
+                    DEBUG("request : %s", lmdMask(spReq->Serialize()).c_str());
                 }
 
                 spResult = (this->*(*it).second)(spReq->spParam);
@@ -300,7 +300,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
     if (fWriteRPCLog)
     {
-        Debug("response : %s\n", lmdMask(strResult).c_str());
+        DEBUG("response : %s", lmdMask(strResult).c_str());
     }
 
     // no result means no return

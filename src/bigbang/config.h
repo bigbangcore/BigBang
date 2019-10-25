@@ -16,6 +16,8 @@ namespace bigbang
 {
 class CConfig
 {
+    LOGGER_CHANNEL("config");
+
 public:
     CConfig();
     ~CConfig();

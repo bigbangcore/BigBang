@@ -102,7 +102,7 @@ public:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CEventCategory", "Handle event (%d) error: %s", type, e.what());
         }
         return false;
     }

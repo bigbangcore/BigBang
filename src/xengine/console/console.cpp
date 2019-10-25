@@ -53,7 +53,7 @@ bool CConsole::DispatchEvent(CEvent* pEvent)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        ERROR("Dispatch event error: %s", e.what());
         return false;
     }
     return fResult;
@@ -73,7 +73,7 @@ bool CConsole::HandleInvoke()
 {
     if (!InstallReadline(strPrompt))
     {
-        Error("Failed to setup readline\n");
+        ERROR("Failed to setup readline");
         return false;
     }
 
@@ -81,7 +81,7 @@ bool CConsole::HandleInvoke()
 
     if (!ThreadDelayStart(thrConsole))
     {
-        Error("Failed to start console thread\n");
+        ERROR("Failed to start console thread");
         return false;
     }
     return true;

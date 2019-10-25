@@ -58,7 +58,7 @@ public:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CEventPeerData", "Handle event error: %s", e.what());
         }
         return false;
     }
@@ -97,7 +97,7 @@ public:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CEventPeerDelegated", "Handle event error: %s", e.what());
         }
         return false;
     }

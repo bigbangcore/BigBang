@@ -27,6 +27,7 @@ public:
     virtual ~CIOClient();
     const boost::asio::ip::tcp::endpoint GetRemote();
     const boost::asio::ip::tcp::endpoint GetLocal();
+    const std::string GetRemoteAddress();
     void Close();
     void Release();
     void Shutdown();

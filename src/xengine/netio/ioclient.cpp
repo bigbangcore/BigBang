@@ -38,7 +38,7 @@ const tcp::endpoint CIOClient::GetRemote()
         }
         catch (exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CIOClient", "Get remote error: %s", e.what());
         }
     }
     return epRemote;
@@ -52,9 +52,15 @@ const tcp::endpoint CIOClient::GetLocal()
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CIOClient", "Get local error: %s", e.what());
     }
     return (tcp::endpoint());
+}
+
+const std::string CIOClient::GetRemoteAddress()
+{
+    tcp::endpoint ep = GetRemote();
+    return ep.address().to_string();
 }
 
 void CIOClient::Close()
@@ -313,7 +319,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
     char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-    //std::cout << "Verifying " << (fPreverified ? "success" : "fail") << ": " << subject_name << "\n";
+    //std::cout << "Verifying " << (fPreverified ? "success" : "fail") << ": " << subject_name << std::endl;
 
     X509_STORE_CTX* cts = ctx.native_handle();
 
@@ -333,7 +339,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
 
     if (fPreverified)
     {
-        xengine::DebugLog("SSLVERIFY", (string("SSL verify success, subject: ") + subject_name).c_str());
+        LOG_TRACE("SSLVERIFY", "SSL verify success, subject: %s", subject_name);
     }
     else
     {
@@ -424,7 +430,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
             break;
         }
 
-        xengine::DebugLog("SSLVERIFY", (string("SSL verify fail, subject: ") + subject_name + string(", cts_error: [") + to_string(cts_error) + string("]<") + to_string(depth) + string(">  ") + string(sErrorDesc)).c_str());
+        LOG_TRACE("SSLVERIFY", "SSL verify fail, subject: %s, cts_error: [%d]<%d> %s", subject_name, cts_error, depth, sErrorDesc.c_str());
     }
 
     return fPreverified;

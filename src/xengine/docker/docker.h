@@ -13,10 +13,10 @@
 #include <string>
 
 #include "docker/config.h"
-#include "docker/log.h"
 #include "docker/nettime.h"
 #include "docker/thread.h"
 #include "docker/timertask.h"
+#include "logger.h"
 
 namespace xengine
 {
@@ -25,10 +25,12 @@ class IBase;
 
 class CDocker
 {
+    LOGGER_CHANNEL("CDocker");
+
 public:
     CDocker();
     ~CDocker();
-    bool Initialize(CConfig* pConfigIn, CLog* pLogIn = nullptr);
+    bool Initialize(CConfig* pConfigIn);
 
     bool Attach(IBase* pBase);
     void Detach(std::string& key);
@@ -42,7 +44,6 @@ public:
 
     IBase* GetObject(const std::string& key);
     void FatalError(const std::string& key);
-    void LogOutput(const char* key, const char* strPrefix, const char* pszFormat, va_list ap);
     bool ThreadStart(CThread& thr);
     bool ThreadDelayStart(CThread& thr);
     void ThreadExit(CThread& thr);
@@ -59,8 +60,6 @@ public:
 
 protected:
     void Halt(std::vector<IBase*>& vWorkQueue);
-    void Log(const char* pszFormat, ...);
-    void LogException(const char* pszThread, std::exception* pex);
     void ListConfig();
     void TimerProc();
 
@@ -72,7 +71,6 @@ protected:
 
     CNetTime tmNet;
     CConfig* pConfig;
-    CLog* pLog;
 
     bool fActived;
     bool fShutdown;

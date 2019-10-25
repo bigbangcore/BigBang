@@ -4,6 +4,7 @@
 
 #include "util.h"
 
+#include <cstdarg>
 #include <map>
 #if defined(__linux__)
 #include <sys/prctl.h>
@@ -29,11 +30,11 @@ void SetThreadName(const char* name)
 
 std::string GetThreadName()
 {
-    char name[16] = { 0 };
+    char name[32] = { 0 };
 #if defined(__linux__)
     ::prctl(PR_GET_NAME, name);
 #elif defined(__APPLE__)
-    pthread_getname_np(pthread_self(), name, 16);
+    pthread_getname_np(pthread_self(), name, 32);
 #endif
     return name;
 }
@@ -66,6 +67,24 @@ void PrintTrace()
     free(stack_strings);
     stack_strings = nullptr;
 #endif
+}
+
+std::string FormatString(const char* pszFormat, ...)
+{
+    va_list ap;
+
+    std::string str;
+    size_t size = (strlen(pszFormat) / 128 + 2) * 128;
+    int len = -1;
+    do
+    {
+        str.resize(size);
+        va_start(ap, pszFormat);
+        len = vsnprintf(const_cast<char*>(str.data()), size, pszFormat, ap);
+        va_end(ap);
+    } while ((len < 0 || len >= size) && (size *= 2));
+
+    return str.substr(0, len + 1);
 }
 
 } // namespace xengine

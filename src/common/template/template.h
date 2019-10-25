@@ -42,7 +42,7 @@ public:
         }
         catch (const std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CDestInRecordedTemplate", e.what());
             return false;
         }
 

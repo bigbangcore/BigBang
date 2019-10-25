@@ -41,6 +41,8 @@ public:
 
 class CWalletAddrDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CWalletAddrDB");
+
 public:
     CWalletAddrDB() {}
     bool Initialize(const boost::filesystem::path& pathWallet);
@@ -78,6 +80,8 @@ protected:
 
 class CWalletTxDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CWalletTxDB");
+
 public:
     CWalletTxDB()
       : nSequence(0), nTxCount(0) {}
@@ -196,6 +200,8 @@ protected:
 
 class CWalletDB
 {
+    LOGGER_CHANNEL("CWalletDB");
+
 public:
     CWalletDB();
     ~CWalletDB();

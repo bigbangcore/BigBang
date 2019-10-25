@@ -47,7 +47,6 @@ set(sources
     peernet/message.h
     db/kvdb.h
     stream/datastream.h
-    docker/log.h  
     docker/nettime.h  
     docker/thread.h  
     docker/timertask.h

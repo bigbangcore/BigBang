@@ -540,43 +540,43 @@ bool CNetChannelController::HandleInitialize()
 {
     if (!GetObject("peernet", pPeerNet))
     {
-        Error("Failed to request peer net\n");
+        ERROR("Failed to request peer net\n");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol\n");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline\n");
         return false;
     }
 
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool\n");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        ERROR("Failed to request service\n");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        ERROR("Failed to request dispatcher\n");
         return false;
     }
 
     if (!GetObject("netchannelmodel", pNetChannelModel))
     {
-        Error("Failed to request netchannel model\n");
+        ERROR("Failed to request netchannel model\n");
         return false;
     }
 
@@ -628,7 +628,7 @@ bool CNetChannelController::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor\n");
         return false;
     }
 
@@ -1041,7 +1041,7 @@ void CNetChannelController::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManag
 {
     if (!strCaller.empty())
     {
-        Log("DispatchMisbehaveEvent : %s\n", strCaller.c_str());
+        INFO("DispatchMisbehaveEvent : %s\n", strCaller.c_str());
     }
 
     auto spNetCloseMsg = xengine::CPeerNetCloseMessage::Create();

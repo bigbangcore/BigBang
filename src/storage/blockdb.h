@@ -21,6 +21,8 @@ namespace storage
 
 class CBlockDB
 {
+    LOGGER_CHANNEL("CBlockDB");
+
 public:
     CBlockDB();
     ~CBlockDB();

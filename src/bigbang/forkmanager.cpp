@@ -32,13 +32,13 @@ bool CForkManager::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 

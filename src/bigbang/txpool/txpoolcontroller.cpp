@@ -29,7 +29,7 @@ bool CTxPoolController::HandleInitialize()
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool");
         return false;
     }
 
@@ -59,7 +59,7 @@ bool CTxPoolController::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 
