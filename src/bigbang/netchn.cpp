@@ -442,6 +442,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
         {
             boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
             CSchedule& sched = GetSchedule(hashFork);
+            if (eventInv.data.size() == 1 && eventInv.data[0].nType == network::CInv::MSG_BLOCK && eventInv.data[0].nHash == uint256())
+            {
+                DispatchGetBlocksEvent(nNonce, hashFork);
+                return true;
+            }
             vector<uint256> vTxHash;
             for (const network::CInv& inv : eventInv.data)
             {
@@ -537,18 +542,42 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     uint64 nNonce = eventGetBlocks.nNonce;
     uint256& hashFork = eventGetBlocks.hashFork;
     vector<uint256> vBlockHash;
-    if (pBlockChain->GetBlockInv(hashFork, eventGetBlocks.data, vBlockHash, MAX_GETBLOCKS_COUNT) && !vBlockHash.empty())
+    if (eventGetBlocks.data.vBlockHash.empty())
     {
-        network::CEventPeerInv eventInv(nNonce, hashFork);
-        for (const uint256& hash : vBlockHash)
-        {
-            eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
-        }
-        pPeerNet->DispatchEvent(&eventInv);
+        StdError("NetChannel", "CEventPeerGetBlocks: vBlockHash is empty");
+        return false;
     }
-    else
+    if (pBlockChain->GetBlockInv(hashFork, eventGetBlocks.data, vBlockHash, MAX_GETBLOCKS_COUNT))
     {
-        StdLog("NetChannel", "CEventPeerGetBlocks GetBlockInv fail or vBlockHash is empty, hashFork: %s", hashFork.GetHex().c_str());
+        if (vBlockHash.empty())
+        {
+            uint256 hashLastBlock;
+            int nLastHeight = 0;
+            int64 nLastTime = 0;
+            if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime))
+            {
+                for (const uint256& hash : eventGetBlocks.data.vBlockHash)
+                {
+                    if (hash == hashLastBlock)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            network::CEventPeerInv eventInv(nNonce, hashFork);
+            eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, uint256()));
+            pPeerNet->DispatchEvent(&eventInv);
+        }
+        else
+        {
+            network::CEventPeerInv eventInv(nNonce, hashFork);
+            for (const uint256& hash : vBlockHash)
+            {
+                eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hash));
+            }
+            pPeerNet->DispatchEvent(&eventInv);
+        }
     }
     return true;
 }

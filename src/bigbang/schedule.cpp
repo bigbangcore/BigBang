@@ -360,11 +360,8 @@ int CSchedule::GetLocatorDepth(uint64 nPeerNonce)
 
 void CSchedule::SetLocatorDepth(uint64 nPeerNonce, int nDepth)
 {
-    map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
-    if (it != mapPeer.end())
-    {
-        it->second.SetBlockLocatorDepth(nDepth);
-    }
+    CInvPeer& peer = mapPeer[nPeerNonce];
+    peer.SetBlockLocatorDepth(nDepth);
 }
 
 int CSchedule::GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock)
