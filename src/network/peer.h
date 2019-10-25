@@ -30,8 +30,8 @@ public:
         xengine::CBufStream ssPayload;
         return SendMessage(nChannel, nCommand, ssPayload);
     }
-    uint32 Request(CInv& inv, uint32 nTimerId);
-    uint32 Responded(CInv& inv);
+    uint32 Request(const CInv& inv, uint32 nTimerId);
+    uint32 Responded(const CInv& inv);
     void AskFor(const uint256& hashFork, const std::vector<CInv>& vInv);
     bool FetchAskFor(uint256& hashFork, CInv& inv);
     bool PingTimer(uint32 nTimerId) override;

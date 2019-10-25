@@ -175,6 +175,7 @@ public:
     void InvalidateTx(const uint256& txid, std::set<uint64>& setMisbehavePeer);
     bool ScheduleBlockInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fMissingPrev, bool& fEmpty);
     bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount);
+    bool CancelAssignedInv(uint64 nPeerNonce, const network::CInv& inv);
     int GetLocatorDepth(uint64 nPeerNonce);
     void SetLocatorDepth(uint64 nPeerNonce, int nDepth);
     int GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock);

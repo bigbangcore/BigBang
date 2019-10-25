@@ -74,7 +74,7 @@ bool CBbPeer::SendMessage(int nChannel, int nCommand, CBufStream& ssPayload)
     return true;
 }
 
-uint32 CBbPeer::Request(CInv& inv, uint32 nTimerId)
+uint32 CBbPeer::Request(const CInv& inv, uint32 nTimerId)
 {
     uint32 nPrevTimerId = 0;
     map<CInv, uint32>::iterator it = mapRequest.find(inv);
@@ -90,7 +90,7 @@ uint32 CBbPeer::Request(CInv& inv, uint32 nTimerId)
     return nPrevTimerId;
 }
 
-uint32 CBbPeer::Responded(CInv& inv)
+uint32 CBbPeer::Responded(const CInv& inv)
 {
     uint32 nTimerId = 0;
     std::map<CInv, uint32>::iterator it = mapRequest.find(inv);

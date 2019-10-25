@@ -48,6 +48,7 @@ enum
     PROTO_CMD_INV = 5,
     PROTO_CMD_TX = 6,
     PROTO_CMD_BLOCK = 7,
+    PROTO_CMD_GETFAIL = 8,
 };
 
 enum

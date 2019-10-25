@@ -105,6 +105,7 @@ protected:
     bool HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks) override;
     bool HandleEvent(network::CEventPeerTx& eventTx) override;
     bool HandleEvent(network::CEventPeerBlock& eventBlock) override;
+    bool HandleEvent(network::CEventPeerGetFail& eventGetFail) override;
 
     CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);

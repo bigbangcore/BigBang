@@ -62,6 +62,7 @@ protected:
     bool HandleEvent(CEventPeerGetBlocks& eventGetBlocks) override;
     bool HandleEvent(CEventPeerTx& eventTx) override;
     bool HandleEvent(CEventPeerBlock& eventBlock) override;
+    bool HandleEvent(CEventPeerGetFail& eventGetFail) override;
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
@@ -72,7 +73,7 @@ protected:
     CAddress GetGateWayAddress(const CNetHost& gateWayAddr);
     bool SendDataMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
     bool SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
-    void SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
+    bool SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
     virtual void ProcessAskFor(xengine::CPeer* pPeer);
     void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn, bool fEnclosedIn)
     {
