@@ -103,6 +103,9 @@ public:
         return pstrChannelRef->c_str();
     }
 
+protected:
+    CLogChannel& operator=(const CLogChannel&) = delete;
+
 private:
     const std::string* pstrChannelRef;
     const bool fNew;
