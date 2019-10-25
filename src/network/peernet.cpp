@@ -95,13 +95,17 @@ bool CBbPeerNet::HandleEvent(CEventPeerGetData& eventGetData)
 {
     CBufStream ssPayload;
     ssPayload << eventGetData;
-    if (!SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
+    if (SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
     {
-        return false;
+        if (SetInvTimer(eventGetData.nNonce, eventGetData.data))
+        {
+            return true;
+        }
     }
-
-    SetInvTimer(eventGetData.nNonce, eventGetData.data);
-    return true;
+    CEventPeerGetFail* pEvent = new CEventPeerGetFail(eventGetData.nNonce, eventGetData.hashFork);
+    pEvent->data.assign(eventGetData.data.begin(), eventGetData.data.end());
+    pNetChannel->PostEvent(pEvent);
+    return false;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerGetBlocks& eventGetBlocks)
@@ -123,6 +127,13 @@ bool CBbPeerNet::HandleEvent(CEventPeerBlock& eventBlock)
     CBufStream ssPayload;
     ssPayload << eventBlock;
     return SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerGetFail& eventGetFail)
+{
+    CBufStream ssPayload;
+    ssPayload << eventGetFail;
+    return SendDataMessage(eventGetFail.nNonce, PROTO_CMD_GETFAIL, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)
@@ -254,7 +265,7 @@ bool CBbPeerNet::SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBuf
     return pBbPeer->SendMessage(PROTO_CHN_DELEGATE, nCommand, ssPayload);
 }
 
-void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
+bool CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
 {
     const int64 nTimeout[] = { 0, RESPONSE_TX_TIMEOUT, RESPONSE_BLOCK_TIMEOUT,
                                RESPONSE_DISTRIBUTE_TIMEOUT, RESPONSE_PUBLISH_TIMEOUT };
@@ -262,7 +273,7 @@ void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
     if (pBbPeer != nullptr)
     {
         int64 nElapse = 0;
-        for (CInv& inv : vInv)
+        for (const CInv& inv : vInv)
         {
             if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_PUBLISH)
             {
@@ -273,6 +284,11 @@ void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
             }
         }
     }
+    else
+    {
+        return false;
+    }
+    return true;
 }
 
 void CBbPeerNet::ProcessAskFor(CPeer* pPeer)
@@ -549,6 +565,21 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 ssPayload >> pEvent->data;
                 CInv inv(CInv::MSG_BLOCK, pEvent->data.GetHash());
                 CancelTimer(pBbPeer->Responded(inv));
+                pNetChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_GETFAIL:
+        {
+            CEventPeerGetFail* pEvent = new CEventPeerGetFail(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                for (const CInv& inv : pEvent->data)
+                {
+                    CancelTimer(pBbPeer->Responded(inv));
+                }
                 pNetChannel->PostEvent(pEvent);
                 return true;
             }

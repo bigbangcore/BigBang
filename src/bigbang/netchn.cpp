@@ -486,6 +486,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
 {
     uint64 nNonce = eventGetData.nNonce;
     uint256& hashFork = eventGetData.hashFork;
+    network::CEventPeerGetFail eventGetFail(nNonce, hashFork);
     for (const network::CInv& inv : eventGetData.data)
     {
         if (inv.nType == network::CInv::MSG_TX)
@@ -501,8 +502,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             }
             else
             {
-                // TODO: Penalize
-                StdLog("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s", inv.nHash.GetHex().c_str());
+                StdError("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s", inv.nHash.GetHex().c_str());
+                eventGetFail.data.push_back(inv);
             }
         }
         else if (inv.nType == network::CInv::MSG_BLOCK)
@@ -514,10 +515,19 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             }
             else
             {
-                // TODO: Penalize
-                StdLog("NetChannel", "CEventPeerGetData: Get block fail, block hash: %s", inv.nHash.GetHex().c_str());
+                StdError("NetChannel", "CEventPeerGetData: Get block fail, block hash: %s", inv.nHash.GetHex().c_str());
+                eventGetFail.data.push_back(inv);
             }
         }
+        else
+        {
+            StdError("NetChannel", "CEventPeerGetData: inv.nType error, nType: %s, nHash: %s", inv.nType, inv.nHash.GetHex().c_str());
+            eventGetFail.data.push_back(inv);
+        }
+    }
+    if (!eventGetFail.data.empty())
+    {
+        pPeerNet->DispatchEvent(&eventGetFail);
     }
     return true;
 }
@@ -647,6 +657,28 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     catch (exception& e)
     {
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, string("eventBlock: ") + e.what());
+    }
+    return true;
+}
+
+bool CNetChannel::HandleEvent(network::CEventPeerGetFail& eventGetFail)
+{
+    uint64 nNonce = eventGetFail.nNonce;
+    uint256& hashFork = eventGetFail.hashFork;
+
+    try
+    {
+        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        CSchedule& sched = GetSchedule(hashFork);
+
+        for (const network::CInv& inv : eventGetFail.data)
+        {
+            sched.CancelAssignedInv(nNonce, inv);
+        }
+    }
+    catch (exception& e)
+    {
+        DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, string("eventGetFail: ") + e.what());
     }
     return true;
 }

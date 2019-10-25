@@ -4,7 +4,10 @@
 
 #include "schedule.h"
 
+#include "util.h"
+
 using namespace std;
+using namespace xengine;
 
 namespace bigbang
 {
@@ -317,6 +320,30 @@ bool CSchedule::ScheduleTxInv(uint64 nPeerNonce, vector<network::CInv>& vInv, si
         {
             return (!fReceivedAll || peer.GetCount(network::CInv::MSG_TX) < MAX_PEER_TX_INV_COUNT);
         }
+    }
+    return true;
+}
+
+bool CSchedule::CancelAssignedInv(uint64 nPeerNonce, const network::CInv& inv)
+{
+    CInvState& state = mapState[inv];
+    if (state.nAssigned == nPeerNonce)
+    {
+        state.nAssigned = 0;
+
+        map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
+        if (it != mapPeer.end())
+        {
+            (*it).second.Completed(inv);
+        }
+        else
+        {
+            StdWarn("Schedule", "CancelAssignedInv: find peer fail, peer nonce: %ld, inv: [%d] %s", nPeerNonce, inv.nType, inv.nHash.GetHex().c_str());
+        }
+    }
+    else
+    {
+        StdWarn("Schedule", "CancelAssignedInv: state.nAssigned != nPeerNonce, peer nonce: %ld, inv: [%d] %s", nPeerNonce, inv.nType, inv.nHash.GetHex().c_str());
     }
     return true;
 }
