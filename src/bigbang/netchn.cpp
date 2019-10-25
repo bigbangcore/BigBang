@@ -932,7 +932,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
             }
-            else if (err != ERR_MISSING_PREV && err != ERR_TRANSACTION_CONFLICTING_INPUT)
+            else if (err != ERR_MISSING_PREV && err != ERR_TRANSACTION_CONFLICTING_INPUT && err != ERR_ALREADY_HAVE)
             {
                 StdLog("NetChannel", "NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s",
                        GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
