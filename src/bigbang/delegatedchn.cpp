@@ -239,19 +239,19 @@ bool CDelegatedChannel::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        ERROR("Failed to request dispatcher");
         return false;
     }
 
@@ -283,7 +283,7 @@ bool CDelegatedChannel::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 

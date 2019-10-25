@@ -85,13 +85,13 @@ void CPeerNet::EnterLoop()
     {
         if (StartService(service.epListen, service.nMaxInBounds))
         {
-            Log("Listen port %s:%u, connections limit = %u\n",
-                service.epListen.address().to_string().c_str(),
-                service.epListen.port(), service.nMaxInBounds);
+            INFO("Listen port %s:%u, connections limit = %u",
+                 service.epListen.address().to_string().c_str(),
+                 service.epListen.port(), service.nMaxInBounds);
         }
         else
         {
-            Error("Failed to listen port %s:%u, disable in-bound connection\n",
+            ERROR("Failed to listen port %s:%u, disable in-bound connection",
                   service.epListen.address().to_string().c_str(), service.epListen.port());
         }
     }
@@ -219,15 +219,15 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
         mapPeer.insert(make_pair(nNonce, pPeer));
     }
 
-    Log("Add New Peer : %s %d\n", pPeer->GetRemote().address().to_string().c_str(),
-        pPeer->GetRemote().port());
+    INFO("Add New Peer : %s %d", pPeer->GetRemote().address().to_string().c_str(),
+         pPeer->GetRemote().port());
 
     return pPeer;
 }
 
 void CPeerNet::RemovePeer(CPeer* pPeer, const CEndpointManager::CloseReason& reason)
 {
-    Warn("Remove Peer (%d) : %s\n", reason,
+    WARN("Remove Peer (%d) : %s", reason,
          pPeer->GetRemote().address().to_string().c_str());
 
     epMngr.CloseEndpoint(pPeer->GetRemote(), reason);
@@ -239,8 +239,8 @@ void CPeerNet::RemovePeer(CPeer* pPeer, const CEndpointManager::CloseReason& rea
 
 void CPeerNet::RewardPeer(CPeer* pPeer, const CEndpointManager::Bonus& bonus)
 {
-    Log("Reward Peer (%d) : %s\n", bonus,
-        pPeer->GetRemote().address().to_string().c_str());
+    INFO("Reward Peer (%d) : %s", bonus,
+         pPeer->GetRemote().address().to_string().c_str());
     epMngr.RewardEndpoint(pPeer->GetRemote(), bonus);
 }
 

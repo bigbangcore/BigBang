@@ -32,6 +32,8 @@ public:
 
 class CDelegate
 {
+    LOGGER_CHANNEL("delegate");
+
 public:
     CDelegate();
     ~CDelegate();

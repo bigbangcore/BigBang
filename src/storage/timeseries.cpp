@@ -156,7 +156,7 @@ bool CTimeSeriesCached::VacateCache(uint32 nNeeded)
         }
         catch (exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Vacate cache for needed space (%u) error: %s", nNeeded, e.what());
             return false;
         }
 

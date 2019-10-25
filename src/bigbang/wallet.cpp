@@ -155,19 +155,19 @@ bool CWallet::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool");
         return false;
     }
 
@@ -185,25 +185,25 @@ bool CWallet::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 
     if (!dbWallet.Initialize(Config() ? (Config()->pathData / "wallet") : "./"))
     {
-        Error("Failed to initialize wallet database\n");
+        ERROR("Failed to initialize wallet database");
         return false;
     }
 
     if (!LoadDB())
     {
-        Error("Failed to load wallet database\n");
+        ERROR("Failed to load wallet database");
         return false;
     }
 
     if (!InspectWalletTx(StorageConfig() ? StorageConfig()->nCheckDepth : 1))
     {
-        Log("Failed to inspect wallet transactions\n");
+        INFO("Failed to inspect wallet transactions");
         return false;
     }
 
@@ -238,14 +238,14 @@ bool CWallet::AddKey(const crypto::CKey& key)
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     if (!InsertKey(key))
     {
-        Warn("AddKey : invalid or duplicated key\n");
+        WARN("AddKey : invalid or duplicated key");
         return false;
     }
 
     if (!dbWallet.UpdateKey(key.GetPubKey(), key.GetVersion(), key.GetCipher()))
     {
         mapKeyStore.erase(key.GetPubKey());
-        Warn("AddKey : failed to save key\n");
+        WARN("AddKey : failed to save key");
         return false;
     }
     return true;
@@ -255,7 +255,7 @@ bool CWallet::LoadKey(const crypto::CKey& key)
 {
     if (!InsertKey(key))
     {
-        Error("LoadKey : invalid or duplicated key\n");
+        ERROR("LoadKey : invalid or duplicated key");
         return false;
     }
     return true;
@@ -316,7 +316,7 @@ bool CWallet::Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString
         }
         if (!dbWallet.UpdateKey(key.GetPubKey(), keyTemp.GetVersion(), keyTemp.GetCipher()))
         {
-            Error("AddKey : failed to update key\n");
+            ERROR("AddKey : failed to update key");
             return false;
         }
         key.Encrypt(strPassphrase, strCurrentPassphrase);

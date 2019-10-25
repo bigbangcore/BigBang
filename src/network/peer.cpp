@@ -141,7 +141,7 @@ bool CBbPeer::ParseMessageHeader()
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CBbPeer", "Parse message header error: %s", e.what());
     }
     return false;
 }
@@ -217,7 +217,7 @@ bool CBbPeer::HandshakeReadCompleted()
         }
         catch (exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CBbPeer", "Handshake completed error: %s", e.what());
         }
     }
     return false;
@@ -250,7 +250,7 @@ bool CBbPeer::HandleReadCompleted()
         }
         catch (exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CBbPeer", "Read completed error: %s", e.what());
         }
     }
     return false;

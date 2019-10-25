@@ -130,7 +130,7 @@ bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, co
     }
     catch (const exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CMPOpenedBox", "Make sealed box error: %s", e.what());
     }
     return false;
 }

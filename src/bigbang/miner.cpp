@@ -49,7 +49,7 @@ bool CMiner::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
     if (!GetObject("httpget", pHttpGet))
@@ -244,11 +244,11 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        ERROR(e.what());
     }
     catch (...)
     {
-        ErrorLog(__PRETTY_FUNCTION__, "unknown");
+        ERROR("unknown");
     }
     return true;
 }
@@ -307,7 +307,7 @@ bool CMiner::GetWork()
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        ERROR(e.what());
     }
     return false;
 }
@@ -328,7 +328,7 @@ bool CMiner::SubmitWork(const vector<unsigned char>& vchWorkData)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        ERROR(e.what());
     }
     return false;
 }

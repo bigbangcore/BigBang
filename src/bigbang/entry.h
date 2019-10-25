@@ -40,7 +40,6 @@ protected:
 
 protected:
     CConfig config;
-    xengine::CLog log;
     xengine::CDocker docker;
 
 private:

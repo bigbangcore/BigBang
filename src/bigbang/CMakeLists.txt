@@ -51,7 +51,6 @@ set(src
     event.h
     base.h
     param.h
-    storage.h
     version.h
 )
 set(mode_src

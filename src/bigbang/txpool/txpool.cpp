@@ -71,13 +71,13 @@ bool CTxPool::HandleInitialize()
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 
@@ -101,13 +101,13 @@ bool CTxPool::HandleInvoke()
 
     if (!datTxPool.Initialize(Config()->pathData))
     {
-        Error("Failed to initialize txpool data\n");
+        ERROR("Failed to initialize txpool data");
         return false;
     }
 
     if (!LoadData())
     {
-        Error("Failed to load txpool data\n");
+        ERROR("Failed to load txpool data");
         return false;
     }
 
@@ -118,7 +118,7 @@ void CTxPool::HandleHalt()
 {
     if (!SaveData())
     {
-        Error("Failed to save txpool data\n");
+        ERROR("Failed to save txpool data");
     }
     Clear();
 
@@ -283,7 +283,7 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter) const
 }
 
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t nMaxSize,
-                                  vector<CTransaction>& vtx, int64& nTotalTxFee) const
+                             vector<CTransaction>& vtx, int64& nTotalTxFee) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     auto it = mapPoolView.find(hashFork);

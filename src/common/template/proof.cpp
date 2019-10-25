@@ -69,7 +69,7 @@ bool CTemplateProof::SetTemplateData(const vector<uint8>& vchDataIn)
     }
     catch (exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CTemplateProof", "Set template data error: %s", e.what());
         return false;
     }
 

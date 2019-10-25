@@ -17,6 +17,8 @@ namespace storage
 
 class CTxPoolData
 {
+    LOGGER_CHANNEL("CTxPoolData");
+
 public:
     CTxPoolData();
     ~CTxPoolData();

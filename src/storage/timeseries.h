@@ -113,7 +113,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Write into file (%s) offset (%u) error: %s", pathFile.c_str(), nOffset, e.what());
             return false;
         }
         if (fWriteCache)
@@ -146,7 +146,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Write into the last file (%s) error: %s", pathFile.c_str(), e.what());
             return false;
         }
         if (fWriteCache)
@@ -182,7 +182,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Read file (%s) offset (%u) error: %s", pathFile.c_str(), nOffset, e.what());
             return false;
         }
 
@@ -219,7 +219,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Read file (%s) offset (%u) error: %s", pathFile.c_str(), pos.nOffset, e.what());
             return false;
         }
 
@@ -267,7 +267,7 @@ public:
             }
             catch (std::exception& e)
             {
-                xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                LOG_ERROR("CTimeSeriesCached", "Walk file (%s) error: %s", pathFile.c_str(), e.what());
                 fRet = false;
             }
             nFile++;
@@ -323,7 +323,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesCached", "Write to cache error: %s", e.what());
         }
         return false;
     }
@@ -342,7 +342,7 @@ protected:
                 }
                 catch (std::exception& e)
                 {
-                    xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                    LOG_ERROR("CTimeSeriesCached", "Read from cache error: %s", e.what());
                 }
             }
             ResetCache();
@@ -387,7 +387,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesChunk", "Write into the last file (%s) error: %s", pathFile.c_str(), e.what());
             return false;
         }
         return true;
@@ -401,7 +401,7 @@ public:
 
         while (n < vBatch.size())
         {
-            uint32 nFile, nOffset;
+            uint32 nFile = 0, nOffset = 0;
             std::string pathFile;
             if (!GetLastFilePath(nFile, pathFile))
             {
@@ -422,7 +422,7 @@ public:
             }
             catch (std::exception& e)
             {
-                xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+                LOG_ERROR("CTimeSeriesChunk", "Write batch into file (%s) offset (%u) error: %s", pathFile.c_str(), nOffset, e.what());
                 return false;
             }
         }
@@ -446,7 +446,7 @@ public:
         }
         catch (std::exception& e)
         {
-            xengine::ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CTimeSeriesChunk", "Read from file (%s) offset (%u) error: %s", pathFile.c_str(), pos.nOffset, e.what());
             return false;
         }
         return true;

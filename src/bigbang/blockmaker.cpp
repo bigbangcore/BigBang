@@ -84,37 +84,37 @@ bool CBlockMaker::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("worldlinecontroller", pWorldLineCtrl))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
 
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        ERROR("Failed to request forkmanager");
         return false;
     }
 
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        ERROR("Failed to request dispatcher");
         return false;
     }
 
     if (!GetObject("consensus", pConsensus))
     {
-        Error("Failed to request consensus\n");
+        ERROR("Failed to request consensus");
         return false;
     }
 
@@ -163,13 +163,13 @@ bool CBlockMaker::HandleInvoke()
 {
     if (!StartActor())
     {
-        Error("Failed to start actor\n");
+        ERROR("Failed to start actor");
         return false;
     }
 
     if (!pWorldLineCtrl->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastBlockHeight, nLastBlockTime))
     {
-        Error("Failed to invoke GetLastBlock(GenesisBlockHash)\n");
+        ERROR("Failed to invoke GetLastBlock(GenesisBlockHash)");
         return false;
     }
 
@@ -284,7 +284,7 @@ bool CBlockMaker::DispatchBlock(CBlock& block)
     Errno err = pDispatcher->AddNewBlock(block);
     if (err != OK)
     {
-        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+        ERROR("Dispatch new block failed (%d) : %s", err, ErrorString(err));
         return false;
     }
     return true;
@@ -515,8 +515,8 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                 proof.nNonce = nNonce;
                 proof.Save(block.vchProof);
 
-                Log("Proof-of-work(%s) block found (%ld)\nhash : %s\ntarget : %s\n",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
+                INFO("Proof-of-work(%s) block found (%ld)\nhash : %s\ntarget : %s",
+                     pHashAlgo->strAlgo.c_str(), nHashRate, hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
             nNonce++;
@@ -578,23 +578,23 @@ bool CBlockMaker::GetAvailiableExtendedFork(set<uint256>& setFork)
 void CBlockMaker::BlockMakerThreadFunc()
 {
     const char* ConsensusMethodName[CM_MAX] = { "mpvss", "cryptonight" };
-    Log("Block maker started\n");
+    INFO("Block maker started");
     for (map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s\n",
-            ConsensusMethodName[(*it).first],
-            CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+        INFO("Profile [%s] : dest=%s,pubkey=%s",
+             ConsensusMethodName[(*it).first],
+             CAddress(profile.destMint).ToString().c_str(),
+             profile.keyMint.GetPubKey().GetHex().c_str());
     }
     for (map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.begin();
          it != mapDelegatedProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s\n",
-            ConsensusMethodName[CM_MPVSS],
-            CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+        INFO("Profile [%s] : dest=%s,pubkey=%s",
+             ConsensusMethodName[CM_MPVSS],
+             CAddress(profile.destMint).ToString().c_str(),
+             profile.keyMint.GetPubKey().GetHex().c_str());
     }
 
     uint256 hashPrimaryBlock = uint64(0);
@@ -651,9 +651,9 @@ void CBlockMaker::BlockMakerThreadFunc()
                     {
                         pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
-                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.\n", agree.nAgreement.GetHex().c_str(),
-                            nLastBlockHeight + 1, agree.nWeight,
-                            agree.IsProofOfWork() ? "pow" : "dpos");
+                        INFO("GetAgreement : %s at height=%d, weight=%lu, consensus: %s", agree.nAgreement.GetHex().c_str(),
+                             nLastBlockHeight + 1, agree.nWeight,
+                             agree.IsProofOfWork() ? "pow" : "dpos");
                         break;
                     }
                 }
@@ -701,12 +701,12 @@ void CBlockMaker::BlockMakerThreadFunc()
         }
         catch (exception& e)
         {
-            Error("Block maker error: %s\n", e.what());
+            ERROR("Block maker error: %s", e.what());
             break;
         }
     }
 
-    Log("Block maker exited\n");
+    INFO("Block maker exited");
 }
 
 void CBlockMaker::ExtendedMakerThreadFunc()
@@ -720,7 +720,7 @@ void CBlockMaker::ExtendedMakerThreadFunc()
         hashPrimaryBlock = hashLastBlock;
     }
 
-    Log("Extened block maker started, initial primary block hash = %s\n", hashPrimaryBlock.GetHex().c_str());
+    INFO("Extened block maker started, initial primary block hash = %s", hashPrimaryBlock.GetHex().c_str());
 
     for (;;)
     {
@@ -757,11 +757,11 @@ void CBlockMaker::ExtendedMakerThreadFunc()
         }
         catch (exception& e)
         {
-            Error("Extended block maker error: %s\n", e.what());
+            ERROR("Extended block maker error: %s", e.what());
             break;
         }
     }
-    Log("Extended block maker exited\n");
+    INFO("Extended block maker exited");
 }
 
 void CBlockMaker::HandleAddedBlock(const CAddedBlockMessage& msg)

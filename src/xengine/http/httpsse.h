@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "http/httptype.h"
+#include "logger.h"
 #include "util.h"
 
 namespace xengine
@@ -61,7 +62,7 @@ public:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CHttpSSEStatusGenerator", "Update data error: %s", e.what());
         }
         return false;
     }
@@ -104,7 +105,7 @@ public:
         }
         catch (std::exception& e)
         {
-            ErrorLog(__PRETTY_FUNCTION__, e.what());
+            LOG_ERROR("CHttpSSEQueGenerator", "Update data error: %s", e.what());
         }
         return false;
     }

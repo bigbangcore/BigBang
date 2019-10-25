@@ -11,8 +11,6 @@
 using namespace std;
 using namespace xengine;
 
-#define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
-
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LIMIT = 8;
@@ -55,17 +53,6 @@ bool CCoreProtocol::HandleInitialize()
     GetGenesisBlock(block);
     hashGenesisBlock = block.GetHash();
     return true;
-}
-
-Errno CCoreProtocol::Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...)
-{
-    string strFormat(pszFunc);
-    strFormat += string(", ") + string(ErrorString(err)) + string(" : ") + string(pszFormat);
-    va_list ap;
-    va_start(ap, pszFormat);
-    VDebug(strFormat.c_str(), ap);
-    va_end(ap);
-    return err;
 }
 
 const uint256& CCoreProtocol::GetGenesisBlockHash() const
@@ -124,8 +111,10 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
         && !tx.vchData.empty())
     {
         if (tx.vchData.size() < 21)
-        { //vchData must contain 3 fields of UUID, timestamp, szDescription at least
-            return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData is less than 21 bytes.\n");
+        {
+            //vchData must contain 3 fields of UUID, timestamp, szDescription at least
+            DEBUG("tx vchData is less than 21 bytes");
+            return ERR_TRANSACTION_INVALID;
         }
         //check description field
         uint16 nPos = 20;
@@ -134,43 +123,51 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
         {
             if ((nPos + 1 + szDesc) > tx.vchData.size())
             {
-                return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData is overflow.\n");
+                DEBUG("tx vchData is overflow");
+                return ERR_TRANSACTION_INVALID;
             }
             std::string strDescEncodedBase64(tx.vchData.begin() + nPos + 1, tx.vchData.begin() + nPos + 1 + szDesc);
             xengine::CHttpUtil util;
             std::string strDescDecodedBase64;
             if (!util.Base64Decode(strDescEncodedBase64, strDescDecodedBase64))
             {
-                return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData description base64 is not available.\n");
+                DEBUG("tx vchData description base64 is not available");
+                return ERR_TRANSACTION_INVALID;
             }
         }
     }
     if (tx.vInput.empty() && tx.nType != CTransaction::TX_GENESIS && tx.nType != CTransaction::TX_WORK && tx.nType != CTransaction::TX_STAKE)
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is empty\n");
+        DEBUG("tx vin is empty");
+        return ERR_TRANSACTION_INVALID;
     }
     if (!tx.vInput.empty() && (tx.nType == CTransaction::TX_GENESIS || tx.nType == CTransaction::TX_WORK || tx.nType == CTransaction::TX_STAKE))
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is not empty for genesis or work tx\n");
+        DEBUG("tx vin is not empty for genesis or work tx");
+        return ERR_TRANSACTION_INVALID;
     }
     if (!tx.vchSig.empty() && tx.IsMintTx())
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid signature\n");
+        DEBUG("invalid signature");
+        return ERR_TRANSACTION_INVALID;
     }
     if (tx.sendTo.IsNull())
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to null address\n");
+        DEBUG("send to null address");
+        return ERR_TRANSACTION_OUTPUT_INVALID;
     }
     if (!MoneyRange(tx.nAmount))
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
+        DEBUG("amount overflow %ld", tx.nAmount);
+        return ERR_TRANSACTION_OUTPUT_INVALID;
     }
 
     if (!MoneyRange(tx.nTxFee)
         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
         || (tx.nType == CTransaction::TX_TOKEN && tx.nTxFee < MIN_TX_FEE))
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        DEBUG("txfee invalid %ld", tx.nTxFee);
+        return ERR_TRANSACTION_OUTPUT_INVALID;
     }
 
     set<CTxOutPoint> setInOutPoints;
@@ -178,17 +175,20 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
     {
         if (txin.prevout.IsNull() || txin.prevout.n > 1)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "prevout invalid\n");
+            DEBUG("prevout invalid");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         if (!setInOutPoints.insert(txin.prevout).second)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "duplicate inputs\n");
+            DEBUG("duplicate inputs");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
     }
 
     if (GetSerializeSize(tx) > MAX_TX_SIZE)
     {
-        return DEBUG(ERR_TRANSACTION_OVERSIZE, "%u\n", GetSerializeSize(tx));
+        DEBUG("Tx size (%u) is out of range (%u)", GetSerializeSize(tx), MAX_TX_SIZE);
+        return ERR_TRANSACTION_OVERSIZE;
     }
 
     return OK;
@@ -200,13 +200,15 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
+        DEBUG("Block time (%ld) is out of range (%ld)", block.GetBlockTime(), GetNetTime() + MAX_CLOCK_DRIFT);
+        return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 
     // Extended block should be not empty
     if (block.nType == CBlock::BLOCK_EXTENDED && block.vtx.empty())
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "empty extended block\n");
+        DEBUG("empty extended block");
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     // validate vacant block
@@ -218,44 +220,51 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     // Validate mint tx
     if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint) != OK)
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
+        DEBUG("invalid mint tx");
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     size_t nBlockSize = GetSerializeSize(block);
     if (nBlockSize > MAX_BLOCK_SIZE)
     {
-        return DEBUG(ERR_BLOCK_OVERSIZE, "size overflow size=%u vtx=%u\n", nBlockSize, block.vtx.size());
+        DEBUG("size overflow size=%u vtx=%u", nBlockSize, block.vtx.size());
+        return ERR_BLOCK_OVERSIZE;
     }
 
     if (block.nType == CBlock::BLOCK_ORIGIN && !block.vtx.empty())
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "origin block vtx is not empty\n");
+        DEBUG("origin block vtx is not empty");
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     vector<uint256> vMerkleTree;
     if (block.hashMerkle != block.BuildMerkleTree(vMerkleTree))
     {
-        return DEBUG(ERR_BLOCK_TXHASH_MISMATCH, "tx merkeroot mismatched\n");
+        DEBUG("tx merkeroot mismatched");
+        return ERR_BLOCK_TXHASH_MISMATCH;
     }
 
     set<uint256> setTx;
     setTx.insert(vMerkleTree.begin(), vMerkleTree.begin() + block.vtx.size());
     if (setTx.size() != block.vtx.size())
     {
-        return DEBUG(ERR_BLOCK_DUPLICATED_TRANSACTION, "duplicate tx\n");
+        DEBUG("duplicate tx");
+        return ERR_BLOCK_DUPLICATED_TRANSACTION;
     }
 
     for (const CTransaction& tx : block.vtx)
     {
         if (tx.IsMintTx() || ValidateTransaction(tx) != OK)
         {
-            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s\n", tx.GetHash().GetHex().c_str());
+            DEBUG("invalid tx %s", tx.GetHash().GetHex().c_str());
+            return ERR_BLOCK_TRANSACTIONS_INVALID;
         }
     }
 
     if (!CheckBlockSignature(block))
     {
-        return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "\n");
+        DEBUG("Check block (%s) signature error", block.GetHash().ToString().c_str());
+        return ERR_BLOCK_SIGNATURE_INVALID;
     }
     return OK;
 }
@@ -264,17 +273,20 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
 {
     if (!forkProfile.Load(block.vchProof))
     {
-        return DEBUG(ERR_BLOCK_INVALID_FORK, "load profile error\n");
+        DEBUG("load profile error");
+        return ERR_BLOCK_INVALID_FORK;
     }
     if (forkProfile.IsNull())
     {
-        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
+        DEBUG("invalid profile");
+        return ERR_BLOCK_INVALID_FORK;
     }
     if (parentProfile.IsPrivate())
     {
         if (!forkProfile.IsPrivate() || parentProfile.destOwner != forkProfile.destOwner)
         {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "permission denied");
+            DEBUG("permission denied");
+            return ERR_BLOCK_INVALID_FORK;
         }
     }
     return OK;
@@ -284,12 +296,14 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 {
     if (block.vchProof.size() < CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.\n");
+        DEBUG("vchProof size error");
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
     }
 
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        DEBUG("Timestamp out of range");
+        return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 
     CProofOfHashWorkCompact proof;
@@ -299,16 +313,19 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     int64 nReward = 0;
     if (!GetProofOfWorkTarget(pIndexPrev, proof.nAlgo, nBits, nReward))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.\n");
+        DEBUG("get target fail");
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
     }
 
     if (nBits != proof.nBits || proof.nAlgo != CM_CRYPTONIGHT)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.\n", proof.nAlgo, proof.nBits, block.vchProof.size());
+        DEBUG("algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld", proof.nAlgo, proof.nBits, block.vchProof.size());
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
     }
     if (proof.destMint != block.txMint.sendTo)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.\n", proof.destMint.ToString().c_str());
+        DEBUG("destMint error, destMint: %s", proof.destMint.ToString().c_str());
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
     }
 
     uint256 hashTarget = (~uint256(uint64(0)) >> GetProofOfWorkRunTimeBits(nBits, block.GetBlockTime(), pIndexPrev->GetBlockTime()));
@@ -319,7 +336,8 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (hash > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.\n");
+        DEBUG("hash error");
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
     }
 
     return OK;
@@ -331,12 +349,14 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING
         || block.GetBlockTime() >= pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING * 3 / 2)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        DEBUG("Timestamp out of range");
+        return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        DEBUG("txMint sendTo error");
+        return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
     }
 
     return OK;
@@ -347,14 +367,16 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
 {
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        DEBUG("Timestamp out of range");
+        return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 
     if (!block.IsExtended())
     {
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            DEBUG("Timestamp out of range");
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
         }
     }
     else
@@ -362,14 +384,16 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            DEBUG("Timestamp out of range");
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
         }
     }
 
     int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
     if (block.txMint.sendTo != agreement.GetBallot(nIndex))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        DEBUG("txMint sendTo error");
+        return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
     }
 
     return OK;
@@ -390,22 +414,26 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         if (inctxt.nTxTime > tx.nTimeStamp)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
+            DEBUG("tx time is ahead of input tx");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         if (inctxt.IsLocked(pIndexPrev->GetBlockHeight()))
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
+            DEBUG("input is still locked");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         nValueIn += inctxt.nAmount;
     }
 
     if (!MoneyRange(nValueIn))
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
+        DEBUG("valuein invalid (%ld)", nValueIn);
+        return ERR_TRANSACTION_INPUT_INVALID;
     }
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+        DEBUG("valuein is not enough (%ld : %ld)", tx.nAmount + tx.nTxFee);
+        return ERR_TRANSACTION_INPUT_INVALID;
     }
 
     vector<uint8> vchSig;
@@ -414,7 +442,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         CDestination recordedDestIn;
         if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
+            DEBUG("invalid recoreded destination");
+            return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
     }
     else
@@ -423,7 +452,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     }
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        DEBUG("invalid signature");
+        return ERR_TRANSACTION_SIGNATURE_INVALID;
     }
     return OK;
 }
@@ -436,25 +466,30 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     {
         if (destIn != output.destTo)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input destination mismatched\n");
+            DEBUG("input destination mismatched");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         if (output.nTxTime > tx.nTimeStamp)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
+            DEBUG("tx time is ahead of input tx");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         if (output.nLockUntil != 0 && output.nLockUntil < nForkHeight)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
+            DEBUG("input is still locked");
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
         nValueIn += output.nAmount;
     }
     if (!MoneyRange(nValueIn))
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
+        DEBUG("valuein invalid %ld", nValueIn);
+        return ERR_TRANSACTION_INPUT_INVALID;
     }
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+        DEBUG("valuein is not enough (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee);
+        return ERR_TRANSACTION_INPUT_INVALID;
     }
 
     // record destIn in vchSig
@@ -464,7 +499,8 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         CDestination recordedDestIn;
         if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
+            DEBUG("invalid recoreded destination");
+            return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
     }
     else
@@ -474,7 +510,8 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        DEBUG("invalid signature");
+        return ERR_TRANSACTION_SIGNATURE_INVALID;
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
@@ -483,12 +520,14 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
         if (!ptr)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
+            DEBUG("invalid locked coin template destination");
+            return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
         int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
         if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
+            DEBUG("valuein is not enough to locked coin (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
+            return ERR_TRANSACTION_INPUT_INVALID;
         }
     }
     return OK;
@@ -644,12 +683,14 @@ Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
 {
     if (block.hashMerkle != 0 || block.txMint != CTransaction() || !block.vtx.empty())
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "vacant block tx is not empty.");
+        DEBUG("vacant block tx is not empty.");
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     if (!block.vchProof.empty() || !block.vchSig.empty())
     {
-        return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "vacant block proof or signature is not empty.");
+        DEBUG("vacant block proof or signature is not empty.");
+        return ERR_BLOCK_SIGNATURE_INVALID;
     }
 
     return OK;

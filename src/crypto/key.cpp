@@ -230,7 +230,7 @@ bool CKey::Unlock(const CCryptoString& strPassphrase)
     }
     catch (const std::exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CKey", "Unlock error: %s", e.what());
     }
     return false;
 }
@@ -249,7 +249,7 @@ bool CKey::UpdateCipher(uint32 nVersionIn, const CCryptoString& strPassphrase)
     }
     catch (const std::exception& e)
     {
-        ErrorLog(__PRETTY_FUNCTION__, e.what());
+        LOG_ERROR("CKey", "Update cipher error: %s", e.what());
     }
     return false;
 }

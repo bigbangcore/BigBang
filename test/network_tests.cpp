@@ -137,11 +137,11 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     pCfg->pathData = dataPath;
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
+    InitLog(pCfg->pathData, severity_level::TRACE, true, true);
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
-    xengine::CLog log;
+    InitLog(dataPath.c_str(), xengine::severity_level::TRACE, true, true);
 
-    BOOST_CHECK(docker.Initialize(pCfg, &log));
+    BOOST_CHECK(docker.Initialize(pCfg));
     BOOST_CHECK(docker.Attach(new CConsensus()));
     auto pCoreProtocol = new CCoreProtocol();
     BOOST_CHECK(docker.Attach(pCoreProtocol));
@@ -272,11 +272,11 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     pCfg->pathData = dataPath;
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
+    InitLog(pCfg->pathData, severity_level::TRACE, true, true);
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
-    xengine::CLog log;
+    InitLog(dataPath.c_str(), xengine::severity_level::TRACE, true, true);
 
-    BOOST_CHECK(docker.Initialize(pCfg, &log));
+    BOOST_CHECK(docker.Initialize(pCfg));
     BOOST_CHECK(docker.Attach(new CConsensus()));
     BOOST_CHECK(docker.Attach(new CCoreProtocol()));
     BOOST_CHECK(docker.Attach(new CDummyPeerNet()));
@@ -353,11 +353,11 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     pCfg->pathData = dataPath;
     BOOST_CHECK(pCfg->Load(2, const_cast<char**>(argv), dataPath.c_str(), "bigbang.conf"));
 
+    InitLog(pCfg->pathData, severity_level::TRACE, true, true);
     CDocker docker;
-    InitLog(dataPath.c_str(), true, false);
-    xengine::CLog log;
+    InitLog(dataPath.c_str(), xengine::severity_level::TRACE, true, true);
 
-    BOOST_CHECK(docker.Initialize(pCfg, &log));
+    BOOST_CHECK(docker.Initialize(pCfg));
     BOOST_CHECK(docker.Attach(new CConsensus()));
     BOOST_CHECK(docker.Attach(new CCoreProtocol()));
     auto pDummyPeerNet = new CDummyPeerNet();

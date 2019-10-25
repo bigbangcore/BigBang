@@ -21,6 +21,8 @@ public:
 
 class CBlockIndexDB : public xengine::CKVDB
 {
+    LOGGER_CHANNEL("CBlockIndexDB");
+
 public:
     CBlockIndexDB() {}
     bool Initialize(const boost::filesystem::path& pathData);

@@ -34,13 +34,13 @@ bool CWorldLine::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        ERROR("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
-        Error("Failed to request txpool\n");
+        ERROR("Failed to request txpool");
         return false;
     }
 
@@ -58,19 +58,19 @@ bool CWorldLine::HandleInvoke()
 
     if (!blockBase.Initialize(Config() ? Config()->pathData : "./", Config() ? Config()->fDebug : true))
     {
-        Error("Failed to initialize container\n");
+        ERROR("Failed to initialize container");
         return false;
     }
 
     if (!CheckContainer())
     {
         blockBase.Clear();
-        Log("Block container is invalid,try rebuild from block storage\n");
+        INFO("Block container is invalid,try rebuild from block storage");
         // Rebuild ...
         if (!RebuildContainer())
         {
             blockBase.Clear();
-            Error("Failed to rebuild Block container,reconstruct all\n");
+            ERROR("Failed to rebuild Block container,reconstruct all");
         }
     }
 
@@ -80,7 +80,7 @@ bool CWorldLine::HandleInvoke()
         pCoreProtocol->GetGenesisBlock(block);
         if (!InsertGenesisBlock(block))
         {
-            Error("Failed to create genesis block\n");
+            ERROR("Failed to create genesis block");
             return false;
         }
     }
@@ -328,7 +328,7 @@ Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ct
     }
     catch (...)
     {
-        Error("Invalid orign block found in tx (%s)\n", txid.GetHex().c_str());
+        ERROR("Invalid orign block found in tx (%s)", txid.GetHex().c_str());
         return ERR_BLOCK_INVALID_FORK;
     }
     uint256 hashFork = block.GetHash();
@@ -336,7 +336,7 @@ Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ct
     CForkContext ctxtParent;
     if (!blockBase.RetrieveForkContext(profile.hashParent, ctxtParent))
     {
-        Log("AddNewForkContext Retrieve parent context Error: %s \n", profile.hashParent.ToString().c_str());
+        INFO("AddNewForkContext Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
         return ERR_MISSING_PREV;
     }
 
@@ -344,14 +344,14 @@ Errno CWorldLine::AddNewForkContext(const CTransaction& txFork, CForkContext& ct
     Errno err = pCoreProtocol->ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
     if (err != OK)
     {
-        Log("AddNewForkContext Validate Block Error(%s) : %s \n", ErrorString(err), hashFork.ToString().c_str());
+        INFO("AddNewForkContext Validate Block Error(%s) : %s ", ErrorString(err), hashFork.ToString().c_str());
         return err;
     }
 
     ctxt = CForkContext(block.GetHash(), block.hashPrev, txid, profile);
     if (!blockBase.AddNewForkContext(ctxt))
     {
-        Log("AddNewForkContext Already Exists : %s \n", hashFork.ToString().c_str());
+        INFO("AddNewForkContext Already Exists : %s ", hashFork.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
@@ -365,21 +365,21 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
 
     if (blockBase.Exists(hash))
     {
-        Log("AddNewBlock Already Exists : %s \n", hash.ToString().c_str());
+        INFO("AddNewBlock Already Exists : %s ", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
-        Log("AddNewBlock Validate Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        INFO("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexPrev;
     if (!blockBase.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
-        Log("AddNewBlock Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
+        INFO("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -388,14 +388,14 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     err = VerifyBlock(hash, block, pIndexPrev, nReward);
     if (err != OK)
     {
-        Log("AddNewBlock Verify Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        INFO("AddNewBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     storage::CBlockView view;
     if (!blockBase.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
-        Log("AddNewBlock Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+        INFO("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -423,14 +423,14 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
         uint256 txid = tx.GetHash();
         if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nForkHeight))
         {
-            Log("AddNewBlock Verify tx Error(first pow) : %s \n", txid.ToString().c_str());
+            INFO("AddNewBlock Verify tx Error(first pow) : %s ", txid.ToString().c_str());
             return ERR_TRANSACTION_INVALID;
         }
         CTxContxt txContxt;
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
         {
-            Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
+            INFO("AddNewBlock Get txContxt Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
             return err;
         }
         if (!pTxPoolCtrl->Exists(txid))
@@ -438,7 +438,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)
             {
-                Log("AddNewBlock Verify BlockTx Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
+                INFO("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
                 return err;
             }
         }
@@ -450,21 +450,21 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
 
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
-        Log("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld \n", block.txMint.nAmount, nTotalFee, nReward);
+        INFO("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld ", block.txMint.nAmount, nTotalFee, nReward);
         return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     CBlockIndex* pIndexNew;
     if (!blockBase.AddNew(hash, blockex, &pIndexNew))
     {
-        Log("AddNewBlock Storage AddNew Error : %s \n", hash.ToString().c_str());
+        INFO("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    Log("AddNew Block : %s\n", pIndexNew->ToString().c_str());
+    INFO("AddNew Block : %s", pIndexNew->ToString().c_str());
     if (Config()->fDebug)
     {
-        Debug("New Block %s tx : %s\n", hash.ToString().c_str(), view.ToString().c_str());
+        DEBUG("New Block %s tx : %s", hash.ToString().c_str(), view.ToString().c_str());
     }
 
     CBlockIndex* pIndexFork = nullptr;
@@ -477,7 +477,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
 
     if (!blockBase.CommitBlockView(view, pIndexNew))
     {
-        Log("AddNewBlock Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
+        INFO("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -485,7 +485,7 @@ Errno CWorldLine::AddNewBlock(const CBlock& block, CWorldLineUpdate& update)
     view.GetTxUpdated(update.setTxUpdate);
     if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
     {
-        Log("AddNewBlock Storage GetBlockChanges Error : %s \n", hash.ToString().c_str());
+        INFO("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -499,43 +499,43 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
 
     if (blockBase.Exists(hash))
     {
-        Log("AddNewOrigin Already Exists : %s \n", hash.ToString().c_str());
+        INFO("AddNewOrigin Already Exists : %s ", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
-        Log("AddNewOrigin Validate Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        INFO("AddNewOrigin Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexPrev;
     if (!blockBase.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
-        Log("AddNewOrigin Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
+        INFO("AddNewOrigin Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
     CProfile parent;
     if (!blockBase.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
     {
-        Log("AddNewOrigin Retrieve parent profile Error: %s \n", block.hashPrev.ToString().c_str());
+        INFO("AddNewOrigin Retrieve parent profile Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
     CProfile profile;
     err = pCoreProtocol->ValidateOrigin(block, parent, profile);
     if (err != OK)
     {
-        Log("AddNewOrigin Validate Origin Error(%s): %s \n", ErrorString(err), hash.ToString().c_str());
+        INFO("AddNewOrigin Validate Origin Error(%s): %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexDuplicated;
     if (blockBase.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
-        Log("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s\n",
-            hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
+        INFO("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s",
+             hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
         return ERR_ALREADY_HAVE;
     }
 
@@ -545,7 +545,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     {
         if (!blockBase.GetBlockView(view))
         {
-            Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+            INFO("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
         }
     }
@@ -553,7 +553,7 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
     {
         if (!blockBase.GetBlockView(block.hashPrev, view, false))
         {
-            Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+            INFO("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
         }
     }
@@ -568,16 +568,16 @@ Errno CWorldLine::AddNewOrigin(const CBlock& block, CWorldLineUpdate& update)
 
     if (!blockBase.AddNew(hash, blockex, &pIndexNew))
     {
-        Log("AddNewOrigin Storage AddNew Error : %s \n", hash.ToString().c_str());
+        INFO("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    Log("AddNew Origin Block : %s \n", hash.ToString().c_str());
-    Log("    %s\n", pIndexNew->ToString().c_str());
+    INFO("AddNew Origin Block : %s ", hash.ToString().c_str());
+    INFO("    %s", pIndexNew->ToString().c_str());
 
     if (!blockBase.CommitBlockView(view, pIndexNew))
     {
-        Log("AddNewOrigin Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
+        INFO("AddNewOrigin Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -593,17 +593,17 @@ bool CWorldLine::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& n
     CBlockIndex* pIndexPrev;
     if (!blockBase.RetrieveIndex(hashPrev, &pIndexPrev))
     {
-        Log("GetProofOfWorkTarget : Retrieve Prev Index Error: %s \n", hashPrev.ToString().c_str());
+        INFO("GetProofOfWorkTarget : Retrieve Prev Index Error: %s ", hashPrev.ToString().c_str());
         return false;
     }
     if (!pIndexPrev->IsPrimary())
     {
-        Log("GetProofOfWorkTarget : Previous is not primary: %s \n", hashPrev.ToString().c_str());
+        INFO("GetProofOfWorkTarget : Previous is not primary: %s ", hashPrev.ToString().c_str());
         return false;
     }
     if (!pCoreProtocol->GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
     {
-        Log("GetProofOfWorkTarget : Unknown proof-of-work algo: %s \n", hashPrev.ToString().c_str());
+        INFO("GetProofOfWorkTarget : Unknown proof-of-work algo: %s ", hashPrev.ToString().c_str());
         return false;
     }
     return true;
@@ -614,7 +614,7 @@ bool CWorldLine::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
     CBlockIndex* pIndexPrev;
     if (!blockBase.RetrieveIndex(hashPrev, &pIndexPrev))
     {
-        Log("Get block reward: Retrieve Prev Index Error, hashPrev: %s\n", hashPrev.ToString().c_str());
+        INFO("Get block reward: Retrieve Prev Index Error, hashPrev: %s", hashPrev.ToString().c_str());
         return false;
     }
 
@@ -627,7 +627,7 @@ bool CWorldLine::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         CProfile profile;
         if (!GetForkProfile(pIndexPrev->GetOriginHash(), profile))
         {
-            Log("Get block reward: Get fork profile fail, hashPrev: %s\n", hashPrev.ToString().c_str());
+            INFO("Get block reward: Get fork profile fail, hashPrev: %s", hashPrev.ToString().c_str());
             return false;
         }
         if (profile.nHalveCycle == 0)
@@ -664,7 +664,7 @@ bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnr
     CBlockIndex* pIndex;
     if (!blockBase.RetrieveIndex(hashBlock, &pIndex))
     {
-        Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateEnrolled : Retrieve block Index Error: %s ", hashBlock.ToString().c_str());
         return false;
     }
     int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
@@ -683,7 +683,7 @@ bool CWorldLine::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnr
     if (!blockBase.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHash(), vBlockRange, nDelegateWeightRatio,
                                          enrolled.mapWeight, enrolled.mapEnrollData))
     {
-        Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s ", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -704,7 +704,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
     CBlockIndex* pIndex = nullptr;
     if (!blockBase.RetrieveIndex(hashBlock, &pIndex))
     {
-        Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateAgreement : Retrieve block Index Error: %s ", hashBlock.ToString().c_str());
         return false;
     }
     CBlockIndex* pIndexRef = pIndex;
@@ -717,7 +717,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
     CBlock block;
     if (!blockBase.Retrieve(pIndex, block))
     {
-        Log("GetBlockDelegateAgreement : Retrieve block Error: %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateAgreement : Retrieve block Error: %s ", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -736,7 +736,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAg
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateAgreement : Invalid block proof : %s ", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -795,7 +795,7 @@ Errno CWorldLine::GetTxContxt(storage::CBlockView& view, const CTransaction& tx,
 }
 
 bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
-                                      vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
+                                 vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {
     while (pIndexNew != pIndexFork)
     {
@@ -825,7 +825,7 @@ bool CWorldLine::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex
 }
 
 bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                                CDelegateAgreement& agreement)
+                                           CDelegateAgreement& agreement)
 {
     agreement.Clear();
 
@@ -852,7 +852,7 @@ bool CWorldLine::GetBlockDelegateAgreement(const uint256& hashBlock, const CBloc
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+        INFO("GetBlockDelegateAgreement : Invalid block proof : %s ", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -972,12 +972,12 @@ bool CWorldLineController::HandleInitialize()
 {
     if (!GetObject("worldline", pWorldLine))
     {
-        Error("Failed to request worldline\n");
+        ERROR("Failed to request worldline");
         return false;
     }
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        ERROR("Failed to request forkmanager");
         return false;
     }
 
@@ -1232,12 +1232,12 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
                 }
                 else
                 {
-                    Warn("Add origin block in tx (%s) failed : %s\n", tx.GetHash().GetHex().c_str(), ErrorString(err));
+                    WARN("Add origin block in tx (%s) failed : %s", tx.GetHash().GetHex().c_str(), ErrorString(err));
                 }
             }
             else
             {
-                Warn("Invalid origin block found in tx (%s)\n", tx.GetHash().GetHex().c_str());
+                WARN("Invalid origin block found in tx (%s)", tx.GetHash().GetHex().c_str());
             }
         }
     }

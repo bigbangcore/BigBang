@@ -18,6 +18,9 @@ namespace storage
 
 class CTxIndexDB
 {
+    LOGGER_CHANNEL("CTxIndexDB");
+
+private:
     typedef CCTSDB<uint224, CTxIndex, CCTSChunkSnappy<uint224, CTxIndex>> CForkTxDB;
 
 public:
