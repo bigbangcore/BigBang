@@ -1067,7 +1067,14 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
         CBroadcastTxInvMessage msg(hashFork);
         HandleBroadcastTxInv(msg);
     }
-    else if (err != ERR_MISSING_PREV)
+    else if (err == ERR_ALREADY_HAVE)
+    {
+        set<uint64> setKnownPeer;
+        pNetChannelModel->GetScheduleNextTx(hashFork, hashTx, vNextTxChain);
+        pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setKnownPeer);
+        setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+    }
+    else
     {
         pNetChannelModel->InvalidateScheduleTx(hashFork, hashTx, setMisbehavePeer);
     }
