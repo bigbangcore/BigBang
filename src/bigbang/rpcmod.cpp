@@ -24,6 +24,8 @@ using namespace bigbang::rpc;
 using namespace bigbang;
 namespace fs = boost::filesystem;
 
+const char* GetGitVersion();
+
 ///////////////////////////////
 // static function
 
@@ -541,7 +543,7 @@ CRPCResultPtr CRPCMod::RPCStop(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCVersion(CRPCParamPtr param)
 {
-    string strVersion = string("Bigbang server version is v") + VERSION_STR;
+    string strVersion = string("Bigbang server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
     return MakeCVersionResultPtr(strVersion);
 }
 
