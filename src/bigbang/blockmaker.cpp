@@ -259,6 +259,7 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, int64 nPr
     block.SetNull();
     block.nType = CBlock::BLOCK_PRIMARY;
     block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING;
+    block.nHeight = nPrevHeight + 1;
     block.hashPrev = hashPrev;
     CProofOfSecretShare proof;
     proof.nWeight = agreement.nWeight;
@@ -481,6 +482,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 //             CBlock block;
 //             block.nType = CBlock::BLOCK_SUBSIDIARY;
 //             block.nTimeStamp = nRefBlockTime;
+//             block.nHeight = nPrevHeight + 1;
 //             block.hashPrev = status.hashLastBlock;
 //             proof.Save(block.vchProof);
 
@@ -512,6 +514,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 //             CBlock block;
 //             block.nType = CBlock::BLOCK_EXTENDED;
 //             block.nTimeStamp = nTime;
+//             block.nHeight = nPrimaryBlockHeight;
 //             block.hashPrev = hashLastBlock;
 //             proof.Save(block.vchProof);
 
