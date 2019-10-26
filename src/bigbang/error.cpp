@@ -38,61 +38,63 @@ static const char* _ErrorString[] = {
     "block proof-of-stake is invalid",
     //ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE,           // 12
     "block timestamp is out of range",
-    //ERR_BLOCK_COINBASE_INVALID,                 // 13
+    //ERR_BLOCK_HEIGHT_INVALID,                   // 13
+    "block height is error",
+    //ERR_BLOCK_COINBASE_INVALID,                 // 14
     "block coinbase is invalid",
-    //ERR_BLOCK_COINSTAKE_INVALID,                // 14
+    //ERR_BLOCK_COINSTAKE_INVALID,                // 15
     "block coinstake is invalid",
-    //ERR_BLOCK_TRANSACTIONS_INVALID,             // 15
+    //ERR_BLOCK_TRANSACTIONS_INVALID,             // 16
     "block transactions are invalid",
-    //ERR_BLOCK_DUPLICATED_TRANSACTION,           // 16
+    //ERR_BLOCK_DUPLICATED_TRANSACTION,           // 17
     "block contain duplicated transaction",
-    //ERR_BLOCK_SIGOPCOUNT_OUT_OF_BOUND,          // 17
+    //ERR_BLOCK_SIGOPCOUNT_OUT_OF_BOUND,          // 18
     "block sigopt is out of bound",
-    //ERR_BLOCK_TXHASH_MISMATCH,                  // 18
+    //ERR_BLOCK_TXHASH_MISMATCH,                  // 19
     "block txid is mismatch",
-    //ERR_BLOCK_SIGNATURE_INVALID,                // 19
+    //ERR_BLOCK_SIGNATURE_INVALID,                // 20
     "block signature is invalid",
-    //ERR_BLOCK_INVALID_FORK,                     // 20
+    //ERR_BLOCK_INVALID_FORK,                     // 21
     "block found invalid fork",
     /* transaction */
-    //ERR_TRANSACTION_INVALID,                    // 21
+    //ERR_TRANSACTION_INVALID,                    // 22
     "transaction invalid",
-    //ERR_TRANSACTION_OVERSIZE,                   // 22
+    //ERR_TRANSACTION_OVERSIZE,                   // 23
     "transaction oversize",
-    //ERR_TRANSACTION_OUTPUT_INVALID,             // 23
+    //ERR_TRANSACTION_OUTPUT_INVALID,             // 24
     "transaction outputs are invalid",
-    //ERR_TRANSACTION_INPUT_INVALID,              // 24
+    //ERR_TRANSACTION_INPUT_INVALID,              // 25
     "transaction inputs are invalid",
-    //ERR_TRANSACTION_TIMESTAMP_INVALID,          // 25
+    //ERR_TRANSACTION_TIMESTAMP_INVALID,          // 26
     "transaction timestamp is invalid",
-    //ERR_TRANSACTION_NOT_ENOUGH_FEE,             // 26
+    //ERR_TRANSACTION_NOT_ENOUGH_FEE,             // 27
     "transaction fee is not enough",
-    //ERR_TRANSACTION_STAKE_REWARD_INVALID,       // 27
+    //ERR_TRANSACTION_STAKE_REWARD_INVALID,       // 28
     "transaction stake reward is invalid",
-    //ERR_TRANSACTION_SIGNATURE_INVALID,          // 28
+    //ERR_TRANSACTION_SIGNATURE_INVALID,          // 29
     "transaction signature is invalid",
-    //ERR_TRANSACTION_CONFLICTING_INPUT,          // 29
+    //ERR_TRANSACTION_CONFLICTING_INPUT,          // 30
     "transaction inputs are conflicting",
     /* wallet */
-    //ERR_WALLET_INVALID_AMOUNT,                  // 30
+    //ERR_WALLET_INVALID_AMOUNT,                  // 31
     "wallet amount is invalid",
-    //ERR_WALLET_INSUFFICIENT_FUNDS,              // 31
+    //ERR_WALLET_INSUFFICIENT_FUNDS,              // 32
     "wallet funds is insufficient",
-    //ERR_WALLET_SIGNATURE_FAILED,                // 32
+    //ERR_WALLET_SIGNATURE_FAILED,                // 33
     "wallet failed to signature",
-    //ERR_WALLET_TX_OVERSIZE,                     // 33
+    //ERR_WALLET_TX_OVERSIZE,                     // 34
     "wallet transaction is oversize",
-    //ERR_WALLET_NOT_FOUND,                       // 34
+    //ERR_WALLET_NOT_FOUND,                       // 35
     "wallet is missing",
-    //ERR_WALLET_IS_LOCKED,	                     // 35
+    //ERR_WALLET_IS_LOCKED,	                      // 36
     "wallet is locked",
-    //ERR_WALLET_IS_UNLOCKED,                     // 36
+    //ERR_WALLET_IS_UNLOCKED,                     // 37
     "wallet is unlocked",
-    //ERR_WALLET_IS_ENCRYPTED,                    // 37
+    //ERR_WALLET_IS_ENCRYPTED,                    // 38
     "wallet is encrypted",
-    //ERR_WALLET_IS_UNENCRYPTED,                  // 38
+    //ERR_WALLET_IS_UNENCRYPTED,                  // 39
     "wallet is unencrypted",
-    //ERR_WALLET_FAILED,                          // 39
+    //ERR_WALLET_FAILED,                          // 40
     "wallet operation is failed"
 };
 

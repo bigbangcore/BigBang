@@ -222,6 +222,13 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         return ERR_TRANSACTION_INVALID;
     }
 
+    uint256 hashLast;
+    int64 nTime;
+    if (!pBlockChain->GetLastBlock(hashFork, hashLast, nHeight, nTime))
+    {
+        return ERR_TRANSACTION_INVALID;
+    }
+
     CTxPoolView& txView = mapPoolView[hashFork];
     Errno err = AddNew(txView, txid, tx, hashFork, nHeight);
     if (err == OK)

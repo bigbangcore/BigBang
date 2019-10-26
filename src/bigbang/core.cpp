@@ -512,7 +512,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         {
             return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
         }
-        if (output.nLockUntil != 0 && output.nLockUntil < nForkHeight)
+        if (output.IsLocked(nForkHeight))
         {
             return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
         }

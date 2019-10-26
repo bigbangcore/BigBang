@@ -436,7 +436,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     }
     return (!fCompleted
             || (pCoreProtocol->ValidateTransaction(tx) == OK
-                && pCoreProtocol->VerifyTransaction(tx, vUnspent, nHeight, hashFork) == OK));
+                && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK));
 }
 
 bool CService::HaveTemplate(const CTemplateId& tid)
@@ -500,7 +500,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
     }
     txNew.nType = CTransaction::TX_TOKEN;
     txNew.nTimeStamp = GetNetTime();
-    txNew.nLockUntil = 0;
+    txNew.nLockUntil = 1;
     txNew.sendTo = destSendTo;
     txNew.nAmount = nAmount;
     txNew.nTxFee = nTxFee;
