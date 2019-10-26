@@ -452,7 +452,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             {
                 if (inv.nType == network::CInv::MSG_TX)
                 {
-                    if (!pTxPool->Exists(inv.nHash))
+                    if (!pTxPool->Exists(inv.nHash) && !pBlockChain->ExistsTx(inv.nHash))
                     {
                         sched.AddNewInv(inv, nNonce);
                         vTxHash.push_back(inv.nHash);
@@ -916,9 +916,10 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
         CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
         if (pTx != nullptr)
         {
-            if (pBlockChain->ExistsTx(txid))
+            if (pBlockChain->ExistsTx(hashTx))
             {
-                return;
+                sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+                continue;
             }
 
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
@@ -926,22 +927,27 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
             {
                 StdDebug("NetChannel", "NetChannel AddNewTx success, peer: %s, txid: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
-
                 sched.GetNextTx(hashTx, vtx, setTx);
                 sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
             }
-            else if (err != ERR_MISSING_PREV && err != ERR_TRANSACTION_CONFLICTING_INPUT && err != ERR_ALREADY_HAVE)
+            else if (err == ERR_MISSING_PREV
+                     || err == ERR_TRANSACTION_CONFLICTING_INPUT
+                     || err == ERR_ALREADY_HAVE)
             {
                 StdLog("NetChannel", "NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s",
                        GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
-                sched.InvalidateTx(hashTx, setMisbehavePeer);
+                if (err == ERR_TRANSACTION_CONFLICTING_INPUT || err == ERR_ALREADY_HAVE)
+                {
+                    sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+                }
             }
             else
             {
-                StdLog("NetChannel", "NetChannel AddNewTx fail, peer: %s, txid: %s, err: [%d] %s",
+                StdLog("NetChannel", "NetChannel AddNewTx fail, invalidate tx, peer: %s, txid: %s, err: [%d] %s",
                        GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str(), err, ErrorString(err));
+                sched.InvalidateTx(hashTx, setMisbehavePeer);
             }
         }
         else
