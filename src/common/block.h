@@ -21,7 +21,6 @@ public:
     uint16 nVersion;
     uint16 nType;
     uint32 nTimeStamp;
-    uint32 nHeight;
     uint256 hashPrev;
     uint256 hashMerkle;
     std::vector<uint8> vchProof;
@@ -48,7 +47,6 @@ public:
         nVersion = 1;
         nType = 0;
         nTimeStamp = 0;
-        nHeight = 0;
         hashPrev = 0;
         hashMerkle = 0;
         vchProof.clear();
@@ -59,6 +57,10 @@ public:
     bool IsNull() const
     {
         return (nType == 0 || nTimeStamp == 0 || txMint.IsNull());
+    }
+    bool IsGenesis() const
+    {
+        return (nType == BLOCK_GENESIS);
     }
     bool IsOrigin() const
     {
@@ -83,23 +85,38 @@ public:
     uint256 GetHash() const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << nHeight << hashPrev << hashMerkle << vchProof << txMint;
+        ss << nVersion << nType << nTimeStamp << hashPrev << hashMerkle << vchProof << txMint;
         uint256 hash = bigbang::crypto::CryptoHash(ss.GetData(), ss.GetSize());
-        return uint256(nHeight, uint224(hash));
+        return uint256(GetBlockHeight(), uint224(hash));
     }
     std::size_t GetTxSerializedOffset() const
     {
-        return (sizeof(nVersion) + sizeof(nType) + sizeof(nTimeStamp) + sizeof(nHeight) + sizeof(hashPrev) + sizeof(hashMerkle) + xengine::GetSerializeSize(vchProof));
+        return (sizeof(nVersion) + sizeof(nType) + sizeof(nTimeStamp) + sizeof(hashPrev) + sizeof(hashMerkle) + xengine::GetSerializeSize(vchProof));
     }
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << nHeight << hashPrev << vchProof;
+        ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
     int64 GetBlockTime() const
     {
         return (int64)nTimeStamp;
+    }
+    uint32 GetBlockHeight() const
+    {
+        if (IsGenesis())
+        {
+            return 0;
+        }
+        else if (IsExtended())
+        {
+            return hashPrev.Get32(7);
+        }
+        else
+        {
+            return hashPrev.Get32(7) + 1;
+        }
     }
     uint64 GetBlockBeacon(int idx = 0) const
     {
@@ -152,7 +169,6 @@ protected:
         s.Serialize(nVersion, opt);
         s.Serialize(nType, opt);
         s.Serialize(nTimeStamp, opt);
-        s.Serialize(nHeight, opt);
         s.Serialize(hashPrev, opt);
         s.Serialize(hashMerkle, opt);
         s.Serialize(vchProof, opt);
@@ -260,7 +276,7 @@ public:
         nVersion = block.nVersion;
         nType = block.nType;
         nTimeStamp = block.nTimeStamp;
-        nHeight = block.nHeight;
+        nHeight = block.GetBlockHeight();
         nChainTrust = uint64(0);
         nMoneySupply = 0;
         nRandBeacon = 0;
