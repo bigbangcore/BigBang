@@ -136,7 +136,6 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
     block.nTimeStamp = 1515745156;
-    block.nHeight = 0;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -326,11 +325,6 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
 
 Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev)
 {
-    if (block.nHeight != pIndexPrev->GetBlockHeight() + 1)
-    {
-        return DEBUG(ERR_BLOCK_HEIGHT_INVALID, "PoW block height error.\n");
-    }
-
     if (block.vchProof.size() < CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.\n");
@@ -377,11 +371,6 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                                  const CDelegateAgreement& agreement)
 {
-    if (block.nHeight != pIndexPrev->GetBlockHeight() + 1)
-    {
-        return DEBUG(ERR_BLOCK_HEIGHT_INVALID, "DPoS block height error.\n");
-    }
-
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING
         || block.GetBlockTime() >= pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING * 3 / 2)
     {
@@ -406,11 +395,6 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
 
     if (!block.IsExtended())
     {
-        if (block.nHeight != pIndexPrev->GetBlockHeight() + 1)
-        {
-            return DEBUG(ERR_BLOCK_HEIGHT_INVALID, "Subsidiary block height error.\n");
-        }
-
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
@@ -418,11 +402,6 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     }
     else
     {
-        if (block.nHeight != pIndexPrev->GetBlockHeight())
-        {
-            return DEBUG(ERR_BLOCK_HEIGHT_INVALID, "Extended block height error.\n");
-        }
-
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
         {
@@ -767,7 +746,6 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
     block.nTimeStamp = (ptime(date(2019, 9, 25), time_duration(14 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
-    block.nHeight = 0;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
