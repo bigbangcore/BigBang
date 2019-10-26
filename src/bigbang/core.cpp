@@ -24,10 +24,11 @@ static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
 static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING; // + BLOCK_TARGET_SPACING / 2;
 
-static const int64 BBCP_TOKEN_INIT = 300000000;
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
-static const int64 BBCP_BASE_REWARD_TOKEN = 15;
+static const int64 BBCP_TOKEN_INIT = 300000000;
+static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 #else
+static const int64 BBCP_TOKEN_INIT = 0;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
 
 #define BBCP_TOKEN_SET_COUNT 16
@@ -148,7 +149,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BIG";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 15 * COIN;
+    profile.nMintReward = 20 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -758,7 +759,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BigTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 15 * COIN;
+    profile.nMintReward = 20 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
