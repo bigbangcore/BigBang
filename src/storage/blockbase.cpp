@@ -1662,7 +1662,6 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         {
             pIndexPrev = (*miPrev).second;
             pIndexNew->pPrev = pIndexPrev;
-            pIndexNew->nHeight = pIndexPrev->nHeight + (pIndexNew->IsExtended() ? 0 : 1);
             if (!pIndexNew->IsOrigin())
             {
                 pIndexNew->pOrigin = pIndexPrev->pOrigin;
