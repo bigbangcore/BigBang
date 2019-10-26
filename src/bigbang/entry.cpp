@@ -69,7 +69,6 @@ CBbEntry::~CBbEntry()
 
 bool CBbEntry::Initialize(int argc, char* argv[])
 {
-    
     if (!config.Load(argc, argv, GetDefaultDataDir(), "bigbang.conf") || !config.PostLoad())
     {
         cerr << "Failed to load/parse arguments and config file\n";
@@ -86,8 +85,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     // version
     if (config.GetConfig()->fVersion)
     {
-        cout << "Bigbang version is v" << VERSION_STR << endl;
-        printf("git commit id is: %s\n", GetGitVersion());
+        cout << "Bigbang version is v" << VERSION_STR << ", git commit id is " << GetGitVersion() << endl;
         return false;
     }
 
