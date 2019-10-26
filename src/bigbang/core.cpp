@@ -24,62 +24,53 @@ static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 10;
 static const int PROOF_OF_WORK_TARGET_SPACING = BLOCK_TARGET_SPACING; // + BLOCK_TARGET_SPACING / 2;
 
-static const int64 BBCP_TOKEN_INIT = 300000000;
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
-static const int64 BBCP_BASE_REWARD_TOKEN_COIN = 15 * COIN;
+static const int64 BBCP_TOKEN_INIT = 300000000;
+static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 #else
-static const int64 BBCP_YEAR_INC_REWARD_TOKEN_COIN = 20 * COIN; //19025875; //1% : (1000000000*0.010000)/(60*24*365)*1000000=19,025875.190258751902587519025875
-static const int64 BBCP_SPECIAL_HEIGHT_SECT = 10080;            //60*24*30*3;
+static const int64 BBCP_TOKEN_INIT = 0;
+static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
 
-static const int64 BBCP_END_HEIGHT[7] = {
-    10080, //129600,         //CPOW             : 60*24*30*3=129600
-    20160, //367200,         //CPOW_EDPOS_1_085 : 129600+60*24*30*5.5=367200
-    30240, //604800,         //CPOW_EDPOS_2_140 : 367200+60*24*30*5.5=604800
-    40320, //842400,         //CPOW_EDPOS_3_195 : 604800+60*24*30*5.5=842400
-    50400, //1080000,        //CPOW_EDPOS_4_250 : 842400+60*24*30*5.5=1080000
-    60480, //1317600,        //CPOW_EDPOS_5_305 : 1080000+60*24*30*5.5=1317600
-    70560  //1555200         //CPOW_EDPOS_6_360 : 1317600+60*24*30*5.5=1555200
+#define BBCP_TOKEN_SET_COUNT 16
+static const int64 BBCP_END_HEIGHT[BBCP_TOKEN_SET_COUNT] = {
+    //CPOW
+    43200,
+    86400,
+    129600,
+    172800,
+    216000,
+    //CPOW+EDPOS
+    432000,
+    648000,
+    864000,
+    1080000,
+    1296000,
+    1512000,
+    1728000,
+    1944000,
+    2160000,
+    2376000,
+    2592000
 };
-static const int64 BBCP_REWARD_TOKEN_COIN[7] = {
-    10000000000, //925925925,  //CPOW             : (1000000000*0.1200)/(60*24*30*3.0)*1000000=925,925925.92592592592592592592593
-    30000000000, //1132996632, //CPOW_EDPOS_1_085 : (1000000000*0.2692)/(60*24*30*5.5)*1000000=1132,996632.9966329966329966329966
-    15000000000, //566498316,  //CPOW_EDPOS_2_140 : (1000000000*0.1346)/(60*24*30*5.5)*1000000=566,498316.49831649831649831649832
-    7500000000,  //283249158,  //CPOW_EDPOS_3_195 : (1000000000*0.0673)/(60*24*30*5.5)*1000000=283,249158.24915824915824915824916
-    3750000000,  //141835016,  //CPOW_EDPOS_4_250 : (1000000000*0.0337)/(60*24*30*5.5)*1000000=141,835016.83501683501683501683502
-    1875000000,  //70707070,   //CPOW_EDPOS_5_305 : (1000000000*0.0168)/(60*24*30*5.5)*1000000=70,707070.707070707070707070707071
-    937000000    //35353535    //CPOW_EDPOS_6_360 : (1000000000*0.0084)/(60*24*30*5.5)*1000000=35,353535.353535353535353535353535
-};
-static const int64 BBCP_SPECIAL_FOUNDATION_TECH_TOKEN_COIN[10] = {
-    20000000000000, //2%      : (1000000000*0.020000)*1000000=20000000,000000
-    15000000000000, //1.5%    : (1000000000*0.015000)*1000000=15000000,000000
-    10000000000000, //1%      : (1000000000*0.010000)*1000000=10000000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000,  //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-    7857000000000   //0.7857% : (1000000000*0.007857)*1000000=7857000,000000
-};
-static const int64 BBCP_SPECIAL_MARKET_TOKEN_COIN[10] = {
-    15000000000000, //1.5%    : (1000000000*0.015000)*1000000=15000000,000000
-    10000000000000, //1%      : (1000000000*0.010000)*1000000=10000000,000000
-    8000000000000,  //0.8%    : (1000000000*0.008000)*1000000=8000000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000,  //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-    5285000000000   //0.5285% : (1000000000*0.005285)*1000000=5285000,000000
-};
-static const int64 BBCP_SPECIAL_INSTITUTION_TOKEN_COIN = 20000000000000; //2% : (1000000000*0.020000)*1000000=20000000,000000
-
-static const std::string BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[4] = {
-    "20g053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynqmeyf", //Foundation
-    "20g00c7gng4w63kjt8r9n6bpfmea7crw7pmkv9rshxf6d6vwhq9bdfy8k", //Technical team
-    "20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa", //Market operation
-    "20g0d0p9gaynwq6k815kj4n8w8ttydcf80m67sjcp3zsjymjfb710sjgg"  //Institution
+static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
+    //CPOW
+    1153,
+    1043,
+    933,
+    823,
+    713,
+    //CPOW+EDPOS
+    603,
+    550,
+    497,
+    444,
+    391,
+    338,
+    285,
+    232,
+    179,
+    126,
+    73
 };
 #endif
 
@@ -159,7 +150,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BIG";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 15 * COIN;
+    profile.nMintReward = 20 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -610,7 +601,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             nAlgo = pIndex->nProofAlgo;
         }
 
-        // DPoS difficulty = weight * (2 ^ nBits) 
+        // DPoS difficulty = weight * (2 ^ nBits)
         int nBits;
         int64 nReward;
         if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
@@ -640,13 +631,6 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 
     // first
     if (!pIndex->IsProofOfWork())
-    {
-        nBits = nProofOfWorkInit;
-        return true;
-    }
-
-    // special height, fixed difficulty
-    if (CheckSpecialHeight(pIndexPrev->GetBlockHeight()))
     {
         nBits = nProofOfWorkInit;
         return true;
@@ -686,91 +670,23 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
-    int nSpecialIndex = (nBlockHeight - 1) % BBCP_SPECIAL_HEIGHT_SECT;
-    int nSpecialSect = (nBlockHeight - 1) / BBCP_SPECIAL_HEIGHT_SECT;
-
-    if (nSpecialSect >= 1 && nSpecialSect <= 10)
-    {
-        if (nSpecialIndex == 0 || nSpecialIndex == 1)
-        {
-            return BBCP_SPECIAL_FOUNDATION_TECH_TOKEN_COIN[nSpecialSect - 1];
-        }
-        else if (nSpecialIndex == 2)
-        {
-            return BBCP_SPECIAL_MARKET_TOKEN_COIN[nSpecialSect - 1];
-        }
-        else if (nSpecialIndex == 3 && nSpecialSect <= 4)
-        {
-            return BBCP_SPECIAL_INSTITUTION_TOKEN_COIN;
-        }
-    }
-
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
     {
         if (nBlockHeight <= BBCP_END_HEIGHT[i])
         {
-            return BBCP_REWARD_TOKEN_COIN[i];
+            return BBCP_REWARD_TOKEN[i] * COIN;
         }
     }
-
-    return BBCP_YEAR_INC_REWARD_TOKEN_COIN;
+    return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
 #else
-    return BBCP_BASE_REWARD_TOKEN_COIN;
+    return BBCP_BASE_REWARD_TOKEN * COIN;
 #endif
-}
-
-bool CCoreProtocol::CheckFirstPow(int nBlockHeight)
-{
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
-    if (nBlockHeight <= BBCP_END_HEIGHT[0])
-    {
-        return true;
-    }
-#endif
-    return false;
-}
-
-bool CCoreProtocol::CheckSpecialHeight(int nBlockHeight)
-{
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
-    int nSpecialIndex = (nBlockHeight - 1) % BBCP_SPECIAL_HEIGHT_SECT;
-    int nSpecialSect = (nBlockHeight - 1) / BBCP_SPECIAL_HEIGHT_SECT;
-
-    if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && (nSpecialIndex != 3 || nSpecialSect <= 4))
-    {
-        return true;
-    }
-#endif
-    return false;
-}
-
-bool CCoreProtocol::VerifySpecialAddress(int nBlockHeight, const CBlock& block)
-{
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
-    int nSpecialIndex = (nBlockHeight - 1) % BBCP_SPECIAL_HEIGHT_SECT;
-    int nSpecialSect = (nBlockHeight - 1) / BBCP_SPECIAL_HEIGHT_SECT;
-
-    if ((nSpecialIndex < 4 && (nSpecialSect >= 1 && nSpecialSect <= 10)) && (nSpecialIndex != 3 || nSpecialSect <= 4))
-    {
-        CAddress destSpecial(BBCP_SPECIAL_REWARD_TEMPLATE_ADDRESS[nSpecialIndex]);
-        if (block.txMint.sendTo != destSpecial)
-        {
-            return false;
-        }
-    }
-#endif
-    return true;
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight,
                                        const map<CDestination, size_t>& mapBallot, vector<CDestination>& vBallot, int nBlockHeight)
 {
     vBallot.clear();
-
-    if (CheckFirstPow(nBlockHeight) || CheckSpecialHeight(nBlockHeight))
-    {
-        return;
-    }
 
     int nSelected = 0;
     for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
@@ -865,7 +781,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BigTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 15 * COIN;
+    profile.nMintReward = 20 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
