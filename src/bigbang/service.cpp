@@ -500,7 +500,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
     }
     txNew.nType = CTransaction::TX_TOKEN;
     txNew.nTimeStamp = GetNetTime();
-    txNew.nLockUntil = 1;
+    txNew.nLockUntil = 0;
     txNew.sendTo = destSendTo;
     txNew.nAmount = nAmount;
     txNew.nTxFee = nTxFee;
