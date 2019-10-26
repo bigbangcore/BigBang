@@ -1074,7 +1074,7 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
         pNetChannelModel->RemoveScheduleInv(hashFork, network::CInv(network::CInv::MSG_TX, hashTx), setKnownPeer);
         setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
     }
-    else
+    else if (err != ERR_MISSING_PREV)
     {
         pNetChannelModel->InvalidateScheduleTx(hashFork, hashTx, setMisbehavePeer);
     }
