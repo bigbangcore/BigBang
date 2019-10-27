@@ -61,14 +61,13 @@ void CPeerNet::EnterLoop()
     {
         if (StartService(service.epListen, service.nMaxInBounds))
         {
-            Log("Listen port %s:%u, connections limit = %u\n",
-                service.epListen.address().to_string().c_str(),
-                service.epListen.port(), service.nMaxInBounds);
+            StdLog("CPeerNet", "Listen port %s, connections limit = %u",
+                   GetEpString(service.epListen).c_str(), service.nMaxInBounds);
         }
         else
         {
-            Error("Failed to listen port %s:%u, disable in-bound connection\n",
-                  service.epListen.address().to_string().c_str(), service.epListen.port());
+            StdError("CPeerNet", "Failed to listen port %s, disable in-bound connection",
+                     GetEpString(service.epListen).c_str());
         }
     }
 
@@ -108,7 +107,12 @@ void CPeerNet::HeartBeat()
         {
             if (!Connect(ep, CONNECT_TIMEOUT))
             {
+                StdLog("CPeerNet", "Connect peer fail, peer: %s", GetEpString(ep).c_str());
                 epMngr.CloseEndpoint(ep, CEndpointManager::CONNECT_FAILURE);
+            }
+            else
+            {
+                StdLog("CPeerNet", "Start connecting peer, peer: %s", GetEpString(ep).c_str());
             }
         }
     }
@@ -123,7 +127,7 @@ void CPeerNet::Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFun
         {
             return;
         }
-        StdDebug("PeerNet", "Timeout: %s", strFunctionIn.c_str());
+        StdLog("CPeerNet", "Timeout: %s", strFunctionIn.c_str());
         RemovePeer(pPeer, CEndpointManager::RESPONSE_FAILURE);
     }
 }
@@ -135,44 +139,37 @@ std::size_t CPeerNet::GetMaxOutBoundCount()
 
 bool CPeerNet::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause)
 {
-    switch (epMngr.AcceptInBound(pClient->GetRemote()))
+    if (!epMngr.AcceptInBound(pClient->GetRemote(), strFailCause))
     {
-    case 0:
-        if (AddNewPeer(pClient, true) == nullptr)
-        {
-            epMngr.CloseEndpoint(pClient->GetRemote(), CEndpointManager::HOST_CLOSE);
-            strFailCause = "Add peer fail";
-            return false;
-        }
-        break;
-    case -1:
-        strFailCause = "In bound attempt fail";
-        return false;
-    case -2:
-        strFailCause = "Connection number exceeding maximum limit";
-        return false;
-    default:
-        strFailCause = "Other fail";
         return false;
     }
+    if (AddNewPeer(pClient, true) == nullptr)
+    {
+        epMngr.CloseEndpoint(pClient->GetRemote(), CEndpointManager::HOST_CLOSE);
+        strFailCause = "Add peer fail";
+        return false;
+    }
+    StdLog("CPeerNet", "Accepted success, listen: %s, peer: %s", GetEpString(epService).c_str(), GetEpString(pClient->GetRemote()).c_str());
     return true;
 }
 
 bool CPeerNet::ClientConnected(CIOClient* pClient)
 {
+    StdLog("CPeerNet", "Connect peer success, peer: %s", GetEpString(pClient->GetRemote()).c_str());
     CPeer* pPeer = AddNewPeer(pClient, false);
     if (pPeer != nullptr)
     {
         localIP = pClient->GetLocal().address();
         return true;
     }
-
+    StdLog("CPeerNet", "AddNewPeer fail, peer: %s", GetEpString(pClient->GetRemote()).c_str());
     epMngr.CloseEndpoint(pClient->GetRemote(), CEndpointManager::HOST_CLOSE);
     return false;
 }
 
 void CPeerNet::ClientFailToConnect(const tcp::endpoint& epRemote)
 {
+    StdLog("CPeerNet", "Connect peer fail, peer: %s", GetEpString(epRemote).c_str());
     epMngr.CloseEndpoint(epRemote, CEndpointManager::CONNECT_FAILURE);
 }
 
@@ -208,8 +205,7 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
         pPeer->Activate();
         mapPeer.insert(make_pair(nNonce, pPeer));
 
-        Log("Add New Peer : %s %d\n", pPeer->GetRemote().address().to_string().c_str(),
-            pPeer->GetRemote().port());
+        StdLog("CPeerNet", "Add New Peer : %s", GetEpString(pPeer->GetRemote()).c_str());
 
         return pPeer;
     }
@@ -218,8 +214,35 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
 
 void CPeerNet::RemovePeer(CPeer* pPeer, const CEndpointManager::CloseReason& reason)
 {
-    Warn("Remove Peer (%d) : %s\n", reason,
-         pPeer->GetRemote().address().to_string().c_str());
+    string strReason;
+    switch (reason)
+    {
+    case CEndpointManager::HOST_CLOSE:
+        strReason = "HOST_CLOSE";
+        break;
+    case CEndpointManager::CONNECT_FAILURE:
+        strReason = "CONNECT_FAILURE";
+        break;
+    case CEndpointManager::NETWORK_ERROR:
+        strReason = "NETWORK_ERROR";
+        break;
+    case CEndpointManager::RESPONSE_FAILURE:
+        strReason = "RESPONSE_FAILURE";
+        break;
+    case CEndpointManager::PROTOCOL_INVALID:
+        strReason = "PROTOCOL_INVALID";
+        break;
+    case CEndpointManager::DDOS_ATTACK:
+        strReason = "DDOS_ATTACK";
+        break;
+    case CEndpointManager::NUM_CLOSEREASONS:
+        strReason = "NUM_CLOSEREASONS";
+        break;
+    default:
+        strReason = "OTHER";
+        break;
+    }
+    StdWarn("CPeerNet", "Remove Peer (%d : %s) : %s", reason, strReason.c_str(), GetEpString(pPeer->GetRemote()).c_str());
 
     epMngr.CloseEndpoint(pPeer->GetRemote(), reason);
 
@@ -230,8 +253,29 @@ void CPeerNet::RemovePeer(CPeer* pPeer, const CEndpointManager::CloseReason& rea
 
 void CPeerNet::RewardPeer(CPeer* pPeer, const CEndpointManager::Bonus& bonus)
 {
-    Log("Reward Peer (%d) : %s\n", bonus,
-        pPeer->GetRemote().address().to_string().c_str());
+    string strBonus;
+    switch (bonus)
+    {
+    case CEndpointManager::OPERATION_DONE:
+        strBonus = "OPERATION_DONE";
+        break;
+    case CEndpointManager::MINOR_DATA:
+        strBonus = "MINOR_DATA";
+        break;
+    case CEndpointManager::MAJOR_DATA:
+        strBonus = "MAJOR_DATA";
+        break;
+    case CEndpointManager::VITAL_DATA:
+        strBonus = "VITAL_DATA";
+        break;
+    case CEndpointManager::NUM_BONUS:
+        strBonus = "NUM_BONUS";
+        break;
+    default:
+        strBonus = "OTHER";
+        break;
+    }
+    StdLog("CPeerNet", "Reward Peer (%d : %s) : %s", bonus, strBonus.c_str(), GetEpString(pPeer->GetRemote()).c_str());
     epMngr.RewardEndpoint(pPeer->GetRemote(), bonus);
 }
 
@@ -352,22 +396,12 @@ CPeerInfo* CPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
 
     if (pInfo != nullptr)
     {
-        tcp::endpoint ep = pPeer->GetRemote();
-
-        if (ep.address().is_v6())
-        {
-            pInfo->strAddress = string("[") + ep.address().to_string() + string("]:") + to_string(ep.port());
-        }
-        else
-        {
-            pInfo->strAddress = ep.address().to_string() + string(":") + to_string(ep.port());
-        }
+        pInfo->strAddress = GetEpString(pPeer->GetRemote());
         pInfo->fInBound = pPeer->IsInBound();
         pInfo->nActive = pPeer->nTimeActive;
         pInfo->nLastRecv = pPeer->nTimeRecv;
         pInfo->nLastSend = pPeer->nTimeSend;
-
-        pInfo->nScore = epMngr.GetEndpointScore(ep);
+        pInfo->nScore = epMngr.GetEndpointScore(pPeer->GetRemote());
     }
 
     return pInfo;

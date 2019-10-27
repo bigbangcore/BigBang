@@ -52,6 +52,7 @@ public:
 
 protected:
     void RemoveInactiveNodes();
+    const std::string GetEpString(const boost::asio::ip::tcp::endpoint& ep);
 
 protected:
     enum

@@ -60,16 +60,21 @@ CAddressStatus::CAddressStatus()
 {
 }
 
-bool CAddressStatus::InBoundAttempt(int64 ts)
+bool CAddressStatus::InBoundAttempt(int64 ts, std::string& strFailCause)
 {
     nLastSeen = ts;
-    if (connAttempt.Attempt(ts))
+    if (!connAttempt.Attempt(ts))
     {
-        return (ts > nBanTo);
+        strFailCause = "In bound attempt fail";
+        Penalize(ATTEMPT_PENALTY, ts);
+        return false;
     }
-
-    Penalize(ATTEMPT_PENALTY, ts);
-    return false;
+    if (ts < nBanTo)
+    {
+        strFailCause = std::string("In bound within ban time, wait: ") + std::to_string(nBanTo - ts) + std::string(" s");
+        return false;
+    }
+    return true;
 }
 
 bool CAddressStatus::AddConnection(bool fInBound)
@@ -223,19 +228,20 @@ bool CEndpointManager::FetchOutBound(tcp::endpoint& ep)
     return false;
 }
 
-int CEndpointManager::AcceptInBound(const tcp::endpoint& ep)
+bool CEndpointManager::AcceptInBound(const tcp::endpoint& ep, std::string& strFailCause)
 {
     int64 now = GetTime();
     CAddressStatus& status = mapAddressStatus[ep.address()];
-    if (!status.InBoundAttempt(now))
+    if (!status.InBoundAttempt(now, strFailCause))
     {
-        return -1;
+        return false;
     }
     if (!status.AddConnection(true))
     {
-        return -2;
+        strFailCause = "Connection number exceeding maximum limit";
+        return false;
     }
-    return 0;
+    return true;
 }
 
 void CEndpointManager::RewardEndpoint(const tcp::endpoint& ep, Bonus bonus)
