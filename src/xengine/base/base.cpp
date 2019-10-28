@@ -251,4 +251,13 @@ const string IBase::GetWarnings()
     return (pDocker != nullptr ? pDocker->GetWarnings() : "");
 }
 
+const std::string IBase::GetEpString(const boost::asio::ip::tcp::endpoint& ep)
+{
+    if (ep.address().is_v6())
+    {
+        return string("[") + ep.address().to_string() + string("]:") + to_string(ep.port());
+    }
+    return ep.address().to_string() + string(":") + to_string(ep.port());
+}
+
 } // namespace xengine

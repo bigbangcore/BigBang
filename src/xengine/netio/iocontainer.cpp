@@ -248,8 +248,10 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
         if (!IsAllowedRemote(pClient->GetRemote()))
         {
             const boost::asio::ip::tcp::endpoint epRemote = pClient->GetRemote();
-            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Remote: " + epRemote.address().to_string() + ":" + to_string(epRemote.port()) + ", Not in the allowed table.")
-                                              .c_str());
+            StdError("HandleAccept", (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port())
+                                      + ", Remote: " + epRemote.address().to_string() + ":" + to_string(epRemote.port())
+                                      + ", Not in the allowed table.")
+                                         .c_str());
             pClient->Close();
             return;
         }
@@ -258,8 +260,10 @@ void CIOInBound::HandleAccept(CIOClient* pClient, const boost::system::error_cod
         if (!pIOProc->ClientAccepted(acceptorService.local_endpoint(), pClient, strFailCause))
         {
             const boost::asio::ip::tcp::endpoint epRemote = pClient->GetRemote();
-            StdError(__PRETTY_FUNCTION__, (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port()) + ", Remote: " + epRemote.address().to_string() + ":" + to_string(epRemote.port()) + ", Client accepted fail, Cause: " + strFailCause)
-                                              .c_str());
+            StdError("HandleAccept", (string("Accept error: Listen: ") + epService.address().to_string() + ":" + to_string(epService.port())
+                                      + ", Remote: " + epRemote.address().to_string() + ":" + to_string(epRemote.port())
+                                      + ", Client accepted fail, Cause: " + strFailCause)
+                                         .c_str());
             pClient->Close();
             return;
         }

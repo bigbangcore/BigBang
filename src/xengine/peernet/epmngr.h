@@ -43,7 +43,7 @@ class CAddressStatus
 {
 public:
     CAddressStatus();
-    bool InBoundAttempt(int64 ts);
+    bool InBoundAttempt(int64 ts, std::string& strFailCause);
     bool AddConnection(bool fInBound);
     void RemoveConnection();
     void Reward(int nPoints, int64 ts);
@@ -137,7 +137,7 @@ public:
     bool GetOutBoundData(const boost::asio::ip::tcp::endpoint& ep, boost::any& dataRet);
     bool SetOutBoundData(const boost::asio::ip::tcp::endpoint& ep, const boost::any& dataIn);
     bool FetchOutBound(boost::asio::ip::tcp::endpoint& ep);
-    int AcceptInBound(const boost::asio::ip::tcp::endpoint& ep);
+    bool AcceptInBound(const boost::asio::ip::tcp::endpoint& ep, std::string& strFailCause);
     void RewardEndpoint(const boost::asio::ip::tcp::endpoint& ep, Bonus bonus);
     void CloseEndpoint(const boost::asio::ip::tcp::endpoint& ep, CloseReason reason);
     void RetrieveGoodNode(std::vector<CNodeAvail>& vGoodNode,
