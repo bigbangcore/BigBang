@@ -162,7 +162,7 @@ public:
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
     void AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
-    void RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
+    bool RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     bool ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, std::set<uint64>& setSchedPeer);
     bool ReceiveTx(uint64 nPeerNonce, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer);
     CBlock* GetBlock(const uint256& hash, uint64& nNonceSender);
