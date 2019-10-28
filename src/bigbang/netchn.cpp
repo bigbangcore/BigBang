@@ -598,7 +598,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
 
         if (!sched.ReceiveTx(nNonce, txid, tx, setSchedPeer))
         {
-            throw runtime_error(string("Failed to receive tx: ") + txid.GetHex());
+            StdLog("NetChannel", "CEventPeerTx: ReceiveTx fail, txid: %s", txid.GetHex().c_str());
+            return true;
         }
 
         uint256 hashForkAnchor;
@@ -658,7 +659,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
 
         if (!sched.ReceiveBlock(nNonce, hash, block, setSchedPeer))
         {
-            throw runtime_error(string("Failed to receive block: ") + hash.GetHex());
+            StdLog("NetChannel", "CEventPeerBlock: ReceiveBlock fail, block: %s", hash.GetHex().c_str());
+            return true;
         }
 
         uint256 hashForkPrev;
