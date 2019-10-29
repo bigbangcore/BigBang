@@ -11,6 +11,7 @@
 #include "base.h"
 #include "rpc/rpc.h"
 #include "xengine.h"
+#include "http/httpmessage.h"
 
 namespace bigbang
 {

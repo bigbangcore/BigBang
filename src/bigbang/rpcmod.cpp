@@ -320,14 +320,14 @@ bool CRPCMod::HandleEvent(CEventHttpBroken& eventHttpBroken)
 
 void CRPCMod::JsonReply(uint64 nNonce, const std::string& result)
 {
-    CEventHttpRsp eventHttpRsp(nNonce);
-    eventHttpRsp.data.nStatusCode = 200;
-    eventHttpRsp.data.mapHeader["content-type"] = "application/json";
-    eventHttpRsp.data.mapHeader["connection"] = "Keep-Alive";
-    eventHttpRsp.data.mapHeader["server"] = "bigbang-rpc";
-    eventHttpRsp.data.strContent = result + "\n";
-
-    pHttpServer->DispatchEvent(&eventHttpRsp);
+    auto spMsg = CHttpRspMessage::Create();
+    spMsg->nNonce = nNonce;
+    spMsg->nStatusCode = 200;
+    spMsg->mapHeader["content-type"] = "application/json";
+    spMsg->mapHeader["connection"] = "Keep-Alive";
+    spMsg->mapHeader["server"] = "bigbang-rpc";
+    spMsg->strContent = result + "\n";
+    PUBLISH_MESSAGE(spMsg);
 }
 
 bool CRPCMod::CheckWalletError(Errno err)

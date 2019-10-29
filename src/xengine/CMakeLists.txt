@@ -54,6 +54,7 @@ set(sources
     netio/netio.h
     http/httptype.h
     http/httpevent.h
+    http/httpmessage.h
     peernet/peerevent.h
     peernet/peerinfo.h
 )
