@@ -220,6 +220,9 @@ bool CHttpServer::HandleInitialize()
             return false;
         }
     }
+
+    RegisterRefHandler<CHttpRspMessage>(boost::bind(&CHttpServer::HandleHttpRsp, this, _1));
+
     return true;
 }
 
@@ -231,6 +234,8 @@ void CHttpServer::HandleDeinitialize()
         delete (*it).second.pSSLContext;
     }
     mapProfile.clear();
+
+    DeregisterHandler(CHttpRspMessage::MessageType());
 }
 
 void CHttpServer::EnterLoop()
@@ -433,34 +438,33 @@ void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const 
     pHttpClient->SendResponse(strRsp);
 }
 
-bool CHttpServer::HandleEvent(CEventHttpRsp& eventRsp)
+void CHttpServer::HandleHttpRsp(const CHttpRspMessage& msg)
 {
-    map<uint64, CHttpClient*>::iterator it = mapClient.find(eventRsp.nNonce);
+    map<uint64, CHttpClient*>::iterator it = mapClient.find(msg.nNonce);
     if (it == mapClient.end())
     {
-        return false;
+        return;
     }
 
     CHttpClient* pHttpClient = (*it).second;
 
-    CHttpRsp& rsp = eventRsp.data;
+    auto mapHeader = msg.mapHeader;
+    auto mapCookie = msg.mapCookie;
+    string strRsp = CHttpUtil().BuildResponseHeader(msg.nStatusCode, mapHeader,
+                                                    mapCookie, msg.strContent.size())
+                    + msg.strContent;
 
-    string strRsp = CHttpUtil().BuildResponseHeader(rsp.nStatusCode, rsp.mapHeader,
-                                                    rsp.mapCookie, rsp.strContent.size())
-                    + rsp.strContent;
-
-    if (rsp.mapHeader.count("content-type")
-        && rsp.mapHeader["content-type"] == "text/event-stream")
+    if (msg.mapHeader.count("content-type")
+        && msg.mapHeader.at("content-type") == "text/event-stream")
     {
         pHttpClient->SetEventStream();
     }
 
-    if (rsp.mapHeader.count("connection") && rsp.mapHeader["connection"] == "Keep-Alive")
+    if (msg.mapHeader.count("connection") && msg.mapHeader.at("connection") == "Keep-Alive")
     {
         pHttpClient->KeepAlive();
     }
     pHttpClient->SendResponse(strRsp);
-    return true;
 }
 
 } // namespace xengine

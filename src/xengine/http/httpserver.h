@@ -6,6 +6,7 @@
 #define XENGINE_HTTP_HTTPSERVER_H
 
 #include "http/httpevent.h"
+#include "http/httpmessage.h"
 #include "http/httputil.h"
 #include "netio/ioproc.h"
 
@@ -87,7 +88,7 @@ protected:
     MAPIKeyValue mapCookie;
 };
 
-class CHttpServer : public CIOProc, virtual public CHttpEventListener
+class CHttpServer : public CIOProc
 {
 public:
     CHttpServer();
@@ -112,7 +113,7 @@ protected:
     CHttpClient* AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile);
     void RemoveClient(CHttpClient* pHttpClient);
     void RespondError(CHttpClient* pHttpClient, int nStatusCode, const std::string& strError = "");
-    bool HandleEvent(CEventHttpRsp& eventRsp) override;
+    void HandleHttpRsp(const CHttpRspMessage& msg);
 
 protected:
     std::vector<CHttpHostConfig> vecHostConfig;
