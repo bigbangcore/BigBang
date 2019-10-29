@@ -1049,6 +1049,54 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
     return true;
 }
 
+bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint256& hashBlock, CBlockLocator& locator)
+{
+    CReadLock rlock(rwAccess);
+
+    boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
+    if (spFork == nullptr)
+    {
+        return false;
+    }
+
+    CBlockIndex* pIndex = nullptr;
+
+    {
+        CReadLock rForkLock(spFork->GetRWAccess());
+
+        pIndex = spFork->GetLast();
+    }
+
+    while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
+    {
+        if (pIndex->GetBlockHash() != hashBlock)
+        {
+            pIndex = pIndex->pPrev;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    locator.vBlockHash.clear();
+    int nStep = 1;
+    while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
+    {
+        locator.vBlockHash.push_back(pIndex->GetBlockHash());
+        for (int i = 0; pIndex && i < nStep; i++)
+        {
+            pIndex = pIndex->pPrev;
+        }
+        if (locator.vBlockHash.size() > 10)
+        {
+            nStep *= 2;
+        }
+    }
+
+    return true;
+}
+
 bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
     CReadLock rlock(rwAccess);

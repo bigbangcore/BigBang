@@ -1116,6 +1116,17 @@ void CNetChannelController::DispatchGetBlocksEvent(uint64 nNonce, const uint256&
     }
 }
 
+void CNetChannelController::DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock)
+{
+    auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
+    spGetBlocksMsg->nNonce = nNonce;
+    spGetBlocksMsg->hashFork = hashFork;
+    if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
+    {
+        PUBLISH_MESSAGE(spGetBlocksMsg);
+    }
+}
+
 void CNetChannelController::DispatchAwardEvent(uint64 nNonce, CEndpointManager::Bonus bonus)
 {
     auto spNetRewardMsg = CPeerNetRewardMessage::Create();

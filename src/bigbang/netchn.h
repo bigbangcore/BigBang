@@ -237,6 +237,7 @@ protected:
 
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
     void DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork);
+    void DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
     void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer);
