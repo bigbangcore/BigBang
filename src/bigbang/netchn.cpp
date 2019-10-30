@@ -1205,6 +1205,12 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
             spGetData->vecInv = vecInv;
             PUBLISH_MESSAGE(spGetData);
         }
+
+        if (fBlock && !vecInv.empty())
+        {
+            const uint256& lastBlockHash = vecInv.back().nHash;
+            DispatchGetBlocksFromHashEvent(nNonce, hashFork, lastBlockHash);
+        }
     }
 }
 
