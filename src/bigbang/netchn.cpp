@@ -811,6 +811,8 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
         }
 
         vector<uint256> vTxHash;
+        // last block hash in this inv vector
+        uint256 nLastBlockHash;
         for (const network::CInv& inv : invMsg.vecInv)
         {
             if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
@@ -822,10 +824,20 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
                     vTxHash.push_back(inv.nHash);
                 }
             }
+
+            if (inv.nType == network::CInv::MSG_BLOCK && pWorldLineCtrl->Exists(inv.nHash))
+            {
+                nLastBlockHash = inv.nHash;
+            }
         }
         if (!vTxHash.empty())
         {
             pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
+        }
+
+        if (nLastBlockHash.size() != 0)
+        {
+            DispatchGetBlocksFromHashEvent(nNonce, hashFork, nLastBlockHash);
         }
 
         SchedulePeerInv(nNonce, hashFork, true);
@@ -1204,12 +1216,6 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
             spGetData->hashFork = hashFork;
             spGetData->vecInv = vecInv;
             PUBLISH_MESSAGE(spGetData);
-        }
-
-        if (fBlock && !vecInv.empty())
-        {
-            const uint256& lastBlockHash = vecInv.back().nHash;
-            DispatchGetBlocksFromHashEvent(nNonce, hashFork, lastBlockHash);
         }
     }
 }
