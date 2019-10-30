@@ -15,7 +15,7 @@
 #include "docker/config.h"
 #include "docker/docker.h"
 #include "forkmanager.h"
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "netchn.h"

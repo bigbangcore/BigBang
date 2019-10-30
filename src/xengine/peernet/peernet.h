@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "message.h"
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "netio/ioproc.h"
 #include "peernet/epmngr.h"
 #include "peernet/peer.h"
@@ -58,7 +58,7 @@ public:
     virtual void HandlePeerWriten(CPeer* pPeer);
 
 protected:
-    void EnterLoop() override;
+    bool EnterLoop() override;
     void LeaveLoop() override;
     void HeartBeat() override;
     void Timeout(uint64 nNonce, uint32 nTimerId) override;

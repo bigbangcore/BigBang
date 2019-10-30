@@ -10,7 +10,7 @@
 
 #include "docker/config.h"
 #include "docker/docker.h"
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "test_big.h"

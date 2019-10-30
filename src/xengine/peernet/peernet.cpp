@@ -77,9 +77,12 @@ void CPeerNet::HandlePeerWriten(CPeer* pPeer)
 {
 }
 
-void CPeerNet::EnterLoop()
+bool CPeerNet::EnterLoop()
 {
-    CIOProc::EnterLoop();
+    if (!CIOProc::EnterLoop())
+    {
+        return false;
+    }
 
     for (const CPeerService& service : confNetwork.vecService)
     {
@@ -93,6 +96,7 @@ void CPeerNet::EnterLoop()
         {
             ERROR("Failed to listen port %s:%u, disable in-bound connection",
                   service.epListen.address().to_string().c_str(), service.epListen.port());
+            return false;
         }
     }
 
@@ -100,6 +104,8 @@ void CPeerNet::EnterLoop()
     {
         AddNewNode(host);
     }
+
+    return true;
 }
 
 void CPeerNet::LeaveLoop()

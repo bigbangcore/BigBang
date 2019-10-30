@@ -41,8 +41,8 @@ set(sources
     http/httpget.cpp        http/httpget.h
     lockfree/queue.h
     message/message.h
-    message/actor.h         message/actor.cpp
-    message/actorworker.h   message/actorworker.cpp
+    actor/actor.h         actor/actor.cpp
+    actor/actorworker.h   actor/actorworker.cpp
     message/messagecenter.h message/messagecenter.cpp
     peernet/message.h
     db/kvdb.h

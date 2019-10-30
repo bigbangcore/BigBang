@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "logger.h"
-#include "message/actor.h"
+#include "actor/actor.h"
 
 namespace xengine
 {

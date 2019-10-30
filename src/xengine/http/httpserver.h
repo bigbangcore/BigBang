@@ -104,7 +104,7 @@ public:
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
-    void EnterLoop() override;
+    bool EnterLoop() override;
     void LeaveLoop() override;
 
     bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient) override;

@@ -35,14 +35,13 @@ void CIOActor::StopActor()
     Stop();
 }
 
-void CIOActor::EnterLoop()
+bool CIOActor::EnterLoop()
 {
-    CIOActorWorker::EnterLoop();
+    return true;
 }
 
 void CIOActor::LeaveLoop()
 {
-    CIOActorWorker::LeaveLoop();
 }
 
 void CIOActor::DeregisterHandler(const uint32 nType)

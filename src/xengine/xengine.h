@@ -27,7 +27,7 @@
 #include <http/httptype.h>
 #include <http/httputil.h>
 #include <logger.h>
-#include <message/actor.h>
+#include <actor/actor.h>
 #include <message/message.h>
 #include <message/messagecenter.h>
 #include <netio/ioproc.h>
