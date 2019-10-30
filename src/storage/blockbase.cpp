@@ -1052,31 +1052,10 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
 bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint256& hashBlock, CBlockLocator& locator)
 {
     CReadLock rlock(rwAccess);
-
-    boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    CBlockIndex* pIndex = GetIndex(hashBlock);
+    if (!pIndex)
     {
         return false;
-    }
-
-    CBlockIndex* pIndex = nullptr;
-
-    {
-        CReadLock rForkLock(spFork->GetRWAccess());
-
-        pIndex = spFork->GetLast();
-    }
-
-    while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
-    {
-        if (pIndex->GetBlockHash() != hashBlock)
-        {
-            pIndex = pIndex->pPrev;
-        }
-        else
-        {
-            break;
-        }
     }
 
     locator.vBlockHash.clear();
