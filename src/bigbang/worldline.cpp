@@ -1015,7 +1015,6 @@ Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& u
     Errno err = AddNewBlockIntoWorldLine(block, update);
 
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
-    spAddedBlockMsg->nNonce = nNonce;
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
@@ -1030,7 +1029,6 @@ Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& 
     Errno err = AddNewOriginIntoWorldLine(block, update);
 
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
-    spAddedBlockMsg->nNonce = nNonce;
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
@@ -1177,9 +1175,15 @@ bool CWorldLineController::GetBlockDelegateAgreement(const uint256& hashBlock, C
 
 void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
 {
+    if (msg.spNonce && !msg.spNonce->fValid)
+    {
+        TRACE("Discard a new block of invalid nonce (%u)", msg.spNonce->nNonce);
+        return;
+    }
+
     // Add new block
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
-    spAddedBlockMsg->nNonce = msg.nNonce;
+    spAddedBlockMsg->spNonce = msg.spNonce;
     spAddedBlockMsg->hashFork = msg.hashFork;
     spAddedBlockMsg->block = msg.block;
 
@@ -1226,7 +1230,6 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
                 if (err == OK)
                 {
                     spAddedOriginMsg->nError = OK;
-                    spAddedOriginMsg->nNonce = 0;
                     spAddedOriginMsg->hashFork = originBlock.GetHash();
                     PUBLISH_MESSAGE(spAddedOriginMsg);
                 }
