@@ -10,6 +10,8 @@
 using namespace std;
 using boost::asio::ip::tcp;
 
+static const uint8 HTTP_NONCE_TYPE = 0x0F;
+
 namespace xengine
 {
 
@@ -377,12 +379,11 @@ bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pCli
 
 CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile)
 {
-    uint64 nNonce = 0;
-    RAND_bytes((unsigned char*)&nNonce, sizeof(nNonce));
-    while (mapClient.count(nNonce))
+    uint64 nNonce;
+    do
     {
-        RAND_bytes((unsigned char*)&nNonce, sizeof(nNonce));
-    }
+        nNonce = CreateNonce(HTTP_NONCE_TYPE);
+    } while (mapClient.count(nNonce));
 
     CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, nNonce);
     if (pHttpClient != nullptr)

@@ -205,7 +205,7 @@ struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
 struct CAddTxMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddTxMessage);
-    uint64 nNonce;
+    std::shared_ptr<CNonce> spNonce;
     uint256 hashFork;
     CTransaction tx;
 };
@@ -214,7 +214,7 @@ struct CAddTxMessage : public xengine::CMessage
 struct CAddedTxMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddedTxMessage);
-    uint64 nNonce;
+    std::shared_ptr<CNonce> spNonce;
     int nError;
     uint256 hashFork;
     CTransaction tx;
@@ -251,7 +251,7 @@ struct CSyncTxChangeMessage : public xengine::CMessage
 struct CAddBlockMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddBlockMessage);
-    uint64 nNonce;
+    std::shared_ptr<CNonce> spNonce;
     uint256 hashFork;
     CBlock block;
 };
@@ -260,7 +260,7 @@ struct CAddBlockMessage : public xengine::CMessage
 struct CAddedBlockMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddedBlockMessage);
-    uint64 nNonce;
+    std::shared_ptr<CNonce> spNonce;
     uint256 hashFork;
     CBlock block;
     int nError;

@@ -7,6 +7,8 @@
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/date_time.hpp>
+#include <openssl/rand.h>
+#include <atomic>
 
 #include "type.h"
 
@@ -245,6 +247,48 @@ inline const char* TypeName(const std::type_info& info)
     return info.name();
 }
 #endif
+
+/**
+ * @brief Create a random uint64 nonce. It's highest byte is nType
+ * @param nType Hightest byte of nonce
+ * @return Random nonce
+ */
+inline uint64 CreateNonce(const uint8 nType)
+{
+    uint64 nNonce = 0;
+    unsigned char* p = (unsigned char*)&nNonce;
+    RAND_bytes(p, 7);
+    *(p + 7) = nType;
+    return nNonce;
+}
+
+/**
+ * @brief Judge the highest byte of nNonce to be nType
+ * @param nNonce uint64 nonce
+ * @param nType The hightest byte of nonce
+ * @return The nonce belongs to nType or not
+ */
+inline bool BelongNonce(const uint64 nNonce, const uint8 nType)
+{
+    return *((unsigned char*)&nNonce + 7) == nType;
+}
+
+/**
+ * @brief A wrapper of nonce. Common used with shared_ptr on multi-thread to judge nonce to be valid or not
+ */
+class CNonce 
+{
+public:
+    const uint64 nNonce;
+    std::atomic<bool> fValid;
+
+    CNonce(const uint64 nNonceIn = 0) : nNonce(nNonceIn), fValid(true) {}
+
+    static std::shared_ptr<CNonce> Create(const uint64 nNonceIn = 0)
+    {
+        return std::make_shared<CNonce>(nNonceIn);
+    }
+};
 
 } // namespace xengine
 

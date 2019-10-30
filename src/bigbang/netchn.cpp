@@ -1004,7 +1004,7 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
     const uint256& hashFork = addedMsg.hashFork;
     const CBlock& block = addedMsg.block;
     const uint256& hashBlock = addedMsg.block.GetHash();
-    const uint64& nNonceSender = addedMsg.nNonce;
+    const uint64& nNonceSender = addedMsg.spNonce ? addedMsg.spNonce->nNonce : 0;
     std::vector<uint256> vNextBlockHash;
     set<uint64> setSchedPeer, setMisbehavePeer;
     if (err == OK)
@@ -1041,7 +1041,7 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
         {
             auto spAddBlockMsg = CAddBlockMessage::Create();
             spAddBlockMsg->hashFork = hashFork;
-            spAddBlockMsg->nNonce = nNonceSenderTemp;
+            spAddBlockMsg->spNonce = CNonce::Create(nNonceSenderTemp);
             spAddBlockMsg->block = *pBlock;
             PUBLISH_MESSAGE(spAddBlockMsg);
         }
@@ -1055,7 +1055,7 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
     Errno err = static_cast<Errno>(addedMsg.nError);
     const uint256& hashFork = addedMsg.hashFork;
     const uint256& hashTx = addedMsg.tx.GetHash();
-    const uint64& nNonceSender = addedMsg.nNonce;
+    const uint64& nNonceSender = addedMsg.spNonce ? addedMsg.spNonce->nNonce : 0;
     std::vector<uint256> vNextTxChain;
     set<uint64> setSchedPeer, setMisbehavePeer;
     if (err == OK)
@@ -1086,7 +1086,7 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
         if (pTx)
         {
             auto spAddTxMsg = CAddTxMessage::Create();
-            spAddTxMsg->nNonce = nNonceSenderTemp;
+            spAddTxMsg->spNonce = CNonce::Create(nNonceSenderTemp);
             spAddTxMsg->hashFork = hashFork;
             spAddTxMsg->tx = *pTx;
             PUBLISH_MESSAGE(spAddTxMsg);
@@ -1228,7 +1228,7 @@ void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& 
             auto spAddNewBlockMsg = CAddBlockMessage::Create();
             spAddNewBlockMsg->block = *pBlock;
             spAddNewBlockMsg->hashFork = hashFork;
-            spAddNewBlockMsg->nNonce = nNonceSender;
+            spAddNewBlockMsg->spNonce = CNonce::Create(nNonceSender);
             PUBLISH_MESSAGE(spAddNewBlockMsg);
         }
     }
@@ -1254,7 +1254,7 @@ void CNetChannelController::AddNewTx(const uint256& hashFork, const uint256& txi
             else
             {
                 auto spAddTxMsg = CAddTxMessage::Create();
-                spAddTxMsg->nNonce = nNonceSender;
+                spAddTxMsg->spNonce = CNonce::Create(nNonceSender);
                 spAddTxMsg->hashFork = hashFork;
                 spAddTxMsg->tx = *pTx;
                 PUBLISH_MESSAGE(spAddTxMsg);

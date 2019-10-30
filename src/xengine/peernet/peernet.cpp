@@ -16,6 +16,8 @@ using boost::asio::ip::tcp;
 
 #define CONNECT_TIMEOUT 10
 
+static const uint8 PEER_NONCE_TYPE = 0xFF;
+
 namespace xengine
 {
 
@@ -212,11 +214,10 @@ void CPeerNet::HostResolved(const CNetHost& host, const tcp::endpoint& ep)
 CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
 {
     uint64 nNonce;
-    RAND_bytes((unsigned char*)&nNonce, sizeof(nNonce));
-    while (mapPeer.count(nNonce) || nNonce <= 0xFF)
+    do
     {
-        RAND_bytes((unsigned char*)&nNonce, sizeof(nNonce));
-    }
+        nNonce = CreateNonce(PEER_NONCE_TYPE);
+    } while (mapPeer.count(nNonce));
 
     CPeer* pPeer = CreatePeer(pClient, nNonce, fInBound);
     if (pPeer != nullptr)

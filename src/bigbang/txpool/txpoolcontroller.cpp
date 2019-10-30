@@ -137,6 +137,8 @@ bool CTxPoolController::SynchronizeWorldLine(const CWorldLineUpdate& update, CTx
 void CTxPoolController::HandleAddTx(const CAddTxMessage& msg)
 {
     auto spAddedMsg = CAddedTxMessage::Create();
+    spAddedMsg->spNonce = msg.spNonce;
+    spAddedMsg->tx = msg.tx;
 
     Push(msg.tx, spAddedMsg->hashFork, spAddedMsg->destIn, spAddedMsg->nValueIn);
 
