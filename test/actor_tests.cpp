@@ -2,7 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "message/actor.h"
+#include "actor/actor.h"
 
 #include <atomic>
 #include <boost/test/unit_test.hpp>
@@ -133,9 +133,13 @@ public:
         DeregisterHandler(CTestMessageD::MessageType());
     }
 
-    virtual void EnterLoop() override
+    virtual bool EnterLoop() override
     {
-        CIOActor::EnterLoop();
+        if (!CIOActor::EnterLoop())
+        {
+            return false;
+        }
+
         CIOActorWorker* pWorkerA(new CIOActorWorker);
         pWorkerA->RegisterRefHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessageA, this, _1));
         mapWorkers[CTestMessageA::MessageType()] = pWorkerA;
@@ -155,6 +159,8 @@ public:
         pWorkerD->RegisterRefHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessageD, this, _1));
         mapWorkers[CTestMessageD::MessageType()] = pWorkerD;
         ThreadStart(pWorkerD->GetThread());
+
+        return true;
     }
 
     virtual void LeaveLoop() override

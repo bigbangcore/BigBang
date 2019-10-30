@@ -238,10 +238,13 @@ void CHttpServer::HandleDeinitialize()
     DeregisterHandler(CHttpRspMessage::MessageType());
 }
 
-void CHttpServer::EnterLoop()
+bool CHttpServer::EnterLoop()
 {
     INFO("Http Server start:");
-    CIOProc::EnterLoop();
+    if (!CIOProc::EnterLoop())
+    {
+        return false;
+    }
 
     for (map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
@@ -259,6 +262,8 @@ void CHttpServer::EnterLoop()
                  (*it).first.port(), (*it).second.nMaxConnections);
         }
     }
+
+    return true;
 }
 
 void CHttpServer::LeaveLoop()

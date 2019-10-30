@@ -258,11 +258,10 @@ void CIOProc::ResolveHost(const CNetHost& host)
                                            boost::asio::placeholders::iterator));
 }
 
-void CIOProc::EnterLoop()
+bool CIOProc::EnterLoop()
 {
-    CIOActor::EnterLoop();
-
     timerHeartbeat.async_wait(boost::bind(&CIOProc::IOProcHeartBeat, this, _1));
+    return true;
 }
 
 void CIOProc::LeaveLoop()
@@ -270,8 +269,6 @@ void CIOProc::LeaveLoop()
     timerHeartbeat.cancel();
     mapTimerById.clear();
     mapTimerByExpiry.clear();
-
-    CIOActor::LeaveLoop();
 }
 
 void CIOProc::HeartBeat()

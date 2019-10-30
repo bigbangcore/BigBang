@@ -6,7 +6,7 @@
 #define NETWORK_PEERNET_H
 
 #include "message.h"
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "peerevent.h"
 #include "proto.h"
 #include "xengine.h"

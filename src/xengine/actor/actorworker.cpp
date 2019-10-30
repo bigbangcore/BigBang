@@ -26,19 +26,6 @@ void CIOActorWorker::Publish(std::shared_ptr<CMessage> spMessage)
     ioStrand.post(boost::bind(&CIOActorWorker::MessageHandler, this, spMessage));
 }
 
-void CIOActorWorker::EnterLoop()
-{
-}
-
-void CIOActorWorker::LeaveLoop()
-{
-}
-
-void CIOActorWorker::DeregisterHandler(const uint32 nType)
-{
-    mapHandler.erase(nType);
-}
-
 void CIOActorWorker::Stop()
 {
     if (!ioService.stopped())
@@ -48,6 +35,16 @@ void CIOActorWorker::Stop()
 
     thrIOActorWorker.Interrupt();
     thrIOActorWorker.Exit();
+}
+
+void CIOActorWorker::DeregisterHandler(const uint32 nType)
+{
+    mapHandler.erase(nType);
+}
+
+const std::string& CIOActorWorker::GetName() const
+{
+    return strName;
 }
 
 boost::asio::io_service& CIOActorWorker::GetService()
@@ -65,27 +62,41 @@ CThread& CIOActorWorker::GetThread()
     return thrIOActorWorker;
 }
 
+bool CIOActorWorker::EnterLoop()
+{
+    return true;
+}
+
+void CIOActorWorker::LeaveLoop()
+{
+}
+
 void CIOActorWorker::HandlerThreadFunc()
 {
     ioService.reset();
 
-    EnterLoop();
-
-    try
+    if (!EnterLoop())
     {
-        ioService.run();
+        LOG_ERROR(strName, "Worker enter loop error");
     }
-    catch (const boost::system::system_error& err)
+    else
     {
-        LOG_ERROR(strName, "Worker thread error: %s", err.what());
-    }
-    catch (const std::exception& e)
-    {
-        LOG_ERROR(strName, "Failed to run CIOActorWorker io_service: %s\n", e.what());
-    }
-    catch (...)
-    {
-        LOG_ERROR(strName, "Worker thread unknown error");
+        try
+        {
+            ioService.run();
+        }
+        catch (const boost::system::system_error& err)
+        {
+            LOG_ERROR(strName, "Worker thread error: %s", err.what());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(strName, "Failed to run CIOActorWorker io_service: %s\n", e.what());
+        }
+        catch (...)
+        {
+            LOG_ERROR(strName, "Worker thread unknown error");
+        }
     }
 
     LeaveLoop();

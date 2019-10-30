@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "netio/ioclient.h"
 #include "netio/iocontainer.h"
 #include "netio/nethost.h"
@@ -79,7 +79,7 @@ protected:
                     const CIOSSLOption& optSSL = CIOSSLOption());
     std::size_t GetOutBoundIdleCount();
     void ResolveHost(const CNetHost& host);
-    virtual void EnterLoop() override;
+    virtual bool EnterLoop() override;
     virtual void LeaveLoop() override;
     virtual void HeartBeat();
     virtual void Timeout(uint64 nNonce, uint32 nTimerId);

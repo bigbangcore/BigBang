@@ -13,7 +13,7 @@
 #include <boost/thread/thread_time.hpp>
 #include <map>
 
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "message/message.h"
 #include "type.h"
 
@@ -78,7 +78,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
     void HandleDeinitialize() override;
-    void EnterLoop() override;
+    bool EnterLoop() override;
     void LeaveLoop() override;
 
     // Timeout callback function

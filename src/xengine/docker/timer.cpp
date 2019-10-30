@@ -8,7 +8,7 @@
 #include <boost/thread/thread_time.hpp>
 #include <string>
 
-#include "message/actor.h"
+#include "actor/actor.h"
 #include "message/message.h"
 #include "type.h"
 
@@ -48,16 +48,14 @@ void CTimer::HandleDeinitialize()
     DeregisterHandler(CCancelTimerMessage::MessageType());
 }
 
-void CTimer::EnterLoop()
+bool CTimer::EnterLoop()
 {
-    CIOActor::EnterLoop();
+    return true;
 }
 
 void CTimer::LeaveLoop()
 {
     timer.cancel();
-
-    CIOActor::LeaveLoop();
 }
 
 void CTimer::TimerCallback(const boost::system::error_code& err)
