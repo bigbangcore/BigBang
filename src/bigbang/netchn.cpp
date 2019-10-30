@@ -702,7 +702,7 @@ void CNetChannelController::HandleSubscribeFork(const CSubscribeForkMessage& sub
         spSubscribeMsg->hashFork = pCoreProtocol->GetGenesisBlockHash();
         spSubscribeMsg->vecForks.push_back(subscribeMsg.hashFork);
         PUBLISH_MESSAGE(spSubscribeMsg);
-        DispatchGetBlocksEvent(it->first, subscribeMsg.hashFork);
+        DispatchGetBlocksFromHashEvent(it->first, subscribeMsg.hashFork, uint256());
     }
 }
 
@@ -729,7 +729,7 @@ void CNetChannelController::HandleActive(const CPeerActiveMessage& activeMsg)
     uint64 nNonce = activeMsg.nNonce;
     if ((activeMsg.address.nService & network::NODE_NETWORK))
     {
-        DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+        DispatchGetBlocksFromHashEvent(nNonce, pCoreProtocol->GetGenesisBlockHash(), uint256());
 
         auto spSubscribeMsg = CPeerSubscribeMessageOutBound::Create();
         spSubscribeMsg->nNonce = nNonce;
@@ -772,7 +772,7 @@ void CNetChannelController::HandleSubscribe(const CPeerSubscribeMessageInBound& 
 
             if (pNetChannelModel->ContainsScheduleMT(hash))
             {
-                DispatchGetBlocksEvent(nNonce, hash);
+                DispatchGetBlocksFromHashEvent(nNonce, hash, uint256());
             }
         }
     }
@@ -1117,25 +1117,25 @@ void CNetChannelController::NotifyPeerUpdate(uint64 nNonce, bool fActive, const 
     pService->NotifyNetworkPeerUpdate(update);
 }
 
-void CNetChannelController::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
-{
-    auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
-    spGetBlocksMsg->nNonce = nNonce;
-    spGetBlocksMsg->hashFork = hashFork;
-    if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
-    {
-        PUBLISH_MESSAGE(spGetBlocksMsg);
-    }
-}
-
 void CNetChannelController::DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock)
 {
     auto spGetBlocksMsg = CPeerGetBlocksMessageOutBound::Create();
     spGetBlocksMsg->nNonce = nNonce;
     spGetBlocksMsg->hashFork = hashFork;
-    if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
+
+    if (hashBlock.size() != 0)
     {
-        PUBLISH_MESSAGE(spGetBlocksMsg);
+        if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
+        {
+            PUBLISH_MESSAGE(spGetBlocksMsg);
+        }
+    }
+    else
+    {
+        if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
+        {
+            PUBLISH_MESSAGE(spGetBlocksMsg);
+        }
     }
 }
 
@@ -1199,7 +1199,7 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
 
         if (fPrevMissing)
         {
-            DispatchGetBlocksEvent(nNonce, hashFork);
+            DispatchGetBlocksFromHashEvent(nNonce, hashFork, uint256());
         }
 
         if (!fTx)
