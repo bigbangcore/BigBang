@@ -1084,12 +1084,30 @@ bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint
     return true;
 }
 
+void CBlockBase::SkipStepPrev(CBlockIndex*& pIndex, int nStep)
+{
+    assert(nStep > 0);
+    while (nStep--)
+    {
+        pIndex = pIndex->pPrev;
+    }
+}
+
+void CBlockBase::SkipStepNext(CBlockIndex*& pIndex, int nStep)
+{
+    assert(nStep > 0);
+    while (nStep-- && pIndex->pNext)
+    {
+        pIndex = pIndex->pNext;
+    }
+}
+
 bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    if (!spFork)
     {
         return false;
     }

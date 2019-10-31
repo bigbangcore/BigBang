@@ -273,6 +273,10 @@ protected:
     bool LoadDB();
 
 protected:
+    void SkipStepPrev(CBlockIndex*& pIndex, int nStep);
+    void SkipStepNext(CBlockIndex*& pIndex, int nStep);
+
+protected:
     mutable xengine::CRWAccess rwAccess;
     bool fDebugLog;
     CBlockDB dbBlock;
