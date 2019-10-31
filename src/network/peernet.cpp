@@ -179,7 +179,7 @@ bool CBbPeerNet::HandleEvent(CEventPeerPublish& eventPublish)
 
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 {
-    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT, "CreatePeer");
+    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT, "Handshake Timer");
     CBbPeer* pPeer = new CBbPeer(this, pClient, nNonce, fInBound, nMagicNum, nTimerId);
     if (pPeer == nullptr)
     {

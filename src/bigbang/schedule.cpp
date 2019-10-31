@@ -137,7 +137,7 @@ void CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
     }
 }
 
-void CSchedule::RemoveInv(const network::CInv& inv, set<uint64>& setKnownPeer)
+bool CSchedule::RemoveInv(const network::CInv& inv, set<uint64>& setKnownPeer)
 {
     map<network::CInv, CInvState>::iterator it = mapState.find(inv);
     if (it != mapState.end())
@@ -152,7 +152,9 @@ void CSchedule::RemoveInv(const network::CInv& inv, set<uint64>& setKnownPeer)
         }
         setKnownPeer.insert((*it).second.setKnownPeer.begin(), (*it).second.setKnownPeer.end());
         mapState.erase(it);
+        return true;
     }
+    return false;
 }
 
 bool CSchedule::ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, set<uint64>& setSchedPeer)
