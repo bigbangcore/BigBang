@@ -385,7 +385,7 @@ CHttpHostConfig CBbEntry::GetRPCHostConfig()
     }
 
     return CHttpHostConfig(pConfig->epRPC, pConfig->nRPCMaxConnections, sslRPC, mapUsrRPC,
-                           pConfig->vRPCAllowIP, "rpcmod");
+                           pConfig->vRPCAllowIP);
 }
 
 void CBbEntry::PurgeStorage()

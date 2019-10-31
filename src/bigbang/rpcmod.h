@@ -16,18 +16,25 @@
 namespace bigbang
 {
 
-class CRPCMod : public xengine::IIOModule, virtual public xengine::CHttpEventListener
+class CRPCMod : public xengine::CIOActor
 {
 public:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(rpc::CRPCParamPtr param);
     CRPCMod();
     ~CRPCMod();
-    bool HandleEvent(xengine::CEventHttpReq& eventHttpReq) override;
-    bool HandleEvent(xengine::CEventHttpBroken& eventHttpBroken) override;
+
+protected:
+    void HandleHttpReq(const xengine::CHttpReqMessage& msg);
+    void HandleHttpBroken(const xengine::CHttpBrokenMessage& msg);
 
 protected:
     bool HandleInitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
     void HandleDeinitialize() override;
+    bool EnterLoop() override;
+    void LeaveLoop() override;
+
     const CNetworkConfig* Config()
     {
         return dynamic_cast<const CNetworkConfig*>(xengine::IBase::Config());
@@ -37,7 +44,7 @@ protected:
         return dynamic_cast<const CRPCServerConfig*>(IBase::Config());
     }
 
-    void JsonReply(uint64 nNonce, const std::string& result);
+    void JsonReply(xengine::CNoncePtr spNonce,const std::string& result);
 
     int GetInt(const rpc::CRPCInt64& i, int valDefault)
     {

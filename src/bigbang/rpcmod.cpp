@@ -16,7 +16,6 @@
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
-#include "nonce.h"
 
 using namespace std;
 using namespace xengine;
@@ -130,7 +129,7 @@ namespace bigbang
 // CRPCMod
 
 CRPCMod::CRPCMod()
-  : IIOModule("rpcmod")
+  : CIOActor("rpcmod")
 {
     pHttpServer = nullptr;
     pCoreProtocol = nullptr;
@@ -187,8 +186,27 @@ bool CRPCMod::HandleInitialize()
     }
 
     fWriteRPCLog = RPCServerConfig()->fRPCLogEnable;
+    
+    RegisterRefHandler<CHttpReqMessage>(boost::bind(&CRPCMod::HandleHttpReq, this, _1));
+    RegisterRefHandler<CHttpBrokenMessage>(boost::bind(&CRPCMod::HandleHttpBroken, this, _1));
 
     return true;
+}
+
+bool CRPCMod::HandleInvoke()
+{
+    if (!StartActor())
+    {
+        ERROR("Failed to start actor");
+        return false;
+    }
+
+    return true;
+}
+
+void CRPCMod::HandleHalt()
+{
+    StopActor();
 }
 
 void CRPCMod::HandleDeinitialize()
@@ -197,28 +215,36 @@ void CRPCMod::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+
+    DeregisterHandler(CHttpReqMessage::MessageType());
+    DeregisterHandler(CHttpBrokenMessage::MessageType());
 }
 
-bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
+bool CRPCMod::EnterLoop()
+{
+    return true;
+}
+
+void CRPCMod::LeaveLoop()
+{
+}
+
+void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
 {
     auto lmdMask = [](const string& data) -> string {
         //remove all sensible information such as private key
         // or passphrass from log content
-
-        //log for debug mode
         boost::regex ptnSec(R"raw(("privkey"|"passphrase"|"oldpassphrase")(\s*:\s*)(".*?"))raw", boost::regex::perl);
         return boost::regex_replace(data, ptnSec, string(R"raw($1$2"***")raw"));
     };
-
-    uint64 nNonce = eventHttpReq.nNonce;
 
     string strResult;
     try
     {
         // check version
-        string strVersion = eventHttpReq.data.mapHeader["url"].substr(1);
-        if (!strVersion.empty())
+        if (msg.mapHeader.count("url"))
         {
+            string strVersion = msg.mapHeader.at("url").substr(1);
             if (!CheckVersion(strVersion))
             {
                 throw CRPCException(RPC_VERSION_OUT_OF_DATE,
@@ -228,7 +254,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
         }
 
         bool fArray;
-        CRPCReqVec vecReq = DeserializeCRPCReq(eventHttpReq.data.strContent, fArray);
+        CRPCReqVec vecReq = DeserializeCRPCReq(msg.strContent, fArray);
         CRPCRespVec vecResp;
         for (auto& spReq : vecReq)
         {
@@ -307,22 +333,19 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     // no result means no return
     if (!strResult.empty())
     {
-        JsonReply(nNonce, strResult);
+        JsonReply(msg.spNonce, strResult);
     }
-
-    return true;
 }
 
-bool CRPCMod::HandleEvent(CEventHttpBroken& eventHttpBroken)
+void CRPCMod::HandleHttpBroken(const CHttpBrokenMessage& msg)
 {
-    (void)eventHttpBroken;
-    return true;
+    (void)msg;
 }
 
-void CRPCMod::JsonReply(uint64 nNonce, const std::string& result)
+void CRPCMod::JsonReply(CNoncePtr spNonce, const std::string& result)
 {
     auto spMsg = CHttpRspMessage::Create();
-    spMsg->spNonce = CNonce::Create(nNonce);
+    spMsg->spNonce = spNonce;
     spMsg->nStatusCode = 200;
     spMsg->mapHeader["content-type"] = "application/json";
     spMsg->mapHeader["connection"] = "Keep-Alive";

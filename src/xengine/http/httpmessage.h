@@ -103,6 +103,7 @@ struct CHttpBrokenMessage : public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpBrokenMessage);
 
+    CNoncePtr spNonce; 
     bool fEventStream;
 };
 
