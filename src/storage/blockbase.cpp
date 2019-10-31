@@ -1096,7 +1096,7 @@ void CBlockBase::SkipStepPrev(CBlockIndex*& pIndex, int nStep)
 void CBlockBase::SkipStepNext(CBlockIndex*& pIndex, int nStep)
 {
     assert(nStep > 0);
-    while (nStep-- && pIndex->pNext)
+    while (nStep-- && pIndex->pNext != nullptr)
     {
         pIndex = pIndex->pNext;
     }
@@ -1129,10 +1129,18 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     }
 
     pIndex = (pIndex != nullptr ? pIndex->pNext : spFork->GetOrigin()->pNext);
-    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+    for (int i = 0; i < 100 && pIndex != nullptr && vBlockHash.size() < nMaxCount - 1; ++i)
     {
         vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pNext;
+    }
+
+    int nStep = 1;
+    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+    {
+        nStep = 2 * nStep;
+        SkipStepNext(pIndex, nStep);
+        vBlockHash.push_back(pIndex->GetBlockHash());
     }
     if (pIndex != nullptr && pIndex != pIndexLast)
     {
