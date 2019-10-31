@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <openssl/rand.h>
+#include "nonce.h"
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -19,9 +20,9 @@ namespace xengine
 // CHttpClient
 
 CHttpClient::CHttpClient(CHttpServer* pServerIn, CHttpProfile* pProfileIn,
-                         CIOClient* pClientIn, uint64 nNonceIn)
+                         CIOClient* pClientIn, CNoncePtr spNonceIn)
   : pServer(pServerIn), pProfile(pProfileIn), pClient(pClientIn),
-    nNonce(nNonceIn), fKeepAlive(false), fEventStream(false)
+    spNonce(spNonceIn), fKeepAlive(false), fEventStream(false)
 {
 }
 
@@ -38,9 +39,14 @@ CHttpProfile* CHttpClient::GetProfile()
     return pProfile;
 }
 
+CNoncePtr CHttpClient::GetNoncePtr()
+{
+    return spNonce;
+}
+
 uint64 CHttpClient::GetNonce()
 {
-    return nNonce;
+    return spNonce->nNonce;
 }
 
 bool CHttpClient::IsKeepAlive()
@@ -271,7 +277,7 @@ bool CHttpServer::EnterLoop()
 void CHttpServer::LeaveLoop()
 {
     vector<CHttpClient*> vClient;
-    for (map<uint64, CHttpClient*>::iterator it = mapClient.begin(); it != mapClient.end(); ++it)
+    for (auto it = mapClient.begin(); it != mapClient.end(); ++it)
     {
         vClient.push_back((*it).second);
     }
@@ -379,16 +385,16 @@ bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pCli
 
 CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile)
 {
-    uint64 nNonce;
+    CNoncePtr spNonce = CNonce::Create();
     do
     {
-        nNonce = CreateNonce(HTTP_NONCE_TYPE);
-    } while (mapClient.count(nNonce));
+        spNonce->nNonce = CreateNonce(HTTP_NONCE_TYPE);
+    } while (mapClient.count(spNonce));
 
-    CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, nNonce);
+    CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, spNonce);
     if (pHttpClient != nullptr)
     {
-        mapClient.insert(make_pair(nNonce, pHttpClient));
+        mapClient.insert(make_pair(spNonce, pHttpClient));
         pHttpClient->Activate();
     }
     return pHttpClient;
@@ -396,7 +402,7 @@ CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpPr
 
 void CHttpServer::RemoveClient(CHttpClient* pHttpClient)
 {
-    mapClient.erase(pHttpClient->GetNonce());
+    mapClient.erase(pHttpClient->GetNoncePtr());
     CEventHttpBroken* pEventHttpBroken = new CEventHttpBroken(pHttpClient->GetNonce());
     if (pEventHttpBroken != nullptr)
     {
@@ -446,7 +452,7 @@ void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const 
 
 void CHttpServer::HandleHttpRsp(const CHttpRspMessage& msg)
 {
-    map<uint64, CHttpClient*>::iterator it = mapClient.find(msg.nNonce);
+    auto it = mapClient.find(msg.spNonce);
     if (it == mapClient.end())
     {
         return;

@@ -9,6 +9,7 @@
 #include "http/httpmessage.h"
 #include "http/httputil.h"
 #include "netio/ioproc.h"
+#include "nonce.h"
 
 namespace xengine
 {
@@ -54,9 +55,10 @@ class CHttpClient
 {
 public:
     CHttpClient(CHttpServer* pServerIn, CHttpProfile* pProfileIn,
-                CIOClient* pClientIn, uint64 nNonceIn);
+                CIOClient* pClientIn, CNoncePtr spNonceIn);
     ~CHttpClient();
     CHttpProfile* GetProfile();
+    CNoncePtr GetNoncePtr();
     uint64 GetNonce();
     bool IsKeepAlive();
     bool IsEventStream();
@@ -78,7 +80,7 @@ protected:
     CHttpServer* pServer;
     CHttpProfile* pProfile;
     CIOClient* pClient;
-    uint64 nNonce;
+    CNoncePtr spNonce;
     bool fKeepAlive;
     bool fEventStream;
     CBufStream ssRecv;
@@ -118,7 +120,7 @@ protected:
 protected:
     std::vector<CHttpHostConfig> vecHostConfig;
     std::map<boost::asio::ip::tcp::endpoint, CHttpProfile> mapProfile;
-    std::map<uint64, CHttpClient*> mapClient;
+    std::map<CNoncePtr, CHttpClient*> mapClient;
 };
 
 } // namespace xengine

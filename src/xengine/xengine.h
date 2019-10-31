@@ -5,6 +5,7 @@
 #ifndef XENGINE_XENGINE_H
 #define XENGINE_XENGINE_H
 
+#include <actor/actor.h>
 #include <base/base.h>
 #include <base/controller.h>
 #include <base/model.h>
@@ -27,11 +28,11 @@
 #include <http/httptype.h>
 #include <http/httputil.h>
 #include <logger.h>
-#include <actor/actor.h>
 #include <message/message.h>
 #include <message/messagecenter.h>
 #include <netio/ioproc.h>
 #include <netio/netio.h>
+#include <nonce.h>
 #include <peernet/datasched.h>
 #include <peernet/peer.h>
 #include <peernet/peernet.h>

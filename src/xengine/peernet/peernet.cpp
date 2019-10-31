@@ -10,6 +10,7 @@
 
 #include "netio/nethost.h"
 #include "util.h"
+#include "nonce.h"
 
 using namespace std;
 using boost::asio::ip::tcp;

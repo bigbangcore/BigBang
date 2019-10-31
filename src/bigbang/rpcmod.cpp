@@ -16,6 +16,7 @@
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
+#include "nonce.h"
 
 using namespace std;
 using namespace xengine;
@@ -321,7 +322,7 @@ bool CRPCMod::HandleEvent(CEventHttpBroken& eventHttpBroken)
 void CRPCMod::JsonReply(uint64 nNonce, const std::string& result)
 {
     auto spMsg = CHttpRspMessage::Create();
-    spMsg->nNonce = nNonce;
+    spMsg->spNonce = CNonce::Create(nNonce);
     spMsg->nStatusCode = 200;
     spMsg->mapHeader["content-type"] = "application/json";
     spMsg->mapHeader["connection"] = "Keep-Alive";
