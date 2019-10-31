@@ -169,7 +169,7 @@ public:
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
-    std::string ToString() const
+    /*std::string ToString() const
     {
         std::ostringstream oss;
 
@@ -191,7 +191,7 @@ public:
         }
         oss << ")";
         return oss.str();
-    }
+    }*/
 
 protected:
     CBlockBase* pBlockBase;

@@ -856,7 +856,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     {
         if (!view.IsCommittable())
         {
-            StdTrace("[BlockBase][TRACE]", "CommitBlockView Is not COmmitable %s ", view.ToString().c_str());
+            StdTrace("[BlockBase][TRACE]", "CommitBlockView Is not COmmitable");
             return false;
         }
         spFork = view.GetFork();
@@ -880,8 +880,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     vector<pair<uint256, CTxIndex>> vTxNew;
     if (!GetTxNewIndex(view, pIndexNew, vTxNew))
     {
-        StdTrace("[BlockBase][TRACE]", "CommitBlockView::GetTxNewIndex %s view failed",
-                 view.ToString().c_str());
+        StdTrace("[BlockBase][TRACE]", "CommitBlockView::GetTxNewIndex view failed");
         return false;
     }
 
