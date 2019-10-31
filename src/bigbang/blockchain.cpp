@@ -462,12 +462,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     Log("AddNew Block : %s\n", pIndexNew->ToString().c_str());
-    if (Config()->fDebug)
-    {
-        std::set<uint256> txUpdate;
-        view.GetTxUpdated(txUpdate);
-        Debug("New Block %s tx : %s\n", hash.ToString().c_str(), view.ToString().c_str());
-    }
 
     CBlockIndex* pIndexFork = nullptr;
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
