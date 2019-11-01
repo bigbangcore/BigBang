@@ -17,8 +17,6 @@ using boost::asio::ip::tcp;
 
 #define CONNECT_TIMEOUT 10
 
-static const uint8 PEER_NONCE_TYPE = 0xFF;
-
 namespace xengine
 {
 

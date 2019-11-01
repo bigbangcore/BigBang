@@ -11,8 +11,6 @@
 using namespace std;
 using boost::asio::ip::tcp;
 
-static const uint8 HTTP_NONCE_TYPE = 0x0F;
-
 namespace xengine
 {
 

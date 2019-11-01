@@ -13,6 +13,9 @@
 namespace xengine
 {
 
+const uint8 HTTP_NONCE_TYPE = 0x0F;
+const uint8 PEER_NONCE_TYPE = 0xFF;
+
 /**
  * @brief Create a random uint64 nonce. It's highest byte is nType
  * @param nType Hightest byte of nonce
@@ -33,7 +36,7 @@ inline uint64 CreateNonce(const uint8 nType)
  * @param nType The hightest byte of nonce
  * @return The nonce belongs to nType or not
  */
-inline bool BelongNonce(const uint64 nNonce, const uint8 nType)
+inline bool NonceType(const uint64 nNonce, const uint8 nType)
 {
     return *((unsigned char*)&nNonce + 7) == nType;
 }

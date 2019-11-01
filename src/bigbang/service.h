@@ -43,7 +43,7 @@ public:
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) override;
     void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
-    Errno SendTransaction(CTransaction& tx) override;
+    bool SendTransaction(xengine::CNoncePtr spNonce, uint256& hashFork, const CTransaction& tx) override;
     bool RemovePendingTx(const uint256& txid) override;
     /* Wallet */
     bool HaveKey(const crypto::CPubKey& pubkey) override;
@@ -72,7 +72,8 @@ public:
     bool ResynchronizeWalletTx() override;
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
-    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) override;
+    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) override;
+    bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) override;
     /* Util */
 protected:
     bool HandleInitialize() override;

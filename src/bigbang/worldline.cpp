@@ -1020,6 +1020,7 @@ Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& u
     Errno err = AddNewBlockIntoWorldLine(block, update);
 
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->spNonce = CNonce::Create(0);
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
@@ -1034,6 +1035,7 @@ Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& 
     Errno err = AddNewOriginIntoWorldLine(block, update);
 
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
+    spAddedBlockMsg->spNonce = CNonce::Create(0);
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
@@ -1239,6 +1241,7 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
                 Errno err = AddNewOriginIntoWorldLine(originBlock, spAddedOriginMsg->update);
                 if (err == OK)
                 {
+                    spAddedOriginMsg->spNonce = CNonce::Create(0);
                     spAddedOriginMsg->nError = OK;
                     spAddedOriginMsg->hashFork = originBlock.GetHash();
                     PUBLISH_MESSAGE(spAddedOriginMsg);

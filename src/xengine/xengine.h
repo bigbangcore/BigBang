@@ -23,6 +23,7 @@
 #include <http/httpcookie.h>
 #include <http/httpevent.h>
 #include <http/httpget.h>
+#include <http/httpmessage.h>
 #include <http/httpserver.h>
 #include <http/httpsse.h>
 #include <http/httptype.h>
