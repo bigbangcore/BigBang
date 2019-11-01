@@ -1118,16 +1118,16 @@ void CNetChannelController::DispatchGetBlocksFromHashEvent(uint64 nNonce, const 
     spGetBlocksMsg->nNonce = nNonce;
     spGetBlocksMsg->hashFork = hashFork;
 
-    if (hashBlock.size() != 0)
+    if (!hashBlock)
     {
-        if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
+        if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
         {
             PUBLISH_MESSAGE(spGetBlocksMsg);
         }
     }
     else
     {
-        if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
+        if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
         {
             PUBLISH_MESSAGE(spGetBlocksMsg);
         }
@@ -1155,7 +1155,7 @@ void CNetChannelController::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManag
     PUBLISH_MESSAGE(spNetCloseMsg);
 }
 
-void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer, const uint256& nStopBlockHash)
+void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer, const uint256& lastBlockHash)
 {
     std::vector<INetChannelModel::ScheduleResultPair> vecSchedResult;
     if (!fActivedPeer)
@@ -1194,7 +1194,7 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
 
         if (fPrevMissing)
         {
-            DispatchGetBlocksFromHashEvent(nNonce, hashFork, nStopBlockHash);
+            DispatchGetBlocksFromHashEvent(nNonce, hashFork, lastBlockHash);
         }
 
         if (!fTx)
