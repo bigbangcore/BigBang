@@ -274,7 +274,8 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             dynamic_cast<CHttpServer*>(pBase)->AddNewHost(GetRPCHostConfig());
 
-            if (!AttachModule(new CRPCMod()))
+            const CRPCServerConfig* pConfig = CastConfigPtr<CRPCServerConfig*>(config.GetConfig());
+            if (!AttachModule(new CRPCMod(pConfig->nRPCWorker)))
             {
                 return false;
             }

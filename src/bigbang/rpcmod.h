@@ -23,16 +23,34 @@ protected:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCMessageFunc)(const xengine::CMessage& msg);
 
+    struct CRPCAssignmentMessage : public xengine::CMessage
+    {
+        GENERATE_MESSAGE_FUNCTION(CRPCAssignmentMessage);
+        std::shared_ptr<CNonce> spNonce;
+        size_t nWorkId;
+        size_t nWorkerId;
+        rpc::CRPCReqPtr spReq;
+    };
+    struct CRPCSubmissionMessage : public xengine::CMessage
+    {
+        GENERATE_MESSAGE_FUNCTION(CRPCSubmissionMessage);
+        std::shared_ptr<CNonce> spNonce;
+        size_t nWorkId;
+        size_t nWorkerId;
+        rpc::CRPCRespPtr spResp;
+    };
+
 public:
-    CRPCMod();
+    CRPCMod(const uint nWorker = 1);
     ~CRPCMod();
 
 protected:
     void HandleHttpReq(const xengine::CHttpReqMessage& msg);
     void HandleHttpBroken(const xengine::CHttpBrokenMessage& msg);
-
     void HandleAddedBlockMsg(const CAddedBlockMessage& msg);
     void HandleAddedTxMsg(const CAddedTxMessage& msg);
+    void HandleSubmissionMsg(const CRPCSubmissionMessage& msg);
+    void HandleAssignmentMsg(const CRPCAssignmentMessage& msg);
 
     rpc::CRPCRespPtr StartWork(CNoncePtr spNonce, rpc::CRPCReqPtr spReq);
     void HandleAddedMsg(xengine::CNoncePtr spNonce, size_t nIndex, const uint256& hash, const CMessage& msg);
@@ -172,8 +190,17 @@ protected:
         rpc::CRPCRespVec vecResp;
         std::multimap<uint256, size_t> mapHash;
     };
+    struct CWorker
+    {
+        CWorker(const std::string& strName)
+          : spWorker(new CIOActorWorker(strName)), nPayload(0) {}
+        std::shared_ptr<xengine::CIOActorWorker> spWorker;
+        uint32 nPayload;
+    };
 
+    size_t nWorkCount;
     std::map<xengine::CNoncePtr, CWork> mapWork;
+    std::vector<CWorker> vecWorker;
 };
 
 } // namespace bigbang

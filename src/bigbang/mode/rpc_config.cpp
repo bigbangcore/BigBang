@@ -123,6 +123,15 @@ bool CRPCServerConfig::PostLoad()
                               nRPCPort);
     }
 
+    if (nRPCWorker < RPC_WORKER_LOWER_LIMIT)
+    {
+        nRPCWorker = RPC_WORKER_LOWER_LIMIT;
+    }
+    else if (nRPCWorker > RPC_WORKER_UPPER_LIMIT)
+    {
+        nRPCWorker = RPC_WORKER_UPPER_LIMIT;
+    }
+
     return true;
 }
 
