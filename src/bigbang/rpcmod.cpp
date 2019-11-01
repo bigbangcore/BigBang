@@ -453,7 +453,7 @@ CRPCRespPtr CRPCMod::StartWork(CNoncePtr spNonce, CRPCReqPtr spReq)
     if (!spNonce->fValid)
     {
         ERROR("RPCMod ignore work (%s) because of invalid nonce", spReq->strMethod.c_str());
-        return;
+        return nullptr;
     }
 
     CRPCErrorPtr spError;
