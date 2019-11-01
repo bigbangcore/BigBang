@@ -129,14 +129,8 @@ namespace bigbang
 // CRPCMod
 
 CRPCMod::CRPCMod(const uint nWorker)
-  : CIOActor("rpcmod"), nWorkCount(0)
-{
-    pHttpServer = nullptr;
-    pCoreProtocol = nullptr;
-    pService = nullptr;
-    pDataStat = nullptr;
-
-    mapRPCFunc = {
+  : CIOActor("rpcmod"), nWorkCount(0),
+    mapRPCFunc({
         /* System */
         { "help", &CRPCMod::RPCHelp },
         { "stop", &CRPCMod::RPCStop },
@@ -194,13 +188,17 @@ CRPCMod::CRPCMod(const uint nWorker)
         { "submitwork", &CRPCMod::RPCSubmitWork },
         /* tool */
         { "querystat", &CRPCMod::RPCQueryStat },
-    };
-
-    mapRPCMessageFunc = {
+    }),
+    mapRPCMessageFunc({
         { "submitwork", &CRPCMod::RPCMsgSubmitWork },
         { "sendfrom", &CRPCMod::RPCMsgSendFrom },
         { "sendtransaction", &CRPCMod::RPCMsgSendTransaction },
-    };
+    })
+{
+    pHttpServer = nullptr;
+    pCoreProtocol = nullptr;
+    pService = nullptr;
+    pDataStat = nullptr;
 
     if (nWorker > 1)
     {
