@@ -194,14 +194,6 @@
             "default": false,
             "format": "-statdata",
             "desc": "Enable statistical data or not (default false)"
-        },
-        {
-            "name": "fRPCLogEnable",
-            "type": "bool",
-            "opt": "rpclog",
-            "default": true,
-            "format": "-rpclog",
-            "desc": "Enable write RPC log (default true)"
         }
     ],
     "CRPCClientConfigOption": [
@@ -237,6 +229,14 @@
             "opt": "rpcallowip",
             "format": "-rpcallowip=<ip>",
             "desc": "Allow JSON-RPC connections from specified <ip> address"
+        },
+        {
+            "name": "nRPCWorker",
+            "type": "unsigned int",
+            "opt": "rpcworker",
+            "default": "DEFAULT_RPC_WORKER",
+            "format": "-rpcworker=<num>",
+            "desc": "RPC worker thread number (default: 1)"
         }
     ],
     "CStorageConfigOption": [

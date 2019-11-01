@@ -344,9 +344,23 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     return pWorldLineCtrl->GetTxLocation(txid, hashFork, nHeight);
 }
 
-Errno CService::SendTransaction(CTransaction& tx)
+bool CService::SendTransaction(CNoncePtr spNonce, uint256& hashFork, const CTransaction& tx)
 {
-    return pDispatcher->AddNewTx(tx);
+    if (!hashFork)
+    {
+        int nAnchorHeight;
+        uint256 hashFork;
+        if (!pWorldLineCtrl->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
+        {
+            return false;
+        }
+    }
+
+    auto spAddTxMsg = CAddedTxMessage::Create();
+    spAddTxMsg->spNonce = spNonce;
+    spAddTxMsg->hashFork = hashFork;
+    spAddTxMsg->tx = tx;
+    return true;
 }
 
 bool CService::RemovePendingTx(const uint256& txid)
@@ -572,13 +586,12 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     return true;
 }
 
-Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock)
+Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block)
 {
     if (vchWorkData.empty())
     {
         return FAILED;
     }
-    CBlock block;
     CProofOfHashWorkCompact proof;
     CBufStream ss;
     ss.Write((const char*)&vchWorkData[0], vchWorkData.size());
@@ -617,7 +630,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 
-    hashBlock = block.GetHash();
+    uint256 hashBlock = block.GetHash();
     vector<unsigned char> vchMintSig;
     if (!keyMint.Sign(hashBlock, vchMintSig)
         || !templMint->BuildBlockSignature(hashBlock, vchMintSig, block.vchSig))
@@ -630,7 +643,19 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     {
         return err;
     }
-    return pDispatcher->AddNewBlock(block);
+
+    return OK;
+}
+
+bool CService::SendBlock(CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block)
+{
+    auto spAddBlockMsg = CAddBlockMessage::Create();
+    spAddBlockMsg->spNonce = spNonce;
+    spAddBlockMsg->hashFork = hashFork;
+    spAddBlockMsg->block = block;
+    PUBLISH_MESSAGE(spAddBlockMsg);
+
+    return true;
 }
 
 } // namespace bigbang

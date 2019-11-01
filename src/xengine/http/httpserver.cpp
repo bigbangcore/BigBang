@@ -6,11 +6,10 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <openssl/rand.h>
+#include "nonce.h"
 
 using namespace std;
 using boost::asio::ip::tcp;
-
-static const uint8 HTTP_NONCE_TYPE = 0x0F;
 
 namespace xengine
 {
@@ -19,9 +18,9 @@ namespace xengine
 // CHttpClient
 
 CHttpClient::CHttpClient(CHttpServer* pServerIn, CHttpProfile* pProfileIn,
-                         CIOClient* pClientIn, uint64 nNonceIn)
+                         CIOClient* pClientIn, CNoncePtr spNonceIn)
   : pServer(pServerIn), pProfile(pProfileIn), pClient(pClientIn),
-    nNonce(nNonceIn), fKeepAlive(false), fEventStream(false)
+    spNonce(spNonceIn), fKeepAlive(false), fEventStream(false)
 {
 }
 
@@ -38,9 +37,9 @@ CHttpProfile* CHttpClient::GetProfile()
     return pProfile;
 }
 
-uint64 CHttpClient::GetNonce()
+CNoncePtr CHttpClient::GetNonce()
 {
-    return nNonce;
+    return spNonce;
 }
 
 bool CHttpClient::IsKeepAlive()
@@ -173,12 +172,6 @@ bool CHttpServer::CreateProfile(const CHttpHostConfig& confHost)
     CHttpUtil util;
     CHttpProfile profile;
 
-    if (!GetObject(confHost.strIOModule, profile.pIOModule))
-    {
-        ERROR("Failed to request %s", confHost.strIOModule.c_str());
-        return false;
-    }
-
     for (map<string, string>::const_iterator it = confHost.mapUserPass.begin();
          it != confHost.mapUserPass.end(); ++it)
     {
@@ -253,14 +246,12 @@ bool CHttpServer::EnterLoop()
     {
         if (!StartService((*it).first, (*it).second.nMaxConnections, (*it).second.vAllowMask))
         {
-            ERROR("Setup service %s failed, listen port = %d, connection limit %d",
-                  (*it).second.pIOModule->GetOwnKey().c_str(),
+            ERROR("Setup http service failed, listen port = %d, connection limit %d",
                   (*it).first.port(), (*it).second.nMaxConnections);
         }
         else
         {
-            INFO("Setup service %s sucess, listen port = %d, connection limit %d",
-                 (*it).second.pIOModule->GetOwnKey().c_str(),
+            INFO("Setup http service sucess, listen port = %d, connection limit %d",
                  (*it).first.port(), (*it).second.nMaxConnections);
         }
     }
@@ -271,7 +262,7 @@ bool CHttpServer::EnterLoop()
 void CHttpServer::LeaveLoop()
 {
     vector<CHttpClient*> vClient;
-    for (map<uint64, CHttpClient*>::iterator it = mapClient.begin(); it != mapClient.end(); ++it)
+    for (auto it = mapClient.begin(); it != mapClient.end(); ++it)
     {
         vClient.push_back((*it).second);
     }
@@ -306,21 +297,15 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
                                    CBufStream& ssPayload)
 {
     CHttpProfile* pHttpProfile = pHttpClient->GetProfile();
-    CEventHttpReq* pEventHttpReq = new CEventHttpReq(pHttpClient->GetNonce());
-    if (pEventHttpReq == nullptr)
-    {
-        RespondError(pHttpClient, 500);
-        return;
-    }
+    auto spHttpReqMsg = CHttpReqMessage::Create();
+    spHttpReqMsg->spNonce = pHttpClient->GetNonce();
 
-    CHttpReq& req = pEventHttpReq->data;
+    spHttpReqMsg->mapHeader = mapHeader;
+    spHttpReqMsg->mapQuery = mapQuery;
+    spHttpReqMsg->mapCookie = mapCookie;
+    ssPayload >> *spHttpReqMsg;
 
-    req.mapHeader = mapHeader;
-    req.mapQuery = mapQuery;
-    req.mapCookie = mapCookie;
-    ssPayload >> *pEventHttpReq;
-
-    req.strUser = "";
+    spHttpReqMsg->strUser = "";
     if (!pHttpProfile->mapAuthrizeUser.empty())
     {
         map<string, string>::iterator it;
@@ -328,10 +313,9 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
         if (it == pHttpProfile->mapAuthrizeUser.end())
         {
             RespondError(pHttpClient, 401);
-            delete pEventHttpReq;
             return;
         }
-        req.strUser = (*it).second;
+        spHttpReqMsg->strUser = (*it).second;
     }
 
     if (mapHeader["method"] == "POST" || mapHeader["method"] == "GET")
@@ -340,14 +324,13 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
         if (strncasecmp("application/x-www-form-urlencoded", strContentType.c_str(),
                         sizeof("application/x-www-form-urlencoded") - 1)
                 == 0
-            && !CHttpUtil().ParseRequestQuery(req.strContent, req.mapQuery))
+            && !CHttpUtil().ParseRequestQuery(spHttpReqMsg->strContent, spHttpReqMsg->mapQuery))
         {
             RespondError(pHttpClient, 400);
-            delete pEventHttpReq;
             return;
         }
     }
-    pHttpProfile->pIOModule->PostEvent(pEventHttpReq);
+    PUBLISH_MESSAGE(spHttpReqMsg);
 }
 
 void CHttpServer::HandleClientSent(CHttpClient* pHttpClient)
@@ -379,16 +362,16 @@ bool CHttpServer::ClientAccepted(const tcp::endpoint& epService, CIOClient* pCli
 
 CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile)
 {
-    uint64 nNonce;
+    CNoncePtr spNonce = CNonce::Create();
     do
     {
-        nNonce = CreateNonce(HTTP_NONCE_TYPE);
-    } while (mapClient.count(nNonce));
+        spNonce->nNonce = CreateNonce(HTTP_NONCE_TYPE);
+    } while (mapClient.count(spNonce));
 
-    CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, nNonce);
+    CHttpClient* pHttpClient = new CHttpClient(this, pHttpProfile, pClient, spNonce);
     if (pHttpClient != nullptr)
     {
-        mapClient.insert(make_pair(nNonce, pHttpClient));
+        mapClient.insert(make_pair(spNonce, pHttpClient));
         pHttpClient->Activate();
     }
     return pHttpClient;
@@ -396,15 +379,13 @@ CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpPr
 
 void CHttpServer::RemoveClient(CHttpClient* pHttpClient)
 {
+    pHttpClient->GetNonce()->fValid = false;
     mapClient.erase(pHttpClient->GetNonce());
-    CEventHttpBroken* pEventHttpBroken = new CEventHttpBroken(pHttpClient->GetNonce());
-    if (pEventHttpBroken != nullptr)
-    {
-        pEventHttpBroken->data.fEventStream = pHttpClient->IsEventStream();
-        pHttpClient->GetProfile()->pIOModule->PostEvent(pEventHttpBroken);
-    }
 
-    delete pHttpClient;
+    auto spHttpBrokenMsg = CHttpBrokenMessage::Create();
+    spHttpBrokenMsg->spNonce = pHttpClient->GetNonce();
+    spHttpBrokenMsg->fEventStream = pHttpClient->IsEventStream();
+    PUBLISH_MESSAGE(spHttpBrokenMsg);
 }
 
 void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const string& strError)
@@ -446,7 +427,7 @@ void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const 
 
 void CHttpServer::HandleHttpRsp(const CHttpRspMessage& msg)
 {
-    map<uint64, CHttpClient*>::iterator it = mapClient.find(msg.nNonce);
+    auto it = mapClient.find(msg.spNonce);
     if (it == mapClient.end())
     {
         return;

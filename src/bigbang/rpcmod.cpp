@@ -128,31 +128,86 @@ namespace bigbang
 ///////////////////////////////
 // CRPCMod
 
-CRPCMod::CRPCMod()
-  : IIOModule("rpcmod")
+CRPCMod::CRPCMod(const uint nWorker)
+  : CIOActor("rpcmod"), nWorkCount(0),
+    mapRPCFunc({
+        /* System */
+        { "help", &CRPCMod::RPCHelp },
+        { "stop", &CRPCMod::RPCStop },
+        { "version", &CRPCMod::RPCVersion },
+        /* Network */
+        { "getpeercount", &CRPCMod::RPCGetPeerCount },
+        { "listpeer", &CRPCMod::RPCListPeer },
+        { "addnode", &CRPCMod::RPCAddNode },
+        { "removenode", &CRPCMod::RPCRemoveNode },
+        /* WorldLine & TxPool */
+        { "getforkcount", &CRPCMod::RPCGetForkCount },
+        { "listfork", &CRPCMod::RPCListFork },
+        { "getgenealogy", &CRPCMod::RPCGetForkGenealogy },
+        { "getblocklocation", &CRPCMod::RPCGetBlockLocation },
+        { "getblockcount", &CRPCMod::RPCGetBlockCount },
+        { "getblockhash", &CRPCMod::RPCGetBlockHash },
+        { "getblock", &CRPCMod::RPCGetBlock },
+        { "gettxpool", &CRPCMod::RPCGetTxPool },
+        { "gettransaction", &CRPCMod::RPCGetTransaction },
+        { "sendtransaction", &CRPCMod::RPCSendTransaction },
+        { "getforkheight", &CRPCMod::RPCGetForkHeight },
+        /* Wallet */
+        { "listkey", &CRPCMod::RPCListKey },
+        { "getnewkey", &CRPCMod::RPCGetNewKey },
+        { "encryptkey", &CRPCMod::RPCEncryptKey },
+        { "lockkey", &CRPCMod::RPCLockKey },
+        { "unlockkey", &CRPCMod::RPCUnlockKey },
+        { "importprivkey", &CRPCMod::RPCImportPrivKey },
+        { "importkey", &CRPCMod::RPCImportKey },
+        { "exportkey", &CRPCMod::RPCExportKey },
+        { "addnewtemplate", &CRPCMod::RPCAddNewTemplate },
+        { "importtemplate", &CRPCMod::RPCImportTemplate },
+        { "exporttemplate", &CRPCMod::RPCExportTemplate },
+        { "validateaddress", &CRPCMod::RPCValidateAddress },
+        { "resyncwallet", &CRPCMod::RPCResyncWallet },
+        { "getbalance", &CRPCMod::RPCGetBalance },
+        { "listtransaction", &CRPCMod::RPCListTransaction },
+        { "sendfrom", &CRPCMod::RPCSendFrom },
+        { "createtransaction", &CRPCMod::RPCCreateTransaction },
+        { "signtransaction", &CRPCMod::RPCSignTransaction },
+        { "signmessage", &CRPCMod::RPCSignMessage },
+        { "listaddress", &CRPCMod::RPCListAddress },
+        { "exportwallet", &CRPCMod::RPCExportWallet },
+        { "importwallet", &CRPCMod::RPCImportWallet },
+        { "makeorigin", &CRPCMod::RPCMakeOrigin },
+        /* Util */
+        { "verifymessage", &CRPCMod::RPCVerifyMessage },
+        { "makekeypair", &CRPCMod::RPCMakeKeyPair },
+        { "getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress },
+        { "gettemplateaddress", &CRPCMod::RPCGetTemplateAddress },
+        { "maketemplate", &CRPCMod::RPCMakeTemplate },
+        { "decodetransaction", &CRPCMod::RPCDecodeTransaction },
+        /* Mint */
+        { "getwork", &CRPCMod::RPCGetWork },
+        { "submitwork", &CRPCMod::RPCSubmitWork },
+        /* tool */
+        { "querystat", &CRPCMod::RPCQueryStat },
+    }),
+    mapRPCMessageFunc({
+        { "submitwork", &CRPCMod::RPCMsgSubmitWork },
+        { "sendfrom", &CRPCMod::RPCMsgSendFrom },
+        { "sendtransaction", &CRPCMod::RPCMsgSendTransaction },
+    })
 {
     pHttpServer = nullptr;
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
 
-    std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
-        /* System */
-        ("help", &CRPCMod::RPCHelp)("stop", &CRPCMod::RPCStop)("version", &CRPCMod::RPCVersion)
-        /* Network */
-        ("getpeercount", &CRPCMod::RPCGetPeerCount)("listpeer", &CRPCMod::RPCListPeer)("addnode", &CRPCMod::RPCAddNode)("removenode", &CRPCMod::RPCRemoveNode)
-        /* WorldLine & TxPool */
-        ("getforkcount", &CRPCMod::RPCGetForkCount)("listfork", &CRPCMod::RPCListFork)("getgenealogy", &CRPCMod::RPCGetForkGenealogy)("getblocklocation", &CRPCMod::RPCGetBlockLocation)("getblockcount", &CRPCMod::RPCGetBlockCount)("getblockhash", &CRPCMod::RPCGetBlockHash)("getblock", &CRPCMod::RPCGetBlock)("gettxpool", &CRPCMod::RPCGetTxPool)("gettransaction", &CRPCMod::RPCGetTransaction)("sendtransaction", &CRPCMod::RPCSendTransaction)("getforkheight", &CRPCMod::RPCGetForkHeight)
-        /* Wallet */
-        ("listkey", &CRPCMod::RPCListKey)("getnewkey", &CRPCMod::RPCGetNewKey)("encryptkey", &CRPCMod::RPCEncryptKey)("lockkey", &CRPCMod::RPCLockKey)("unlockkey", &CRPCMod::RPCUnlockKey)("importprivkey", &CRPCMod::RPCImportPrivKey)("importkey", &CRPCMod::RPCImportKey)("exportkey", &CRPCMod::RPCExportKey)("addnewtemplate", &CRPCMod::RPCAddNewTemplate)("importtemplate", &CRPCMod::RPCImportTemplate)("exporttemplate", &CRPCMod::RPCExportTemplate)("validateaddress", &CRPCMod::RPCValidateAddress)("resyncwallet", &CRPCMod::RPCResyncWallet)("getbalance", &CRPCMod::RPCGetBalance)("listtransaction", &CRPCMod::RPCListTransaction)("sendfrom", &CRPCMod::RPCSendFrom)("createtransaction", &CRPCMod::RPCCreateTransaction)("signtransaction", &CRPCMod::RPCSignTransaction)("signmessage", &CRPCMod::RPCSignMessage)("listaddress", &CRPCMod::RPCListAddress)("exportwallet", &CRPCMod::RPCExportWallet)("importwallet", &CRPCMod::RPCImportWallet)("makeorigin", &CRPCMod::RPCMakeOrigin)
-        /* Util */
-        ("verifymessage", &CRPCMod::RPCVerifyMessage)("makekeypair", &CRPCMod::RPCMakeKeyPair)("getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress)("gettemplateaddress", &CRPCMod::RPCGetTemplateAddress)("maketemplate", &CRPCMod::RPCMakeTemplate)("decodetransaction", &CRPCMod::RPCDecodeTransaction)
-        /* Mint */
-        ("getwork", &CRPCMod::RPCGetWork)("submitwork", &CRPCMod::RPCSubmitWork)
-        /* tool */
-        ("querystat", &CRPCMod::RPCQueryStat);
-    mapRPCFunc = temp_map;
-    fWriteRPCLog = true;
+    if (nWorker > 1)
+    {
+        vecWorker.reserve(nWorker);
+        for (int i = 0; i < nWorker; i++)
+        {
+            vecWorker.push_back(CWorker(GetOwnKey() + "-worker-" + to_string(i)));
+        }
+    }
 }
 
 CRPCMod::~CRPCMod()
@@ -185,9 +240,29 @@ bool CRPCMod::HandleInitialize()
         return false;
     }
 
-    fWriteRPCLog = RPCServerConfig()->fRPCLogEnable;
+    RegisterRefHandler<CHttpReqMessage>(boost::bind(&CRPCMod::HandleHttpReq, this, _1));
+    RegisterRefHandler<CHttpBrokenMessage>(boost::bind(&CRPCMod::HandleHttpBroken, this, _1));
+    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1));
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1));
+    RegisterRefHandler<CRPCSubmissionMessage>(boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1));
 
     return true;
+}
+
+bool CRPCMod::HandleInvoke()
+{
+    if (!StartActor())
+    {
+        ERROR("Failed to start actor");
+        return false;
+    }
+
+    return true;
+}
+
+void CRPCMod::HandleHalt()
+{
+    StopActor();
 }
 
 void CRPCMod::HandleDeinitialize()
@@ -196,29 +271,75 @@ void CRPCMod::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+
+    DeregisterHandler(CHttpReqMessage::MessageType());
+    DeregisterHandler(CHttpBrokenMessage::MessageType());
+    DeregisterHandler(CAddedTxMessage::MessageType());
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler(CRPCSubmissionMessage::MessageType());
 }
 
-bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
+bool CRPCMod::EnterLoop()
 {
-    auto lmdMask = [](const string& data) -> string {
-        //remove all sensible information such as private key
-        // or passphrass from log content
+    for (auto it = vecWorker.begin(); it != vecWorker.end();)
+    {
+        auto& spWorker = it->spWorker;
+        spWorker->RegisterRefHandler<CRPCAssignmentMessage>(boost::bind(&CRPCMod::HandleAssignmentMsg, this, _1));
+        if (!ThreadStart(spWorker->GetThread()))
+        {
+            ERROR("Failed to start RPC worker (%s)", spWorker->GetName().c_str());
+            it = vecWorker.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 
-        //log for debug mode
-        boost::regex ptnSec(R"raw(("privkey"|"passphrase"|"oldpassphrase")(\s*:\s*)(".*?"))raw", boost::regex::perl);
-        return boost::regex_replace(data, ptnSec, string(R"raw($1$2"***")raw"));
-    };
+    return true;
+}
 
-    uint64 nNonce = eventHttpReq.nNonce;
+void CRPCMod::LeaveLoop()
+{
+    for (auto it = vecWorker.begin(); it != vecWorker.end();)
+    {
+        auto& spWorker = it->spWorker;
+        spWorker->Stop();
+        spWorker->DeregisterHandler(CRPCAssignmentMessage::MessageType());
+    }
+}
+
+void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
+{
+    // invalid nonce
+    if (!msg.spNonce->fValid)
+    {
+        ERROR("RPCMod ignore RPC because of invalid nonce");
+        return;
+    }
+
+    auto workPair = mapWork.insert(make_pair(msg.spNonce, CWork()));
+    // Repeated request
+    if (!workPair.second)
+    {
+        auto spError = MakeCRPCErrorPtr(RPC_INVALID_REQUEST, "Repeated request");
+        CRPCResp resp(spError->valData, spError);
+        string strResult = resp.Serialize();
+        JsonReply(msg.spNonce, strResult);
+
+        TRACE("response : %s", MaskSensitiveData(strResult).c_str());
+        return;
+    }
+    CWork& work = workPair.first->second;
 
     string strResult;
     try
     {
         // check version
-        string strVersion = eventHttpReq.data.mapHeader["url"].substr(1);
-        if (!strVersion.empty())
+        if (msg.mapHeader.count("url"))
         {
-            if (!CheckVersion(strVersion))
+            string strVersion = msg.mapHeader.at("url").substr(1);
+            if (!strVersion.empty() && !CheckVersion(strVersion))
             {
                 throw CRPCException(RPC_VERSION_OUT_OF_DATE,
                                     string("Out of date version. Server version is v") + VERSION_STR
@@ -226,63 +347,9 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
             }
         }
 
-        bool fArray;
-        CRPCReqVec vecReq = DeserializeCRPCReq(eventHttpReq.data.strContent, fArray);
-        CRPCRespVec vecResp;
-        for (auto& spReq : vecReq)
-        {
-            CRPCErrorPtr spError;
-            CRPCResultPtr spResult;
-            try
-            {
-                map<string, RPCFunc>::iterator it = mapRPCFunc.find(spReq->strMethod);
-                if (it == mapRPCFunc.end())
-                {
-                    throw CRPCException(RPC_METHOD_NOT_FOUND, "Method not found");
-                }
-
-                if (fWriteRPCLog)
-                {
-                    DEBUG("request : %s", lmdMask(spReq->Serialize()).c_str());
-                }
-
-                spResult = (this->*(*it).second)(spReq->spParam);
-            }
-            catch (CRPCException& e)
-            {
-                spError = CRPCErrorPtr(new CRPCError(e));
-            }
-            catch (exception& e)
-            {
-                spError = CRPCErrorPtr(new CRPCError(RPC_MISC_ERROR, e.what()));
-            }
-
-            if (spError)
-            {
-                vecResp.push_back(MakeCRPCRespPtr(spReq->valID, spError));
-            }
-            else if (spResult)
-            {
-                vecResp.push_back(MakeCRPCRespPtr(spReq->valID, spResult));
-            }
-            else
-            {
-                // no result means no return
-            }
-        }
-
-        if (fArray)
-        {
-            strResult = SerializeCRPCResp(vecResp);
-        }
-        else if (vecResp.size() > 0)
-        {
-            strResult = vecResp[0]->Serialize();
-        }
-        else
-        {
-            // no result means no return
-        }
+        work.vecReq = DeserializeCRPCReq(msg.strContent, work.fArray);
+        work.nRemainder = work.vecReq.size();
+        work.vecResp.resize(work.nRemainder);
     }
     catch (CRPCException& e)
     {
@@ -292,36 +359,234 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     }
     catch (exception& e)
     {
-        cout << "error: " << e.what() << endl;
+        ERROR("RPC request other error: %s", e.what());
         auto spError = MakeCRPCErrorPtr(RPC_MISC_ERROR, e.what());
         CRPCResp resp(Value(), spError);
         strResult = resp.Serialize();
     }
 
-    if (fWriteRPCLog)
-    {
-        DEBUG("response : %s", lmdMask(strResult).c_str());
-    }
-
     // no result means no return
     if (!strResult.empty())
     {
-        JsonReply(nNonce, strResult);
+        JsonReply(msg.spNonce, strResult);
+        TRACE("response : %s", MaskSensitiveData(strResult).c_str());
+        return;
     }
 
-    return true;
+    nWorkCount += work.vecReq.size();
+    TRACE("Http requst work count : %u", nWorkCount);
+    size_t nAvgPayload = vecWorker.empty() ? nWorkCount : (nWorkCount / vecWorker.size());
+    for (size_t i = 0; i < work.vecReq.size(); i++)
+    {
+        if (vecWorker.empty())
+        {
+            auto spResp = StartWork(msg.spNonce, work.vecReq[i]);
+            CompletedWork(msg.spNonce, i, spResp);
+        }
+        else
+        {
+            auto spAssignmentMsg = CRPCAssignmentMessage::Create();
+            spAssignmentMsg->spNonce = msg.spNonce;
+            spAssignmentMsg->nWorkId = i;
+            spAssignmentMsg->spReq = work.vecReq[i];
+
+            // Average assignment
+            size_t nIndex = (msg.spNonce->nNonce + i) % vecWorker.size();
+            while (vecWorker[nIndex].nPayload > nAvgPayload)
+            {
+                nIndex = (nIndex + 1) % vecWorker.size();
+            }
+            spAssignmentMsg->nWorkerId = nIndex;
+
+            vecWorker[nIndex].nPayload++;
+            TRACE("RPCMod Assign work (%s) to worker (%s) payload (%u)", work.vecReq[i]->strMethod.c_str(), vecWorker[nIndex].spWorker->GetName().c_str(), vecWorker[nIndex].nPayload);
+            vecWorker[nIndex].spWorker->Publish(spAssignmentMsg);
+        }
+    }
 }
 
-bool CRPCMod::HandleEvent(CEventHttpBroken& eventHttpBroken)
+void CRPCMod::HandleHttpBroken(const CHttpBrokenMessage& msg)
 {
-    (void)eventHttpBroken;
-    return true;
+    auto it = mapWork.find(msg.spNonce);
+    if (it != mapWork.end())
+    {
+        nWorkCount -= it->second.vecReq.size();
+        TRACE("Http broken work count : %u", nWorkCount);
+        mapWork.erase(it);
+    }
 }
 
-void CRPCMod::JsonReply(uint64 nNonce, const std::string& result)
+void CRPCMod::HandleAddedBlockMsg(const CAddedBlockMessage& msg)
+{
+    HandleAddedMsg(msg.spNonce, 0, msg.block.GetHash(), msg);
+}
+
+void CRPCMod::HandleAddedTxMsg(const CAddedTxMessage& msg)
+{
+    HandleAddedMsg(msg.spNonce, 0, msg.tx.GetHash(), msg);
+}
+
+void CRPCMod::HandleSubmissionMsg(const CRPCSubmissionMessage& msg)
+{
+    vecWorker[msg.nWorkerId].nPayload--;
+    TRACE("Submission message worker (%s) payload (%u)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), vecWorker[msg.nWorkerId].nPayload);
+    CompletedWork(msg.spNonce, msg.nWorkId, msg.spResp);
+}
+
+void CRPCMod::HandleAssignmentMsg(const CRPCAssignmentMessage& msg)
+{
+    auto spSubmissionMsg = CRPCSubmissionMessage::Create();
+    spSubmissionMsg->spNonce = msg.spNonce;
+    spSubmissionMsg->nWorkId = msg.nWorkId;
+    spSubmissionMsg->nWorkerId = msg.nWorkerId;
+
+    TRACE("Worker (%s) start work (%s)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), msg.spReq->strMethod.c_str());
+    spSubmissionMsg->spResp = StartWork(msg.spNonce, msg.spReq);
+    Publish(spSubmissionMsg);
+}
+
+CRPCRespPtr CRPCMod::StartWork(CNoncePtr spNonce, CRPCReqPtr spReq)
+{
+    // invalid nonce
+    if (!spNonce->fValid)
+    {
+        ERROR("RPCMod ignore work (%s) because of invalid nonce", spReq->strMethod.c_str());
+        return nullptr;
+    }
+
+    CRPCErrorPtr spError;
+    CRPCResultPtr spResult;
+    try
+    {
+        map<string, RPCFunc>::iterator it = mapRPCFunc.find(spReq->strMethod);
+        if (it == mapRPCFunc.end())
+        {
+            throw CRPCException(RPC_METHOD_NOT_FOUND, "Method not found");
+        }
+        TRACE("request : %s", MaskSensitiveData(spReq->Serialize()).c_str());
+        spResult = (this->*(*it).second)(spNonce, spReq->spParam);
+    }
+    catch (CRPCException& e)
+    {
+        spError = CRPCErrorPtr(new CRPCError(e));
+    }
+    catch (exception& e)
+    {
+        spError = CRPCErrorPtr(new CRPCError(RPC_MISC_ERROR, e.what()));
+    }
+
+    if (spError)
+    {
+        TRACE("Work returns error: %s", spError->Serialize().c_str());
+        return MakeCRPCRespPtr(spReq->valID, spError);
+    }
+    else if (spResult)
+    {
+        TRACE("Work return result: %s", spResult->Serialize().c_str());
+        return MakeCRPCRespPtr(spReq->valID, spResult);
+    }
+    else
+    {
+        TRACE("Work return null, method: %s", spReq->strMethod.c_str());
+        return nullptr;
+    }
+}
+
+void CRPCMod::HandleAddedMsg(CNoncePtr spNonce, size_t nIndex, const uint256& hash, const CMessage& msg)
+{
+    if (!NonceType(spNonce->nNonce, HTTP_NONCE_TYPE))
+    {
+        return;
+    }
+
+    // find work
+    auto workIt = mapWork.find(spNonce);
+    if (workIt == mapWork.end())
+    {
+        return;
+    }
+    CWork& work = workIt->second;
+
+    // find index by hash
+    if (!hash)
+    {
+        auto hashIt = work.mapHash.find(hash);
+        if (hashIt == work.mapHash.end())
+        {
+            return;
+        }
+
+        nIndex = hashIt->second;
+        work.mapHash.erase(hashIt);
+    }
+
+    // Call concrete message function
+    TRACE("complete work req size (%u), index (%u)", work.vecReq.size(), nIndex);
+    auto& spReq = work.vecReq[nIndex];
+    CRPCRespPtr spResp;
+    auto funIt = mapRPCMessageFunc.find(spReq->strMethod);
+    if (funIt == mapRPCMessageFunc.end())
+    {
+        auto spError = CRPCErrorPtr(new CRPCError(RPC_METHOD_NOT_FOUND, string("RPC Message function (") + spReq->strMethod + ") not found"));
+        spResp = MakeCRPCRespPtr(spReq->valID, spError);
+    }
+    else
+    {
+        auto spResult = (this->*(*funIt).second)(msg);
+        spResp = MakeCRPCRespPtr(spReq->valID, spResult);
+    }
+    TRACE("complete work call function end");
+
+    CompletedWork(spNonce, nIndex, spResp);
+}
+
+void CRPCMod::CompletedWork(xengine::CNoncePtr spNonce, size_t nIndex, rpc::CRPCRespPtr spResp)
+{
+    if (!spResp)
+    {
+        return;
+    }
+
+    auto workIt = mapWork.find(spNonce);
+    if (workIt == mapWork.end())
+    {
+        return;
+    }
+    CWork& work = workIt->second;
+
+    if (nIndex >= work.vecResp.size())
+    {
+        return;
+    }
+
+    work.vecResp[nIndex] = spResp;
+    if (--work.nRemainder == 0)
+    {
+        string strResult;
+        if (work.fArray)
+        {
+            strResult = SerializeCRPCResp(work.vecResp);
+        }
+        else
+        {
+            strResult = work.vecResp[0]->Serialize();
+        }
+        if (!strResult.empty())
+        {
+            JsonReply(spNonce, strResult);
+            TRACE("response : %s", MaskSensitiveData(strResult).c_str());
+        }
+
+        nWorkCount -= work.vecReq.size();
+        TRACE("Http response work count : %u", nWorkCount);
+        mapWork.erase(workIt);
+    }
+}
+
+void CRPCMod::JsonReply(CNoncePtr spNonce, const std::string& result)
 {
     auto spMsg = CHttpRspMessage::Create();
-    spMsg->nNonce = nNonce;
+    spMsg->spNonce = spNonce;
     spMsg->nStatusCode = 200;
     spMsg->mapHeader["content-type"] = "application/json";
     spMsg->mapHeader["connection"] = "Keep-Alive";
@@ -428,33 +693,39 @@ std::string CRPCMod::GetWidthString(uint64 nCount, int nWidth)
     return GetWidthString(std::to_string(nCount / 100) + std::string(".") + tempbuf, nWidth);
 }
 
+std::string CRPCMod::MaskSensitiveData(std::string strData)
+{
+    boost::regex ptnSec(R"raw(("privkey"|"passphrase"|"oldpassphrase")(\s*:\s*)(".*?"))raw", boost::regex::perl);
+    return boost::regex_replace(strData, ptnSec, string(R"raw($1$2"***")raw"));
+}
+
 /* System */
-CRPCResultPtr CRPCMod::RPCHelp(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCHelp(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CHelpParam>(param);
     string command = spParam->strCommand;
     return MakeCHelpResultPtr(RPCHelpInfo(EModeType::CONSOLE, command));
 }
 
-CRPCResultPtr CRPCMod::RPCStop(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCStop(CNoncePtr spNonce, CRPCParamPtr param)
 {
     pService->Stop();
     return MakeCStopResultPtr("bigbang server stopping");
 }
 
-CRPCResultPtr CRPCMod::RPCVersion(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCVersion(CNoncePtr spNonce, CRPCParamPtr param)
 {
     string strVersion = string("Bigbang server version is v") + VERSION_STR;
     return MakeCVersionResultPtr(strVersion);
 }
 
 /* Network */
-CRPCResultPtr CRPCMod::RPCGetPeerCount(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetPeerCount(CNoncePtr spNonce, CRPCParamPtr param)
 {
     return MakeCGetPeerCountResultPtr(pService->GetPeerCount());
 }
 
-CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCListPeer(CNoncePtr spNonce, CRPCParamPtr param)
 {
     vector<network::CBbPeerInfo> vPeerInfo;
     pService->GetPeers(vPeerInfo);
@@ -479,7 +750,7 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCAddNode(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCAddNode(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CAddNodeParam>(param);
     string strNode = spParam->strNode;
@@ -492,7 +763,7 @@ CRPCResultPtr CRPCMod::RPCAddNode(CRPCParamPtr param)
     return MakeCAddNodeResultPtr(string("Add node successfully: ") + strNode);
 }
 
-CRPCResultPtr CRPCMod::RPCRemoveNode(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCRemoveNode(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CRemoveNodeParam>(param);
     string strNode = spParam->strNode;
@@ -505,12 +776,12 @@ CRPCResultPtr CRPCMod::RPCRemoveNode(CRPCParamPtr param)
     return MakeCRemoveNodeResultPtr(string("Remove node successfully: ") + strNode);
 }
 
-CRPCResultPtr CRPCMod::RPCGetForkCount(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetForkCount(CNoncePtr spNonce, CRPCParamPtr param)
 {
     return MakeCGetForkCountResultPtr(pService->GetForkCount());
 }
 
-CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCListFork(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListForkParam>(param);
     vector<pair<uint256, CProfile>> vFork;
@@ -529,7 +800,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetForkGenealogy(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetForkGenealogy(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetGenealogyParam>(param);
 
@@ -559,7 +830,7 @@ CRPCResultPtr CRPCMod::RPCGetForkGenealogy(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetBlockLocation(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetBlockLocation(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBlockLocationParam>(param);
 
@@ -580,7 +851,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockLocation(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetBlockCount(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetBlockCount(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBlockCountParam>(param);
 
@@ -599,7 +870,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockCount(CRPCParamPtr param)
     return MakeCGetBlockCountResultPtr(pService->GetBlockCount(hashFork));
 }
 
-CRPCResultPtr CRPCMod::RPCGetBlockHash(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetBlockHash(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBlockHashParam>(param);
 
@@ -632,7 +903,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockHash(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetBlock(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetBlock(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBlockParam>(param);
 
@@ -651,7 +922,7 @@ CRPCResultPtr CRPCMod::RPCGetBlock(CRPCParamPtr param)
     return MakeCGetBlockResultPtr(BlockToJSON(hashBlock, block, fork, height));
 }
 
-CRPCResultPtr CRPCMod::RPCGetTxPool(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetTxPool(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetTxPoolParam>(param);
 
@@ -694,7 +965,7 @@ CRPCResultPtr CRPCMod::RPCGetTxPool(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetTransactionParam>(param);
     uint256 txid;
@@ -723,7 +994,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSendTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSendTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSendTransactionParam>(param);
 
@@ -739,17 +1010,23 @@ CRPCResultPtr CRPCMod::RPCSendTransaction(CRPCParamPtr param)
     {
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
-    Errno err = pService->SendTransaction(rawTx);
-    if (err != OK)
+
+    uint256 txid = rawTx.GetHash();
+    auto it = mapWork.find(spNonce);
+    if (it != mapWork.end())
     {
-        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                          + ErrorString(err));
+        it->second.mapHash.insert(make_pair(txid, it->second.vecResp.size()));
     }
 
-    return MakeCSendTransactionResultPtr(rawTx.GetHash().GetHex());
+    uint256 hashFork;
+    if (!pService->SendTransaction(spNonce, hashFork, rawTx))
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : hash anchor not exist"));
+    }
+    return nullptr;
 }
 
-CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetForkHeight(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetForkHeightParam>(param);
 
@@ -769,7 +1046,7 @@ CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
 }
 
 /* Wallet */
-CRPCResultPtr CRPCMod::RPCListKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCListKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListKeyParam>(param);
 
@@ -798,7 +1075,7 @@ CRPCResultPtr CRPCMod::RPCListKey(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetNewKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetNewKeyParam>(param);
 
@@ -816,7 +1093,7 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
 }
 
-CRPCResultPtr CRPCMod::RPCEncryptKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCEncryptKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CEncryptKeyParam>(param);
 
@@ -848,7 +1125,7 @@ CRPCResultPtr CRPCMod::RPCEncryptKey(CRPCParamPtr param)
     return MakeCEncryptKeyResultPtr(string("Encrypt key successfully: ") + spParam->strPubkey);
 }
 
-CRPCResultPtr CRPCMod::RPCLockKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCLockKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CLockKeyParam>(param);
 
@@ -882,7 +1159,7 @@ CRPCResultPtr CRPCMod::RPCLockKey(CRPCParamPtr param)
     return MakeCLockKeyResultPtr(string("Lock key successfully: ") + spParam->strPubkey);
 }
 
-CRPCResultPtr CRPCMod::RPCUnlockKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCUnlockKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CUnlockKeyParam>(param);
 
@@ -935,7 +1212,7 @@ CRPCResultPtr CRPCMod::RPCUnlockKey(CRPCParamPtr param)
     return MakeCUnlockKeyResultPtr(string("Unlock key successfully: ") + spParam->strPubkey);
 }
 
-CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCImportPrivKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportPrivKeyParam>(param);
 
@@ -978,7 +1255,7 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
     return MakeCImportPrivKeyResultPtr(key.GetPubKey().GetHex());
 }
 
-CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCImportKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportKeyParam>(param);
 
@@ -1009,7 +1286,7 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     return MakeCImportKeyResultPtr(key.GetPubKey().GetHex());
 }
 
-CRPCResultPtr CRPCMod::RPCExportKey(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCExportKey(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CExportKeyParam>(param);
 
@@ -1029,7 +1306,7 @@ CRPCResultPtr CRPCMod::RPCExportKey(CRPCParamPtr param)
     return MakeCExportKeyResultPtr(ToHexString(vchKey));
 }
 
-CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCAddNewTemplate(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CAddNewTemplateParam>(param);
     CTemplatePtr ptr = CTemplate::CreateTemplatePtr(spParam->data, CAddress());
@@ -1049,7 +1326,7 @@ CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
     return MakeCAddNewTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
 }
 
-CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCImportTemplate(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportTemplateParam>(param);
     vector<unsigned char> vchTemplate = ParseHexString(spParam->strData);
@@ -1074,7 +1351,7 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
     return MakeCImportTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
 }
 
-CRPCResultPtr CRPCMod::RPCExportTemplate(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCExportTemplate(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CExportTemplateParam>(param);
     CAddress address(spParam->strAddress);
@@ -1099,7 +1376,7 @@ CRPCResultPtr CRPCMod::RPCExportTemplate(CRPCParamPtr param)
     return MakeCExportTemplateResultPtr(ToHexString(vchTemplate));
 }
 
-CRPCResultPtr CRPCMod::RPCValidateAddress(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCValidateAddress(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CValidateAddressParam>(param);
 
@@ -1143,7 +1420,7 @@ CRPCResultPtr CRPCMod::RPCValidateAddress(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCResyncWallet(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCResyncWallet(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CResyncWalletParam>(param);
     if (spParam->strAddress.IsValid())
@@ -1168,7 +1445,7 @@ CRPCResultPtr CRPCMod::RPCResyncWallet(CRPCParamPtr param)
     return MakeCResyncWalletResultPtr("Resync wallet successfully.");
 }
 
-CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetBalance(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBalanceParam>(param);
 
@@ -1217,7 +1494,7 @@ CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCListTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCListTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListTransactionParam>(param);
 
@@ -1242,7 +1519,7 @@ CRPCResultPtr CRPCMod::RPCListTransaction(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSendFrom(CNoncePtr spNonce, CRPCParamPtr param)
 {
     //sendfrom <"from"> <"to"> <$amount$> ($txfee$) (-f="fork") (-d="data")
     auto spParam = CastParamPtr<CSendFromParam>(param);
@@ -1330,17 +1607,22 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_WALLET_ERROR, "The signature is not completed");
     }
-    Errno err = pService->SendTransaction(txNew);
-    if (err != OK)
+
+    uint256 txid = txNew.GetHash();
+    auto it = mapWork.find(spNonce);
+    if (it != mapWork.end())
     {
-        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                          + ErrorString(err));
+        it->second.mapHash.insert(make_pair(txid, it->second.vecResp.size()));
     }
 
-    return MakeCSendFromResultPtr(txNew.GetHash().GetHex());
+    if (!pService->SendTransaction(spNonce, hashFork, txNew))
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : hash anchor not exist"));
+    }
+    return nullptr;
 }
 
-CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCCreateTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CCreateTransactionParam>(param);
 
@@ -1398,7 +1680,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         ToHexString((const unsigned char*)ss.GetData(), ss.GetSize()));
 }
 
-CRPCResultPtr CRPCMod::RPCSignTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSignTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSignTransactionParam>(param);
 
@@ -1430,7 +1712,7 @@ CRPCResultPtr CRPCMod::RPCSignTransaction(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSignMessage(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSignMessage(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSignMessageParam>(param);
 
@@ -1479,7 +1761,7 @@ CRPCResultPtr CRPCMod::RPCSignMessage(CRPCParamPtr param)
     return MakeCSignMessageResultPtr(ToHexString(vchSig));
 }
 
-CRPCResultPtr CRPCMod::RPCListAddress(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCListAddress(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spResult = MakeCListAddressResultPtr();
     vector<CDestination> vDes;
@@ -1519,7 +1801,7 @@ CRPCResultPtr CRPCMod::RPCListAddress(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCExportWallet(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCExportWallet(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CExportWalletParam>(param);
 
@@ -1612,7 +1894,7 @@ CRPCResultPtr CRPCMod::RPCExportWallet(CRPCParamPtr param)
     return MakeCExportWalletResultPtr(string("Wallet file has been saved at: ") + pSave.string());
 }
 
-CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCImportWallet(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportWalletParam>(param);
 
@@ -1726,7 +2008,7 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
                                       + string(" keys and ") + std::to_string(nTemp) + string(" templates."));
 }
 
-CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCMakeOrigin(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeOriginParam>(param);
 
@@ -1823,7 +2105,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 }
 
 /* Util */
-CRPCResultPtr CRPCMod::RPCVerifyMessage(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCVerifyMessage(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CVerifyMessageParam>(param);
 
@@ -1867,7 +2149,7 @@ CRPCResultPtr CRPCMod::RPCVerifyMessage(CRPCParamPtr param)
     }
 }
 
-CRPCResultPtr CRPCMod::RPCMakeKeyPair(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCMakeKeyPair(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeKeyPairParam>(param);
 
@@ -1880,7 +2162,7 @@ CRPCResultPtr CRPCMod::RPCMakeKeyPair(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCGetPubKeyAddress(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetPubKeyAddress(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetPubkeyAddressParam>(param);
     crypto::CPubKey pubkey;
@@ -1892,7 +2174,7 @@ CRPCResultPtr CRPCMod::RPCGetPubKeyAddress(CRPCParamPtr param)
     return MakeCGetPubkeyAddressResultPtr(CAddress(dest).ToString());
 }
 
-CRPCResultPtr CRPCMod::RPCGetTemplateAddress(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetTemplateAddress(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetTemplateAddressParam>(param);
     CTemplateId tid;
@@ -1906,7 +2188,7 @@ CRPCResultPtr CRPCMod::RPCGetTemplateAddress(CRPCParamPtr param)
     return MakeCGetTemplateAddressResultPtr(CAddress(dest).ToString());
 }
 
-CRPCResultPtr CRPCMod::RPCMakeTemplate(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCMakeTemplate(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeTemplateParam>(param);
     CTemplatePtr ptr = CTemplate::CreateTemplatePtr(spParam->data, CAddress());
@@ -1922,7 +2204,7 @@ CRPCResultPtr CRPCMod::RPCMakeTemplate(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCDecodeTransaction(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CDecodeTransactionParam>(param);
     vector<unsigned char> txData(ParseHexString(spParam->strTxdata));
@@ -1949,7 +2231,7 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 }
 
 // /* Mint */
-CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetWork(CNoncePtr spNonce, CRPCParamPtr param)
 {
     //getwork <"spent"> <"privkey"> ("prev")
     auto spParam = CastParamPtr<CGetWorkParam>(param);
@@ -2001,7 +2283,7 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSubmitWork(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSubmitWork(CNoncePtr spNonce, CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSubmitWorkParam>(param);
     vector<unsigned char> vchWorkData(ParseHexString(spParam->strData));
@@ -2022,17 +2304,25 @@ CRPCResultPtr CRPCMod::RPCSubmitWork(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid mint template");
     }
-    uint256 hashBlock;
-    Errno err = pService->SubmitWork(vchWorkData, ptr, key, hashBlock);
+    CBlock block;
+    Errno err = pService->SubmitWork(vchWorkData, ptr, key, block);
     if (err != OK)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, string("Block rejected : ") + ErrorString(err));
     }
 
-    return MakeCSubmitWorkResultPtr(hashBlock.GetHex());
+    uint256 blockHash = block.GetHash();
+    auto it = mapWork.find(spNonce);
+    if (it != mapWork.end())
+    {
+        it->second.mapHash.insert(make_pair(blockHash, it->second.vecResp.size()));
+    }
+
+    pService->SendBlock(spNonce, pCoreProtocol->GetGenesisBlockHash(), blockHash, block);
+    return nullptr;
 }
 
-CRPCResultPtr CRPCMod::RPCQueryStat(rpc::CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCQueryStat(CNoncePtr spNonce, CRPCParamPtr param)
 {
     enum
     {
@@ -2284,6 +2574,39 @@ CRPCResultPtr CRPCMod::RPCQueryStat(rpc::CRPCParamPtr param)
     }
 
     return MakeCQueryStatResultPtr(string("error"));
+}
+
+CRPCResultPtr CRPCMod::RPCMsgSubmitWork(const CMessage& message)
+{
+    const CAddedBlockMessage& msg = static_cast<const CAddedBlockMessage&>(message);
+    Errno err = (Errno)msg.nError;
+    if (err != OK)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, string("Block rejected : ") + ErrorString(err));
+    }
+    return MakeCSubmitWorkResultPtr(msg.block.GetHash().GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCMsgSendFrom(const CMessage& message)
+{
+    const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
+    Errno err = (Errno)msg.nError;
+    if (err != OK)
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));
+    }
+    return MakeCSendFromResultPtr(msg.tx.GetHash().GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCMsgSendTransaction(const CMessage& message)
+{
+    const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
+    Errno err = (Errno)msg.nError;
+    if (err != OK)
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));
+    }
+    return MakeCSendTransactionResultPtr(msg.tx.GetHash().GetHex());
 }
 
 } // namespace bigbang

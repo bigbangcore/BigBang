@@ -1011,7 +1011,7 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
     const uint256& hashFork = addedMsg.hashFork;
     const CBlock& block = addedMsg.block;
     const uint256& hashBlock = addedMsg.block.GetHash();
-    const uint64& nNonceSender = addedMsg.spNonce ? addedMsg.spNonce->nNonce : 0;
+    const uint64& nNonceSender = addedMsg.spNonce->nNonce;
     std::vector<uint256> vNextBlockHash;
     set<uint64> setSchedPeer, setMisbehavePeer;
     if (err == OK)
@@ -1062,7 +1062,7 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
     Errno err = static_cast<Errno>(addedMsg.nError);
     const uint256& hashFork = addedMsg.hashFork;
     const uint256& hashTx = addedMsg.tx.GetHash();
-    const uint64& nNonceSender = addedMsg.spNonce ? addedMsg.spNonce->nNonce : 0;
+    const uint64& nNonceSender = addedMsg.spNonce->nNonce;
     std::vector<uint256> vNextTxChain;
     set<uint64> setSchedPeer, setMisbehavePeer;
     if (err == OK)

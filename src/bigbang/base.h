@@ -380,7 +380,7 @@ public:
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) = 0;
     virtual void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
-    virtual Errno SendTransaction(CTransaction& tx) = 0;
+    virtual bool SendTransaction(xengine::CNoncePtr spNonce, uint256& hashFork, const CTransaction& tx) = 0;
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     /* Wallet */
     virtual bool HaveKey(const crypto::CPubKey& pubkey) = 0;
@@ -409,7 +409,8 @@ public:
     virtual bool ResynchronizeWalletTx() = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
-    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) = 0;
+    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) = 0;
+    virtual bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

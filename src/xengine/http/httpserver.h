@@ -9,6 +9,7 @@
 #include "http/httpmessage.h"
 #include "http/httputil.h"
 #include "netio/ioproc.h"
+#include "nonce.h"
 
 namespace xengine
 {
@@ -21,9 +22,9 @@ public:
     CHttpHostConfig() {}
     CHttpHostConfig(const boost::asio::ip::tcp::endpoint& epHostIn, unsigned int nMaxConnectionsIn,
                     const CIOSSLOption& optSSLIn, const std::map<std::string, std::string>& mapUserPassIn,
-                    const std::vector<std::string>& vAllowMaskIn, const std::string& strIOModuleIn)
+                    const std::vector<std::string>& vAllowMaskIn)
       : epHost(epHostIn), nMaxConnections(nMaxConnectionsIn), optSSL(optSSLIn),
-        mapUserPass(mapUserPassIn), vAllowMask(vAllowMaskIn), strIOModule(strIOModuleIn)
+        mapUserPass(mapUserPassIn), vAllowMask(vAllowMaskIn)
     {
     }
 
@@ -33,17 +34,15 @@ public:
     CIOSSLOption optSSL;
     std::map<std::string, std::string> mapUserPass;
     std::vector<std::string> vAllowMask;
-    std::string strIOModule;
 };
 
 class CHttpProfile
 {
 public:
     CHttpProfile()
-      : pIOModule(nullptr), pSSLContext(nullptr), nMaxConnections(0) {}
+      : pSSLContext(nullptr), nMaxConnections(0) {}
 
 public:
-    IIOModule* pIOModule;
     boost::asio::ssl::context* pSSLContext;
     std::map<std::string, std::string> mapAuthrizeUser;
     std::vector<std::string> vAllowMask;
@@ -54,10 +53,10 @@ class CHttpClient
 {
 public:
     CHttpClient(CHttpServer* pServerIn, CHttpProfile* pProfileIn,
-                CIOClient* pClientIn, uint64 nNonceIn);
+                CIOClient* pClientIn, CNoncePtr spNonceIn);
     ~CHttpClient();
     CHttpProfile* GetProfile();
-    uint64 GetNonce();
+    CNoncePtr GetNonce();
     bool IsKeepAlive();
     bool IsEventStream();
     void KeepAlive();
@@ -78,7 +77,7 @@ protected:
     CHttpServer* pServer;
     CHttpProfile* pProfile;
     CIOClient* pClient;
-    uint64 nNonce;
+    CNoncePtr spNonce;
     bool fKeepAlive;
     bool fEventStream;
     CBufStream ssRecv;
@@ -118,7 +117,7 @@ protected:
 protected:
     std::vector<CHttpHostConfig> vecHostConfig;
     std::map<boost::asio::ip::tcp::endpoint, CHttpProfile> mapProfile;
-    std::map<uint64, CHttpClient*> mapClient;
+    std::map<CNoncePtr, CHttpClient*> mapClient;
 };
 
 } // namespace xengine
