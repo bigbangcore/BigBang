@@ -10,6 +10,7 @@
 #include "base.h"
 #include "walletdb.h"
 #include "wallettx.h"
+#include "message.h"
 
 namespace bigbang
 {
@@ -165,6 +166,11 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
+
+    void HandleNewFork(const CAddedBlockMessage& msg);
+    void HandleAddedTx(const CAddedTxMessage& msg);
+    void HandleSyncTxChange(const CSyncTxChangeMessage& msg);
+
     bool LoadDB();
     void Clear();
     bool ClearTx();

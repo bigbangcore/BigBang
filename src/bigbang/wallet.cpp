@@ -218,6 +218,25 @@ void CWallet::HandleHalt()
     Clear();
 }
 
+void CWallet::HandleNewFork(const CAddedBlockMessage& msg)
+{
+    if (msg.block.IsOrigin())
+    {
+        AddNewFork(msg.update.hashFork, msg.update.hashParent, msg.update.nOriginHeight);
+    }
+}
+
+void CWallet::HandleAddedTx(const CAddedTxMessage& msg)
+{
+    CAssembledTx assembledTx(msg.tx, -1, msg.destIn, msg.nValueIn);
+    AddNewTx(msg.hashFork, assembledTx);
+}
+
+void CWallet::HandleSyncTxChange(const CSyncTxChangeMessage& msg)
+{
+    SynchronizeTxSet(msg.change);
+}
+
 bool CWallet::IsMine(const CDestination& dest)
 {
     crypto::CPubKey pubkey;
