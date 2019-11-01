@@ -379,6 +379,7 @@ CHttpClient* CHttpServer::AddNewClient(CIOClient* pClient, CHttpProfile* pHttpPr
 
 void CHttpServer::RemoveClient(CHttpClient* pHttpClient)
 {
+    pHttpClient->GetNonce()->fValid = false;
     mapClient.erase(pHttpClient->GetNonce());
 
     auto spHttpBrokenMsg = CHttpBrokenMessage::Create();

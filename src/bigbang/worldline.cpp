@@ -1187,7 +1187,7 @@ bool CWorldLineController::GetBlockDelegateAgreement(const uint256& hashBlock, C
 
 void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
 {
-    if (msg.spNonce && !msg.spNonce->fValid)
+    if (!msg.spNonce->fValid)
     {
         TRACE("Discard a new block of invalid nonce (%u)", msg.spNonce->nNonce);
         return;

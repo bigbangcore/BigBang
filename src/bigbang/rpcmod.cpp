@@ -313,7 +313,13 @@ void CRPCMod::LeaveLoop()
 
 void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
 {
-    INFO("CRPCMod::HandleHttpReq");
+    // invalid nonce
+    if (!msg.spNonce->fValid)
+    {
+        ERROR("RPCMod ignore RPC because of invalid nonce");
+        return;
+    }
+
     auto workPair = mapWork.insert(make_pair(msg.spNonce, CWork()));
     // Repeated request
     if (!workPair.second)
@@ -431,19 +437,25 @@ void CRPCMod::HandleSubmissionMsg(const CRPCSubmissionMessage& msg)
 
 void CRPCMod::HandleAssignmentMsg(const CRPCAssignmentMessage& msg)
 {
-    TRACE("Assignment message worker (%s) start work (%s)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), msg.spReq->strMethod.c_str());
-    auto spResp = StartWork(msg.spNonce, msg.spReq);
-
     auto spSubmissionMsg = CRPCSubmissionMessage::Create();
     spSubmissionMsg->spNonce = msg.spNonce;
     spSubmissionMsg->nWorkId = msg.nWorkId;
     spSubmissionMsg->nWorkerId = msg.nWorkerId;
-    spSubmissionMsg->spResp = spResp;
+
+    TRACE("Worker (%s) start work (%s)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), msg.spReq->strMethod.c_str());
+    spSubmissionMsg->spResp = StartWork(msg.spNonce, msg.spReq);
     Publish(spSubmissionMsg);
 }
 
 CRPCRespPtr CRPCMod::StartWork(CNoncePtr spNonce, CRPCReqPtr spReq)
 {
+    // invalid nonce
+    if (!spNonce->fValid)
+    {
+        ERROR("RPCMod ignore work (%s) because of invalid nonce", spReq->strMethod.c_str());
+        return;
+    }
+
     CRPCErrorPtr spError;
     CRPCResultPtr spResult;
     try
