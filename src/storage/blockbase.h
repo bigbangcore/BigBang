@@ -251,6 +251,7 @@ public:
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter);
     bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
     bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator);
+    bool GetForkBlockLocatorFromHash(const uint256& hashFork, const uint256& hashBlock, CBlockLocator& locator);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
@@ -270,6 +271,10 @@ protected:
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
     void ClearCache();
     bool LoadDB();
+
+protected:
+    void SkipStepPrev(CBlockIndex*& pIndex, int nStep);
+    void SkipStepNext(CBlockIndex*& pIndex, int nStep);
 
 protected:
     mutable xengine::CRWAccess rwAccess;

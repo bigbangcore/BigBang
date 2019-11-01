@@ -1049,12 +1049,65 @@ bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& loc
     return true;
 }
 
+bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint256& hashBlock, CBlockLocator& locator)
+{
+    CReadLock rlock(rwAccess);
+
+    boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
+    if (!spFork)
+    {
+        return false;
+    }
+
+    CBlockIndex* pIndex = GetIndex(hashBlock);
+    if (!pIndex)
+    {
+        CReadLock rForkLock(spFork->GetRWAccess());
+        pIndex = spFork->GetLast();
+    }
+
+    locator.vBlockHash.clear();
+    int nStep = 1;
+    while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
+    {
+        locator.vBlockHash.push_back(pIndex->GetBlockHash());
+        for (int i = 0; pIndex && i < nStep; i++)
+        {
+            pIndex = pIndex->pPrev;
+        }
+        if (locator.vBlockHash.size() > 10)
+        {
+            nStep *= 2;
+        }
+    }
+
+    return true;
+}
+
+void CBlockBase::SkipStepPrev(CBlockIndex*& pIndex, int nStep)
+{
+    assert(nStep > 0);
+    while (nStep--)
+    {
+        pIndex = pIndex->pPrev;
+    }
+}
+
+void CBlockBase::SkipStepNext(CBlockIndex*& pIndex, int nStep)
+{
+    assert(nStep > 0);
+    while (nStep-- && pIndex->pNext != nullptr)
+    {
+        pIndex = pIndex->pNext;
+    }
+}
+
 bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    if (!spFork)
     {
         return false;
     }
@@ -1076,10 +1129,18 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     }
 
     pIndex = (pIndex != nullptr ? pIndex->pNext : spFork->GetOrigin()->pNext);
-    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+    for (int i = 0; i < 100 && pIndex != nullptr && vBlockHash.size() < nMaxCount - 1; ++i)
     {
         vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pNext;
+    }
+
+    int nStep = 1;
+    while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+    {
+        nStep = 2 * nStep;
+        SkipStepNext(pIndex, nStep);
+        vBlockHash.push_back(pIndex->GetBlockHash());
     }
     if (pIndex != nullptr && pIndex != pIndexLast)
     {

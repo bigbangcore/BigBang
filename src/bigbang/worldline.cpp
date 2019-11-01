@@ -647,6 +647,11 @@ bool CWorldLine::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator
     return blockBase.GetForkBlockLocator(hashFork, locator);
 }
 
+bool CWorldLine::GetBlockLocatorFromHash(const uint256& hashFork, const uint256& blockHash, CBlockLocator& locator)
+{
+    return blockBase.GetForkBlockLocatorFromHash(hashFork, blockHash, locator);
+}
+
 bool CWorldLine::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
 {
     return blockBase.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
@@ -1156,6 +1161,11 @@ bool CWorldLineController::GetBlockMintReward(const uint256& hashPrev, int64& nR
 bool CWorldLineController::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
 {
     return pWorldLine->GetBlockLocator(hashFork, locator);
+}
+
+bool CWorldLineController::GetBlockLocatorFromHash(const uint256& hashFork, const uint256& blockHash, CBlockLocator& locator)
+{
+    return pWorldLine->GetBlockLocatorFromHash(hashFork, blockHash, locator);
 }
 
 bool CWorldLineController::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount)

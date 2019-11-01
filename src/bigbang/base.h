@@ -87,6 +87,7 @@ public:
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) = 0;
+    virtual bool GetBlockLocatorFromHash(const uint256& hashFork, const uint256& blockHash, CBlockLocator& locator) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
@@ -143,6 +144,7 @@ public:
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) = 0;
+    virtual bool GetBlockLocatorFromHash(const uint256& hashFork, const uint256& hashBlock, CBlockLocator& locator) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;

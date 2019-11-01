@@ -236,10 +236,10 @@ protected:
     void HandleAddedNewTx(const CAddedTxMessage& addedMsg);
 
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
-    void DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork);
+    void DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
-    void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer);
+    void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer, const uint256& nStopBlockHash);
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddNewTx(const uint256& hashFork, const uint256& txid, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
