@@ -16,9 +16,9 @@
 #define DEFAULT_TESTNET_RPCPORT 9904
 #define DEFAULT_RPC_MAX_CONNECTIONS 5
 #define DEFAULT_RPC_CONNECT_TIMEOUT 120
-#define DEFAULT_RPC_WORKER 1
-#define RPC_WORKER_UPPER_LIMIT std::thread::hardware_concurrency()
-#define RPC_WORKER_LOWER_LIMIT 1
+#define DEFAULT_RPC_THREAD 1
+#define RPC_THREAD_UPPER_LIMIT std::thread::hardware_concurrency()
+#define RPC_THREAD_LOWER_LIMIT 1
 
 // network config
 #define DEFAULT_P2PPORT 9901

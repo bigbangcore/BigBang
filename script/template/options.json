@@ -231,12 +231,12 @@
             "desc": "Allow JSON-RPC connections from specified <ip> address"
         },
         {
-            "name": "nRPCWorker",
+            "name": "nRPCThread",
             "type": "unsigned int",
-            "opt": "rpcworker",
-            "default": "DEFAULT_RPC_WORKER",
-            "format": "-rpcworker=<num>",
-            "desc": "RPC worker thread number (default: 1)"
+            "opt": "rpcthread",
+            "default": "DEFAULT_RPC_THREAD",
+            "format": "-rpcthread=<num>",
+            "desc": "RPC server thread number (default: 1)"
         }
     ],
     "CStorageConfigOption": [

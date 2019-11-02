@@ -125,6 +125,22 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
 namespace bigbang
 {
 
+class CRPCAsyncResult : public CRPCCommonResult
+{
+public:
+    uint256 hash;
+    CRPCAsyncResult(const uint256& hashIn) : hash(hashIn) {}
+    json_spirit::Value ToJSON() const
+    {
+        return Value(hash.ToString());
+    }
+    CRPCAsyncResult& FromJSON(const json_spirit::Value& v)
+    {
+        hash.SetHex(v.get_str());
+        return *this;
+    }
+};
+
 ///////////////////////////////
 // CRPCMod
 
@@ -242,8 +258,8 @@ bool CRPCMod::HandleInitialize()
 
     RegisterRefHandler<CHttpReqMessage>(boost::bind(&CRPCMod::HandleHttpReq, this, _1));
     RegisterRefHandler<CHttpBrokenMessage>(boost::bind(&CRPCMod::HandleHttpBroken, this, _1));
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1));
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1));
+    RegisterPtrHandler<CAddedTxMessage>(boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1));
+    RegisterPtrHandler<CAddedBlockMessage>(boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1));
     RegisterRefHandler<CRPCSubmissionMessage>(boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1));
 
     return true;
@@ -301,7 +317,7 @@ bool CRPCMod::EnterLoop()
 
 void CRPCMod::LeaveLoop()
 {
-    for (auto it = vecWorker.begin(); it != vecWorker.end();)
+    for (auto it = vecWorker.begin(); it != vecWorker.end(); it++)
     {
         auto& spWorker = it->spWorker;
         spWorker->Stop();
@@ -381,26 +397,26 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
         if (vecWorker.empty())
         {
             auto spResp = StartWork(msg.spNonce, work.vecReq[i]);
-            CompletedWork(msg.spNonce, i, spResp);
+            CompletedWork(msg.spNonce, i, spResp, nullptr);
         }
         else
         {
             auto spAssignmentMsg = CRPCAssignmentMessage::Create();
             spAssignmentMsg->spNonce = msg.spNonce;
-            spAssignmentMsg->nWorkId = i;
+            spAssignmentMsg->nIndex = i;
             spAssignmentMsg->spReq = work.vecReq[i];
 
             // Average assignment
-            size_t nIndex = (msg.spNonce->nNonce + i) % vecWorker.size();
-            while (vecWorker[nIndex].nPayload > nAvgPayload)
+            size_t nWorkerId = (msg.spNonce->nNonce + i) % vecWorker.size();
+            while (vecWorker[nWorkerId].nPayload > nAvgPayload)
             {
-                nIndex = (nIndex + 1) % vecWorker.size();
+                nWorkerId = (nWorkerId + 1) % vecWorker.size();
             }
-            spAssignmentMsg->nWorkerId = nIndex;
+            spAssignmentMsg->nWorkerId = nWorkerId;
 
-            vecWorker[nIndex].nPayload++;
-            TRACE("RPCMod Assign work (%s) to worker (%s) payload (%u)", work.vecReq[i]->strMethod.c_str(), vecWorker[nIndex].spWorker->GetName().c_str(), vecWorker[nIndex].nPayload);
-            vecWorker[nIndex].spWorker->Publish(spAssignmentMsg);
+            vecWorker[nWorkerId].nPayload++;
+            TRACE("RPCMod Assign work (%s) to worker (%s) payload (%u)", work.vecReq[i]->strMethod.c_str(), vecWorker[nWorkerId].spWorker->GetName().c_str(), vecWorker[nWorkerId].nPayload);
+            vecWorker[nWorkerId].spWorker->Publish(spAssignmentMsg);
         }
     }
 }
@@ -416,28 +432,28 @@ void CRPCMod::HandleHttpBroken(const CHttpBrokenMessage& msg)
     }
 }
 
-void CRPCMod::HandleAddedBlockMsg(const CAddedBlockMessage& msg)
+void CRPCMod::HandleAddedTxMsg(shared_ptr<CAddedTxMessage> spMsg)
 {
-    HandleAddedMsg(msg.spNonce, 0, msg.block.GetHash(), msg);
+    CompletedWork(spMsg->spNonce, 0, nullptr, spMsg);
 }
 
-void CRPCMod::HandleAddedTxMsg(const CAddedTxMessage& msg)
+void CRPCMod::HandleAddedBlockMsg(shared_ptr<CAddedBlockMessage> spMsg)
 {
-    HandleAddedMsg(msg.spNonce, 0, msg.tx.GetHash(), msg);
+    CompletedWork(spMsg->spNonce, 0, nullptr, spMsg);
 }
 
 void CRPCMod::HandleSubmissionMsg(const CRPCSubmissionMessage& msg)
 {
     vecWorker[msg.nWorkerId].nPayload--;
     TRACE("Submission message worker (%s) payload (%u)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), vecWorker[msg.nWorkerId].nPayload);
-    CompletedWork(msg.spNonce, msg.nWorkId, msg.spResp);
+    CompletedWork(msg.spNonce, msg.nIndex, msg.spResp, nullptr);
 }
 
 void CRPCMod::HandleAssignmentMsg(const CRPCAssignmentMessage& msg)
 {
     auto spSubmissionMsg = CRPCSubmissionMessage::Create();
     spSubmissionMsg->spNonce = msg.spNonce;
-    spSubmissionMsg->nWorkId = msg.nWorkId;
+    spSubmissionMsg->nIndex = msg.nIndex;
     spSubmissionMsg->nWorkerId = msg.nWorkerId;
 
     TRACE("Worker (%s) start work (%s)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), msg.spReq->strMethod.c_str());
@@ -492,14 +508,83 @@ CRPCRespPtr CRPCMod::StartWork(CNoncePtr spNonce, CRPCReqPtr spReq)
     }
 }
 
-void CRPCMod::HandleAddedMsg(CNoncePtr spNonce, size_t nIndex, const uint256& hash, const CMessage& msg)
+CRPCRespPtr CRPCMod::CheckAsyncWork(CWork& work, size_t& nIndex, CRPCRespPtr spResp, shared_ptr<CMessage>& spMsg)
 {
-    if (!NonceType(spNonce->nNonce, HTTP_NONCE_TYPE))
+    if (spMsg)
+    {
+        uint256 hash;
+        if (spMsg->Type() == CAddedTxMessage::MessageType())
+        {
+            hash = dynamic_pointer_cast<CAddedTxMessage>(spMsg)->tx.GetHash();
+        }
+        else if (spMsg->Type() == CAddedBlockMessage::MessageType())
+        {
+            hash = dynamic_pointer_cast<CAddedBlockMessage>(spMsg)->block.GetHash();
+        }
+        else
+        {
+            return spResp;
+        }
+
+        auto it = work.mapIndex.find(hash);
+        if (it == work.mapIndex.end())
+        {
+            work.mapMsg.insert(make_pair(hash, spMsg));
+            return nullptr;
+        }
+        nIndex = it->second;
+        work.mapIndex.erase(it);
+    }
+    else if (spResp && spResp->spResult)
+    {
+        auto spAsyncResult = dynamic_pointer_cast<CRPCAsyncResult>(spResp->spResult);
+        if (!spAsyncResult)
+        {
+            return spResp;
+        }
+        uint256 hash = spAsyncResult->hash;
+
+        auto it = work.mapMsg.find(hash);
+        if (it == work.mapMsg.end())
+        {
+            work.mapIndex.insert(make_pair(hash, nIndex));
+            return nullptr;
+        }
+        spMsg = it->second;
+        work.mapMsg.erase(it);
+    }
+    else
+    {
+        return spResp;
+    }
+
+    if (nIndex >= work.vecReq.size())
+    {
+        return nullptr;
+    }
+
+    TRACE("Async work (%s), index (%u)", work.vecReq[nIndex]->strMethod.c_str(), nIndex);
+    auto& spReq = work.vecReq[nIndex];
+    auto funIt = mapRPCMessageFunc.find(spReq->strMethod);
+    if (funIt == mapRPCMessageFunc.end())
+    {
+        auto spError = CRPCErrorPtr(new CRPCError(RPC_METHOD_NOT_FOUND, string("RPC Message function (") + spReq->strMethod + ") not found"));
+        return MakeCRPCRespPtr(spReq->valID, spError);
+    }
+    else
+    {
+        auto spResult = (this->*(*funIt).second)(*spMsg);
+        return MakeCRPCRespPtr(spReq->valID, spResult);
+    }
+}
+
+void CRPCMod::CompletedWork(CNoncePtr spNonce, size_t nIndex, CRPCRespPtr spResp, shared_ptr<CMessage> spMsg)
+{
+    if (!spNonce)
     {
         return;
     }
 
-    // find work
     auto workIt = mapWork.find(spNonce);
     if (workIt == mapWork.end())
     {
@@ -507,59 +592,14 @@ void CRPCMod::HandleAddedMsg(CNoncePtr spNonce, size_t nIndex, const uint256& ha
     }
     CWork& work = workIt->second;
 
-    // find index by hash
-    if (!hash)
-    {
-        auto hashIt = work.mapHash.find(hash);
-        if (hashIt == work.mapHash.end())
-        {
-            return;
-        }
-
-        nIndex = hashIt->second;
-        work.mapHash.erase(hashIt);
-    }
-
-    // Call concrete message function
-    TRACE("complete work req size (%u), index (%u)", work.vecReq.size(), nIndex);
-    auto& spReq = work.vecReq[nIndex];
-    CRPCRespPtr spResp;
-    auto funIt = mapRPCMessageFunc.find(spReq->strMethod);
-    if (funIt == mapRPCMessageFunc.end())
-    {
-        auto spError = CRPCErrorPtr(new CRPCError(RPC_METHOD_NOT_FOUND, string("RPC Message function (") + spReq->strMethod + ") not found"));
-        spResp = MakeCRPCRespPtr(spReq->valID, spError);
-    }
-    else
-    {
-        auto spResult = (this->*(*funIt).second)(msg);
-        spResp = MakeCRPCRespPtr(spReq->valID, spResult);
-    }
-    TRACE("complete work call function end");
-
-    CompletedWork(spNonce, nIndex, spResp);
-}
-
-void CRPCMod::CompletedWork(xengine::CNoncePtr spNonce, size_t nIndex, rpc::CRPCRespPtr spResp)
-{
+    spResp = CheckAsyncWork(work, nIndex, spResp, spMsg);
     if (!spResp)
     {
         return;
     }
 
-    auto workIt = mapWork.find(spNonce);
-    if (workIt == mapWork.end())
-    {
-        return;
-    }
-    CWork& work = workIt->second;
-
-    if (nIndex >= work.vecResp.size())
-    {
-        return;
-    }
-
     work.vecResp[nIndex] = spResp;
+    TRACE("Nonce (%u) remainder %u", spNonce->nNonce, work.nRemainder-1);
     if (--work.nRemainder == 0)
     {
         string strResult;
@@ -1011,19 +1051,13 @@ CRPCResultPtr CRPCMod::RPCSendTransaction(CNoncePtr spNonce, CRPCParamPtr param)
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
 
-    uint256 txid = rawTx.GetHash();
-    auto it = mapWork.find(spNonce);
-    if (it != mapWork.end())
-    {
-        it->second.mapHash.insert(make_pair(txid, it->second.vecResp.size()));
-    }
-
     uint256 hashFork;
     if (!pService->SendTransaction(spNonce, hashFork, rawTx))
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : hash anchor not exist"));
     }
-    return nullptr;
+
+    return make_shared<CRPCAsyncResult>(rawTx.GetHash());
 }
 
 CRPCResultPtr CRPCMod::RPCGetForkHeight(CNoncePtr spNonce, CRPCParamPtr param)
@@ -1608,18 +1642,12 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CNoncePtr spNonce, CRPCParamPtr param)
         throw CRPCException(RPC_WALLET_ERROR, "The signature is not completed");
     }
 
-    uint256 txid = txNew.GetHash();
-    auto it = mapWork.find(spNonce);
-    if (it != mapWork.end())
-    {
-        it->second.mapHash.insert(make_pair(txid, it->second.vecResp.size()));
-    }
-
     if (!pService->SendTransaction(spNonce, hashFork, txNew))
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : hash anchor not exist"));
     }
-    return nullptr;
+
+    return make_shared<CRPCAsyncResult>(txNew.GetHash());
 }
 
 CRPCResultPtr CRPCMod::RPCCreateTransaction(CNoncePtr spNonce, CRPCParamPtr param)
@@ -2312,14 +2340,9 @@ CRPCResultPtr CRPCMod::RPCSubmitWork(CNoncePtr spNonce, CRPCParamPtr param)
     }
 
     uint256 blockHash = block.GetHash();
-    auto it = mapWork.find(spNonce);
-    if (it != mapWork.end())
-    {
-        it->second.mapHash.insert(make_pair(blockHash, it->second.vecResp.size()));
-    }
-
     pService->SendBlock(spNonce, pCoreProtocol->GetGenesisBlockHash(), blockHash, block);
-    return nullptr;
+
+    return make_shared<CRPCAsyncResult>(blockHash);
 }
 
 CRPCResultPtr CRPCMod::RPCQueryStat(CNoncePtr spNonce, CRPCParamPtr param)

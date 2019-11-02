@@ -27,7 +27,7 @@ protected:
     {
         GENERATE_MESSAGE_FUNCTION(CRPCAssignmentMessage);
         std::shared_ptr<CNonce> spNonce;
-        size_t nWorkId;
+        size_t nIndex;
         size_t nWorkerId;
         rpc::CRPCReqPtr spReq;
     };
@@ -35,9 +35,27 @@ protected:
     {
         GENERATE_MESSAGE_FUNCTION(CRPCSubmissionMessage);
         std::shared_ptr<CNonce> spNonce;
-        size_t nWorkId;
+        size_t nIndex;
         size_t nWorkerId;
         rpc::CRPCRespPtr spResp;
+    };
+
+    struct CWork
+    {
+        size_t nRemainder;
+        bool fArray;
+        rpc::CRPCReqVec vecReq;
+        rpc::CRPCRespVec vecResp;
+        std::multimap<uint256, size_t> mapIndex;
+        std::multimap<uint256, std::shared_ptr<xengine::CMessage>> mapMsg;
+    };
+
+    struct CWorker
+    {
+        CWorker(const std::string& strName)
+          : spWorker(new CIOActorWorker(strName)), nPayload(0) {}
+        std::shared_ptr<xengine::CIOActorWorker> spWorker;
+        uint32 nPayload;
     };
 
 public:
@@ -47,14 +65,14 @@ public:
 protected:
     void HandleHttpReq(const xengine::CHttpReqMessage& msg);
     void HandleHttpBroken(const xengine::CHttpBrokenMessage& msg);
-    void HandleAddedBlockMsg(const CAddedBlockMessage& msg);
-    void HandleAddedTxMsg(const CAddedTxMessage& msg);
+    void HandleAddedTxMsg(std::shared_ptr<CAddedTxMessage> spMsg);
+    void HandleAddedBlockMsg(std::shared_ptr<CAddedBlockMessage> spMsg);
     void HandleSubmissionMsg(const CRPCSubmissionMessage& msg);
     void HandleAssignmentMsg(const CRPCAssignmentMessage& msg);
 
     rpc::CRPCRespPtr StartWork(CNoncePtr spNonce, rpc::CRPCReqPtr spReq);
-    void HandleAddedMsg(xengine::CNoncePtr spNonce, size_t nIndex, const uint256& hash, const CMessage& msg);
-    void CompletedWork(xengine::CNoncePtr spNonce, size_t nIndex, rpc::CRPCRespPtr spResp);
+    rpc::CRPCRespPtr CheckAsyncWork(CWork& work, size_t& nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage>& spMsg);
+    void CompletedWork(xengine::CNoncePtr spNonce, size_t nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage> spMsg);
 
 protected:
     bool HandleInitialize() override;
@@ -180,23 +198,6 @@ protected:
 
     std::map<std::string, RPCFunc> mapRPCFunc;
     std::map<std::string, RPCMessageFunc> mapRPCMessageFunc;
-
-protected:
-    struct CWork
-    {
-        size_t nRemainder;
-        bool fArray;
-        rpc::CRPCReqVec vecReq;
-        rpc::CRPCRespVec vecResp;
-        std::multimap<uint256, size_t> mapHash;
-    };
-    struct CWorker
-    {
-        CWorker(const std::string& strName)
-          : spWorker(new CIOActorWorker(strName)), nPayload(0) {}
-        std::shared_ptr<xengine::CIOActorWorker> spWorker;
-        uint32 nPayload;
-    };
 
     size_t nWorkCount;
     std::map<xengine::CNoncePtr, CWork> mapWork;

@@ -275,7 +275,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             dynamic_cast<CHttpServer*>(pBase)->AddNewHost(GetRPCHostConfig());
 
             const CRPCServerConfig* pConfig = CastConfigPtr<CRPCServerConfig*>(config.GetConfig());
-            if (!AttachModule(new CRPCMod(pConfig->nRPCWorker)))
+            if (!AttachModule(new CRPCMod(pConfig->nRPCThread)))
             {
                 return false;
             }
@@ -318,6 +318,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
 
             if (!AttachModule(pWallet))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::WALLETCONTROLLER:
+        {
+            if (!AttachModule(new CWalletController()))
             {
                 return false;
             }

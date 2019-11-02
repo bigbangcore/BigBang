@@ -33,7 +33,6 @@ void CIOActorWorker::Stop()
         ioService.stop();
     }
 
-    thrIOActorWorker.Interrupt();
     thrIOActorWorker.Exit();
 }
 

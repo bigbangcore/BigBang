@@ -300,6 +300,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     auto it = mapPoolView.find(hashFork);
     if (it == mapPoolView.end())
     {
+        TRACE("pool not exists");
         return false;
     }
     const CTxPoolView& txView = it->second;
@@ -310,6 +311,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
+        TRACE("view prevout is spent");
             return false;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
@@ -317,6 +319,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
 
     if (!pWorldLineCtrl->GetTxUnspent(hashFork, tx.vInput, vUnspent))
     {
+        TRACE("worldline prevout error");
         return false;
     }
 
@@ -325,6 +328,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (vUnspent[i].IsNull())
         {
+        TRACE("unspent is not exists");
             return false;
         }
 
@@ -334,6 +338,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         }
         else if (destIn != vUnspent[i].destTo)
         {
+        TRACE("destIn is not equal destTo");
             return false;
         }
     }
@@ -446,6 +451,7 @@ bool CTxPool::LoadData()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
+    mapPoolView.insert(make_pair(pCoreProtocol->GetGenesisBlockHash(), CTxPoolView()));
     vector<pair<uint256, pair<uint256, CAssembledTx>>> vTx;
     if (!datTxPool.Load(vTx))
     {
