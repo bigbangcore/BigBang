@@ -183,12 +183,6 @@ void CWallet::HandleDeinitialize()
 
 bool CWallet::HandleInvoke()
 {
-    if (!StartActor())
-    {
-        ERROR("Failed to start actor");
-        return false;
-    }
-
     if (!dbWallet.Initialize(Config() ? (Config()->pathData / "wallet") : "./"))
     {
         ERROR("Failed to initialize wallet database");
@@ -212,29 +206,8 @@ bool CWallet::HandleInvoke()
 
 void CWallet::HandleHalt()
 {
-    StopActor();
-
     dbWallet.Deinitialize();
     Clear();
-}
-
-void CWallet::HandleNewFork(const CAddedBlockMessage& msg)
-{
-    if (msg.block.IsOrigin())
-    {
-        AddNewFork(msg.update.hashFork, msg.update.hashParent, msg.update.nOriginHeight);
-    }
-}
-
-void CWallet::HandleAddedTx(const CAddedTxMessage& msg)
-{
-    CAssembledTx assembledTx(msg.tx, -1, msg.destIn, msg.nValueIn);
-    AddNewTx(msg.hashFork, assembledTx);
-}
-
-void CWallet::HandleSyncTxChange(const CSyncTxChangeMessage& msg)
-{
-    SynchronizeTxSet(msg.change);
 }
 
 bool CWallet::IsMine(const CDestination& dest)
@@ -1431,6 +1404,77 @@ void CWallet::RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint2
     {
         mapWalletUnspent[spWalletTx->sendTo].Pop(hashFork, spWalletTx, 0);
     }
+}
+
+CWalletController::CWalletController()
+{
+
+}
+
+CWalletController::~CWalletController()
+{
+
+}
+
+bool CWalletController::HandleInitialize()
+{
+    if (!GetObject("wallet", pWallet))
+    {
+        ERROR("Failed to request wallet");
+        return false;
+    }
+
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CWalletController::HandleNewFork, this, _1));
+    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CWalletController::HandleAddedTx, this, _1));
+    RegisterRefHandler<CSyncTxChangeMessage>(boost::bind(&CWalletController::HandleSyncTxChange, this, _1));
+
+    return true;
+}
+
+void CWalletController::HandleDeinitialize()
+{
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler(CAddedTxMessage::MessageType());
+    DeregisterHandler(CSyncTxChangeMessage::MessageType());
+
+    pWallet = nullptr;
+}
+
+bool CWalletController::HandleInvoke()
+{
+    if (!StartActor())
+    {
+        ERROR("Failed to start actor");
+        return false;
+    }
+    return true;
+}
+
+void CWalletController::HandleHalt()
+{
+    StopActor();
+}
+
+void CWalletController::HandleNewFork(const CAddedBlockMessage& msg)
+{
+    TRACE("Wallet received new block message");
+    if (msg.block.IsOrigin())
+    {
+        AddNewFork(msg.update.hashFork, msg.update.hashParent, msg.update.nOriginHeight);
+    }
+}
+
+void CWalletController::HandleAddedTx(const CAddedTxMessage& msg)
+{
+    TRACE("Wallet received new tx message");
+    CAssembledTx assembledTx(msg.tx, -1, msg.destIn, msg.nValueIn);
+    AddNewTx(msg.hashFork, assembledTx);
+}
+
+void CWalletController::HandleSyncTxChange(const CSyncTxChangeMessage& msg)
+{
+    TRACE("Wallet received sync tx change message");
+    SynchronizeTxSet(msg.change);
 }
 
 } // namespace bigbang

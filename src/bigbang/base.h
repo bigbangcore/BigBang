@@ -289,11 +289,14 @@ public:
     }
 };
 
-class IWallet : public xengine::CIOActor
+class IWalletController;
+class IWallet : public xengine::IModel
 {
+    friend class IWalletController;
+
 public:
     IWallet()
-      : CIOActor("wallet") {}
+      : IModel("wallet") {}
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
@@ -318,10 +321,6 @@ public:
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) const = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
-    /* Update */
-    virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
-    virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
-    virtual bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight) = 0;
     /* Sync */
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
@@ -334,6 +333,37 @@ public:
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
     }
+
+protected:
+    /* Update */
+    virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
+    virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
+    virtual bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight) = 0;
+};
+
+class IWalletController : public xengine::CIOActor
+{
+public:
+    IWalletController() : CIOActor("walletcontroller"), pWallet(nullptr) {}
+
+protected:
+    bool SynchronizeTxSet(const CTxSetChange& change)
+    {
+        return pWallet->SynchronizeTxSet(change);
+    }
+
+    bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx)
+    {
+        return pWallet->AddNewTx(hashFork, tx);
+    }
+
+    bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight)
+    {
+        return pWallet->AddNewFork(hashFork, hashParent, nOriginHeight);
+    }
+
+protected:
+    IWallet* pWallet;
 };
 
 class IDispatcher : public xengine::IBase

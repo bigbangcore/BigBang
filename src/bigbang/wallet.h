@@ -167,10 +167,6 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleNewFork(const CAddedBlockMessage& msg);
-    void HandleAddedTx(const CAddedTxMessage& msg);
-    void HandleSyncTxChange(const CSyncTxChangeMessage& msg);
-
     bool LoadDB();
     void Clear();
     bool ClearTx();
@@ -202,6 +198,23 @@ protected:
     std::map<uint256, std::shared_ptr<CWalletTx>> mapWalletTx;
     std::map<CDestination, CWalletUnspent> mapWalletUnspent;
     std::map<uint256, CWalletFork> mapFork;
+};
+
+class CWalletController : public IWalletController
+{
+public:
+    CWalletController();
+    ~CWalletController();
+
+protected:
+    bool HandleInitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
+    void HandleDeinitialize() override;
+
+    void HandleNewFork(const CAddedBlockMessage& msg);
+    void HandleAddedTx(const CAddedTxMessage& msg);
+    void HandleSyncTxChange(const CSyncTxChangeMessage& msg);
 };
 
 // dummy wallet for on wallet server

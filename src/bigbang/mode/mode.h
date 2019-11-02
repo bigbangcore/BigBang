@@ -165,6 +165,7 @@ public:
                 EModuleType::FORKMANAGER,
                 EModuleType::CONSENSUS,
                 EModuleType::WALLET,
+                EModuleType::WALLETCONTROLLER,
                 EModuleType::NETWORK,
                 EModuleType::NETCHANNEL,
                 EModuleType::DISPATCHER,
