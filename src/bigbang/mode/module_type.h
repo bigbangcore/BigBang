@@ -26,6 +26,7 @@ enum class EModuleType
     TXPOOL,              // CTxPool
     TXPOOLCONTROLLER,    // CTxPoolController
     WALLET,              // CWallet
+    WALLETCONTROLLER,    // CWalletController
     WORLDLINE,           // CWorldLine
     WORLDLINECONTROLLER, // CWorldLineController
     CONSENSUS,           // CConsensus

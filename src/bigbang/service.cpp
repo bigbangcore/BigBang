@@ -356,10 +356,11 @@ bool CService::SendTransaction(CNoncePtr spNonce, uint256& hashFork, const CTran
         }
     }
 
-    auto spAddTxMsg = CAddedTxMessage::Create();
+    auto spAddTxMsg = CAddTxMessage::Create();
     spAddTxMsg->spNonce = spNonce;
     spAddTxMsg->hashFork = hashFork;
     spAddTxMsg->tx = tx;
+    PUBLISH_MESSAGE(spAddTxMsg);
     return true;
 }
 
