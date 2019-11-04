@@ -186,17 +186,17 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (block.IsOrigin())
     {
-        if (!pWallet->AddNewFork(updateWorldLine.hashFork, updateWorldLine.hashParent,
-                                 updateWorldLine.nOriginHeight))
-        {
-            return ERR_SYS_DATABASE_ERROR;
-        }
+        // if (!pWallet->AddNewFork(updateWorldLine.hashFork, updateWorldLine.hashParent,
+        //                          updateWorldLine.nOriginHeight))
+        // {
+        //     return ERR_SYS_DATABASE_ERROR;
+        // }
     }
 
-    if (!pWallet->SynchronizeTxSet(changeTxSet))
-    {
-        return ERR_SYS_DATABASE_ERROR;
-    }
+    // if (!pWallet->SynchronizeTxSet(changeTxSet))
+    // {
+    //     return ERR_SYS_DATABASE_ERROR;
+    // }
 
     if (!block.IsOrigin() && !block.IsVacant())
     {
@@ -253,10 +253,10 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     pDataStat->AddP2pSynTxSynStatData(hashFork, !!nNonce);
 
     CAssembledTx assembledTx(tx, -1, destIn, nValueIn);
-    if (!pWallet->AddNewTx(hashFork, assembledTx))
-    {
-        return ERR_SYS_DATABASE_ERROR;
-    }
+    // if (!pWallet->AddNewTx(hashFork, assembledTx))
+    // {
+    //     return ERR_SYS_DATABASE_ERROR;
+    // }
 
     CTransactionUpdate updateTransaction;
     updateTransaction.hashFork = hashFork;

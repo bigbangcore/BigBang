@@ -289,11 +289,14 @@ public:
     }
 };
 
-class IWallet : public xengine::CIOActor
+class IWalletController;
+class IWallet : public xengine::IModel
 {
+    friend class IWalletController;
+
 public:
     IWallet()
-      : CIOActor("wallet") {}
+      : IModel("wallet") {}
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
@@ -318,10 +321,6 @@ public:
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) const = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
-    /* Update */
-    virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
-    virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
-    virtual bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight) = 0;
     /* Sync */
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
@@ -334,6 +333,37 @@ public:
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
     }
+
+protected:
+    /* Update */
+    virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
+    virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
+    virtual bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight) = 0;
+};
+
+class IWalletController : public xengine::CIOActor
+{
+public:
+    IWalletController() : CIOActor("walletcontroller"), pWallet(nullptr) {}
+
+protected:
+    bool SynchronizeTxSet(const CTxSetChange& change)
+    {
+        return pWallet->SynchronizeTxSet(change);
+    }
+
+    bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx)
+    {
+        return pWallet->AddNewTx(hashFork, tx);
+    }
+
+    bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight)
+    {
+        return pWallet->AddNewFork(hashFork, hashParent, nOriginHeight);
+    }
+
+protected:
+    IWallet* pWallet;
 };
 
 class IDispatcher : public xengine::IBase
@@ -380,7 +410,7 @@ public:
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) = 0;
     virtual void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
-    virtual Errno SendTransaction(CTransaction& tx) = 0;
+    virtual bool SendTransaction(xengine::CNoncePtr spNonce, uint256& hashFork, const CTransaction& tx) = 0;
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     /* Wallet */
     virtual bool HaveKey(const crypto::CPubKey& pubkey) = 0;
@@ -409,7 +439,8 @@ public:
     virtual bool ResynchronizeWalletTx() = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
-    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) = 0;
+    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) = 0;
+    virtual bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

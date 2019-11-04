@@ -10,13 +10,12 @@
 
 #include "netio/nethost.h"
 #include "util.h"
+#include "nonce.h"
 
 using namespace std;
 using boost::asio::ip::tcp;
 
 #define CONNECT_TIMEOUT 10
-
-static const uint8 PEER_NONCE_TYPE = 0xFF;
 
 namespace xengine
 {

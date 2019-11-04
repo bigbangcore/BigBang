@@ -7,27 +7,81 @@
 
 #include "json/json_spirit.h"
 #include <boost/function.hpp>
+#include <map>
 
 #include "base.h"
+#include "message.h"
 #include "rpc/rpc.h"
 #include "xengine.h"
-#include "http/httpmessage.h"
 
 namespace bigbang
 {
 
-class CRPCMod : public xengine::IIOModule, virtual public xengine::CHttpEventListener
+class CRPCMod : public xengine::CIOActor
 {
+protected:
+    typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    typedef rpc::CRPCResultPtr (CRPCMod::*RPCMessageFunc)(const xengine::CMessage& msg);
+
+    struct CRPCAssignmentMessage : public xengine::CMessage
+    {
+        GENERATE_MESSAGE_FUNCTION(CRPCAssignmentMessage);
+        std::shared_ptr<CNonce> spNonce;
+        size_t nIndex;
+        size_t nWorkerId;
+        rpc::CRPCReqPtr spReq;
+    };
+    struct CRPCSubmissionMessage : public xengine::CMessage
+    {
+        GENERATE_MESSAGE_FUNCTION(CRPCSubmissionMessage);
+        std::shared_ptr<CNonce> spNonce;
+        size_t nIndex;
+        size_t nWorkerId;
+        rpc::CRPCRespPtr spResp;
+    };
+
+    struct CWork
+    {
+        size_t nRemainder;
+        bool fArray;
+        rpc::CRPCReqVec vecReq;
+        rpc::CRPCRespVec vecResp;
+        std::multimap<uint256, size_t> mapIndex;
+        std::multimap<uint256, std::shared_ptr<xengine::CMessage>> mapMsg;
+    };
+
+    struct CWorker
+    {
+        CWorker(const std::string& strName)
+          : spWorker(new CIOActorWorker(strName)), nPayload(0) {}
+        std::shared_ptr<xengine::CIOActorWorker> spWorker;
+        uint32 nPayload;
+    };
+
 public:
-    typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(rpc::CRPCParamPtr param);
-    CRPCMod();
+    CRPCMod(const uint nWorker = 1);
     ~CRPCMod();
-    bool HandleEvent(xengine::CEventHttpReq& eventHttpReq) override;
-    bool HandleEvent(xengine::CEventHttpBroken& eventHttpBroken) override;
+
+protected:
+    void HandleHttpReq(const xengine::CHttpReqMessage& msg);
+    void HandleHttpBroken(const xengine::CHttpBrokenMessage& msg);
+    void HandleAddedTxMsg(std::shared_ptr<CAddedTxMessage> spMsg);
+    void HandleAddedBlockMsg(std::shared_ptr<CAddedBlockMessage> spMsg);
+    void HandleSubmissionMsg(const CRPCSubmissionMessage& msg);
+    void HandleAssignmentMsg(const CRPCAssignmentMessage& msg);
+
+    rpc::CRPCRespPtr StartWork(CNoncePtr spNonce, rpc::CRPCReqPtr spReq);
+    rpc::CRPCRespPtr CheckAsyncWork(CWork& work, size_t& nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage>& spMsg);
+    void CompletedWork(xengine::CNoncePtr spNonce, size_t nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage> spMsg);
 
 protected:
     bool HandleInitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
     void HandleDeinitialize() override;
+    bool EnterLoop() override;
+    void LeaveLoop() override;
+
     const CNetworkConfig* Config()
     {
         return dynamic_cast<const CNetworkConfig*>(xengine::IBase::Config());
@@ -37,7 +91,7 @@ protected:
         return dynamic_cast<const CRPCServerConfig*>(IBase::Config());
     }
 
-    void JsonReply(uint64 nNonce, const std::string& result);
+    void JsonReply(xengine::CNoncePtr spNonce, const std::string& result);
 
     int GetInt(const rpc::CRPCInt64& i, int valDefault)
     {
@@ -69,64 +123,72 @@ protected:
     std::string GetWidthString(const std::string& strIn, int nWidth);
     std::string GetWidthString(uint64 nCount, int nWidth);
 
-private:
+    /// Remove all sensible information such as private key or passphrass from log content
+    std::string MaskSensitiveData(std::string strData);
+
+protected:
     /* System */
-    rpc::CRPCResultPtr RPCHelp(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCStop(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCVersion(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCHelp(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCStop(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCVersion(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     /* Network */
-    rpc::CRPCResultPtr RPCGetPeerCount(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCListPeer(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCAddNode(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCRemoveNode(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetPeerCount(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListPeer(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCAddNode(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCRemoveNode(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     /* Worldline & TxPool */
-    rpc::CRPCResultPtr RPCGetForkCount(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCListFork(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetForkGenealogy(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetBlockLocation(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetBlockCount(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetBlockHash(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetBlock(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetTxPool(rpc::CRPCParamPtr param);
-    // CRPCResultPtr RPCRemovePendingTx(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSendTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetForkHeight(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetForkCount(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListFork(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetForkGenealogy(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlockLocation(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlockCount(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlockHash(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlock(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetTxPool(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    // CRPCResultPtr RPCRemovePendingTx(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetForkHeight(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     /* Wallet */
-    rpc::CRPCResultPtr RPCListKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetNewKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCEncryptKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCLockKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCUnlockKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCImportPrivKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCImportKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCExportKey(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCAddNewTemplate(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCImportTemplate(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCExportTemplate(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCValidateAddress(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCResyncWallet(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetBalance(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCListTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSendFrom(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCCreateTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSignTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSignMessage(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCListAddress(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCExportWallet(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCImportWallet(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCMakeOrigin(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetNewKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCEncryptKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCLockKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCUnlockKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportPrivKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCExportKey(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCAddNewTemplate(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportTemplate(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCExportTemplate(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCValidateAddress(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCResyncWallet(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBalance(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendFrom(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCCreateTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSignTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSignMessage(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListAddress(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCExportWallet(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportWallet(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCMakeOrigin(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     /* Util */
-    rpc::CRPCResultPtr RPCVerifyMessage(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCMakeKeyPair(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetPubKeyAddress(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetTemplateAddress(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCVerifyMessage(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCMakeKeyPair(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetPubKeyAddress(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetTemplateAddress(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCMakeTemplate(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCDecodeTransaction(CNoncePtr spNonce, rpc::CRPCParamPtr param);
     /* Mint */
-    rpc::CRPCResultPtr RPCGetWork(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSubmitWork(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCQueryStat(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetWork(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSubmitWork(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCQueryStat(CNoncePtr spNonce, rpc::CRPCParamPtr param);
+
+protected:
+    rpc::CRPCResultPtr RPCMsgSubmitWork(const xengine::CMessage& msg);
+    rpc::CRPCResultPtr RPCMsgSendFrom(const xengine::CMessage& msg);
+    rpc::CRPCResultPtr RPCMsgSendTransaction(const xengine::CMessage& msg);
 
 protected:
     xengine::CIOProc* pHttpServer;
@@ -134,9 +196,12 @@ protected:
     IService* pService;
     IDataStat* pDataStat;
 
-private:
     std::map<std::string, RPCFunc> mapRPCFunc;
-    bool fWriteRPCLog;
+    std::map<std::string, RPCMessageFunc> mapRPCMessageFunc;
+
+    size_t nWorkCount;
+    std::map<xengine::CNoncePtr, CWork> mapWork;
+    std::vector<CWorker> vecWorker;
 };
 
 } // namespace bigbang

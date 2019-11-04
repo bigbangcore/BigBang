@@ -123,6 +123,15 @@ bool CRPCServerConfig::PostLoad()
                               nRPCPort);
     }
 
+    if (nRPCThread < RPC_THREAD_LOWER_LIMIT)
+    {
+        nRPCThread = RPC_THREAD_LOWER_LIMIT;
+    }
+    else if (nRPCThread > RPC_THREAD_UPPER_LIMIT)
+    {
+        nRPCThread = RPC_THREAD_UPPER_LIMIT;
+    }
+
     return true;
 }
 

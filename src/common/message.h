@@ -7,6 +7,7 @@
 
 #include <uint256.h>
 #include <vector>
+#include <memory>
 
 #include "block.h"
 #include "message/message.h"

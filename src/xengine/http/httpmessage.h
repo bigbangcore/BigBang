@@ -13,6 +13,7 @@
 #include "http/httptype.h"
 #include "message/message.h"
 #include "stream/stream.h"
+#include "nonce.h"
 
 namespace xengine
 {
@@ -60,7 +61,7 @@ struct CHttpReqMessage : public CHttpContent, public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpReqMessage);
 
-    uint64 nNonce;
+    CNoncePtr spNonce;
     std::string strUser;
     MAPIKeyValue mapHeader;
     MAPKeyValue mapQuery;
@@ -84,7 +85,7 @@ struct CHttpRspMessage : public CHttpContent, public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpRspMessage);
 
-    uint64 nNonce;
+    CNoncePtr spNonce; 
     MAPIKeyValue mapHeader;
     MAPCookie mapCookie;
     int nStatusCode;
@@ -102,6 +103,7 @@ struct CHttpBrokenMessage : public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpBrokenMessage);
 
+    CNoncePtr spNonce; 
     bool fEventStream;
 };
 

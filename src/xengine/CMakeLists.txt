@@ -57,6 +57,7 @@ set(sources
     http/httpmessage.h
     peernet/peerevent.h
     peernet/peerinfo.h
+    nonce.h
 )
 
 add_library(xengine ${sources})

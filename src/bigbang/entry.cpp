@@ -274,7 +274,8 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             dynamic_cast<CHttpServer*>(pBase)->AddNewHost(GetRPCHostConfig());
 
-            if (!AttachModule(new CRPCMod()))
+            const CRPCServerConfig* pConfig = CastConfigPtr<CRPCServerConfig*>(config.GetConfig());
+            if (!AttachModule(new CRPCMod(pConfig->nRPCThread)))
             {
                 return false;
             }
@@ -317,6 +318,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
 
             if (!AttachModule(pWallet))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::WALLETCONTROLLER:
+        {
+            if (!AttachModule(new CWalletController()))
             {
                 return false;
             }
@@ -385,7 +394,7 @@ CHttpHostConfig CBbEntry::GetRPCHostConfig()
     }
 
     return CHttpHostConfig(pConfig->epRPC, pConfig->nRPCMaxConnections, sslRPC, mapUsrRPC,
-                           pConfig->vRPCAllowIP, "rpcmod");
+                           pConfig->vRPCAllowIP);
 }
 
 void CBbEntry::PurgeStorage()

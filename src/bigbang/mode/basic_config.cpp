@@ -39,10 +39,6 @@ bool CBasicConfig::PostLoad()
     {
         nLogLevel = xengine::severity_level::INFO;
     }
-    if (fDebug)
-    {
-        nLogLevel = xengine::severity_level::DEBUG;
-    }
 
     return true;
 }
