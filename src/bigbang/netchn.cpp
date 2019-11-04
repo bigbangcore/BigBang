@@ -810,46 +810,47 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
             throw runtime_error("Inv count overflow.");
         }
 
+        uint32 nType = invMsg.vecInv.size() > 0 ? invMsg.vecInv[0].nType : 0;
         uint256 nLastHaveBlockHash;
-        int lastHaveBlockIndex = 0;
-        for (int i = 0; i < invMsg.vecInv.size(); ++i)
+        if (nType == network::CInv::MSG_TX)
         {
-            const auto& inv = invMsg.vecInv[i];
-            if (inv.nType == network::CInv::MSG_BLOCK && pWorldLineCtrl->Exists(inv.nHash))
+            vector<uint256> vTxHash;
+            for (int i = 0; i < invMsg.vecInv.size(); ++i)
             {
-                nLastHaveBlockHash = inv.nHash;
-                lastHaveBlockIndex = i;
+                const auto& inv = invMsg.vecInv[i];
+                if (!pTxPoolCtrl->Exists(inv.nHash))
+                {
+                    pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
+                    vTxHash.push_back(inv.nHash);
+                }
+            }
+            if (!vTxHash.empty())
+            {
+                pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
             }
         }
-
-        int firstHaveNotBlockIndex = 0;
-        if (lastHaveBlockIndex < invMsg.vecInv.size() - 1)
+        else if (nType == network::CInv::MSG_BLOCK)
         {
-            firstHaveNotBlockIndex = lastHaveBlockIndex + 1;
-        }
-
-        vector<uint256> vTxHash;
-        for (int i = 0; i < invMsg.vecInv.size(); ++i)
-        {
-            const auto& inv = invMsg.vecInv[i];
-            if (inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
+            if (invMsg.vecInv.size() > 110)
             {
-                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
-                vTxHash.push_back(inv.nHash);
-            }
+                for (int i = 0; i < 110; ++i)
+                {
+                    const auto& inv = invMsg.vecInv[i];
+                    if (!pWorldLineCtrl->Exists(inv.nHash))
+                    {
+                        pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
+                    }
+                }
 
-            if (inv.nType == network::CInv::MSG_BLOCK
-                && !pWorldLineCtrl->Exists(inv.nHash)
-                && lastHaveBlockIndex > 0
-                && firstHaveNotBlockIndex > 0
-                && i < firstHaveNotBlockIndex)
-            {
-                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
+                for (int i = 110; i < invMsg.vecInv.size(); ++i)
+                {
+                    const auto& inv = invMsg.vecInv[i];
+                    if (pWorldLineCtrl->Exists(inv.nHash))
+                    {
+                        nLastHaveBlockHash = inv.nHash;
+                    }
+                }
             }
-        }
-        if (!vTxHash.empty())
-        {
-            pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
         }
 
         SchedulePeerInv(nNonce, hashFork, true, nLastHaveBlockHash);
