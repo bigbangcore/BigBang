@@ -810,24 +810,41 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
             throw runtime_error("Inv count overflow.");
         }
 
-        vector<uint256> vTxHash;
-        // last block hash in this inv vector
         uint256 nLastHaveBlockHash;
-        for (const network::CInv& inv : invMsg.vecInv)
+        int lastHaveBlockIndex = 0;
+        for (int i = 0; i < invMsg.vecInv.size(); ++i)
         {
-            if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
-                || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCtrl->Exists(inv.nHash)))
-            {
-                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
-                if (inv.nType == network::CInv::MSG_TX)
-                {
-                    vTxHash.push_back(inv.nHash);
-                }
-            }
-
+            const auto& inv = invMsg.vecInv[i];
             if (inv.nType == network::CInv::MSG_BLOCK && pWorldLineCtrl->Exists(inv.nHash))
             {
                 nLastHaveBlockHash = inv.nHash;
+                lastHaveBlockIndex = i;
+            }
+        }
+
+        int firstHaveNotBlockIndex = 0;
+        if (lastHaveBlockIndex < invMsg.vecInv.size() - 1)
+        {
+            firstHaveNotBlockIndex = lastHaveBlockIndex + 1;
+        }
+
+        vector<uint256> vTxHash;
+        for (int i = 0; i < invMsg.vecInv.size(); ++i)
+        {
+            const auto& inv = invMsg.vecInv[i];
+            if (inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
+            {
+                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
+                vTxHash.push_back(inv.nHash);
+            }
+
+            if (inv.nType == network::CInv::MSG_BLOCK
+                && !pWorldLineCtrl->Exists(inv.nHash)
+                && lastHaveBlockIndex > 0
+                && firstHaveNotBlockIndex > 0
+                && i < firstHaveNotBlockIndex)
+            {
+                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
             }
         }
         if (!vTxHash.empty())
