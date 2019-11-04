@@ -63,6 +63,16 @@ inline std::string GetUniversalTime()
     return ss.str();
 }
 
+inline std::string GetTimeString(int64 nTime)
+{
+    using namespace boost::posix_time;
+    time_facet* facet = new time_facet("%Y-%m-%d %H:%M:%S");
+    std::stringstream ss;
+    ss.imbue(std::locale(std::locale("C"), facet));
+    ss << from_time_t(nTime);
+    return ss.str();
+}
+
 class CTicks
 {
 public:

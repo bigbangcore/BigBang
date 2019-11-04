@@ -563,10 +563,24 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
     {
         CListPeerResult::CPeer peer;
         peer.strAddress = info.strAddress;
-        peer.strServices = UIntToHexString(info.nService);
-        peer.nLastsend = info.nLastSend;
-        peer.nLastrecv = info.nLastRecv;
-        peer.nConntime = info.nActive;
+        if (info.nService & network::NODE_NETWORK)
+        {
+            peer.strServices = "NODE_NETWORK";
+        }
+        if (info.nService & network::NODE_DELEGATED)
+        {
+            if (peer.strServices.empty())
+            {
+                peer.strServices = "NODE_DELEGATED";
+            }
+            else
+            {
+                peer.strServices = peer.strServices + ",NODE_DELEGATED";
+            }
+        }
+        peer.strLastsend = GetTimeString(info.nLastSend);
+        peer.strLastrecv = GetTimeString(info.nLastRecv);
+        peer.strConntime = GetTimeString(info.nActive);
         peer.nPingtime = info.nPingPongTimeDelta;
         peer.strVersion = FormatVersion(info.nVersion);
         peer.strSubver = info.strSubVer;

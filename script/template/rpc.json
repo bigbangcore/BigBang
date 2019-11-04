@@ -632,16 +632,16 @@
                             "desc": "service"
                         },
                         "lastsend": {
-                            "type": "int",
-                            "desc": "last send time"
+                            "type": "string",
+                            "desc": "last send time(utc)"
                         },
                         "lastrecv": {
-                            "type": "int",
-                            "desc": "last receive time"
+                            "type": "string",
+                            "desc": "last receive time(utc)"
                         },
                         "conntime": {
-                            "type": "int",
-                            "desc": "active time"
+                            "type": "string",
+                            "desc": "active time(utc)"
                         },
                         "pingtime": {
                             "type": "int",
@@ -674,11 +674,11 @@
         "example": [
             {
                 "request": "bigbang-cli listpeer",
-                "response": "[{\"address\":\"113.105.146.22\",\"services\":\"0000000000000001\",\"lastsend\":1538113861,\"lastrecv\":1538113861,\"conntime\":1538113661,\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.1.0/Protocol:0.1.0/\",\"inbound\":false,\"height\":31028,\"banscore\":true}]"
+                "response": "[{\"address\":\"113.105.146.22\",\"services\":\"NODE_NETWORK,NODE_DELEGATED\",\"lastsend\":\"2019-10-25 03:11:09\",\"lastrecv\":\"2019-10-25 03:11:09\",\"conntime\":\"2019-10-25 03:05:23\",\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.9.2/Protocol:0.1.0/9be9a865898c5cea90c716c17603cf3f0f185a5b\",\"inbound\":false,\"height\":31028,\"banscore\":true}]"
             },
             {
                 "request": "curl -d '{\"id\":40,\"method\":\"listpeer\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
-                "response": "{\"id\":40,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"113.105.146.22\",\"services\":\"0000000000000001\",\"lastsend\":1538113861,\"lastrecv\":1538113861,\"conntime\":1538113661,\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.1.0/Protocol:0.1.0/\",\"inbound\":false,\"height\":31028,\"banscore\":true}]}"
+                "response": "{\"id\":40,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"113.105.146.22\",\"services\":\"NODE_NETWORK,NODE_DELEGATED\",\"lastsend\":\"2019-10-25 03:11:09\",\"lastrecv\":\"2019-10-25 03:11:09\",\"conntime\":\"2019-10-25 03:05:23\",\"version\":\"0.1.0\",\"subver\":\"/Bigbang:0.9.2/Protocol:0.1.0/9be9a865898c5cea90c716c17603cf3f0f185a5b\",\"inbound\":false,\"height\":31028,\"banscore\":true}]}"
             }
         ]
     },
