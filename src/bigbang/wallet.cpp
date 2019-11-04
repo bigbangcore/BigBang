@@ -1458,7 +1458,7 @@ void CWalletController::HandleHalt()
 void CWalletController::HandleNewFork(const CAddedBlockMessage& msg)
 {
     TRACE("Wallet received new block message");
-    if (msg.block.IsOrigin())
+    if (msg.nErrno == OK && !msg.update.IsNull() && msg.block.IsOrigin())
     {
         AddNewFork(msg.update.hashFork, msg.update.hashParent, msg.update.nOriginHeight);
     }

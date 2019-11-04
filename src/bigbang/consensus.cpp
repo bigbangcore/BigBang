@@ -234,12 +234,6 @@ void CConsensus::HandleDeinitialize()
 
 bool CConsensus::HandleInvoke()
 {
-    if (!StartActor())
-    {
-        ERROR("Failed to start actor");
-        return false;
-    }
-
     boost::unique_lock<boost::mutex> lock(mutex);
 
     if (!delegate.Initialize())
@@ -265,8 +259,6 @@ bool CConsensus::HandleInvoke()
 
 void CConsensus::HandleHalt()
 {
-    StopActor();
-
     boost::unique_lock<boost::mutex> lock(mutex);
 
     delegate.Deinitialize();
@@ -434,6 +426,126 @@ bool CConsensus::LoadChain()
         }
     }
     return true;
+}
+
+//////////////////////////////
+// CConsensusController
+
+CConsensusController::CConsensusController()
+{
+
+}
+
+CConsensusController::~CConsensusController()
+{
+
+}
+
+bool CConsensusController::HandleInitialize()
+{
+    if (!GetObject("consensus", pConsensus))
+    {
+        ERROR("Failed to request consensus");
+        return false;
+    }
+    if (!GetObject("coreprotocol", pCoreProtocol))
+    {
+        ERROR("Failed to request coreprotocol");
+        return false;
+    }
+    if (!GetObject("worldline", pWorldLine))
+    {
+        ERROR("Failed to request worldline");
+        return false;
+    }
+
+    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CConsensusController::HandleNewTx, this, _1));
+    RegisterRefHandler<CSyncTxChangeMessage>(boost::bind(&CConsensusController::HandleTxChange, this, _1));
+
+    return true;
+}
+
+void CConsensusController::HandleDeinitialize()
+{
+    DeregisterHandler(CAddedTxMessage::MessageType());
+    DeregisterHandler(CSyncTxChangeMessage::MessageType());
+
+    pConsensus = nullptr;
+    pCoreProtocol = nullptr;
+    pWorldLine = nullptr;
+}
+
+bool CConsensusController::HandleInvoke()
+{
+    if (!StartActor())
+    {
+        ERROR("Failed to start actor");
+        return false;
+    }
+    return true;
+}
+
+void CConsensusController::HandleHalt()
+{
+    StopActor();
+}
+
+void CConsensusController::HandleNewTx(const CAddedTxMessage& msg)
+{
+    if (msg.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        AddNewTx(msg.tx);
+    }
+}
+
+void CConsensusController::HandleTxChange(const CSyncTxChangeMessage& msg)
+{
+    if (msg.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        if (!pCoreProtocol->CheckFirstPow(msg.update.nLastBlockHeight))
+        {
+            auto spRoutineMsg = CCDelegateRoutineMessage::Create();
+            spRoutineMsg->nStartHeight = msg.update.nLastBlockHeight - msg.update.vBlockAddNew.size();
+            PrimaryUpdate(msg.update, msg.change, spRoutineMsg->routine);
+            PUBLISH_MESSAGE(spRoutineMsg);
+        }
+    }
+}
+
+void CConsensusController::HandleNewDistribute(const CAddNewDistributeMessage& msg)
+{
+    auto spAddedMsg = CAddedNewDistributeMessage::Create();
+    spAddedMsg->nNonce = msg.nNonce;
+    spAddedMsg->hashAnchor = msg.hashAnchor;
+    spAddedMsg->dest = msg.dest;
+    spAddedMsg->vchDistribute = msg.vchDistribute;
+    spAddedMsg->fResult = false;
+
+    uint256 hashFork;
+    int nHeight;
+    if (pWorldLine->GetBlockLocation(msg.hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        spAddedMsg->fResult = AddNewDistribute(nHeight, msg.dest, msg.vchDistribute);
+    }
+    PUBLISH_MESSAGE(spAddedMsg);
+}
+
+void CConsensusController::HandleNewPublish(const CAddNewPublishMessage& msg)
+{
+    auto spAddedMsg = CAddedNewPublishMessage::Create();
+    spAddedMsg->nNonce = msg.nNonce;
+    spAddedMsg->hashAnchor = msg.hashAnchor;
+    spAddedMsg->dest = msg.dest;
+    spAddedMsg->vchPublish = msg.vchPublish;
+    spAddedMsg->fResult = false;
+
+    uint256 hashFork;
+    int nHeight;
+    if (pWorldLine->GetBlockLocation(msg.hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        spAddedMsg->fResult = AddNewPublish(nHeight, msg.dest, msg.vchPublish);
+    }
+    PUBLISH_MESSAGE(spAddedMsg);
 }
 
 } // namespace bigbang

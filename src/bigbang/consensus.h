@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "delegate.h"
+#include "message.h"
 
 namespace bigbang
 {
@@ -117,6 +118,28 @@ protected:
     ITxPoolController* pTxPoolCtrl;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
+};
+
+class CConsensusController : public IConsensusController
+{
+public:
+    CConsensusController();
+    ~CConsensusController();
+
+protected:
+    bool HandleInitialize() override;
+    void HandleDeinitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
+
+    void HandleNewTx(const CAddedTxMessage& msg);
+    void HandleTxChange(const CSyncTxChangeMessage& msg);
+    void HandleNewDistribute(const CAddNewDistributeMessage& msg);
+    void HandleNewPublish(const CAddNewPublishMessage& msg);
+
+protected:
+    ICoreProtocol* pCoreProtocol;
+    IWorldLine* pWorldLine;
 };
 
 } // namespace bigbang

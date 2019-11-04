@@ -7,6 +7,7 @@
 
 #include <uint256.h>
 #include <vector>
+#include <map>
 #include <memory>
 
 #include "block.h"
@@ -147,7 +148,7 @@ struct CUnsubscribeForkMessage : public xengine::CMessage
     uint256 hashFork;
 };
 
-//////////////////  DelegatedChannel /////////////////////
+////////////////// Delegate /////////////////////
 
 struct CPeerDelegateBasicMessage : public xengine::CMessage
 {
@@ -200,6 +201,51 @@ struct CPeerPublishMessageOutBound : public CPeerPublishMessageInBound
     GENERATE_MESSAGE_FUNCTION(CPeerPublishMessageOutBound);
 };
 
+struct CCDelegateRoutineMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CCDelegateRoutineMessage);
+    int nStartHeight;
+    CDelegateRoutine routine;
+};
+
+struct CAddNewDistributeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddNewDistributeMessage);
+    uint64 nNonce;
+    uint256 hashAnchor;
+    CDestination dest;
+    std::vector<unsigned char> vchDistribute;
+};
+
+struct CAddedNewDistributeMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddedNewDistributeMessage);
+    uint64 nNonce;
+    uint256 hashAnchor;
+    CDestination dest;
+    std::vector<unsigned char> vchDistribute;
+    bool fResult;
+};
+
+struct CAddNewPublishMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddNewPublishMessage);
+    uint64 nNonce;
+    uint256 hashAnchor;
+    CDestination dest;
+    std::vector<unsigned char> vchPublish;
+};
+
+struct CAddedNewPublishMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddedNewPublishMessage);
+    uint64 nNonce;
+    uint256 hashAnchor;
+    CDestination dest;
+    std::vector<unsigned char> vchPublish;
+    bool fResult;
+};
+
 //////////// Transaction ///////////////////
 
 /// Add an unconfirmed transaction.
@@ -216,7 +262,7 @@ struct CAddedTxMessage : public xengine::CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CAddedTxMessage);
     std::shared_ptr<CNonce> spNonce;
-    int nError;
+    int nErrno;
     uint256 hashFork;
     CAssembledTx tx;
     CDestination destIn;
@@ -244,6 +290,7 @@ struct CSyncTxChangeMessage : public xengine::CMessage
     GENERATE_MESSAGE_FUNCTION(CSyncTxChangeMessage);
     uint256 hashFork;
     CTxSetChange change;
+    CWorldLineUpdate update;
 };
 
 ////////////////// Block /////////////////////
@@ -264,7 +311,7 @@ struct CAddedBlockMessage : public xengine::CMessage
     std::shared_ptr<CNonce> spNonce;
     uint256 hashFork;
     CBlock block;
-    int nError;
+    int nErrno;
     CWorldLineUpdate update;
 };
 

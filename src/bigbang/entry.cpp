@@ -361,7 +361,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::CONSENSUS:
         {
-            if (!AttachModule(new CConsensus()))
+            if (!AttachModule(new CConsensus()) || !AttachModule(new CConsensusController()))
             {
                 return false;
             }
