@@ -749,7 +749,6 @@ void CNetChannelController::HandleActive(const CPeerActiveMessage& activeMsg)
     }
 
     pNetChannelModel->AddPeer(nNonce, activeMsg.address.nService, pCoreProtocol->GetGenesisBlockHash());
-    NotifyPeerUpdate(nNonce, true, activeMsg.address);
 }
 
 void CNetChannelController::HandleDeactive(const CPeerDeactiveMessage& deactiveMsg)
@@ -757,7 +756,6 @@ void CNetChannelController::HandleDeactive(const CPeerDeactiveMessage& deactiveM
     uint64 nNonce = deactiveMsg.nNonce;
     SchedulePeerInv(nNonce, uint256(), false, uint256());
     pNetChannelModel->RemovePeer(nNonce);
-    NotifyPeerUpdate(nNonce, false, deactiveMsg.address);
 }
 
 void CNetChannelController::HandleSubscribe(const CPeerSubscribeMessageInBound& subscribeMsg)
@@ -1101,15 +1099,6 @@ void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
     }
 
     PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
-}
-
-void CNetChannelController::NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer)
-{
-    CNetworkPeerUpdate update;
-    update.nPeerNonce = nNonce;
-    update.fActive = fActive;
-    // update.addrPeer = addrPeer;
-    pService->NotifyNetworkPeerUpdate(update);
 }
 
 void CNetChannelController::DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock)

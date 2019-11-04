@@ -287,6 +287,10 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             {
                 return false;
             }
+            if (!AttachModule(new CServiceController()))
+            {
+                return false;
+            }
             break;
         }
         case EModuleType::TXPOOL:

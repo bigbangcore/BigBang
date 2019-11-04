@@ -16,6 +16,7 @@
 #include "block.h"
 #include "transaction.h"
 #include "uint256.h"
+#include "proto.h"
 
 // Status
 class CForkStatus
@@ -116,7 +117,7 @@ class CNetworkPeerUpdate
 public:
     bool fActive;
     uint64 nPeerNonce;
-    // bigbang::network::CAddress addrPeer;
+    bigbang::network::CAddress address;
 };
 
 class CTransactionUpdate

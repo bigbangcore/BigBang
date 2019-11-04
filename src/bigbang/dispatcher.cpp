@@ -205,7 +205,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
     }
 
-    pService->NotifyWorldLineUpdate(updateWorldLine);
+    // pService->NotifyWorldLineUpdate(updateWorldLine);
 
     if (!block.IsVacant())
     {
@@ -258,11 +258,11 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     //     return ERR_SYS_DATABASE_ERROR;
     // }
 
-    CTransactionUpdate updateTransaction;
-    updateTransaction.hashFork = hashFork;
-    updateTransaction.txUpdate = tx;
-    updateTransaction.nChange = assembledTx.GetChange();
-    pService->NotifyTransactionUpdate(updateTransaction);
+    // CTransactionUpdate updateTransaction;
+    // updateTransaction.hashFork = hashFork;
+    // updateTransaction.txUpdate = tx;
+    // updateTransaction.nChange = assembledTx.GetChange();
+    // pService->NotifyTransactionUpdate(updateTransaction);
 
     if (!nNonce)
     {

@@ -17,10 +17,6 @@ class CService : public IService
 public:
     CService();
     ~CService();
-    /* Notify */
-    void NotifyWorldLineUpdate(const CWorldLineUpdate& update) override;
-    void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) override;
-    void NotifyTransactionUpdate(const CTransactionUpdate& update) override;
     /* System */
     void Stop() override;
     /* Network */
@@ -81,6 +77,10 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
+    /* Notify */
+    void NotifyWorldLineUpdate(const CWorldLineUpdate& update) override;
+    void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) override;
+    void NotifyTransactionUpdate(const CTransactionUpdate& update) override;
 protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
@@ -90,6 +90,25 @@ protected:
     IForkManager* pForkManager;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;
+};
+
+class CServiceController : public IServiceController
+{
+public:
+    CServiceController();
+    ~CServiceController();
+
+protected:
+    bool HandleInitialize() override;
+    void HandleDeinitialize() override;
+    bool HandleInvoke() override;
+    void HandleHalt() override;
+
+    void HandleAddedBlock(const CAddedBlockMessage& msg);
+    void HandleAddedTx(const CAddedTxMessage& msg);
+    void HandlePeerActive(const CPeerActiveMessage& msg);
+    void HandlePeerDeactive(const CPeerDeactiveMessage& msg);
+
 };
 
 } // namespace bigbang
