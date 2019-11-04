@@ -432,6 +432,7 @@ bool CConsensus::LoadChain()
 // CConsensusController
 
 CConsensusController::CConsensusController()
+    : pCoreProtocol(nullptr), pWorldLine(nullptr)
 {
 
 }
