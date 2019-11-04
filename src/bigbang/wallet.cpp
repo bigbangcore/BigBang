@@ -1467,8 +1467,7 @@ void CWalletController::HandleNewFork(const CAddedBlockMessage& msg)
 void CWalletController::HandleAddedTx(const CAddedTxMessage& msg)
 {
     TRACE("Wallet received new tx message");
-    CAssembledTx assembledTx(msg.tx, -1, msg.destIn, msg.nValueIn);
-    AddNewTx(msg.hashFork, assembledTx);
+    AddNewTx(msg.hashFork, msg.tx);
 }
 
 void CWalletController::HandleSyncTxChange(const CSyncTxChangeMessage& msg)

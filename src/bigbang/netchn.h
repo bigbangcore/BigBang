@@ -235,7 +235,6 @@ protected:
     void HandleAddedNewBlock(const CAddedBlockMessage& addedMsg);
     void HandleAddedNewTx(const CAddedTxMessage& addedMsg);
 
-    void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
     void DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");

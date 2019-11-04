@@ -79,12 +79,6 @@ void CService::HandleDeinitialize()
 
 bool CService::HandleInvoke()
 {
-    if (!StartActor())
-    {
-        ERROR("Failed to start actor");
-        return false;
-    }
-
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
         pWorldLineCtrl->GetForkStatus(mapForkStatus);
@@ -94,44 +88,10 @@ bool CService::HandleInvoke()
 
 void CService::HandleHalt()
 {
-    StopActor();
-
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
         mapForkStatus.clear();
     }
-}
-
-void CService::NotifyWorldLineUpdate(const CWorldLineUpdate& update)
-{
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
-        map<uint256, CForkStatus>::iterator it = mapForkStatus.find(update.hashFork);
-        if (it == mapForkStatus.end())
-        {
-            it = mapForkStatus.insert(make_pair(update.hashFork, CForkStatus(update.hashFork, update.hashParent, update.nOriginHeight))).first;
-            if (update.hashParent != 0)
-            {
-                mapForkStatus[update.hashParent].mapSubline.insert(make_pair(update.nOriginHeight, update.hashFork));
-            }
-        }
-
-        CForkStatus& status = (*it).second;
-        status.hashLastBlock = update.hashLastBlock;
-        status.nLastBlockTime = update.nLastBlockTime;
-        status.nLastBlockHeight = update.nLastBlockHeight;
-        status.nMoneySupply = update.nMoneySupply;
-    }
-}
-
-void CService::NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update)
-{
-    (void)update;
-}
-
-void CService::NotifyTransactionUpdate(const CTransactionUpdate& update)
-{
-    (void)update;
 }
 
 void CService::Stop()
@@ -658,5 +618,129 @@ bool CService::SendBlock(CNoncePtr spNonce, const uint256& hashFork, const uint2
 
     return true;
 }
+
+void CService::NotifyWorldLineUpdate(const CWorldLineUpdate& update)
+{
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
+        map<uint256, CForkStatus>::iterator it = mapForkStatus.find(update.hashFork);
+        if (it == mapForkStatus.end())
+        {
+            it = mapForkStatus.insert(make_pair(update.hashFork, CForkStatus(update.hashFork, update.hashParent, update.nOriginHeight))).first;
+            if (update.hashParent != 0)
+            {
+                mapForkStatus[update.hashParent].mapSubline.insert(make_pair(update.nOriginHeight, update.hashFork));
+            }
+        }
+
+        CForkStatus& status = (*it).second;
+        status.hashLastBlock = update.hashLastBlock;
+        status.nLastBlockTime = update.nLastBlockTime;
+        status.nLastBlockHeight = update.nLastBlockHeight;
+        status.nMoneySupply = update.nMoneySupply;
+    }
+}
+
+void CService::NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update)
+{
+    (void)update;
+}
+
+void CService::NotifyTransactionUpdate(const CTransactionUpdate& update)
+{
+    (void)update;
+}
+
+
+//////////////////////////////
+// CServiceController
+
+CServiceController::CServiceController()
+{
+}
+
+CServiceController::~CServiceController()
+{
+}
+
+bool CServiceController::HandleInitialize()
+{
+    if (!GetObject("service", pService))
+    {
+        ERROR("Failed to request service");
+        return false;
+    }
+
+    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CServiceController::HandleAddedBlock, this, _1));
+    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CServiceController::HandleAddedTx, this, _1));
+    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CServiceController::HandlePeerActive, this, _1));
+    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CServiceController::HandlePeerDeactive, this, _1));
+
+    return true;
+}
+
+void CServiceController::HandleDeinitialize()
+{
+    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler(CAddedTxMessage::MessageType());
+    DeregisterHandler(CPeerActiveMessage::MessageType());
+    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+
+    pService = nullptr;
+}
+
+bool CServiceController::HandleInvoke()
+{
+    if (!StartActor())
+    {
+        ERROR("Failed to start actor");
+        return false;
+    }
+    return true;
+}
+
+void CServiceController::HandleHalt()
+{
+    StopActor();
+}
+
+void CServiceController::HandleAddedBlock(const CAddedBlockMessage& msg)
+{
+    if (msg.nError == OK)
+    {
+        NotifyWorldLineUpdate(msg.update);
+    }
+}
+
+void CServiceController::HandleAddedTx(const CAddedTxMessage& msg)
+{
+    if (msg.nError == OK)
+    {
+        CTransactionUpdate updateTransaction;
+        updateTransaction.hashFork = msg.hashFork; 
+        updateTransaction.txUpdate = msg.tx;
+        updateTransaction.nChange = msg.tx.GetChange();
+        NotifyTransactionUpdate(updateTransaction);
+    }
+}
+
+void CServiceController::HandlePeerActive(const CPeerActiveMessage& msg)
+{
+    CNetworkPeerUpdate update;
+    update.nPeerNonce = msg.nNonce;
+    update.fActive = true;
+    update.address = msg.address;
+    NotifyNetworkPeerUpdate(update);
+}
+
+void CServiceController::HandlePeerDeactive(const CPeerDeactiveMessage& msg)
+{
+    CNetworkPeerUpdate update;
+    update.nPeerNonce = msg.nNonce;
+    update.fActive = false;
+    update.address = msg.address;
+    NotifyNetworkPeerUpdate(update);
+}
+
 
 } // namespace bigbang

@@ -379,15 +379,14 @@ public:
                                const std::vector<unsigned char>& vchPublish) = 0;
 };
 
-class IService : public xengine::CIOActor
+class IServiceController;
+class IService : public xengine::IModel
 {
+    friend class IServiceController;
+
 public:
     IService()
-      : CIOActor("service") {}
-    /* Notify */
-    virtual void NotifyWorldLineUpdate(const CWorldLineUpdate& update) = 0;
-    virtual void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) = 0;
-    virtual void NotifyTransactionUpdate(const CTransactionUpdate& update) = 0;
+      : IModel("service") {}
     /* System */
     virtual void Stop() = 0;
     /* Network */
@@ -441,6 +440,38 @@ public:
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) = 0;
     virtual bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) = 0;
+
+protected:
+    /* Notify */
+    virtual void NotifyWorldLineUpdate(const CWorldLineUpdate& update) = 0;
+    virtual void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) = 0;
+    virtual void NotifyTransactionUpdate(const CTransactionUpdate& update) = 0;
+};
+
+class IServiceController : public xengine::CIOActor
+{
+public:
+    IServiceController()
+      : CIOActor("servicecontroller"), pService(nullptr) {}
+
+protected:
+    void NotifyWorldLineUpdate(const CWorldLineUpdate& update)
+    {
+        pService->NotifyWorldLineUpdate(update);
+    }
+
+    void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update)
+    {
+        pService->NotifyNetworkPeerUpdate(update);
+    }
+
+    void NotifyTransactionUpdate(const CTransactionUpdate& update)
+    {
+        pService->NotifyTransactionUpdate(update);
+    }
+
+protected:
+    IService* pService;
 };
 
 class IDataStat : public xengine::IIOModule

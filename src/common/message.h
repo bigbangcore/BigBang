@@ -218,7 +218,7 @@ struct CAddedTxMessage : public xengine::CMessage
     std::shared_ptr<CNonce> spNonce;
     int nError;
     uint256 hashFork;
-    CTransaction tx;
+    CAssembledTx tx;
     CDestination destIn;
     int64 nValueIn;
 };
