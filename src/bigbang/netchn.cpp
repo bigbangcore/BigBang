@@ -840,6 +840,10 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
                     {
                         pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
                     }
+                    else
+                    {
+                        nLastHaveBlockHash = inv.nHash;
+                    }
                 }
 
                 for (int i = 110; i < invMsg.vecInv.size(); ++i)
