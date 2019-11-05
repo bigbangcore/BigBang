@@ -831,28 +831,25 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
         }
         else if (nType == network::CInv::MSG_BLOCK)
         {
-            if (invMsg.vecInv.size() > 110)
+            for (int i = 0; i < 110 && i < invMsg.vecInv.size(); ++i)
             {
-                for (int i = 0; i < 110; ++i)
+                const auto& inv = invMsg.vecInv[i];
+                if (!pWorldLineCtrl->Exists(inv.nHash))
                 {
-                    const auto& inv = invMsg.vecInv[i];
-                    if (!pWorldLineCtrl->Exists(inv.nHash))
-                    {
-                        pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
-                    }
-                    else
-                    {
-                        nLastHaveBlockHash = inv.nHash;
-                    }
+                    pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
                 }
-
-                for (int i = 110; i < invMsg.vecInv.size(); ++i)
+                else
                 {
-                    const auto& inv = invMsg.vecInv[i];
-                    if (pWorldLineCtrl->Exists(inv.nHash))
-                    {
-                        nLastHaveBlockHash = inv.nHash;
-                    }
+                    nLastHaveBlockHash = inv.nHash;
+                }
+            }
+
+            for (int i = 110; i < invMsg.vecInv.size(); ++i)
+            {
+                const auto& inv = invMsg.vecInv[i];
+                if (pWorldLineCtrl->Exists(inv.nHash))
+                {
+                    nLastHaveBlockHash = inv.nHash;
                 }
             }
         }
