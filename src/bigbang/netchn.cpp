@@ -808,29 +808,48 @@ void CNetChannelController::HandleInv(const CPeerInvMessageInBound& invMsg)
             throw runtime_error("Inv count overflow.");
         }
 
-        vector<uint256> vTxHash;
-        // last block hash in this inv vector
+        uint32 nType = invMsg.vecInv.size() > 0 ? invMsg.vecInv[0].nType : 0;
         uint256 nLastHaveBlockHash;
-        for (const network::CInv& inv : invMsg.vecInv)
+        if (nType == network::CInv::MSG_TX)
         {
-            if ((inv.nType == network::CInv::MSG_TX && !pTxPoolCtrl->Exists(inv.nHash))
-                || (inv.nType == network::CInv::MSG_BLOCK && !pWorldLineCtrl->Exists(inv.nHash)))
+            vector<uint256> vTxHash;
+            for (int i = 0; i < invMsg.vecInv.size(); ++i)
             {
-                pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
-                if (inv.nType == network::CInv::MSG_TX)
+                const auto& inv = invMsg.vecInv[i];
+                if (!pTxPoolCtrl->Exists(inv.nHash))
                 {
+                    pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
                     vTxHash.push_back(inv.nHash);
                 }
             }
-
-            if (inv.nType == network::CInv::MSG_BLOCK && pWorldLineCtrl->Exists(inv.nHash))
+            if (!vTxHash.empty())
             {
-                nLastHaveBlockHash = inv.nHash;
+                pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
             }
         }
-        if (!vTxHash.empty())
+        else if (nType == network::CInv::MSG_BLOCK)
         {
-            pNetChannelModel->AddKnownTxPeer(nNonce, hashFork, vTxHash);
+            for (int i = 0; i < 110 && i < invMsg.vecInv.size(); ++i)
+            {
+                const auto& inv = invMsg.vecInv[i];
+                if (!pWorldLineCtrl->Exists(inv.nHash))
+                {
+                    pNetChannelModel->AddNewInvSchedule(nNonce, hashFork, inv);
+                }
+                else
+                {
+                    nLastHaveBlockHash = inv.nHash;
+                }
+            }
+
+            for (int i = 110; i < invMsg.vecInv.size(); ++i)
+            {
+                const auto& inv = invMsg.vecInv[i];
+                if (pWorldLineCtrl->Exists(inv.nHash))
+                {
+                    nLastHaveBlockHash = inv.nHash;
+                }
+            }
         }
 
         SchedulePeerInv(nNonce, hashFork, true, nLastHaveBlockHash);
@@ -1107,16 +1126,16 @@ void CNetChannelController::DispatchGetBlocksFromHashEvent(uint64 nNonce, const 
     spGetBlocksMsg->nNonce = nNonce;
     spGetBlocksMsg->hashFork = hashFork;
 
-    if (hashBlock.size() != 0)
+    if (!hashBlock)
     {
-        if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
+        if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
         {
             PUBLISH_MESSAGE(spGetBlocksMsg);
         }
     }
     else
     {
-        if (pWorldLineCtrl->GetBlockLocator(hashFork, spGetBlocksMsg->blockLocator))
+        if (pWorldLineCtrl->GetBlockLocatorFromHash(hashFork, hashBlock, spGetBlocksMsg->blockLocator))
         {
             PUBLISH_MESSAGE(spGetBlocksMsg);
         }
@@ -1144,7 +1163,7 @@ void CNetChannelController::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManag
     PUBLISH_MESSAGE(spNetCloseMsg);
 }
 
-void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer, const uint256& nStopBlockHash)
+void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, bool fActivedPeer, const uint256& lastBlockHash)
 {
     std::vector<INetChannelModel::ScheduleResultPair> vecSchedResult;
     if (!fActivedPeer)
@@ -1183,7 +1202,7 @@ void CNetChannelController::SchedulePeerInv(uint64 nNonce, const uint256& hashFo
 
         if (fPrevMissing)
         {
-            DispatchGetBlocksFromHashEvent(nNonce, hashFork, nStopBlockHash);
+            DispatchGetBlocksFromHashEvent(nNonce, hashFork, lastBlockHash);
         }
 
         if (!fTx)

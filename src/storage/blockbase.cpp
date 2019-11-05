@@ -1071,10 +1071,7 @@ bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint
     while (pIndex && pIndex->GetOriginHash() == hashFork && !pIndex->IsOrigin())
     {
         locator.vBlockHash.push_back(pIndex->GetBlockHash());
-        for (int i = 0; pIndex && i < nStep; i++)
-        {
-            pIndex = pIndex->pPrev;
-        }
+        SkipStepPrev(pIndex, nStep);
         if (locator.vBlockHash.size() > 10)
         {
             nStep *= 2;
@@ -1087,7 +1084,7 @@ bool CBlockBase::GetForkBlockLocatorFromHash(const uint256& hashFork, const uint
 void CBlockBase::SkipStepPrev(CBlockIndex*& pIndex, int nStep)
 {
     assert(nStep > 0);
-    while (nStep--)
+    while (nStep-- && pIndex)
     {
         pIndex = pIndex->pPrev;
     }
@@ -1129,7 +1126,7 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     }
 
     pIndex = (pIndex != nullptr ? pIndex->pNext : spFork->GetOrigin()->pNext);
-    for (int i = 0; i < 100 && pIndex != nullptr && vBlockHash.size() < nMaxCount - 1; ++i)
+    for (int i = 0; i < 110 && pIndex != nullptr && vBlockHash.size() < nMaxCount - 1; ++i)
     {
         vBlockHash.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pNext;
@@ -1138,9 +1135,9 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     int nStep = 1;
     while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
     {
+        vBlockHash.push_back(pIndex->GetBlockHash());
         nStep = 2 * nStep;
         SkipStepNext(pIndex, nStep);
-        vBlockHash.push_back(pIndex->GetBlockHash());
     }
     if (pIndex != nullptr && pIndex != pIndexLast)
     {
