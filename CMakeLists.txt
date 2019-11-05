@@ -19,8 +19,13 @@ execute_process(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         OUTPUT_VARIABLE vGitCommitID
         OUTPUT_STRIP_TRAILING_WHITESPACE)
-        
-set(GIT_VERSION ${vGitCommitID})
+
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(GIT_VERSION ${vGitCommitID}:d)
+else()
+    set(GIT_VERSION ${vGitCommitID}:r)
+endif()
+
 configure_file(
         "${PROJECT_SOURCE_DIR}/src/bigbang/git_version.h.in"
         "${PROJECT_BINARY_DIR}/src/bigbang/git_version.h")
