@@ -260,22 +260,58 @@ public:
     }
 };
 
-class IConsensus : public xengine::CIOActor
+class IConsensusController;
+class IConsensus : public xengine::IModel
 {
+    friend class IConsensusController;
+
 public:
     IConsensus()
-      : CIOActor("consensus") {}
+      : IModel("consensus") {}
     const CMintConfig* MintConfig()
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
     }
+    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight,
+                              std::vector<CDestination>& vBallot) = 0;
+    virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
+
+protected:
     virtual void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
     virtual bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
     virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
-    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight,
-                              std::vector<CDestination>& vBallot) = 0;
-    virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
+};
+
+class IConsensusController : public xengine::CIOActor
+{
+public:
+    IConsensusController()
+        : CIOActor("consensuscontroller"), pConsensus(nullptr) {}
+
+protected:
+    void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
+    {
+        pConsensus->PrimaryUpdate(update, change, routine);
+    }
+
+    void AddNewTx(const CAssembledTx& tx)
+    {
+        pConsensus->AddNewTx(tx);
+    }
+
+    bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute)
+    {
+        return pConsensus->AddNewDistribute(nAnchorHeight, destFrom, vchDistribute);
+    }
+
+    bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish)
+    {
+        return pConsensus->AddNewPublish(nAnchorHeight, destFrom, vchPublish);
+    }
+
+protected:
+    IConsensus* pConsensus;
 };
 
 class IBlockMaker : public xengine::CIOActor

@@ -2602,7 +2602,7 @@ CRPCResultPtr CRPCMod::RPCQueryStat(CNoncePtr spNonce, CRPCParamPtr param)
 CRPCResultPtr CRPCMod::RPCMsgSubmitWork(const CMessage& message)
 {
     const CAddedBlockMessage& msg = static_cast<const CAddedBlockMessage&>(message);
-    Errno err = (Errno)msg.nError;
+    Errno err = (Errno)msg.nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, string("Block rejected : ") + ErrorString(err));
@@ -2613,7 +2613,7 @@ CRPCResultPtr CRPCMod::RPCMsgSubmitWork(const CMessage& message)
 CRPCResultPtr CRPCMod::RPCMsgSendFrom(const CMessage& message)
 {
     const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
-    Errno err = (Errno)msg.nError;
+    Errno err = (Errno)msg.nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));
@@ -2624,7 +2624,7 @@ CRPCResultPtr CRPCMod::RPCMsgSendFrom(const CMessage& message)
 CRPCResultPtr CRPCMod::RPCMsgSendTransaction(const CMessage& message)
 {
     const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
-    Errno err = (Errno)msg.nError;
+    Errno err = (Errno)msg.nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));

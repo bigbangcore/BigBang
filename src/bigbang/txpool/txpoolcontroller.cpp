@@ -163,15 +163,14 @@ void CTxPoolController::HandleClearTx(const CClearTxMessage& msg)
 
 void CTxPoolController::HandleAddedBlock(const CAddedBlockMessage& msg)
 {
-    auto& update = msg.update;
-
-    auto spSyncMsg = CSyncTxChangeMessage::Create();
-    spSyncMsg->hashFork = msg.hashFork;
-    auto& change = spSyncMsg->change;
-
-    SynchronizeWorldLineWithTxPool(update, change);
-
-    PUBLISH_MESSAGE(spSyncMsg);
+    if (msg.nErrno == OK && !msg.update.IsNull())
+    {
+        auto spSyncMsg = CSyncTxChangeMessage::Create();
+        spSyncMsg->hashFork = msg.hashFork;
+        spSyncMsg->update = msg.update;
+        SynchronizeWorldLineWithTxPool(msg.update, spSyncMsg->change);
+        PUBLISH_MESSAGE(spSyncMsg);
+    }
 }
 
 } // namespace bigbang

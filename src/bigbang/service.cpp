@@ -706,7 +706,7 @@ void CServiceController::HandleHalt()
 
 void CServiceController::HandleAddedBlock(const CAddedBlockMessage& msg)
 {
-    if (msg.nError == OK)
+    if (msg.nErrno == OK)
     {
         NotifyWorldLineUpdate(msg.update);
     }
@@ -714,7 +714,7 @@ void CServiceController::HandleAddedBlock(const CAddedBlockMessage& msg)
 
 void CServiceController::HandleAddedTx(const CAddedTxMessage& msg)
 {
-    if (msg.nError == OK)
+    if (msg.nErrno == OK)
     {
         CTransactionUpdate updateTransaction;
         updateTransaction.hashFork = msg.hashFork; 

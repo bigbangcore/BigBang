@@ -1005,7 +1005,7 @@ void CNetChannelController::HandlePeerBlock(const CPeerBlockMessageInBound& bloc
 
 void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedMsg)
 {
-    Errno err = static_cast<Errno>(addedMsg.nError);
+    Errno err = static_cast<Errno>(addedMsg.nErrno);
     const uint256& hashFork = addedMsg.hashFork;
     const CBlock& block = addedMsg.block;
     const uint256& hashBlock = addedMsg.block.GetHash();
@@ -1057,7 +1057,7 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
 
 void CNetChannelController::HandleAddedNewTx(const CAddedTxMessage& addedMsg)
 {
-    Errno err = static_cast<Errno>(addedMsg.nError);
+    Errno err = static_cast<Errno>(addedMsg.nErrno);
     const uint256& hashFork = addedMsg.hashFork;
     const uint256& hashTx = addedMsg.tx.GetHash();
     const uint64& nNonceSender = addedMsg.spNonce->nNonce;

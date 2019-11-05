@@ -178,20 +178,20 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return err;
     }
 
-    CTxSetChange changeTxSet;
-    if (!pTxPoolCtrl->SynchronizeWorldLine(updateWorldLine, changeTxSet))
-    {
-        return ERR_SYS_DATABASE_ERROR;
-    }
+    // CTxSetChange changeTxSet;
+    // if (!pTxPoolCtrl->SynchronizeWorldLine(updateWorldLine, changeTxSet))
+    // {
+    //     return ERR_SYS_DATABASE_ERROR;
+    // }
 
-    if (block.IsOrigin())
-    {
+    // if (block.IsOrigin())
+    // {
         // if (!pWallet->AddNewFork(updateWorldLine.hashFork, updateWorldLine.hashParent,
         //                          updateWorldLine.nOriginHeight))
         // {
         //     return ERR_SYS_DATABASE_ERROR;
         // }
-    }
+    // }
 
     // if (!pWallet->SynchronizeTxSet(changeTxSet))
     // {
@@ -207,27 +207,27 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     // pService->NotifyWorldLineUpdate(updateWorldLine);
 
-    if (!block.IsVacant())
-    {
-        vector<uint256> vActive, vDeactive;
-        pForkManager->ForkUpdate(updateWorldLine, vActive, vDeactive);
+    // if (!block.IsVacant())
+    // {
+    //     vector<uint256> vActive, vDeactive;
+    //     pForkManager->ForkUpdate(updateWorldLine, vActive, vDeactive);
 
-        for (const uint256 hashFork : vActive)
-        {
-            ActivateFork(hashFork, nNonce);
-        }
+    //     for (const uint256 hashFork : vActive)
+    //     {
+    //         ActivateFork(hashFork, nNonce);
+    //     }
 
-        for (const uint256 hashFork : vDeactive)
-        {
-            auto spUnsubscribeForkMsg = CUnsubscribeForkMessage::Create(hashFork);
-            PUBLISH_MESSAGE(spUnsubscribeForkMsg);
-        }
-    }
+    //     for (const uint256 hashFork : vDeactive)
+    //     {
+    //         auto spUnsubscribeForkMsg = CUnsubscribeForkMessage::Create(hashFork);
+    //         PUBLISH_MESSAGE(spUnsubscribeForkMsg);
+    //     }
+    // }
 
-    if (block.IsPrimary())
-    {
-        UpdatePrimaryBlock(block, updateWorldLine, changeTxSet, nNonce);
-    }
+    // if (block.IsPrimary())
+    // {
+    //     UpdatePrimaryBlock(block, updateWorldLine, changeTxSet, nNonce);
+    // }
 
     return OK;
 }
@@ -270,33 +270,33 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
         PUBLISH_MESSAGE(spBroadcastTxInvMsg);
     }
 
-    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
-    }
+    // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    // {
+    //     pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
+    // }
 
     return OK;
 }
 
 bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    uint256 hashFork;
-    int nHeight;
-    if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
-    }
+    // uint256 hashFork;
+    // int nHeight;
+    // if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    // {
+    //     return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
+    // }
     return false;
 }
 
 bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    uint256 hashFork;
-    int nHeight;
-    if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
-    }
+    // uint256 hashFork;
+    // int nHeight;
+    // if (pWorldLineCtrl->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    // {
+    //     return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
+    // }
     return false;
 }
 
@@ -306,7 +306,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate
 
     if (!pCoreProtocol->CheckFirstPow(updateWorldLine.nLastBlockHeight))
     {
-        pConsensus->PrimaryUpdate(updateWorldLine, changeTxSet, routineDelegate);
+        // pConsensus->PrimaryUpdate(updateWorldLine, changeTxSet, routineDelegate);
 
         pDelegatedChannel->PrimaryUpdate(updateWorldLine.nLastBlockHeight - updateWorldLine.vBlockAddNew.size(),
                                          routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);

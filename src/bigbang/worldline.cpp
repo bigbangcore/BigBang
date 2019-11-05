@@ -1202,11 +1202,11 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
     const CBlock& block = msg.block;
     if (!block.IsOrigin())
     {
-        spAddedBlockMsg->nError = AddNewBlockIntoWorldLine(block, spAddedBlockMsg->update);
+        spAddedBlockMsg->nErrno = AddNewBlockIntoWorldLine(block, spAddedBlockMsg->update);
     }
     else
     {
-        spAddedBlockMsg->nError = AddNewOriginIntoWorldLine(block, spAddedBlockMsg->update);
+        spAddedBlockMsg->nErrno = AddNewOriginIntoWorldLine(block, spAddedBlockMsg->update);
     }
     const CWorldLineUpdate& update = spAddedBlockMsg->update;
     PUBLISH_MESSAGE(spAddedBlockMsg);
@@ -1242,7 +1242,7 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
                 if (err == OK)
                 {
                     spAddedOriginMsg->spNonce = CNonce::Create(0);
-                    spAddedOriginMsg->nError = OK;
+                    spAddedOriginMsg->nErrno = OK;
                     spAddedOriginMsg->hashFork = originBlock.GetHash();
                     PUBLISH_MESSAGE(spAddedOriginMsg);
                 }
