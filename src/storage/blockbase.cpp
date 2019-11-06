@@ -1059,58 +1059,71 @@ bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt)
     return dbBlock.ListForkContext(vForkCtxt);
 }
 
-bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep)
+bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep)
 {
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
     if (spFork == nullptr)
     {
-        StdTrace("[BlockBase][TRACE]", "GetForkBlockLocator::GetFork %s failed", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "GetForkBlockLocator GetFork failed, hashFork: %s", hashFork.ToString().c_str());
         return false;
     }
 
     CBlockIndex* pIndex = nullptr;
-
     {
         CReadLock rForkLock(spFork->GetRWAccess());
-
         pIndex = spFork->GetLast();
+        if (pIndex == nullptr)
+        {
+            StdTrace("BlockBase", "GetForkBlockLocator GetLast failed, hashFork: %s", hashFork.ToString().c_str());
+            return false;
+        }
     }
 
-    CBlockIndex* pOldIndex = pIndex;
-    for (int i = 0; i < nDepth; i++)
+    if (hashDepth != 0)
     {
-        if (pIndex == NULL || pIndex->GetOriginHash() != hashFork || pIndex->IsOrigin())
+        CBlockIndex* pStartIndex = GetIndex(hashDepth);
+        if (pStartIndex != nullptr && pStartIndex->pNext != nullptr)
         {
-            nDepth = 0;
-            pIndex = pOldIndex;
-            break;
+            pIndex = pStartIndex;
         }
-        pIndex = pIndex->pPrev;
     }
 
     while (pIndex)
     {
         if (pIndex->GetOriginHash() != hashFork)
         {
-            nDepth = 0;
+            hashDepth = 0;
             break;
         }
         locator.vBlockHash.push_back(pIndex->GetBlockHash());
         if (pIndex->IsOrigin())
         {
-            nDepth = 0;
+            hashDepth = 0;
             break;
         }
         if (locator.vBlockHash.size() >= nIncStep / 2)
         {
+            pIndex = pIndex->pPrev;
+            if (pIndex == nullptr)
+            {
+                hashDepth = 0;
+            }
+            else
+            {
+                hashDepth = pIndex->GetBlockHash();
+            }
             break;
         }
-        for (int i = 0; i < nIncStep && pIndex && !pIndex->IsOrigin(); i++)
+        for (int i = 0; i < nIncStep && !pIndex->IsOrigin(); i++)
         {
             pIndex = pIndex->pPrev;
-            nDepth++;
+            if (pIndex == nullptr)
+            {
+                hashDepth = 0;
+                break;
+            }
         }
     }
 
@@ -1148,14 +1161,10 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     if (pIndex != nullptr)
     {
         pIndex = pIndex->pNext;
-        while (pIndex != nullptr && vBlockHash.size() < nMaxCount - 1)
+        while (pIndex != nullptr && vBlockHash.size() < nMaxCount)
         {
             vBlockHash.push_back(pIndex->GetBlockHash());
             pIndex = pIndex->pNext;
-        }
-        if (pIndex != nullptr && pIndex != pIndexLast)
-        {
-            vBlockHash.push_back(pIndexLast->GetBlockHash());
         }
     }
     return true;
