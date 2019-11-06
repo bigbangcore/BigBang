@@ -8,8 +8,8 @@
 #include <boost/program_options.hpp>
 
 // basic config
-#define MAINNET_MAGICNUM 0xd5f97d23
-#define TESTNET_MAGICNUM 0xef93a7b2
+#define MAINNET_MAGICNUM 0x3b54beae
+#define TESTNET_MAGICNUM 0xa006c295
 
 // rpc config
 #define DEFAULT_RPCPORT 9902
