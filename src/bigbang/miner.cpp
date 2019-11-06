@@ -35,12 +35,11 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
     pService = nullptr;
-    if (vArgsIn.size() >= 4)
+    if (vArgsIn.size() >= 3)
     {
         strAddrSpent = vArgsIn[0];
         strMintKey = vArgsIn[1];
         strHashPrev = vArgsIn[2];
-        nCurrentPrevHeight = std::atoi(vArgsIn[3].c_str());
     }
 }
 
@@ -84,7 +83,6 @@ bool CMiner::HandleInvoke()
     }
 
     workCurrent.hashPrev.SetHex(strHashPrev);
-    strCurrentPrevHash = strHashPrev;
 
     if (!ThreadDelayStart(thrFetcher))
     {
@@ -209,24 +207,17 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                     {
                         boost::unique_lock<boost::mutex> lock(mutex);
 
-                        if (!strCurrentPrevHash.empty())
-                        {
-                            cout << "get work replay ." << endl;
-                            workCurrent.hashPrev.SetHex(strCurrentPrevHash);
-                            cout << "get work current prev hash " << strCurrentPrevHash << endl;
-                            workCurrent.nPrevBlockHeight = nCurrentPrevHeight;
-                            cout << "get work nCurrentPrevHeight " << nCurrentPrevHeight << endl;
-                        }
-                        else
-                        {
-                            workCurrent.hashPrev.SetHex(spResult->work.strPrevblockhash);
-                            workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
-                        }
-
+                        workCurrent.hashPrev.SetHex(spResult->work.strPrevblockhash);
+                        workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
                         workCurrent.nPrevTime = spResult->work.nPrevblocktime;
-                        workCurrent.nAlgo = CM_CRYPTONIGHT;
+                        workCurrent.nAlgo = spResult->work.nAlgo;
                         workCurrent.nBits = spResult->work.nBits;
                         workCurrent.vchWorkData = ParseHexString(spResult->work.strData);
+
+                        std::cout << "get work replay: prev hash " << spResult->work.strPrevblockhash
+                                  << std::endl;
+                        std::cout << "get work replay: prev height " << spResult->work.nPrevblockheight
+                                  << std::endl;
 
                         nMinerStatus = MINER_RESET;
                     }
@@ -253,9 +244,6 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 if (spResult->strHash.IsValid())
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
-                    strCurrentPrevHash = spResult->strHash;
-                    nCurrentPrevHeight++;
-                    cout << "Submited new block replay current prev height : " << nCurrentPrevHeight << "\n";
                 }
             }
             else

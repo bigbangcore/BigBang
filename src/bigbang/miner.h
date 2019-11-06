@@ -91,8 +91,6 @@ protected:
     std::string strAddrSpent;
     std::string strMintKey;
     std::string strHashPrev;
-    std::string strCurrentPrevHash;
-    int nCurrentPrevHeight;
     int nMinerStatus;
     CMinerWork workCurrent;
     uint64 nNonceGetWork;
