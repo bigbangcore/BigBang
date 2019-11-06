@@ -59,12 +59,6 @@ bool CMiner::HandleInitialize()
         cerr << "Failed to request httpget\n";
         return false;
     }
-
-    if (!GetObject("service", pService))
-    {
-        cerr << "Failed to request service\n";
-        return false;
-    }
     return true;
 }
 
@@ -216,15 +210,14 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                         {
                             workCurrent.hashPrev.SetHex(strCurrentPrevHash);
                             workCurrent.nPrevBlockHeight = nCurrentPrevHeight;
-                            workCurrent.nPrevTime = nCurrentPrevTimeStamp;
                         }
                         else
                         {
                             workCurrent.hashPrev.SetHex(spResult->work.strPrevblockhash);
                             workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
-                            workCurrent.nPrevTime = spResult->work.nPrevblocktime;
                         }
 
+                        workCurrent.nPrevTime = spResult->work.nPrevblocktime;
                         workCurrent.nAlgo = CM_CRYPTONIGHT;
                         workCurrent.nBits = spResult->work.nBits;
                         workCurrent.vchWorkData = ParseHexString(spResult->work.strData);
@@ -255,14 +248,6 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
                     strCurrentPrevHash = spResult->strHash;
-                    uint256 currentPrevBlock;
-                    currentPrevBlock.SetHex(strCurrentPrevHash);
-                    CBlockEx block;
-                    uint256 hashFork;
-                    if (pService->GetBlockEx(currentPrevBlock, block, hashFork, nCurrentPrevHeight))
-                    {
-                        nCurrentPrevTimeStamp = block.GetBlockTime();
-                    }
                 }
             }
             else
