@@ -209,8 +209,11 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
 
                         if (!strCurrentPrevHash.empty())
                         {
+                            cout << "get work replay ." << endl;
                             workCurrent.hashPrev.SetHex(strCurrentPrevHash);
+                            cout << "get work current prev hash " << strCurrentPrevHash << endl;
                             workCurrent.nPrevBlockHeight = nCurrentPrevHeight;
+                            cout << "get work nCurrentPrevHeight " << nCurrentPrevHeight << endl;
                         }
                         else
                         {
