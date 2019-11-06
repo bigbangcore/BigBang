@@ -253,6 +253,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                     cout << "Submited new block : " << spResult->strHash << "\n";
                     strCurrentPrevHash = spResult->strHash;
                     nCurrentPrevHeight++;
+                    cout << "Submited new block replay current prev height : " << nCurrentPrevHeight << "\n";
                 }
             }
             else
