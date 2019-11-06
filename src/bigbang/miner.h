@@ -93,7 +93,6 @@ protected:
     std::string strHashPrev;
     std::string strCurrentPrevHash;
     int nCurrentPrevHeight;
-    int64 nCurrentPrevTimeStamp;
     int nMinerStatus;
     CMinerWork workCurrent;
     uint64 nNonceGetWork;

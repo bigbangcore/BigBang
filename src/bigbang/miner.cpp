@@ -83,6 +83,7 @@ bool CMiner::HandleInvoke()
     }
 
     workCurrent.hashPrev.SetHex(strHashPrev);
+
     if (!ThreadDelayStart(thrFetcher))
     {
         return false;
@@ -248,6 +249,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
                     strCurrentPrevHash = spResult->strHash;
+                    nCurrentPrevHeight++;
                 }
             }
             else
