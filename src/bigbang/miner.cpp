@@ -244,6 +244,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 if (spResult->strHash.IsValid())
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
+                    workCurrent.hashPrev.SetHex(spResult->strHash);
                 }
             }
             else
