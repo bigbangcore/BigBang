@@ -314,7 +314,6 @@ bool CMiner::GetWork()
         spParam->strSpent = strAddrSpent;
         spParam->strPrivkey = strMintKey;
         spParam->strPrev = workCurrent.hashPrev.GetHex();
-        std::cout << "Send GetWork Request hashPrev " << workCurrent.hashPrev.GetHex() << std::endl;
         CRPCReqPtr spReq = MakeCRPCReqPtr(nNonceGetWork, spParam);
         return SendRequest(nNonceGetWork, spReq->Serialize());
     }
