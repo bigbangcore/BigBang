@@ -34,10 +34,12 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nMinerStatus = -1;
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
-    if (vArgsIn.size() >= 2)
+    pService = nullptr;
+    if (vArgsIn.size() >= 3)
     {
         strAddrSpent = vArgsIn[0];
         strMintKey = vArgsIn[1];
+        strHashPrev = vArgsIn[2];
     }
 }
 
@@ -57,6 +59,12 @@ bool CMiner::HandleInitialize()
         cerr << "Failed to request httpget\n";
         return false;
     }
+
+    if (!GetObject("service", pService))
+    {
+        cerr << "Failed to request service\n";
+        return false;
+    }
     return true;
 }
 
@@ -64,6 +72,7 @@ void CMiner::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
+    pService = nullptr;
 }
 
 bool CMiner::HandleInvoke()
@@ -78,6 +87,8 @@ bool CMiner::HandleInvoke()
         cerr << "Invalid mint key\n";
         return false;
     }
+
+    workCurrent.hashPrev.SetHex(strHashPrev);
     if (!ThreadDelayStart(thrFetcher))
     {
         return false;
@@ -201,10 +212,20 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                     {
                         boost::unique_lock<boost::mutex> lock(mutex);
 
-                        workCurrent.hashPrev.SetHex(spResult->work.strPrevblockhash);
-                        workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
-                        workCurrent.nPrevTime = spResult->work.nPrevblocktime;
-                        workCurrent.nAlgo = spResult->work.nAlgo;
+                        if (!strCurrentPrevHash.empty())
+                        {
+                            workCurrent.hashPrev.SetHex(strCurrentPrevHash);
+                            workCurrent.nPrevBlockHeight = nCurrentPrevHeight;
+                            workCurrent.nPrevTime = nCurrentPrevTimeStamp;
+                        }
+                        else
+                        {
+                            workCurrent.hashPrev.SetHex(spResult->work.strPrevblockhash);
+                            workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
+                            workCurrent.nPrevTime = spResult->work.nPrevblocktime;
+                        }
+
+                        workCurrent.nAlgo = CM_CRYPTONIGHT;
                         workCurrent.nBits = spResult->work.nBits;
                         workCurrent.vchWorkData = ParseHexString(spResult->work.strData);
 
@@ -233,6 +254,15 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 if (spResult->strHash.IsValid())
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
+                    strCurrentPrevHash = spResult->strHash;
+                    uint256 currentPrevBlock;
+                    currentPrevBlock.SetHex(strCurrentPrevHash);
+                    CBlockEx block;
+                    uint256 hashFork;
+                    if (pService->GetBlockEx(currentPrevBlock, block, hashFork, nCurrentPrevHeight))
+                    {
+                        nCurrentPrevTimeStamp = block.GetBlockTime();
+                    }
                 }
             }
             else
