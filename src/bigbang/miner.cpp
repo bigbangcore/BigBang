@@ -35,11 +35,12 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
     pService = nullptr;
-    if (vArgsIn.size() >= 3)
+    if (vArgsIn.size() >= 4)
     {
         strAddrSpent = vArgsIn[0];
         strMintKey = vArgsIn[1];
         strHashPrev = vArgsIn[2];
+        nCurrentPrevHeight = std::atoi(vArgsIn[3].c_str());
     }
 }
 
