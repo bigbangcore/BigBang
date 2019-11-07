@@ -681,7 +681,7 @@ void CBlockMaker::BlockMakerThreadFunc()
         nPrimaryBlockHeight = nLastBlockHeight;
     }
 
-    StdTrace("blockmaker", "hashLastBlock: %s, LastBlockTime: %d, \n LastBlockHeight: %d",
+    StdTrace("blockmaker", "hashLastBlock: %s, LastBlockTime: %ld, \n LastBlockHeight: %d",
              hashLastBlock.ToString().c_str(), nLastBlockTime, nLastBlockHeight);
 
     for (;;)
