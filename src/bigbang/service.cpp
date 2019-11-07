@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pWorldLineCtrl(nullptr), pTxPoolCtrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pWorldLineCtrl(nullptr), pTxPoolCtrl(nullptr), pWallet(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -46,12 +46,6 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
-        return false;
-    }
-
     if (!GetObject("wallet", pWallet))
     {
         ERROR("Failed to request wallet");
@@ -72,7 +66,6 @@ void CService::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pWallet = nullptr;
     pForkManager = nullptr;
 }
@@ -651,7 +644,6 @@ void CService::NotifyTransactionUpdate(const CTransactionUpdate& update)
     (void)update;
 }
 
-
 //////////////////////////////
 // CServiceController
 
@@ -717,7 +709,7 @@ void CServiceController::HandleAddedTx(const CAddedTxMessage& msg)
     if (msg.nErrno == OK)
     {
         CTransactionUpdate updateTransaction;
-        updateTransaction.hashFork = msg.hashFork; 
+        updateTransaction.hashFork = msg.hashFork;
         updateTransaction.txUpdate = msg.tx;
         updateTransaction.nChange = msg.tx.GetChange();
         NotifyTransactionUpdate(updateTransaction);
@@ -741,6 +733,5 @@ void CServiceController::HandlePeerDeactive(const CPeerDeactiveMessage& msg)
     update.address = msg.address;
     NotifyNetworkPeerUpdate(update);
 }
-
 
 } // namespace bigbang

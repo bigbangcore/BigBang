@@ -81,11 +81,11 @@ protected:
     void NotifyWorldLineUpdate(const CWorldLineUpdate& update) override;
     void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) override;
     void NotifyTransactionUpdate(const CTransactionUpdate& update) override;
+
 protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
     ITxPoolController* pTxPoolCtrl;
-    IDispatcher* pDispatcher;
     IWallet* pWallet;
     IForkManager* pForkManager;
     mutable boost::shared_mutex rwForkStatus;
@@ -108,7 +108,6 @@ protected:
     void HandleAddedTx(const CAddedTxMessage& msg);
     void HandlePeerActive(const CPeerActiveMessage& msg);
     void HandlePeerDeactive(const CPeerDeactiveMessage& msg);
-
 };
 
 } // namespace bigbang
