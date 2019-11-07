@@ -235,18 +235,18 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         return false;
     }
 
-    Log("B", "Initializing... (Path : %s)\n", pathDataLocation.string().c_str());
+    Log("B", "Initializing... (Path : %s)", pathDataLocation.string().c_str());
 
     if (!dbBlock.Initialize(pathDataLocation))
     {
-        Error("B", "Failed to initialize block db\n");
+        Error("B", "Failed to initialize block db");
         return false;
     }
 
     if (!tsBlock.Initialize(pathDataLocation / "block", BLOCKFILE_PREFIX))
     {
         dbBlock.Deinitialize();
-        Error("B", "Failed to initialize block tsfile\n");
+        Error("B", "Failed to initialize block tsfile");
         return false;
     }
 
@@ -263,10 +263,10 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
 
             ClearCache();
         }
-        Error("B", "Failed to load block db\n");
+        Error("B", "Failed to load block db");
         return false;
     }
-    Log("B", "Initialized\n");
+    Log("B", "Initialized");
     return true;
 }
 
@@ -279,7 +279,7 @@ void CBlockBase::Deinitialize()
 
         ClearCache();
     }
-    Log("B", "Deinitialized\n");
+    Log("B", "Deinitialized");
 }
 
 bool CBlockBase::Exists(const uint256& hash) const
@@ -394,7 +394,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
             return false;
         }
 
-        Log("B", "Initiate genesis %s\n", hashGenesis.ToString().c_str());
+        Log("B", "Initiate genesis %s", hashGenesis.ToString().c_str());
     }
     return true;
 }
@@ -446,7 +446,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         *ppIndexNew = pIndexNew;
     }
 
-    Log("B", "AddNew block,hash=%s\n", hash.ToString().c_str());
+    Log("B", "AddNew block,hash=%s", hash.ToString().c_str());
     return true;
 }
 
@@ -457,7 +457,7 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
         Error("F", "Failed to addnew forkcontext in %s", ctxt.hashFork.GetHex().c_str());
         return false;
     }
-    Log("F", "AddNew forkcontext,hash=%s\n", ctxt.hashFork.GetHex().c_str());
+    Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
     return true;
 }
 
@@ -903,7 +903,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
     spFork->UpdateLast(pIndexNew);
 
-    Log("B", "Update fork %s, last block hash=%s\n", hashFork.ToString().c_str(),
+    Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(),
         pIndexNew->GetBlockHash().ToString().c_str());
     return true;
 }
@@ -1168,12 +1168,12 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
 
     CReadLock rlock(rwAccess);
 
-    Log("B", "Getting lock duration ===> %s.\n", t_lock.format().c_str());
+    Log("B", "Getting lock duration ===> %s.", t_lock.format().c_str());
 
     boost::timer::cpu_timer t_check;
     t_check.start();
 
-    Log("B", "Check consistency with parameters check-level:%d and check-depth:%d.\n", nCheckLevel, nCheckDepth);
+    Log("B", "Check consistency with parameters check-level:%d and check-depth:%d.", nCheckLevel, nCheckDepth);
 
     int nLevel = nCheckLevel;
     if (nCheckLevel < 0)
@@ -1186,12 +1186,12 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
     }
     int32 nDepth = nCheckDepth;
 
-    Log("B", "Consistency checking level is %d\n", nLevel);
+    Log("B", "Consistency checking level is %d", nLevel);
 
     vector<pair<uint256, uint256>> vFork;
     if (!dbBlock.ListFork(vFork))
     {
-        Error("B", "List fork failed.\n");
+        Error("B", "List fork failed.");
         return false;
     }
 
@@ -1206,20 +1206,20 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         CBlockIndex* pBlockRefIndex = GetIndex(fork.second);
         if (!pBlockRefIndex)
         {
-            Error("B", "Get referenced block index failed.\n");
+            Error("B", "Get referenced block index failed.");
             return false;
         }
 
         boost::shared_ptr<CBlockFork> spFork = GetFork(fork.first);
         if (nullptr == spFork)
         {
-            Error("B", "Get fork failed.\n");
+            Error("B", "Get fork failed.");
             return false;
         }
         CBlockIndex* pLastBlock = spFork->GetLast();
         if (nullptr == pLastBlock)
         {
-            Error("B", "Get last block index of current fork failed.\n");
+            Error("B", "Get last block index of current fork failed.");
             return false;
         }
 
@@ -1228,7 +1228,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         if (0 == nDepth || pLastBlock->nHeight < nDepth)
         {
             nDepth = pLastBlock->nHeight;
-            Log("B", "Consistency checking depth is {%d} for fork:{%s}\n", nDepth, fork.first.ToString().c_str());
+            Log("B", "Consistency checking depth is {%d} for fork:{%s}", nDepth, fork.first.ToString().c_str());
         }
 
         CBlockIndex* pIndex = pLastBlock;
@@ -1243,7 +1243,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
             CBlockEx block;
             if (!tsBlock.ReadDirect(block, pIndex->nFile, pIndex->nOffset))
             {
-                Error("B", "Retrieve block from file directly failed.\n");
+                Error("B", "Retrieve block from file directly failed.");
                 return false;
             }
 
@@ -1256,7 +1256,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                   && ((pIndex->nMintType == 0) ? block.IsVacant()
                                                : (!block.IsVacant() && pIndex->txidMint == block.txMint.GetHash() && pIndex->nMintType == block.txMint.nType))))
             {
-                Error("B", "Block info are not consistent in db and file.\n");
+                Error("B", "Block info are not consistent in db and file.");
                 return false;
             }
 
@@ -1267,7 +1267,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                     CTransaction tx;
                     if (!tsBlock.ReadDirect(tx, pTxIndex.nFile, pTxIndex.nOffset))
                     {
-                        Error("B", "Retrieve tx from file directly failed.\n");
+                        Error("B", "Retrieve tx from file directly failed.");
                         return false;
                     }
 
@@ -1284,12 +1284,12 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 uint256 fk;
                 if (!dbBlock.RetrieveTxIndex(pIndex->txidMint, pTxIdx, fk))
                 {
-                    Error("B", "Retrieve mint tx index from db failed.\n");
+                    Error("B", "Retrieve mint tx index from db failed.");
                     return false;
                 }
                 if (!lmdChkTx(pIndex->txidMint, pTxIdx))
                 {
-                    Error("B", "Mint tx info are not consistent in db and file.\n");
+                    Error("B", "Mint tx info are not consistent in db and file.");
                     return false;
                 }
 
@@ -1299,12 +1299,12 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                     const uint256& txid = tx.GetHash();
                     if (!dbBlock.RetrieveTxIndex(txid, pTxIdx, fk))
                     {
-                        Error("B", "Retrieve token tx index from db failed.\n");
+                        Error("B", "Retrieve token tx index from db failed.");
                         return false;
                     }
                     if (!lmdChkTx(txid, pTxIdx))
                     {
-                        Error("B", "Token tx info are not consistent in db and file.\n");
+                        Error("B", "Token tx info are not consistent in db and file.");
                         return false;
                     }
                 }
@@ -1319,7 +1319,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 {
                     if (!dbBlock.RetrieveDelegate(block.GetHash(), mapNextBlockDelegate))
                     {
-                        Error("B", "Retrieve the latest delegate record from db failed.\n");
+                        Error("B", "Retrieve the latest delegate record from db failed.");
                         return false;
                     }
                     fIsLastBlock = false;
@@ -1329,12 +1329,12 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                     map<CDestination, int64> mapPrevBlockDelegate;
                     if (!dbBlock.RetrieveDelegate(block.GetHash(), mapPrevBlockDelegate))
                     {
-                        Error("B", "Retrieve the following previous delegate record from db failed.\n");
+                        Error("B", "Retrieve the following previous delegate record from db failed.");
                         return false;
                     }
                     if (mapNextBlockDelegate != mapPrevBlockDelegate)
                     {
-                        Error("B", "Delegate records followed one by one do not match.\n");
+                        Error("B", "Delegate records followed one by one do not match.");
                         return false;
                     }
                     mapNextBlockDelegate = mapPrevBlockDelegate;
@@ -1375,7 +1375,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                         uint256 fk;
                         if (!dbBlock.RetrieveTxIndex(tx.GetHash(), txIdx, fk))
                         {
-                            Error("B", "Retrieve enroll tx index from table transaction failed.\n");
+                            Error("B", "Retrieve enroll tx index from table transaction failed.");
                             return false;
                         }
                         const uint32& nFile = txIdx.nFile;
@@ -1389,7 +1389,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 {
                     if (delegate.second < 0)
                     {
-                        Error("B", "Amount on delegate template address must not be less than zero.\n");
+                        Error("B", "Amount on delegate template address must not be less than zero.");
                         return false;
                     }
                     if (delegate.second == 0)
@@ -1408,7 +1408,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 map<CDestination, CDiskPos> mapRes;
                 if (!dbBlock.RetrieveEnroll(GetIndex(block.hashPrev)->GetBlockHeight(), vBlockRange, mapRes))
                 {
-                    Error("B", "Retrieve enroll tx records from table enroll failed.\n");
+                    Error("B", "Retrieve enroll tx records from table enroll failed.");
                     return false;
                 }
                 map<CDestination, CDiskPos> mapResComp;
@@ -1422,7 +1422,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                 }
                 if (mapRes != mapResComp)
                 {
-                    Error("B", "Enroll transactions in tables enroll and transaction do not match.\n");
+                    Error("B", "Enroll transactions in tables enroll and transaction do not match.");
                     return false;
                 }
             }
@@ -1447,10 +1447,10 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                         CTxUnspent(CTxOutPoint(tx.GetHash(), 0), CTxOut(tx.sendTo, tx.nAmount, tx.nTimeStamp, tx.nLockUntil))));
                     if (nChange > 0)
                     {
-                        Log("B", "Tx(%s) with a change(%s) on height(%d): to prepare to check.\n", tx.GetHash().ToString().c_str(), to_string(nChange).c_str(), pIndex->nHeight);
+                        Log("B", "Tx(%s) with a change(%s) on height(%d): to prepare to check.", tx.GetHash().ToString().c_str(), to_string(nChange).c_str(), pIndex->nHeight);
                         if (!CheckInputSingleAddressForTxWithChange(tx.GetHash()))
                         {
-                            Error("B", "Tx(%s) with a change(%s) on height(%d): input must be a single address.\n", tx.GetHash().ToString().c_str(), to_string(nChange).c_str(), pIndex->nHeight);
+                            Error("B", "Tx(%s) with a change(%s) on height(%d): input must be a single address.", tx.GetHash().ToString().c_str(), to_string(nChange).c_str(), pIndex->nHeight);
                             return false;
                         }
                         else
@@ -1485,30 +1485,30 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
 
             pIndex = pIndex->pPrev;
         }
-        Log("B", "Checking duration before comparing unspent ===> %s\n", t_fork.format().c_str());
+        Log("B", "Checking duration before comparing unspent ===> %s", t_fork.format().c_str());
         if (nLevel >= 3)
         {
             //compare unspent with transaction
             CForkUnspentCheckWalker walker(mapUnspentUTXO);
             if (!dbBlock.WalkThroughUnspent(fork.first, walker))
             {
-                Error("B", "{%d} ranged unspent records failed to walk through.\n", mapUnspentUTXO.size());
+                Error("B", "{%d} ranged unspent records failed to walk through.", mapUnspentUTXO.size());
                 return false;
             }
 
             if (walker.nMatch != mapUnspentUTXO.size())
             {
-                Error("B", "{%d} ranged unspent records do not match with full collection of unspent.\n", mapUnspentUTXO.size());
+                Error("B", "{%d} ranged unspent records do not match with full collection of unspent.", mapUnspentUTXO.size());
                 return false;
             }
         }
 
-        Log("B", "Checking duration of fork{%s} ===> %s\n", fork.first.ToString().c_str(), t_fork.format().c_str());
+        Log("B", "Checking duration of fork{%s} ===> %s", fork.first.ToString().c_str(), t_fork.format().c_str());
     }
 
-    Log("B", "Checking duration ===> %s\n", t_check.format().c_str());
+    Log("B", "Checking duration ===> %s", t_check.format().c_str());
 
-    Log("B", "Data consistency verified.\n");
+    Log("B", "Data consistency verified.");
 
     return true;
 }
@@ -1518,7 +1518,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
     CTransaction tx;
     if (!RetrieveTx(txid, tx))
     {
-        Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): Failed to call to RetrieveTx.\n", txid.ToString().c_str());
+        Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): Failed to call to RetrieveTx.", txid.ToString().c_str());
         return false;
     }
 
@@ -1532,7 +1532,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
             CTransaction prevTx;
             if (!RetrieveTx(i.prevout.hash, prevTx))
             {
-                Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): Failed to call to RetrieveTxIndex.\n", txid.ToString().c_str());
+                Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): Failed to call to RetrieveTxIndex.", txid.ToString().c_str());
                 return false;
             }
             vDestNoChange.push_back(prevTx.sendTo);
@@ -1550,7 +1550,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
     //if destinations are not equal, return false
     if (vDestNoChange.size() > 1)
     {
-        Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): {vDestNoChange.size() > 1}.\n", txid.ToString().c_str());
+        Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): {vDestNoChange.size() > 1}.", txid.ToString().c_str());
         return false;
     }
 
@@ -1560,7 +1560,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
         CDestination dest = *(vDestNoChange.begin());
         if (dest != tx.sendTo)
         {
-            Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): {dest != txIdx.sendTo}.\n", txid.ToString().c_str());
+            Error("B", "[CBlockBase::CheckInputSingleAddressForTxWithChange](%s): {dest != txIdx.sendTo}.", txid.ToString().c_str());
             return false;
         }
     }
@@ -1581,7 +1581,7 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
         }
         else
         {
-            Error("B", "Tx(%s) one or more preout validate failed.\n", txid.ToString().c_str());
+            Error("B", "Tx(%s) one or more preout validate failed.", txid.ToString().c_str());
             return false;
         }
         //        return count(vRes.begin(), vRes.end(), false) <= 0;

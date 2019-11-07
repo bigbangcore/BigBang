@@ -42,67 +42,67 @@ bool CDispatcher::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        Error("Failed to request forkmanager");
         return false;
     }
 
     // if (!GetObject("consensus", pConsensus))
     // {
-    //     Error("Failed to request consensus\n");
+    //     Error("Failed to request consensus");
     //     return false;
     // }
 
     if (!GetObject("wallet", pWallet))
     {
-        Error("Failed to request wallet\n");
+        Error("Failed to request wallet");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        Error("Failed to request service");
         return false;
     }
 
     if (!GetObject("blockmaker", pBlockMaker))
     {
-        Error("Failed to request blockmaker\n");
+        Error("Failed to request blockmaker");
         return false;
     }
 
     if (!GetObject("netchannel", pNetChannel))
     {
-        Error("Failed to request netchannel\n");
+        Error("Failed to request netchannel");
         return false;
     }
 
     // if (!GetObject("delegatedchannel", pDelegatedChannel))
     // {
-    //     Error("Failed to request delegatedchannel\n");
+    //     Error("Failed to request delegatedchanne");
     //     return false;
     // }
 
     if (!GetObject("datastat", pDataStat))
     {
-        Error("Failed to request datastat\n");
+        Error("Failed to request datastat");
         return false;
     }
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
@@ -129,7 +129,7 @@ bool CDispatcher::HandleInvoke()
     vector<uint256> vActive;
     if (!pForkManager->LoadForkContext(vActive))
     {
-        Error("Failed to load for context\n");
+        Error("Failed to load for context");
         return false;
     }
 
@@ -292,16 +292,16 @@ bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest,
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
     if (!strCmd.empty())
-     {
-         std::string cmd = strCmd;
-         std::string block_hash = updateBlockChain.hashFork.GetHex();
-         for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
-         {
-             block_hash += " " + ite->GetHash().GetHex();
-         }
-         boost::replace_all(cmd, "%s", block_hash);
-         std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
-     }
+    {
+        std::string cmd = strCmd;
+        std::string block_hash = updateBlockChain.hashFork.GetHex();
+        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
+        {
+            block_hash += " " + ite->GetHash().GetHex();
+        }
+        boost::replace_all(cmd, "%s", block_hash);
+        std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+    }
     // CDelegateRoutine routineDelegate;
     // pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     // pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
@@ -314,13 +314,13 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     //         Errno err = AddNewTx(tx, nNonce);
     //         if (err == OK)
     //         {
-    //             Log("Send DelegateTx success, txid: %s, previd: %s.\n",
+    //             Log("Send DelegateTx success, txid: %s, previd: %s.",
     //                 tx.GetHash().GetHex().c_str(),
     //                 tx.vInput[0].prevout.hash.GetHex().c_str());
     //         }
     //         else
     //         {
-    //             Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.\n",
+    //             Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
     //                 err, ErrorString(err), tx.GetHash().GetHex().c_str(),
     //                 tx.vInput[0].prevout.hash.GetHex().c_str());
     //         }
@@ -346,20 +346,20 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
 
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
 {
-    Log("Activating fork %s ...\n", hashFork.GetHex().c_str());
+    Log("Activating fork %s ...", hashFork.GetHex().c_str());
     if (!pBlockChain->Exists(hashFork))
     {
         CForkContext ctxt;
         if (!pBlockChain->GetForkContext(hashFork, ctxt))
         {
-            Warn("Failed to find fork context %s\n", hashFork.GetHex().c_str());
+            Warn("Failed to find fork context %s", hashFork.GetHex().c_str());
             return;
         }
 
         CTransaction txFork;
         if (!pBlockChain->GetTransaction(ctxt.txidEmbedded, txFork))
         {
-            Warn("Failed to find tx fork %s\n", hashFork.GetHex().c_str());
+            Warn("Failed to find tx fork %s", hashFork.GetHex().c_str());
             return;
         }
 
@@ -367,11 +367,11 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
         {
             return;
         }
-        Log("Add origin block in tx (%s), hash=%s\n", ctxt.txidEmbedded.GetHex().c_str(),
+        Log("Add origin block in tx (%s), hash=%s", ctxt.txidEmbedded.GetHex().c_str(),
             hashFork.GetHex().c_str());
     }
     pNetChannel->SubscribeFork(hashFork, nNonce);
-    Log("Activated fork %s ...\n", hashFork.GetHex().c_str());
+    Log("Activated fork %s ...", hashFork.GetHex().c_str());
 }
 
 bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
@@ -389,14 +389,14 @@ bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
     }
     catch (...)
     {
-        Warn("Invalid orign block found in tx (%s)\n", txid.GetHex().c_str());
+        Warn("Invalid orign block found in tx (%s)", txid.GetHex().c_str());
         return false;
     }
 
     Errno err = AddNewBlock(block);
     if (err != OK)
     {
-        Log("Add origin block in tx (%s) failed : %s\n", txid.GetHex().c_str(),
+        Log("Add origin block in tx (%s) failed : %s", txid.GetHex().c_str(),
             ErrorString(err));
         return false;
     }

@@ -2,8 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "address.h"
 #include "consensus.h"
+
+#include "address.h"
 #include "template/delegate.h"
 
 using namespace std;
@@ -187,19 +188,19 @@ bool CConsensus::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
@@ -213,7 +214,7 @@ bool CConsensus::HandleInitialize()
 
         delegate.AddNewDelegate(ctxt.GetDestination());
 
-        Log("AddNew delegate : %s\n", CAddress(ctxt.GetDestination()).ToString().c_str());
+        Log("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
     }
 
     return true;
@@ -234,19 +235,19 @@ bool CConsensus::HandleInvoke()
 
     if (!delegate.Initialize())
     {
-        Error("Failed to initialize delegate\n");
+        Error("Failed to initialize delegate");
         return false;
     }
 
     if (!LoadDelegateTx())
     {
-        Error("Failed to load delegate tx\n");
+        Error("Failed to load delegate tx");
         return false;
     }
 
     if (!LoadChain())
     {
-        Error("Failed to load chain\n");
+        Error("Failed to load chain");
         return false;
     }
 

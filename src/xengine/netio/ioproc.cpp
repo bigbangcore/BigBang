@@ -119,7 +119,7 @@ bool CIOProc::HandleInvoke()
 {
     if (!ioOutBound.Invoke(GetMaxOutBoundCount()))
     {
-        Error("Failed to invoke IOOutBound\n");
+        Error("Failed to invoke IOOutBoun");
         return false;
     }
 
@@ -127,7 +127,7 @@ bool CIOProc::HandleInvoke()
 
     if (!ThreadDelayStart(thrIOProc))
     {
-        Error("Failed to start iothread\n");
+        Error("Failed to start iothread");
         return false;
     }
 

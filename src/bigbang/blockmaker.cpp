@@ -587,7 +587,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                 proof.nNonce = nNonce;
                 proof.Save(block.vchProof);
 
-                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds), difficulty bits: (%d)\nhash :   %s\ntarget : %s\n",
+                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
                     pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, GetTime() - nHashCmputeBeginTime, nBits,
                     hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
@@ -652,11 +652,11 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 void CBlockMaker::BlockMakerThreadFunc()
 {
     const char* ConsensusMethodName[CM_MAX] = { "mpvss", "cryptonight" };
-    Log("Block maker started\n");
+    Log("Block maker started");
     for (map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s\n",
+        Log("Profile [%s] : dest=%s,pubkey=%s",
             ConsensusMethodName[(*it).first],
             CAddress(profile.destMint).ToString().c_str(),
             profile.keyMint.GetPubKey().GetHex().c_str());
@@ -784,7 +784,7 @@ void CBlockMaker::BlockMakerThreadFunc()
         }
     }
 
-    Log("Block maker exited\n");
+    Log("Block maker exited");
 }
 
 // void CBlockMaker::ExtendedMakerThreadFunc()

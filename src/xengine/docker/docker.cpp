@@ -56,10 +56,10 @@ bool CDocker::Initialize(CConfig* pConfigIn, CLog* pLogIn)
     tmNet.Clear();
 
     Log("\n\n\n\n\n\n\n\n");
-    Log("WALL-E is being activatied...\n");
+    Log("WALL-E is being activatied...");
 
-    Log("#### Configuration : \n%s\n", pConfig->ListConfig().c_str());
-    Log("##################\n");
+    Log("#### Configuration : \n%s", pConfig->ListConfig().c_str());
+    Log("##################");
 
     return true;
 }
@@ -308,7 +308,7 @@ void CDocker::Exit()
         pThreadTimer = nullptr;
     }
 
-    Log("WALL-E is deactivatied.\n");
+    Log("WALL-E is deactivatied.");
 }
 
 IBase* CDocker::GetObject(const string& key)
@@ -373,7 +373,7 @@ void CDocker::ThreadExit(CThread& thr)
 
 void CDocker::ThreadRun(CThread& thr)
 {
-    Log("Thread %s started\n", thr.strThreadName.c_str());
+    Log("Thread %s started", thr.strThreadName.c_str());
     SetThreadName(thr.strThreadName.c_str());
     try
     {
@@ -391,7 +391,7 @@ void CDocker::ThreadRun(CThread& thr)
         thr.fRunning = false;
         throw; // support pthread_cancel()
     }
-    Log("Thread %s exiting\n", thr.strThreadName.c_str());
+    Log("Thread %s exiting", thr.strThreadName.c_str());
 }
 
 void CDocker::ThreadDelayRun(CThread& thr)
@@ -400,7 +400,7 @@ void CDocker::ThreadDelayRun(CThread& thr)
         boost::unique_lock<boost::mutex> lock(mtxDocker);
         if (!fActived)
         {
-            Log("Thread %s delay to invoke\n", thr.strThreadName.c_str());
+            Log("Thread %s delay to invoke", thr.strThreadName.c_str());
         }
         while (!fActived && !fShutdown)
         {
@@ -413,7 +413,7 @@ void CDocker::ThreadDelayRun(CThread& thr)
     }
     else
     {
-        Log("Thread %s is not running before shutdown\n", thr.strThreadName.c_str());
+        Log("Thread %s is not running before shutdown", thr.strThreadName.c_str());
     }
 }
 

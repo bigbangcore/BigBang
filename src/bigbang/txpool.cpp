@@ -132,13 +132,13 @@ bool CTxPool::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
@@ -155,13 +155,13 @@ bool CTxPool::HandleInvoke()
 {
     if (!datTxPool.Initialize(Config()->pathData))
     {
-        Error("Failed to initialize txpool data\n");
+        Error("Failed to initialize txpool data");
         return false;
     }
 
     if (!LoadData())
     {
-        Error("Failed to load txpool data\n");
+        Error("Failed to load txpool data");
         return false;
     }
 
@@ -172,7 +172,7 @@ void CTxPool::HandleHalt()
 {
     if (!SaveData())
     {
-        Error("Failed to save txpool data\n");
+        Error("Failed to save txpool data");
     }
     Clear();
 }
@@ -253,7 +253,7 @@ void CTxPool::Pop(const uint256& txid)
     {
         return;
     }
-    StdTrace("[TxPool][TRACE]", "Pop : %s.",txid.GetHex().c_str());
+    StdTrace("[TxPool][TRACE]", "Pop : %s.", txid.GetHex().c_str());
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;

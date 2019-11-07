@@ -2,8 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "delegatecomm.h"
 #include "delegatedchn.h"
+
+#include "delegatecomm.h"
 
 using namespace std;
 using namespace xengine;
@@ -238,25 +239,25 @@ bool CDelegatedChannel::HandleInitialize()
 {
     if (!GetObject("peernet", pPeerNet))
     {
-        Error("Failed to request peer net\n");
+        Error("Failed to request peer net");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        Error("Failed to request dispatcher");
         return false;
     }
     return true;

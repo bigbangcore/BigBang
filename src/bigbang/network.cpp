@@ -20,7 +20,7 @@ namespace bigbang
 // CNetwork
 
 CNetwork::CNetwork()
-    : pCoreProtocol(nullptr)
+  : pCoreProtocol(nullptr)
 {
 }
 
@@ -32,7 +32,7 @@ bool CNetwork::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 

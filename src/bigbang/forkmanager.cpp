@@ -32,13 +32,13 @@ bool CForkManager::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
@@ -155,23 +155,23 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
     // }
     // if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
     // {
-        // for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-        // {
-        //     for (const CTransaction& tx : block.vtx)
-        //     {
-        //         CTemplateId tid;
-        //         if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-        //             && !tx.vchData.empty()
-        //             && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
-        //         {
-        //             CForkContext ctxt;
-        //             if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
-        //             {
-        //                 AddNewForkContext(ctxt, vActive);
-        //             }
-        //         }
-        //     }
-        // }
+    // for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+    // {
+    //     for (const CTransaction& tx : block.vtx)
+    //     {
+    //         CTemplateId tid;
+    //         if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
+    //             && !tx.vchData.empty()
+    //             && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
+    //         {
+    //             CForkContext ctxt;
+    //             if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
+    //             {
+    //                 AddNewForkContext(ctxt, vActive);
+    //             }
+    //         }
+    //     }
+    // }
     // }
 }
 

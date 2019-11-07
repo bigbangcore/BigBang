@@ -60,47 +60,47 @@ CDocker* IBase::Docker()
 
 bool IBase::Initialize()
 {
-    Log("Initializing...\n");
+    Log("Initializing...");
     if (!HandleInitialize())
     {
-        Log("Failed to initialize.\n");
+        Log("Failed to initialize.");
         return false;
     }
-    Log("Initialized.\n");
+    Log("Initialized.");
     status = STATUS_INITIALIZED;
     return true;
 }
 
 void IBase::Deinitialize()
 {
-    Log("Deinitializing...\n");
+    Log("Deinitializing...");
 
     HandleDeinitialize();
 
-    Log("Deinitialized...\n");
+    Log("Deinitialized...");
     status = STATUS_ATTACHED;
 }
 
 bool IBase::Invoke()
 {
-    Log("Invoking...\n");
+    Log("Invoking...");
     if (!HandleInvoke())
     {
-        Log("Failed to invoke\n");
+        Log("Failed to invoke");
         return false;
     }
-    Log("Invoked.\n");
+    Log("Invoked.");
     status = STATUS_INVOKED;
     return true;
 }
 
 void IBase::Halt()
 {
-    Log("Halting...\n");
+    Log("Halting...");
 
     HandleHalt();
 
-    Log("Halted.\n");
+    Log("Halted.");
     status = STATUS_INITIALIZED;
 }
 
@@ -124,7 +124,7 @@ void IBase::HandleHalt()
 
 void IBase::FatalError()
 {
-    Log("Fatal Error!!!!!\n");
+    Log("Fatal Error!!!!!");
     pDocker->FatalError(ownKey.c_str());
 }
 

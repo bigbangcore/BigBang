@@ -173,7 +173,7 @@ bool CHttpServer::CreateProfile(const CHttpHostConfig& confHost)
 
     if (!GetObject(confHost.strIOModule, profile.pIOModule))
     {
-        Error("Failed to request %s\n", confHost.strIOModule.c_str());
+        Error("Failed to request %s", confHost.strIOModule.c_str());
         return false;
     }
 
@@ -190,13 +190,13 @@ bool CHttpServer::CreateProfile(const CHttpHostConfig& confHost)
         profile.pSSLContext = new boost::asio::ssl::context(boost::asio::ssl::context::sslv23);
         if (profile.pSSLContext == nullptr)
         {
-            Error("Failed to alloc ssl context for %s:%u\n", confHost.epHost.address().to_string().c_str(),
+            Error("Failed to alloc ssl context for %s:%u", confHost.epHost.address().to_string().c_str(),
                   confHost.epHost.port());
             return false;
         }
         if (!confHost.optSSL.SetupSSLContext(*profile.pSSLContext))
         {
-            Error("Failed to setup ssl context for %s:%u\n", confHost.epHost.address().to_string().c_str(),
+            Error("Failed to setup ssl context for %s:%u", confHost.epHost.address().to_string().c_str(),
                   confHost.epHost.port());
             delete profile.pSSLContext;
             return false;
@@ -235,19 +235,19 @@ void CHttpServer::HandleDeinitialize()
 
 void CHttpServer::EnterLoop()
 {
-    Log("Http Server start:\n");
+    Log("Http Server start:");
     for (map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
     {
         if (!StartService((*it).first, (*it).second.nMaxConnections, (*it).second.vAllowMask))
         {
-            Error("Setup service %s failed, listen port = %d, connection limit %d\n",
+            Error("Setup service %s failed, listen port = %d, connection limit %d",
                   (*it).second.pIOModule->GetOwnKey().c_str(),
                   (*it).first.port(), (*it).second.nMaxConnections);
         }
         else
         {
-            Log("Setup service %s sucess, listen port = %d, connection limit %d\n",
+            Log("Setup service %s sucess, listen port = %d, connection limit %d",
                 (*it).second.pIOModule->GetOwnKey().c_str(),
                 (*it).first.port(), (*it).second.nMaxConnections);
         }
@@ -265,7 +265,7 @@ void CHttpServer::LeaveLoop()
     {
         RemoveClient(pClient);
     }
-    Log("Http Server stop\n");
+    Log("Http Server stop");
 }
 
 CIOClient* CHttpServer::CreateIOClient(CIOContainer* pContainer)

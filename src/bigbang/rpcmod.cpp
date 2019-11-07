@@ -262,25 +262,25 @@ bool CRPCMod::HandleInitialize()
 {
     if (!GetObject("httpserver", pHttpServer))
     {
-        Error("Failed to request httpserver\n");
+        Error("Failed to request httpserver");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        Error("Failed to request service");
         return false;
     }
 
     if (!GetObject("datastat", pDataStat))
     {
-        Error("Failed to request datastat\n");
+        Error("Failed to request datastat");
         return false;
     }
 

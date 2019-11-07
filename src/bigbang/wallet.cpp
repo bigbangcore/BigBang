@@ -155,19 +155,19 @@ bool CWallet::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
@@ -185,19 +185,19 @@ bool CWallet::HandleInvoke()
 {
     if (!dbWallet.Initialize(Config()->pathData / "wallet"))
     {
-        Error("Failed to initialize wallet database\n");
+        Error("Failed to initialize wallet database");
         return false;
     }
 
     if (!LoadDB())
     {
-        Error("Failed to load wallet database\n");
+        Error("Failed to load wallet database");
         return false;
     }
 
     if (!InspectWalletTx(StorageConfig()->nCheckDepth))
     {
-        Log("Failed to inspect wallet transactions\n");
+        Log("Failed to inspect wallet transactions");
         return false;
     }
 
@@ -230,14 +230,14 @@ bool CWallet::AddKey(const crypto::CKey& key)
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     if (!InsertKey(key))
     {
-        Warn("AddKey : invalid or duplicated key\n");
+        Warn("AddKey : invalid or duplicated key");
         return false;
     }
 
     if (!dbWallet.UpdateKey(key.GetPubKey(), key.GetVersion(), key.GetCipher()))
     {
         mapKeyStore.erase(key.GetPubKey());
-        Warn("AddKey : failed to save key\n");
+        Warn("AddKey : failed to save key");
         return false;
     }
     return true;
@@ -247,7 +247,7 @@ bool CWallet::LoadKey(const crypto::CKey& key)
 {
     if (!InsertKey(key))
     {
-        Error("LoadKey : invalid or duplicated key\n");
+        Error("LoadKey : invalid or duplicated key");
         return false;
     }
     return true;

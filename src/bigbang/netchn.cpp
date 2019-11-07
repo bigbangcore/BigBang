@@ -117,37 +117,37 @@ bool CNetChannel::HandleInitialize()
 {
     if (!GetObject("peernet", pPeerNet))
     {
-        Error("Failed to request peer net\n");
+        Error("Failed to request peer net");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        Error("Failed to request service");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        Error("Failed to request dispatcher");
         return false;
     }
 

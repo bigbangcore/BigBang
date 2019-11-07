@@ -30,43 +30,43 @@ bool CService::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        Error("Failed to request dispatcher");
         return false;
     }
 
     if (!GetObject("wallet", pWallet))
     {
-        Error("Failed to request wallet\n");
+        Error("Failed to request wallet");
         return false;
     }
 
     if (!GetObject("peernet", pNetwork))
     {
-        Error("Failed to request network\n");
+        Error("Failed to request network");
         return false;
     }
 
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        Error("Failed to request forkmanager");
         return false;
     }
 
