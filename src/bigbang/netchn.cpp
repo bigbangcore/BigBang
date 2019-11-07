@@ -446,11 +446,19 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             {
                 if (eventInv.data[0].nHash == uint256())
                 {
+                    uint256 hashInvBlock;
+                    if (sched.GetLocatorInvBlockHash(nNonce, hashInvBlock) > 0)
+                    {
+                        sched.SetLocatorInvBlockHash(nNonce, 0, uint256(), uint256(1));
+                    }
                     DispatchGetBlocksEvent(nNonce, hashFork);
                     return true;
                 }
                 else if (eventInv.data[0].nHash == uint256(1))
                 {
+                    uint256 hashInvBlock;
+                    int nInvHeight = sched.GetLocatorInvBlockHash(nNonce, hashInvBlock);
+                    StdTrace("NetChannel", "CEventPeerInv: Peer synchronization is the same, SynInvHeight: %d, SynInvBlock: %s ", nInvHeight, hashInvBlock.GetHex().c_str());
                     SchedulePeerInv(nNonce, hashFork, sched);
                     return true;
                 }
@@ -491,6 +499,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             }
             if (nBlockInvCount > 0 && nBlockInvCount == eventInv.data.size())
             {
+                StdTrace("NetChannel", "CEventPeerInv: Recv block inv count: %ld", nBlockInvCount);
                 sched.SetNextGetBlocksTime(nNonce, 0);
             }
             SchedulePeerInv(nNonce, hashFork, sched);
