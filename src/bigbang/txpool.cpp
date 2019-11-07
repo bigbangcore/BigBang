@@ -50,6 +50,114 @@ public:
 
 //////////////////////////////
 // CTxPoolView
+bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
+{
+    CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
+
+    if (idxTx.find(txid) != idxTx.end())
+    {
+        setTxLinkIndex.erase(txid);
+    }
+
+    CPooledTx* pMinNextPooledTx = nullptr;
+    for (int i = 0; i < 2; i++)
+    {
+        uint256 txidNextTx;
+        if (GetSpent(CTxOutPoint(txid, i), txidNextTx))
+        {
+            CPooledTx* pTx = Get(txidNextTx);
+            if (pTx == nullptr)
+            {
+                StdError("CTxPoolView", "AddNew: find next tx fail, txid: %s", txidNextTx.GetHex().c_str());
+                return false;
+            }
+            if (pMinNextPooledTx == nullptr || pMinNextPooledTx->nSequenceNumber > pTx->nSequenceNumber)
+            {
+                pMinNextPooledTx = pTx;
+            }
+        }
+    }
+    if (pMinNextPooledTx != nullptr)
+    {
+        CPooledTx* pRootPooledTx = nullptr;
+        if ((pMinNextPooledTx->nSequenceNumber & 0xFFFFFFL) != 0)
+        {
+            pRootPooledTx = Get(((pMinNextPooledTx->nSequenceNumber >> 24) + 1) << 24);
+            if (pRootPooledTx == nullptr)
+            {
+                StdLog("CTxPoolView", "AddNew: find root sequence number fail, nSequenceNumber: %ld", pMinNextPooledTx->nSequenceNumber);
+            }
+        }
+        else
+        {
+            pRootPooledTx = pMinNextPooledTx;
+        }
+        if (pRootPooledTx != nullptr)
+        {
+            if (pRootPooledTx->nNextSequenceNumber == 0)
+            {
+                pRootPooledTx->nNextSequenceNumber = pRootPooledTx->nSequenceNumber - 1;
+            }
+            tx.nSequenceNumber = pRootPooledTx->nNextSequenceNumber--;
+            if (Get(tx.nSequenceNumber) != nullptr)
+            {
+                StdError("CTxPoolView", "AddNew: new sequence used (1), nSequenceNumber: %ld", tx.nSequenceNumber);
+                return false;
+            }
+        }
+        else
+        {
+            uint64 nIdleNextSeq = pMinNextPooledTx->nSequenceNumber - 1;
+            while ((nIdleNextSeq & 0xFFFFFFL) != 0)
+            {
+                if (Get(nIdleNextSeq) == nullptr)
+                {
+                    tx.nSequenceNumber = nIdleNextSeq;
+                    break;
+                }
+                --nIdleNextSeq;
+            }
+            if ((nIdleNextSeq & 0xFFFFFFL) == 0)
+            {
+                StdError("CTxPoolView", "AddNew: find idle next sequence fail, nSequenceNumber: %ld", pMinNextPooledTx->nSequenceNumber);
+                return false;
+            }
+        }
+    }
+    else
+    {
+        if (Get(tx.nSequenceNumber) != nullptr)
+        {
+            StdError("CTxPoolView", "AddNew: new sequence used (2), nSequenceNumber: %ld", tx.nSequenceNumber);
+            return false;
+        }
+    }
+    if (!setTxLinkIndex.insert(CPooledTxLink(&tx)).second)
+    {
+        StdError("CTxPoolView", "AddNew: setTxLinkIndex insert fail, txid: %s, nSequenceNumber: %ld",
+                 txid.GetHex().c_str(), tx.nSequenceNumber);
+        return false;
+    }
+
+    for (std::size_t i = 0; i < tx.vInput.size(); i++)
+    {
+        mapSpent[tx.vInput[i].prevout].SetSpent(txid);
+    }
+    CTxOut output;
+    output = tx.GetOutput(0);
+    if (!output.IsNull())
+    {
+        mapSpent[CTxOutPoint(txid, 0)].SetUnspent(output);
+    }
+    output = tx.GetOutput(1);
+    if (!output.IsNull())
+    {
+        mapSpent[CTxOutPoint(txid, 1)].SetUnspent(output);
+    }
+
+    return true;
+}
+
 void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, vector<uint256>& vInvolvedTx)
 {
     vector<CTxOutPoint> vOutPoint;
@@ -121,7 +229,6 @@ CTxPool::CTxPool()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     nLastSequenceNumber = 0;
-    nLastSequenceNumberReverse = 0;
 }
 
 CTxPool::~CTxPool()
@@ -253,7 +360,7 @@ void CTxPool::Pop(const uint256& txid)
     {
         return;
     }
-    StdTrace("[TxPool][TRACE]", "Pop : %s.",txid.GetHex().c_str());
+    StdTrace("[TxPool][TRACE]", "Pop : %s.", txid.GetHex().c_str());
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
@@ -435,19 +542,11 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     }
 
     vector<pair<uint256, vector<CTxIn>>> vTxRemove;
-
-    int sum = 0;
-    for (const CBlockEx& block : update.vBlockRemove)
-    {
-        sum += block.vtx.size();
-    }
-    nLastSequenceNumberReverse -= sum;
-    int64_t index = nLastSequenceNumberReverse;
     std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
     std::reverse(vBlockRemove.begin(), vBlockRemove.end());
     for (const CBlockEx& block : vBlockRemove)
     {
-        for (int i = 0; i < block.vtx.size(); ++i, index++)
+        for (int i = 0; i < block.vtx.size(); ++i)
         {
             const CTransaction& tx = block.vtx[i];
             uint256 txid = tx.GetHash();
@@ -457,7 +556,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
                 txView.GetSpent(CTxOutPoint(txid, 0), spent0);
                 txView.GetSpent(CTxOutPoint(txid, 1), spent1);
-                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight, index) == OK)
+                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight) == OK)
                 {
                     if (spent0 != 0)
                         txView.SetSpent(CTxOutPoint(txid, 0), spent0);
@@ -546,7 +645,7 @@ bool CTxPool::SaveData()
     return datTxPool.Save(vTx);
 }
 
-Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight, int index)
+Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
@@ -585,17 +684,12 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     }
 
     CDestination destIn = vPrevOutput[0].destTo;
-    map<uint256, CPooledTx>::iterator mi;
-    if (index == 0)
+    map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
+    if (!txView.AddNew(txid, (*mi).second))
     {
-        mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
+        StdTrace("[TxPool][TRACE]", "txView AddNew fail, txid: %s", txid.GetHex().c_str());
+        return ERR_NOT_FOUND;
     }
-    else
-    {
-        mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, index, destIn, nValueIn))).first;
-    }
-    txView.AddNew(txid, (*mi).second);
-
     return OK;
 }
 
