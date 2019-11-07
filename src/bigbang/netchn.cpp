@@ -770,16 +770,22 @@ void CNetChannel::DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork)
         if (nLocatorInvHeight > 0)
         {
             eventGetBlocks.data.vBlockHash.push_back(hashInvBlock);
+            sched.SetLocatorDepthHash(nNonce, uint256());
         }
-        if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data, hashDepth, MAX_GETBLOCKS_COUNT - 1) && !eventGetBlocks.data.vBlockHash.empty())
+        else
         {
-            StdLog("NetChannel", "DispatchGetBlocksEvent: nLocatorInvHeight: %d, hashInvBlock: %s, hashFork: %s.",
-                   nLocatorInvHeight, hashInvBlock.GetHex().c_str(), hashFork.GetHex().c_str());
-            pPeerNet->DispatchEvent(&eventGetBlocks);
-
-            sched.SetNextGetBlocksTime(nNonce, 60);
+            if (pBlockChain->GetBlockLocator(hashFork, eventGetBlocks.data, hashDepth, MAX_GETBLOCKS_COUNT - 1))
+            {
+                sched.SetLocatorDepthHash(nNonce, hashDepth);
+            }
         }
-        sched.SetLocatorDepthHash(nNonce, hashDepth);
+        if (!eventGetBlocks.data.vBlockHash.empty())
+        {
+            StdLog("NetChannel", "DispatchGetBlocksEvent: Peer: %s, nLocatorInvHeight: %d, hashInvBlock: %s, hashFork: %s.",
+                   GetPeerAddressInfo(nNonce).c_str(), nLocatorInvHeight, hashInvBlock.GetHex().c_str(), hashFork.GetHex().c_str());
+            pPeerNet->DispatchEvent(&eventGetBlocks);
+            sched.SetNextGetBlocksTime(nNonce, 120);
+        }
     }
     catch (exception& e)
     {
