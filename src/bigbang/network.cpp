@@ -20,6 +20,7 @@ namespace bigbang
 // CNetwork
 
 CNetwork::CNetwork()
+    : pCoreProtocol(nullptr)
 {
 }
 
@@ -29,8 +30,14 @@ CNetwork::~CNetwork()
 
 bool CNetwork::HandleInitialize()
 {
+    if (!GetObject("coreprotocol", pCoreProtocol))
+    {
+        Error("Failed to request coreprotocol\n");
+        return false;
+    }
+
     Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK | network::NODE_DELEGATED,
-              FormatSubVersion(), !NetworkConfig()->vConnectTo.empty());
+              FormatSubVersion(), !NetworkConfig()->vConnectTo.empty(), pCoreProtocol->GetGenesisBlockHash());
 
     CPeerNetConfig config;
     if (NetworkConfig()->fListen || NetworkConfig()->fListen4)
@@ -77,6 +84,7 @@ bool CNetwork::HandleInitialize()
 
 void CNetwork::HandleDeinitialize()
 {
+    pCoreProtocol = nullptr;
     network::CBbPeerNet::HandleDeinitialize();
 }
 

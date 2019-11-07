@@ -312,7 +312,7 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
     uint64 nNonce = pPeer->GetNonce();
     int64 nTime = GetNetTime();
     int nHeight = pNetChannel->GetPrimaryChainHeight();
-    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight;
+    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight << hashGenesis;
 }
 
 uint32 CBbPeerNet::BuildPing(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload)
@@ -334,6 +334,10 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
+    {
+        return false;
+    }
+    if (pBbPeer->hashGenesis != hashGenesis)
     {
         return false;
     }

@@ -53,6 +53,7 @@ public:
     uint64 nNonceFrom;
     int64 nTimeDelta;
     int64 nTimeHello;
+    uint256 hashGenesis;
     std::string strSubVer;
     int nStartingHeight;
     int nPingPongTimeDelta;

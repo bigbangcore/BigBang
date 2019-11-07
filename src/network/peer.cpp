@@ -215,7 +215,7 @@ bool CBbPeer::HandshakeReadCompleted()
                     return false;
                 }
                 int64 nTime;
-                ss >> nVersion >> nService >> nTime >> nNonceFrom >> strSubVer >> nStartingHeight;
+                ss >> nVersion >> nService >> nTime >> nNonceFrom >> strSubVer >> nStartingHeight >> hashGenesis;
                 nTimeDelta = nTime - nTimeRecv;
                 if (!fInBound)
                 {

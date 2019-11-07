@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "peernet.h"
+#include "base.h"
 
 namespace bigbang
 {
@@ -29,6 +30,9 @@ protected:
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
     }
+
+protected:
+    ICoreProtocol* pCoreProtocol;
 };
 
 } // namespace bigbang

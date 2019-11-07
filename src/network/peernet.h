@@ -75,13 +75,15 @@ protected:
     bool SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
     bool SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
     virtual void ProcessAskFor(xengine::CPeer* pPeer);
-    void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn, bool fEnclosedIn)
+    void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn,
+                   const std::string& subVersionIn, bool fEnclosedIn, const uint256& hashGenesisIn)
     {
         nMagicNum = nMagicNumIn;
         nVersion = nVersionIn;
         nService = nServiceIn;
         subVersion = subVersionIn;
         fEnclosed = fEnclosedIn;
+        hashGenesis = hashGenesisIn;
     }
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
     uint32 CreateSeq(uint64 nNonce);
@@ -94,6 +96,7 @@ protected:
     uint64 nService;
     bool fEnclosed;
     std::string subVersion;
+    uint256 hashGenesis;
     std::set<boost::asio::ip::tcp::endpoint> setDNSeed;
     uint64 nSeqCreate;
 };
