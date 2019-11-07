@@ -254,7 +254,7 @@ void StdLog(const char* pszName, const char* pszFormat, ...)
         std::string str = ss.str();
 
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
     }
 }
 
