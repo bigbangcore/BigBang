@@ -62,10 +62,10 @@ CRPCReqVec DeserializeCRPCReq(const std::string& str, bool& fArray)
 
     // read from string
     json_spirit::Value valRequest;
-    if (!json_spirit::read_string(str, valRequest))
+    if (!json_spirit::read_string(str, valRequest, RPC_MAX_DEPTH))
     {
         throw CRPCException(RPC_PARSE_ERROR,
-                            "Parse Error: request must be json string.");
+                            "Parse Error: request json string error.");
     }
 
     // top level json type must be array or object
