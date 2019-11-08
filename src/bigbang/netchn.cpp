@@ -306,6 +306,11 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
+        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+    }
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
         DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -325,11 +330,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         {
             pPeerNet->DispatchEvent(&eventSubscribe);
         }
-    }
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
-        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
     }
     NotifyPeerUpdate(nNonce, true, eventActive.data);
     return true;
@@ -458,7 +458,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                 {
                     uint256 hashInvBlock;
                     int nInvHeight = sched.GetLocatorInvBlockHash(nNonce, hashInvBlock);
-                    StdTrace("NetChannel", "CEventPeerInv: Peer synchronization is the same, SynInvHeight: %d, SynInvBlock: %s ", nInvHeight, hashInvBlock.GetHex().c_str());
+                    StdTrace("NetChannel", "CEventPeerInv: peer: %s, synchronization is the same, SynInvHeight: %d, SynInvBlock: %s ",
+                             GetPeerAddressInfo(nNonce).c_str(), nInvHeight, hashInvBlock.GetHex().c_str());
                     SchedulePeerInv(nNonce, hashFork, sched);
                     return true;
                 }
@@ -499,7 +500,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             }
             if (nBlockInvCount > 0 && nBlockInvCount == eventInv.data.size())
             {
-                StdTrace("NetChannel", "CEventPeerInv: Recv block inv count: %ld", nBlockInvCount);
+                StdTrace("NetChannel", "CEventPeerInv: peer: %s, recv block inv count: %ld", GetPeerAddressInfo(nNonce).c_str(), nBlockInvCount);
                 sched.SetNextGetBlocksTime(nNonce, 0);
             }
             SchedulePeerInv(nNonce, hashFork, sched);
@@ -1130,14 +1131,19 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
 const string CNetChannel::GetPeerAddressInfo(uint64 nNonce)
 {
     boost::shared_lock<boost::shared_mutex> wlock(rwNetPeer);
-    CNetChannelPeer& peer = mapPeer[nNonce];
-    boost::asio::ip::tcp::endpoint ep;
-    peer.addressRemote.ssEndpoint.GetEndpoint(ep);
-    if (ep.address().is_v6())
+    map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+    if (it != mapPeer.end())
     {
-        return string("[") + ep.address().to_string() + "]:" + to_string(ep.port());
+        CNetChannelPeer& peer = it->second;
+        boost::asio::ip::tcp::endpoint ep;
+        peer.addressRemote.ssEndpoint.GetEndpoint(ep);
+        if (ep.address().is_v6())
+        {
+            return string("[") + ep.address().to_string() + "]:" + to_string(ep.port());
+        }
+        return ep.address().to_string() + ":" + to_string(ep.port());
     }
-    return ep.address().to_string() + ":" + to_string(ep.port());
+    return string("0.0.0.0");
 }
 
 } // namespace bigbang

@@ -168,7 +168,7 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -178,6 +178,9 @@ class CSchedule
         uint64 nAssigned;
         CInvObject objReceived;
         std::set<uint64> setKnownPeer;
+        int64 nRecvInvTime;
+        int64 nRecvObjTime;
+        int nGetDataCount;
     };
 
 public:
