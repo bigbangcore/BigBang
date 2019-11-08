@@ -15,6 +15,8 @@
 namespace xengine
 {
 
+#define MAX_HTTP_CONTENT_LENGTH 2000000
+
 class _iless
 {
 public:

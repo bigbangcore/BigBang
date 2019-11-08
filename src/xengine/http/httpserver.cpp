@@ -105,7 +105,11 @@ void CHttpClient::HandleReadHeader(size_t nTransferred)
         {
             nLength = atoi((*it).second.c_str());
         }
-        if (nLength > 0 && ssRecv.GetSize() < nLength)
+        if (nLength > MAX_HTTP_CONTENT_LENGTH)
+        {
+            pServer->HandleClientError(this);
+        }
+        else if (nLength > 0 && ssRecv.GetSize() < nLength)
         {
             StartReadPayload(nLength - ssRecv.GetSize());
         }
