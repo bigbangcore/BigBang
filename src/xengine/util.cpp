@@ -23,6 +23,7 @@
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
 #include <cstdarg>
+#include <thread>
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -51,7 +52,12 @@ std::string GetThreadName()
 #elif defined(__APPLE__)
     pthread_getname_np(pthread_self(), name, 16);
 #endif
-    return name;
+    std::ostringstream oss;
+#ifndef NDEBUG
+    oss << std::hex << std::this_thread::get_id() << ":";
+#endif
+    oss << name;
+    return oss.str();
 }
 
 #define DUMP_STACK_DEPTH_MAX 64

@@ -342,7 +342,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
                 if (fWriteRPCLog)
                 {
-                    Debug("request : %s\n", lmdMask(spReq->Serialize()).c_str());
+                    Debug("request : %s ", lmdMask(spReq->Serialize()).c_str());
                 }
 
                 spResult = (this->*(*it).second)(spReq->spParam);
@@ -399,7 +399,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
     if (fWriteRPCLog)
     {
-        Debug("response : %s\n", lmdMask(strResult).c_str());
+        Debug("response : %s ", lmdMask(strResult).c_str());
     }
 
     // no result means no return
