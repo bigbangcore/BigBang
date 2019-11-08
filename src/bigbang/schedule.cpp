@@ -124,7 +124,7 @@ void CSchedule::RemovePeer(uint64 nPeerNonce, set<uint64>& setSchedPeer)
     }
 }
 
-void CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
+bool CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
 {
     CInvPeer& peer = mapPeer[nPeerNonce];
     size_t nMaxPeerInv = (inv.nType == network::CInv::MSG_TX ? MAX_PEER_TX_INV_COUNT : MAX_PEER_BLOCK_INV_COUNT);
@@ -133,7 +133,9 @@ void CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
         mapState[inv].setKnownPeer.insert(nPeerNonce);
         mapState[inv].nRecvInvTime = GetTime();
         peer.AddNewInv(inv);
+        return true;
     }
+    return false;
 }
 
 bool CSchedule::RemoveInv(const network::CInv& inv, set<uint64>& setKnownPeer)
@@ -427,6 +429,7 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
 {
     size_t nReceived = 0;
     int64 nCurTime = GetTime();
+    set<network::CInv> setRemoveInv;
     vInv.clear();
     CUInt256List& listKnown = peer.GetKnownList(type);
     for (const uint256& hash : listKnown)
@@ -435,12 +438,13 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
         CInvState& state = mapState[inv];
         if (state.nAssigned == 0)
         {
-            if (state.nGetDataCount >= 10
-                || (state.nGetDataCount >= 1 && nCurTime - state.nRecvInvTime >= 600)
-                || nCurTime - state.nRecvInvTime >= 86400)
+            if (state.nGetDataCount >= MAX_REGETDATA_COUNT
+                || (state.nGetDataCount >= 1 && nCurTime - state.nRecvInvTime >= MAX_INV_WAIT_TIME)
+                || nCurTime - state.nRecvInvTime >= MAX_INV_WAIT_TIME * 12)
             {
-                set<uint64> setKnownPeer;
-                RemoveInv(inv, setKnownPeer);
+                StdLog("Schedule", "ScheduleKnownInv: inv timeout, peer nonce: %ld, inv: [%d] %s, getcount: %d, waittime: %ld",
+                       nPeerNonce, inv.nType, inv.nHash.GetHex().c_str(), state.nGetDataCount, nCurTime - state.nRecvInvTime);
+                setRemoveInv.insert(inv);
                 continue;
             }
             state.nAssigned = nPeerNonce;
@@ -454,13 +458,22 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
         }
         else if (state.IsReceived())
         {
-            if (nCurTime - state.nRecvObjTime >= 3600)
+            if (nCurTime - state.nRecvObjTime >= MAX_OBJ_WAIT_TIME)
             {
-                set<uint64> setKnownPeer;
-                RemoveInv(inv, setKnownPeer);
+                StdLog("Schedule", "ScheduleKnownInv: object timeout, peer nonce: %ld, inv: [%d] %s, waittime: %ld",
+                       nPeerNonce, inv.nType, inv.nHash.GetHex().c_str(), nCurTime - state.nRecvObjTime);
+                setRemoveInv.insert(inv);
                 continue;
             }
             nReceived++;
+        }
+    }
+    if (!setRemoveInv.empty())
+    {
+        for (const network::CInv& inv : setRemoveInv)
+        {
+            set<uint64> setKnownPeer;
+            RemoveInv(inv, setKnownPeer);
         }
     }
     fReceivedAll = (nReceived == listKnown.size() && nReceived != 0);

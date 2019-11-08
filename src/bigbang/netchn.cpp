@@ -311,6 +311,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
         mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
     }
+    StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
         DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -338,6 +339,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 bool CNetChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
 {
     uint64 nNonce = eventDeactive.nNonce;
+    StdLog("NetChannel", "CEventPeerDeactive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
@@ -374,6 +376,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
 {
     uint64 nNonce = eventSubscribe.nNonce;
     uint256& hashFork = eventSubscribe.hashFork;
+    StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
@@ -407,6 +410,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
 {
     uint64 nNonce = eventUnsubscribe.nNonce;
     uint256& hashFork = eventUnsubscribe.hashFork;
+    StdLog("NetChannel", "CEventPeerUnsubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
@@ -466,13 +470,23 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
             }
             vector<uint256> vTxHash;
             int64 nBlockInvCount = 0;
+            int nLastBlockHeight = -1;
             for (const network::CInv& inv : eventInv.data)
             {
                 if (inv.nType == network::CInv::MSG_TX)
                 {
                     if (!pTxPool->Exists(inv.nHash) && !pBlockChain->ExistsTx(inv.nHash))
                     {
-                        sched.AddNewInv(inv, nNonce);
+                        if (sched.AddNewInv(inv, nNonce))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add tx inv success, txid: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
+                        }
+                        else
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add tx inv fail, txid: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
+                        }
                         vTxHash.push_back(inv.nHash);
                     }
                 }
@@ -480,16 +494,45 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                 {
                     nBlockInvCount++;
 
-                    uint256 hashFork;
-                    int nHeight;
-                    uint256 hashNext;
-                    if (!pBlockChain->GetBlockLocation(inv.nHash, hashFork, nHeight, hashNext))
+                    uint256 hashLocationFork;
+                    int nLocationHeight;
+                    uint256 hashLocationNext;
+                    if (!pBlockChain->GetBlockLocation(inv.nHash, hashLocationFork, nLocationHeight, hashLocationNext))
                     {
-                        sched.AddNewInv(inv, nNonce);
+                        if (nLastBlockHeight == -1)
+                        {
+                            uint256 hashLastBlock;
+                            int64 nLastTime = 0;
+                            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastTime))
+                            {
+                                StdError("NetChannel", "CEventPeerInv: peer: %s, GetLastBlock fail, fork: %s",
+                                         GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+                                throw runtime_error(string("GetLastBlock fail"));
+                            }
+                        }
+                        uint32 nBlockHeight = CBlock::GetBlockHeightByHash(inv.nHash);
+                        if (nBlockHeight > (nLastBlockHeight + CSchedule::MAX_PEER_BLOCK_INV_COUNT / 2))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, block height too high, last height: %d, block height: %d, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), nLastBlockHeight, nBlockHeight, inv.nHash.GetHex().c_str());
+                            continue;
+                        }
+                        if (sched.AddNewInv(inv, nNonce))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv success, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
+                        }
+                        else
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv fail, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
+                        }
                     }
                     else
                     {
-                        sched.SetLocatorInvBlockHash(nNonce, nHeight, inv.nHash, hashNext);
+                        StdTrace("NetChannel", "CEventPeerInv: peer: %s, block existed, height: %d, block hash: %s ",
+                                 GetPeerAddressInfo(nNonce).c_str(), nLocationHeight, inv.nHash.GetHex().c_str());
+                        sched.SetLocatorInvBlockHash(nNonce, nLocationHeight, inv.nHash, hashLocationNext);
                     }
                 }
             }
@@ -523,13 +566,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
         if (inv.nType == network::CInv::MSG_TX)
         {
             network::CEventPeerTx eventTx(nNonce, hashFork);
-            if (pTxPool->Get(inv.nHash, eventTx.data))
+            if (pTxPool->Get(inv.nHash, eventTx.data) || pBlockChain->GetTransaction(inv.nHash, eventTx.data))
             {
                 pPeerNet->DispatchEvent(&eventTx);
-            }
-            else if (pBlockChain->GetTransaction(inv.nHash, eventTx.data))
-            {
-                pPeerNet->DispatchEvent(&eventTx);
+                StdTrace("NetChannel", "CEventPeerGetData: get tx success, peer: %s, txid: %s",
+                         GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
             }
             else
             {
@@ -543,6 +584,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             if (pBlockChain->GetBlock(inv.nHash, eventBlock.data))
             {
                 pPeerNet->DispatchEvent(&eventBlock);
+                StdTrace("NetChannel", "CEventPeerGetData: get block success, peer: %s, block: %s",
+                         GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
             }
             else
             {
@@ -568,6 +611,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     uint64 nNonce = eventGetBlocks.nNonce;
     uint256& hashFork = eventGetBlocks.hashFork;
     vector<uint256> vBlockHash;
+
+    StdTrace("NetChannel", "CEventPeerGetBlocks: peer: %s, fork: %s",
+             GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+
     if (eventGetBlocks.data.vBlockHash.empty())
     {
         StdError("NetChannel", "CEventPeerGetBlocks: vBlockHash is empty");
@@ -631,6 +678,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
             StdLog("NetChannel", "CEventPeerTx: ReceiveTx fail, txid: %s", txid.GetHex().c_str());
             return true;
         }
+        StdTrace("NetChannel", "CEventPeerTx: receive tx success, peer: %s, txid: %s",
+                 GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
 
         uint256 hashForkAnchor;
         int nHeightAnchor;
@@ -692,6 +741,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             StdLog("NetChannel", "CEventPeerBlock: ReceiveBlock fail, block: %s", hash.GetHex().c_str());
             return true;
         }
+        StdTrace("NetChannel", "CEventPeerBlock: receive block success, peer: %s, block hash: %s",
+                 GetPeerAddressInfo(nNonce).c_str(), hash.GetHex().c_str());
 
         uint256 hashForkPrev;
         int nHeightPrev;
@@ -734,6 +785,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetFail& eventGetFail)
 
         for (const network::CInv& inv : eventGetFail.data)
         {
+            StdTrace("NetChannel", "CEventPeerGetFail: get data fail, peer: %s, inv: [%d] %s",
+                     GetPeerAddressInfo(nNonce).c_str(), inv.nType, inv.nHash.GetHex().c_str());
             sched.CancelAssignedInv(nNonce, inv);
         }
     }

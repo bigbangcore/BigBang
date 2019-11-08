@@ -184,10 +184,21 @@ class CSchedule
     };
 
 public:
+    enum
+    {
+        MAX_INV_COUNT = 1024 * 256,
+        MAX_PEER_BLOCK_INV_COUNT = 1024,
+        MAX_PEER_TX_INV_COUNT = 1024 * 256,
+        MAX_REGETDATA_COUNT = 10,
+        MAX_INV_WAIT_TIME = 3600,
+        MAX_OBJ_WAIT_TIME = 7200
+    };
+
+public:
     bool Exists(const network::CInv& inv);
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
-    void AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
+    bool AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
     bool RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     bool ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, std::set<uint64>& setSchedPeer);
     bool ReceiveTx(uint64 nPeerNonce, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer);
@@ -214,12 +225,6 @@ protected:
                           std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fReceivedAll);
 
 protected:
-    enum
-    {
-        MAX_INV_COUNT = 1024 * 256,
-        MAX_PEER_BLOCK_INV_COUNT = 1024,
-        MAX_PEER_TX_INV_COUNT = 1024 * 256
-    };
     COrphan orphanBlock;
     COrphan orphanTx;
     std::map<uint64, CInvPeer> mapPeer;

@@ -205,8 +205,7 @@ CPeer* CPeerNet::AddNewPeer(CIOClient* pClient, bool fInBound)
         pPeer->Activate();
         mapPeer.insert(make_pair(nNonce, pPeer));
 
-        StdLog("CPeerNet", "Add New Peer : %s", GetEpString(pPeer->GetRemote()).c_str());
-
+        StdLog("CPeerNet", "Add New Peer : peer nonce: %ld, address: %s", nNonce, GetEpString(pPeer->GetRemote()).c_str());
         return pPeer;
     }
     return nullptr;
