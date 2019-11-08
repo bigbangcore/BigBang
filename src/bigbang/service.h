@@ -87,7 +87,6 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
     ITxPoolController* pTxPoolCtrl;
-    IDispatcher* pDispatcher;
     IWallet* pWallet;
     IForkManager* pForkManager;
     mutable boost::shared_mutex rwForkStatus;

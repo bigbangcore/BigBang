@@ -18,7 +18,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pWorldLineCtrl(nullptr), pTxPoolCtrl(nullptr), pDispatcher(nullptr), pWallet(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pWorldLineCtrl(nullptr), pTxPoolCtrl(nullptr), pWallet(nullptr), pForkManager(nullptr)
 {
 }
 
@@ -46,12 +46,6 @@ bool CService::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
-        return false;
-    }
-
     if (!GetObject("wallet", pWallet))
     {
         ERROR("Failed to request wallet");
@@ -72,7 +66,6 @@ void CService::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pWallet = nullptr;
     pForkManager = nullptr;
 }
