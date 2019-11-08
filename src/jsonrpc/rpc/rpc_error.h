@@ -15,6 +15,7 @@ namespace rpc
 {
 
 #define RPC_DOUBLE_PRECISION 6
+#define RPC_MAX_DEPTH 64
 
 enum RPCErrorCode
 {
