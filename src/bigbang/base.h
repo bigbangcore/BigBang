@@ -287,7 +287,7 @@ class IConsensusController : public xengine::CIOActor
 {
 public:
     IConsensusController()
-        : CIOActor("consensuscontroller"), pConsensus(nullptr) {}
+      : CIOActor("consensuscontroller"), pConsensus(nullptr) {}
 
 protected:
     void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
@@ -380,7 +380,8 @@ protected:
 class IWalletController : public xengine::CIOActor
 {
 public:
-    IWalletController() : CIOActor("walletcontroller"), pWallet(nullptr) {}
+    IWalletController()
+      : CIOActor("walletcontroller"), pWallet(nullptr) {}
 
 protected:
     bool SynchronizeTxSet(const CTxSetChange& change)
@@ -473,7 +474,6 @@ public:
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
     /* Mint */
-    virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) = 0;
     virtual bool GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
     virtual bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) = 0;

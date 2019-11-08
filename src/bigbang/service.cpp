@@ -501,14 +501,15 @@ bool CService::ResynchronizeWalletTx()
     return pWallet->ResynchronizeWalletTx();
 }
 
-bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
+bool CService::GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
 {
     CBlock block;
     block.nType = CBlock::BLOCK_PRIMARY;
 
+    if (!hashBlockPrev)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwForkStatus);
-        map<uint256, CForkStatus>::iterator it = mapForkStatus.find(pCoreProtocol->GetGenesisBlockHash());
+        map<uint256, CForkStatus>::const_iterator it = mapForkStatus.find(pCoreProtocol->GetGenesisBlockHash());
         if (it == mapForkStatus.end())
         {
             return false;
@@ -519,53 +520,31 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         block.hashPrev = hashPrev;
         block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING - 10;
     }
-
-    nAlgo = CM_CRYPTONIGHT;
-    int64 nReward;
-    if (!pWorldLineCtrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
+    else
     {
-        return false;
+        if (!pWorldLineCtrl->GetBlock(hashBlockPrev, block))
+        {
+            return false;
+        }
+
+        uint256 hashFork;
+        int nHeight = 0;
+        if (!pWorldLineCtrl->GetBlockLocation(hashBlockPrev, hashFork, nHeight))
+        {
+            return false;
+        }
+
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            return false;
+        }
+
+        hashPrev = hashBlockPrev;
+        nPrevTime = block.GetBlockTime();
+        nPrevBlockHeight = nHeight;
+        block.hashPrev = hashPrev;
+        block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING - 10;
     }
-
-    CProofOfHashWork proof;
-    proof.nWeight = 0;
-    proof.nAgreement = 0;
-    proof.nAlgo = nAlgo;
-    proof.nBits = nBits;
-    proof.destMint = CDestination(templMint->GetTemplateId());
-    proof.nNonce = 0;
-    proof.Save(block.vchProof);
-
-    block.GetSerializedProofOfWorkData(vchWorkData);
-    return true;
-}
-
-bool CService::GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
-{
-    CBlock block;
-    block.nType = CBlock::BLOCK_PRIMARY;
-    if (!pWorldLineCtrl->GetBlock(hashBlockPrev, block))
-    {
-        return false;
-    }
-
-    uint256 hashFork;
-    int nHeight = 0;
-    if (!pWorldLineCtrl->GetBlockLocation(hashBlockPrev, hashFork, nHeight))
-    {
-        return false;
-    }
-
-    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
-    {
-        return false;
-    }
-
-    hashPrev = hashBlockPrev;
-    nPrevTime = block.GetBlockTime();
-    nPrevBlockHeight = nHeight;
-    block.hashPrev = hashPrev;
-    block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING - 10;
 
     nAlgo = CM_CRYPTONIGHT;
     int64 nReward;
