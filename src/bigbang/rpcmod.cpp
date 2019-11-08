@@ -2297,7 +2297,7 @@ CRPCResultPtr CRPCMod::RPCGetWork(CNoncePtr spNonce, CRPCParamPtr param)
 
     if (spParam->strPrev.empty())
     {
-        if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
+        if (!pService->GetWork(uint256(), vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
         {
             spResult->fResult = false;
             return spResult;
