@@ -509,7 +509,7 @@ bool CService::GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>&
     if (!hashBlockPrev)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwForkStatus);
-        map<uint256, CForkStatus>::iterator it = mapForkStatus.find(pCoreProtocol->GetGenesisBlockHash());
+        map<uint256, CForkStatus>::const_iterator it = mapForkStatus.find(pCoreProtocol->GetGenesisBlockHash());
         if (it == mapForkStatus.end())
         {
             return false;
