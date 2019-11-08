@@ -69,6 +69,7 @@ public:
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) override;
+    bool GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
     bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) override;
     /* Util */
 protected:
@@ -81,6 +82,7 @@ protected:
     void NotifyWorldLineUpdate(const CWorldLineUpdate& update) override;
     void NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update) override;
     void NotifyTransactionUpdate(const CTransactionUpdate& update) override;
+
 protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
@@ -108,7 +110,6 @@ protected:
     void HandleAddedTx(const CAddedTxMessage& msg);
     void HandlePeerActive(const CPeerActiveMessage& msg);
     void HandlePeerDeactive(const CPeerDeactiveMessage& msg);
-
 };
 
 } // namespace bigbang

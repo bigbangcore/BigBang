@@ -129,7 +129,8 @@ class CRPCAsyncResult : public CRPCCommonResult
 {
 public:
     uint256 hash;
-    CRPCAsyncResult(const uint256& hashIn) : hash(hashIn) {}
+    CRPCAsyncResult(const uint256& hashIn)
+      : hash(hashIn) {}
     json_spirit::Value ToJSON() const
     {
         return Value(hash.ToString());
@@ -599,7 +600,7 @@ void CRPCMod::CompletedWork(CNoncePtr spNonce, size_t nIndex, CRPCRespPtr spResp
     }
 
     work.vecResp[nIndex] = spResp;
-    TRACE("Nonce (%u) remainder %u", spNonce->nNonce, work.nRemainder-1);
+    TRACE("Nonce (%u) remainder %u", spNonce->nNonce, work.nRemainder - 1);
     if (--work.nRemainder == 0)
     {
         string strResult;
@@ -2293,10 +2294,24 @@ CRPCResultPtr CRPCMod::RPCGetWork(CNoncePtr spNonce, CRPCParamPtr param)
     uint256 hashPrev;
     uint32 nPrevTime;
     int nAlgo, nBits;
-    if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
+
+    if (spParam->strPrev.empty())
     {
-        spResult->fResult = false;
-        return spResult;
+        if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
+        {
+            spResult->fResult = false;
+            return spResult;
+        }
+    }
+    else
+    {
+        uint256 hashBlockPrev;
+        hashBlockPrev.SetHex(spParam->strPrev);
+        if (!pService->GetWork(hashBlockPrev, vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
+        {
+            spResult->fResult = false;
+            return spResult;
+        }
     }
 
     spResult->fResult = true;

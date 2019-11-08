@@ -475,6 +475,7 @@ public:
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block) = 0;
+    virtual bool GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
     virtual bool SendBlock(xengine::CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block) = 0;
 
 protected:

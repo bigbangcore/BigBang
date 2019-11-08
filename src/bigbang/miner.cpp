@@ -34,10 +34,12 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nMinerStatus = -1;
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
-    if (vArgsIn.size() >= 2)
+    pService = nullptr;
+    if (vArgsIn.size() >= 3)
     {
         strAddrSpent = vArgsIn[0];
         strMintKey = vArgsIn[1];
+        strHashPrev = vArgsIn[2];
     }
 }
 
@@ -64,6 +66,7 @@ void CMiner::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pHttpGet = nullptr;
+    pService = nullptr;
 }
 
 bool CMiner::HandleInvoke()
@@ -78,6 +81,9 @@ bool CMiner::HandleInvoke()
         cerr << "Invalid mint key\n";
         return false;
     }
+
+    workCurrent.hashPrev.SetHex(strHashPrev);
+
     if (!ThreadDelayStart(thrFetcher))
     {
         return false;
@@ -208,6 +214,11 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                         workCurrent.nBits = spResult->work.nBits;
                         workCurrent.vchWorkData = ParseHexString(spResult->work.strData);
 
+                        std::cout << "get work replay: prev hash " << spResult->work.strPrevblockhash
+                                  << std::endl;
+                        std::cout << "get work replay: prev height " << spResult->work.nPrevblockheight
+                                  << std::endl;
+
                         nMinerStatus = MINER_RESET;
                     }
                     condMiner.notify_all();
@@ -233,6 +244,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                 if (spResult->strHash.IsValid())
                 {
                     cout << "Submited new block : " << spResult->strHash << "\n";
+                    workCurrent.hashPrev.SetHex(spResult->strHash);
                 }
             }
             else

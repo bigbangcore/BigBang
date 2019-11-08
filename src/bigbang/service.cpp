@@ -547,6 +547,53 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     return true;
 }
 
+bool CService::GetWork(const uint256& hashBlockPrev, std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
+{
+    CBlock block;
+    block.nType = CBlock::BLOCK_PRIMARY;
+    if (!pWorldLineCtrl->GetBlock(hashBlockPrev, block))
+    {
+        return false;
+    }
+
+    uint256 hashFork;
+    int nHeight = 0;
+    if (!pWorldLineCtrl->GetBlockLocation(hashBlockPrev, hashFork, nHeight))
+    {
+        return false;
+    }
+
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        return false;
+    }
+
+    hashPrev = hashBlockPrev;
+    nPrevTime = block.GetBlockTime();
+    nPrevBlockHeight = nHeight;
+    block.hashPrev = hashPrev;
+    block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING - 10;
+
+    nAlgo = CM_CRYPTONIGHT;
+    int64 nReward;
+    if (!pWorldLineCtrl->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
+    {
+        return false;
+    }
+
+    CProofOfHashWork proof;
+    proof.nWeight = 0;
+    proof.nAgreement = 0;
+    proof.nAlgo = nAlgo;
+    proof.nBits = nBits;
+    proof.destMint = CDestination(templMint->GetTemplateId());
+    proof.nNonce = 0;
+    proof.Save(block.vchProof);
+
+    block.GetSerializedProofOfWorkData(vchWorkData);
+    return true;
+}
+
 Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, CBlock& block)
 {
     if (vchWorkData.empty())
@@ -651,7 +698,6 @@ void CService::NotifyTransactionUpdate(const CTransactionUpdate& update)
     (void)update;
 }
 
-
 //////////////////////////////
 // CServiceController
 
@@ -717,7 +763,7 @@ void CServiceController::HandleAddedTx(const CAddedTxMessage& msg)
     if (msg.nErrno == OK)
     {
         CTransactionUpdate updateTransaction;
-        updateTransaction.hashFork = msg.hashFork; 
+        updateTransaction.hashFork = msg.hashFork;
         updateTransaction.txUpdate = msg.tx;
         updateTransaction.nChange = msg.tx.GetChange();
         NotifyTransactionUpdate(updateTransaction);
@@ -741,6 +787,5 @@ void CServiceController::HandlePeerDeactive(const CPeerDeactiveMessage& msg)
     update.address = msg.address;
     NotifyNetworkPeerUpdate(update);
 }
-
 
 } // namespace bigbang

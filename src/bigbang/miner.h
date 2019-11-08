@@ -81,6 +81,7 @@ private:
 
 protected:
     ICoreProtocol* pCoreProtocol;
+    IService* pService;
     xengine::CIOProc* pHttpGet;
     xengine::CThread thrFetcher;
     xengine::CThread thrMiner;
@@ -89,6 +90,7 @@ protected:
     boost::condition_variable condMiner;
     std::string strAddrSpent;
     std::string strMintKey;
+    std::string strHashPrev;
     int nMinerStatus;
     CMinerWork workCurrent;
     uint64 nNonceGetWork;
