@@ -345,6 +345,11 @@ bool CService::RemovePendingTx(const uint256& txid)
     return true;
 }
 
+bool CService::ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent)
+{
+    return pBlockChain->ListForkUnspent(forkId, destOwner, nMax, vUnspent);
+}
+
 bool CService::HaveKey(const crypto::CPubKey& pubkey)
 {
     return pWallet->Have(pubkey);

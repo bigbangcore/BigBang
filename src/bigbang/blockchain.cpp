@@ -668,6 +668,11 @@ bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& loca
     return cntrBlock.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
 }
 
+bool CBlockChain::ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent)
+{
+    return cntrBlock.ListForkUnspent(forkId, destOwner, nMax, vUnspent);
+}
+
 // bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 // {
 //     enrolled.Clear();
