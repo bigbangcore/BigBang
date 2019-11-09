@@ -1,4 +1,38 @@
 {
+    "unspentpresent": {
+        "type": "class",
+        "name": "UnspentPresent",
+        "content": {
+            "txid": {
+                "type": "string",
+                "desc": "txid"
+            },
+            "vout": {
+                "type": "uint",
+                "desc": "tx output point"
+            },
+            "to": {
+                "type": "string",
+                "desc": "address to receive tokens"
+            },
+            "amount": {
+                "type": "double",
+                "desc": "amount"
+            },
+            "txtime": {
+                "type": "uint",
+                "desc": "time transaction made"
+            },
+            "lockuntil": {
+                "type": "uint",
+                "desc": "lockuntil"
+            },
+            "forkid": {
+                "type": "string",
+                "desc": "forkid"
+            }
+        }
+    },
     "templatepubkeyweight": {
         "type": "class",
         "name": "TemplatePubKeyWeight",
@@ -2756,6 +2790,56 @@
         "error": [
             "{\"code\":-8,\"message\":\"TX decode failed\"}",
             "{\"code\":-6,\"message\":\"Unknown anchor block\"}"
+        ]
+    },
+    "listunspent": {
+        "type": "command",
+        "name": "ListUnspent",
+        "desc": "Return a JSON object listing unspent utxo by user specifying arguments forkid and address",
+        "request": {
+            "type": "object",
+            "content": {
+                "forkid": {
+                    "type": "string",
+                    "desc": "in which of forks transaction occurs",
+                    "opt" : "f"
+                },
+                "addr": {
+                    "type": "string",
+                    "desc": "address to receive the unspent utxo",
+                    "opt" : "a"
+                },
+                "max": {
+                    "type": "uint",
+                    "desc": "maximum unspents",
+                    "required" : false,
+                    "opt" : "n"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "unspents",
+            "content": {
+                "unspents": {
+                    "type": "unspentpresent",
+                    "desc": "unspent list of address owner"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listunspent -f=92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f -a=18pzwv4cef8pt73aec4py76skqttfv3ka4r418rrbjkr0j8rvzje4eeqt -n=1",
+                "response": "{\"txid\":\"5db906582710595edae81501943d5eb5a4299b8d98fab1807515c46ab140b100\",\"vout\":0,\"to\":\"18pzwv4cef8pt73aec4py76skqttfv3ka4r418rrbjkr0j8rvzje4eeqt\",\"amount\":15700.000000,\"txtime\":1572406872,\"lockuntil\":0,\"forkid\":\"92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listunspent\",\"jsonrpc\":\"2.0\",\"params\":{\"forkid\":\"92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f\",\"addr\":\"18pzwv4cef8pt73aec4py76skqttfv3ka4r418rrbjkr0j8rvzje4eeqt\",\"max\":3}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"txid\":\"5db906582710595edae81501943d5eb5a4299b8d98fab1807515c46ab140b100\",\"vout\":0,\"to\":\"20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa\",\"amount\":1153015700.000000,\"txtime\":1572406872,\"lockuntil\":0,\"forkid\":\"00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b\"},{\"txid\":\"5db5c85e63ebbe8bb85a04c934e82da807805e70ad0e2d0bc4afbec8c313c001\",\"vout\":0,\"to\":\"20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa\",\"amount\":1153027000.000000,\"txtime\":1572194398,\"lockuntil\":0,\"forkid\":\"00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b\"},{\"txid\":\"5db6414fbe704827254a247a081d7abaf41c4e8d9235d5b603fa3472b9da0802\",\"vout\":0,\"to\":\"20g0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfcfzdsa\",\"amount\":1153005800.000000,\"txtime\":1572225359,\"lockuntil\":0,\"forkid\":\"00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b\"}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-401,\"message\":\"Address as an argument should be provided.\"}",
+            "{\"code\":-401,\"message\":\"Acquiring unspent list failed.\"}"
         ]
     },
     "getwork": {

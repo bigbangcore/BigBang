@@ -49,6 +49,7 @@ public:
     bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) override;
     // bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
     // bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
+    bool ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent) override;
 
 protected:
     bool HandleInitialize() override;

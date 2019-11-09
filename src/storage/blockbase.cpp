@@ -1592,6 +1592,15 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
     }
 }
 
+bool CBlockBase::ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent)
+{
+    vUnspent.clear();
+    CListUnspentWalker walker(forkId, destOwner, nMax);
+    dbBlock.WalkThroughUnspent(forkId, walker);
+    vUnspent = walker.vUnspent;
+    return true;
+}
+
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);

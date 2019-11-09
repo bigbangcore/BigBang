@@ -244,6 +244,8 @@ CRPCMod::CRPCMod()
         ("maketemplate", &CRPCMod::RPCMakeTemplate)
         //
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        //
+        ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -2123,6 +2125,45 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }
 
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1));
+}
+
+CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListUnspentParam>(param);
+    uint256 forkid(spParam->strForkid);
+    CAddress addr(spParam->strAddr);
+    int nMax = GetUint(spParam->nMax, 3);
+    if (uint256() == forkid)
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Forkid as an argument should be provided.");
+    }
+    if (addr.IsNull())
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
+    }
+
+    vector<CTxUnspent> vUnspent;
+    if(!pService->ListForkUnspent(forkid, dynamic_cast<CDestination&>(addr), nMax, vUnspent))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+    }
+
+    auto spResult = MakeCListUnspentResultPtr();
+    for(const auto& i : vUnspent)
+    {
+        CUnspentPresent unspent;
+        unspent.strForkid = spParam->strForkid;
+        unspent.strTxid = i.hash.ToString();
+        unspent.nVout = i.n;
+        unspent.strTo = spParam->strAddr;
+        unspent.fAmount = i.output.nAmount;
+        unspent.nTxtime = i.output.nTxTime;
+        unspent.nLockuntil = i.output.nLockUntil;
+
+        spResult->vecUnspents.push_back(unspent);
+    }
+
+    return spResult;
 }
 
 // /* Mint */
