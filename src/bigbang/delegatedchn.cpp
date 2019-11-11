@@ -227,7 +227,6 @@ CDelegatedChannel::CDelegatedChannel()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
-    pDispatcher = nullptr;
     fBulletin = false;
 }
 
@@ -249,12 +248,6 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
-        return false;
-    }
-
     RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CDelegatedChannel::HandleActive, this, _1));
     RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CDelegatedChannel::HandleDeactive, this, _1));
     RegisterRefHandler<CPeerBulletinMessageInBound>(boost::bind(&CDelegatedChannel::HandleBulletin, this, _1));
@@ -272,7 +265,6 @@ void CDelegatedChannel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
-    pDispatcher = nullptr;
 
     DeregisterHandler(CPeerActiveMessage::MessageType());
     DeregisterHandler(CPeerDeactiveMessage::MessageType());

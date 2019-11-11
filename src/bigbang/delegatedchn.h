@@ -213,7 +213,6 @@ protected:
 protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
-    IDispatcher* pDispatcher;
     mutable boost::shared_mutex rwPeer;
     xengine::CDataScheduler<CDelegatedDataIdent> schedPeer;
     CDelegatedChannelChain dataChain;
