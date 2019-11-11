@@ -2162,7 +2162,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         unspent.strTxid = i.hash.ToString();
         unspent.nVout = i.n;
         unspent.strTo = spParam->strAddr;
-        unspent.fAmount = i.output.nAmount;
+        unspent.fAmount = i.output.nAmount / COIN;
         unspent.nTxtime = i.output.nTxTime;
         unspent.nLockuntil = i.output.nLockUntil;
 
