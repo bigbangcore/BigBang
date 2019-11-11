@@ -72,7 +72,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
         vector<string> confToken;
         if (TokenizeConfile(pathConfile.string().c_str(), confToken))
         {
-            po::store(po::command_line_parser(confToken).options(defaultDesc).style(defaultCmdStyle).extra_parser(CConfig::ExtraParser).run(), vm);
+            po::store(po::command_line_parser(confToken).options(defaultDesc).style(defaultCmdStyle).extra_parser(CConfig::ExtraParser).allow_unregistered().run(), vm);
             po::notify(vm);
         }
     }
