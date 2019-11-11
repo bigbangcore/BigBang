@@ -24,6 +24,8 @@ using namespace bigbang::rpc;
 using namespace bigbang;
 namespace fs = boost::filesystem;
 
+#define UNLOCKKEY_RELEASE_DEFAULT_TIME 10
+
 const char* GetGitVersion();
 
 ///////////////////////////////
@@ -1076,6 +1078,10 @@ CRPCResultPtr CRPCMod::RPCUnlockKey(CRPCParamPtr param)
     if (spParam->nTimeout.IsValid())
     {
         nTimeout = spParam->nTimeout;
+    }
+    else if (!RPCServerConfig()->fDebug)
+    {
+        nTimeout = UNLOCKKEY_RELEASE_DEFAULT_TIME;
     }
 
     int nVersion;
