@@ -195,6 +195,9 @@ protected:
     void HandleDistribute(const CPeerDistributeMessageInBound& distributeMsg);
     void HandlePublish(const CPeerPublishMessageInBound& publishMsg);
 
+    void HandleAddedNewDistribute(const CAddedNewDistributeMessage& message);
+    void HandleAddedNewPublish(const CAddedNewPublishMessage& message);
+
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
     void AddPeerKnownDistrubute(uint64 nNonce, const uint256& hashAnchor, uint64 bmDistrubute);
@@ -210,7 +213,6 @@ protected:
 protected:
     ICoreProtocol* pCoreProtocol;
     IWorldLineController* pWorldLineCtrl;
-    IDispatcher* pDispatcher;
     mutable boost::shared_mutex rwPeer;
     xengine::CDataScheduler<CDelegatedDataIdent> schedPeer;
     CDelegatedChannelChain dataChain;

@@ -227,7 +227,6 @@ CDelegatedChannel::CDelegatedChannel()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
-    pDispatcher = nullptr;
     fBulletin = false;
 }
 
@@ -249,18 +248,15 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
-        return false;
-    }
-
     RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CDelegatedChannel::HandleActive, this, _1));
     RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CDelegatedChannel::HandleDeactive, this, _1));
     RegisterRefHandler<CPeerBulletinMessageInBound>(boost::bind(&CDelegatedChannel::HandleBulletin, this, _1));
     RegisterRefHandler<CPeerGetDelegatedMessageInBound>(boost::bind(&CDelegatedChannel::HandleGetDelegate, this, _1));
     RegisterRefHandler<CPeerDistributeMessageInBound>(boost::bind(&CDelegatedChannel::HandleDistribute, this, _1));
     RegisterRefHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
+
+    RegisterRefHandler<CAddedNewDistributeMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1));
+    RegisterRefHandler<CAddedNewPublishMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewPublish, this, _1));
 
     return true;
 }
@@ -269,7 +265,6 @@ void CDelegatedChannel::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
-    pDispatcher = nullptr;
 
     DeregisterHandler(CPeerActiveMessage::MessageType());
     DeregisterHandler(CPeerDeactiveMessage::MessageType());
@@ -414,18 +409,35 @@ void CDelegatedChannel::HandleDistribute(const CPeerDistributeMessageInBound& di
             {
                 return;
             }
-            else if (pDispatcher->AddNewDistribute(hashAnchor, dest, vchData))
+            else
             {
-                bool fAssigned = DispatchGetDelegated();
-                if (dataChain.InsertDistributeData(hashAnchor, dest, vchData))
-                {
-                    BroadcastBulletin(!fAssigned);
-                }
+                auto spAddNewDistributeMsg = CAddNewDistributeMessage::Create();
+                spAddNewDistributeMsg->nNonce = nNonce;
+                spAddNewDistributeMsg->hashAnchor = hashAnchor;
+                spAddNewDistributeMsg->dest = dest;
+                spAddNewDistributeMsg->vchDistribute = vchData;
+                PUBLISH_MESSAGE(spAddNewDistributeMsg);
                 return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
+    }
+}
+
+void CDelegatedChannel::HandleAddedNewDistribute(const CAddedNewDistributeMessage& message)
+{
+    if (message.fResult)
+    {
+        bool fAssigned = DispatchGetDelegated();
+        if (dataChain.InsertDistributeData(message.hashAnchor, message.dest, message.vchDistribute))
+        {
+            BroadcastBulletin(!fAssigned);
+        }
+    }
+    else
+    {
+        DispatchMisbehaveEvent(message.nNonce, CEndpointManager::DDOS_ATTACK);
     }
 }
 
@@ -453,18 +465,35 @@ void CDelegatedChannel::HandlePublish(const CPeerPublishMessageInBound& publishM
             {
                 return;
             }
-            else if (pDispatcher->AddNewPublish(hashAnchor, dest, vchData))
+            else
             {
-                bool fAssigned = DispatchGetDelegated();
-                if (dataChain.InsertPublishData(hashAnchor, dest, vchData))
-                {
-                    BroadcastBulletin(!fAssigned);
-                }
+                auto spAddNewPublishMsg = CAddNewPublishMessage::Create();
+                spAddNewPublishMsg->nNonce = nNonce;
+                spAddNewPublishMsg->hashAnchor = hashAnchor;
+                spAddNewPublishMsg->dest = dest;
+                spAddNewPublishMsg->vchPublish = vchData;
+                PUBLISH_MESSAGE(spAddNewPublishMsg);
                 return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
+    }
+}
+
+void CDelegatedChannel::HandleAddedNewPublish(const CAddedNewPublishMessage& message)
+{
+    if (message.fResult)
+    {
+        bool fAssigned = DispatchGetDelegated();
+        if (dataChain.InsertPublishData(message.hashAnchor, message.dest, message.vchPublish))
+        {
+            BroadcastBulletin(!fAssigned);
+        }
+    }
+    else
+    {
+        DispatchMisbehaveEvent(message.nNonce, CEndpointManager::DDOS_ATTACK);
     }
 }
 
