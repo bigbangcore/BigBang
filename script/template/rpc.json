@@ -30,6 +30,10 @@
             "forkid": {
                 "type": "string",
                 "desc": "forkid"
+            },
+            "accumulate": {
+                "type": "double",
+                "desc": "accumulated amount"
             }
         }
     },
@@ -2809,11 +2813,18 @@
                     "desc": "address to receive the unspent utxo",
                     "opt" : "a"
                 },
+                "sum": {
+                    "type": "bool",
+                    "desc": "whether to summary amount",
+                    "opt" : "s",
+                    "default": true,
+                    "required": true
+                },
                 "max": {
                     "type": "uint",
-                    "desc": "maximum unspents",
-                    "required" : false,
-                    "opt" : "n"
+                    "desc": "maximum unspents(3 by default)",
+                    "opt" : "n",
+                    "required" : false
                 }
             }
         },

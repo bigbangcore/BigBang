@@ -2138,12 +2138,17 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     auto spParam = CastParamPtr<CListUnspentParam>(param);
     uint256 forkid(spParam->strForkid);
     CAddress addr(spParam->strAddr);
+    bool bAcc = spParam->fSum;
     int nMax = GetUint(spParam->nMax, 3);
-    if (uint256() == forkid)
+    if(nMax < -1)
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "nMax must be more than or equal to -1.");
+    }
+    if(uint256() == forkid)
     {
         throw CRPCException(RPC_WALLET_ERROR, "Forkid as an argument should be provided.");
     }
-    if (addr.IsNull())
+    if(addr.IsNull())
     {
         throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
     }
@@ -2155,6 +2160,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     }
 
     auto spResult = MakeCListUnspentResultPtr();
+    double dSum = 0.0f;
     for(const auto& i : vUnspent)
     {
         CUnspentPresent unspent;
@@ -2162,9 +2168,18 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         unspent.strTxid = i.hash.ToString();
         unspent.nVout = i.n;
         unspent.strTo = spParam->strAddr;
-        unspent.fAmount = i.output.nAmount / COIN;
+        unspent.fAmount = (double)i.output.nAmount / COIN;
         unspent.nTxtime = i.output.nTxTime;
         unspent.nLockuntil = i.output.nLockUntil;
+        if(bAcc)
+        {
+            dSum += unspent.fAmount;
+            unspent.fAccumulate = dSum;
+        }
+        else
+        {
+            unspent.fAccumulate = 0.0f;
+        }
 
         spResult->vecUnspents.push_back(unspent);
     }
