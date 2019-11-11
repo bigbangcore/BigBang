@@ -66,6 +66,7 @@ public:
     virtual bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) = 0;
     virtual int GetBlockCount(const uint256& hashFork) = 0;
     virtual bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext) = 0;
     virtual bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) = 0;
     virtual bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) = 0;
     virtual bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime) = 0;
@@ -88,7 +89,7 @@ public:
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
-    virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep) = 0;
+    virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     // virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;

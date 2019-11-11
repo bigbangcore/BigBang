@@ -163,6 +163,26 @@ bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, 
     return true;
 }
 
+bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    {
+        return false;
+    }
+    hashFork = pIndex->GetOriginHash();
+    nHeight = pIndex->GetBlockHeight();
+    if (pIndex->pNext != nullptr)
+    {
+        hashNext = pIndex->pNext->GetBlockHash();
+    }
+    else
+    {
+        hashNext = 0;
+    }
+    return true;
+}
+
 bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock)
 {
     CBlockIndex* pIndex = nullptr;
@@ -658,9 +678,9 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
     return true;
 }
 
-bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep)
+bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep)
 {
-    return cntrBlock.GetForkBlockLocator(hashFork, locator, nDepth, nIncStep);
+    return cntrBlock.GetForkBlockLocator(hashFork, locator, hashDepth, nIncStep);
 }
 
 bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)

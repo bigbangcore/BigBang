@@ -161,6 +161,10 @@ public:
         std::vector<uint256> vMerkleTree;
         return BuildMerkleTree(vMerkleTree);
     }
+    static uint32 GetBlockHeightByHash(const uint256& hash)
+    {
+        return hash.Get32(7);
+    }
 
 protected:
     template <typename O>

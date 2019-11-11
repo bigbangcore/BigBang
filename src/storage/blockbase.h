@@ -248,7 +248,7 @@ public:
     bool FilterTx(const uint256& hashFork, CTxFilter& filter);
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter);
     bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
-    bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, int& nDepth, int nIncStep);
+    bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
