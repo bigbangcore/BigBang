@@ -263,6 +263,8 @@ bool CDelegatedChannel::HandleInitialize()
     RegisterRefHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
 
     RegisterRefHandler<CAddedNewDistributeMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1));
+    RegisterRefHandler<CAddedNewPublishMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewPublish, this, _1));
+
     return true;
 }
 
@@ -418,6 +420,7 @@ void CDelegatedChannel::HandleDistribute(const CPeerDistributeMessageInBound& di
             else
             {
                 auto spAddNewDistributeMsg = CAddNewDistributeMessage::Create();
+                spAddNewDistributeMsg->nNonce = nNonce;
                 spAddNewDistributeMsg->hashAnchor = hashAnchor;
                 spAddNewDistributeMsg->dest = dest;
                 spAddNewDistributeMsg->vchDistribute = vchData;
@@ -470,18 +473,35 @@ void CDelegatedChannel::HandlePublish(const CPeerPublishMessageInBound& publishM
             {
                 return;
             }
-            else if (pDispatcher->AddNewPublish(hashAnchor, dest, vchData))
+            else
             {
-                bool fAssigned = DispatchGetDelegated();
-                if (dataChain.InsertPublishData(hashAnchor, dest, vchData))
-                {
-                    BroadcastBulletin(!fAssigned);
-                }
+                auto spAddNewPublishMsg = CAddNewPublishMessage::Create();
+                spAddNewPublishMsg->nNonce = nNonce;
+                spAddNewPublishMsg->hashAnchor = hashAnchor;
+                spAddNewPublishMsg->dest = dest;
+                spAddNewPublishMsg->vchPublish = vchData;
+                PUBLISH_MESSAGE(spAddNewPublishMsg);
                 return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
+    }
+}
+
+void CDelegatedChannel::HandleAddedNewPublish(const CAddedNewPublishMessage& message)
+{
+    if (message.fResult)
+    {
+        bool fAssigned = DispatchGetDelegated();
+        if (dataChain.InsertPublishData(message.hashAnchor, message.dest, message.vchPublish))
+        {
+            BroadcastBulletin(!fAssigned);
+        }
+    }
+    else
+    {
+        DispatchMisbehaveEvent(message.nNonce, CEndpointManager::DDOS_ATTACK);
     }
 }
 

@@ -196,6 +196,7 @@ protected:
     void HandlePublish(const CPeerPublishMessageInBound& publishMsg);
 
     void HandleAddedNewDistribute(const CAddedNewDistributeMessage& message);
+    void HandleAddedNewPublish(const CAddedNewPublishMessage& message);
 
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
