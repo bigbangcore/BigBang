@@ -291,7 +291,7 @@ public:
         add_to_current(Value_type());
     }
 
-    void new_int(boost::int32_t i)
+    void new_int(boost::int64_t i)
     {
         add_to_current(i);
     }
@@ -449,7 +449,7 @@ public:
             typedef boost::function<void(Char_type)> Char_action;
             typedef boost::function<void(Iter_type, Iter_type)> Str_action;
             typedef boost::function<void(double)> Real_action;
-            typedef boost::function<void(boost::int32_t)> Int_action;
+            typedef boost::function<void(boost::int64_t)> Int_action;
             typedef boost::function<void(boost::uint64_t)> Uint64_action;
 
             Char_action begin_obj(boost::bind(&Semantic_actions_t::begin_obj, &self.actions_, _1));
