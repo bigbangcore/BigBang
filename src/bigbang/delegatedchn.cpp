@@ -262,6 +262,7 @@ bool CDelegatedChannel::HandleInitialize()
     RegisterRefHandler<CPeerDistributeMessageInBound>(boost::bind(&CDelegatedChannel::HandleDistribute, this, _1));
     RegisterRefHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
 
+    RegisterRefHandler<CAddedNewDistributeMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1));
     return true;
 }
 
@@ -414,18 +415,34 @@ void CDelegatedChannel::HandleDistribute(const CPeerDistributeMessageInBound& di
             {
                 return;
             }
-            else if (pDispatcher->AddNewDistribute(hashAnchor, dest, vchData))
+            else
             {
-                bool fAssigned = DispatchGetDelegated();
-                if (dataChain.InsertDistributeData(hashAnchor, dest, vchData))
-                {
-                    BroadcastBulletin(!fAssigned);
-                }
+                auto spAddNewDistributeMsg = CAddNewDistributeMessage::Create();
+                spAddNewDistributeMsg->hashAnchor = hashAnchor;
+                spAddNewDistributeMsg->dest = dest;
+                spAddNewDistributeMsg->vchDistribute = vchData;
+                PUBLISH_MESSAGE(spAddNewDistributeMsg);
                 return;
             }
         }
 
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK);
+    }
+}
+
+void CDelegatedChannel::HandleAddedNewDistribute(const CAddedNewDistributeMessage& message)
+{
+    if (message.fResult)
+    {
+        bool fAssigned = DispatchGetDelegated();
+        if (dataChain.InsertDistributeData(message.hashAnchor, message.dest, message.vchDistribute))
+        {
+            BroadcastBulletin(!fAssigned);
+        }
+    }
+    else
+    {
+        DispatchMisbehaveEvent(message.nNonce, CEndpointManager::DDOS_ATTACK);
     }
 }
 

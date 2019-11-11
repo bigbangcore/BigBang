@@ -195,6 +195,8 @@ protected:
     void HandleDistribute(const CPeerDistributeMessageInBound& distributeMsg);
     void HandlePublish(const CPeerPublishMessageInBound& publishMsg);
 
+    void HandleAddedNewDistribute(const CAddedNewDistributeMessage& message);
+
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
     void AddPeerKnownDistrubute(uint64 nNonce, const uint256& hashAnchor, uint64 bmDistrubute);
