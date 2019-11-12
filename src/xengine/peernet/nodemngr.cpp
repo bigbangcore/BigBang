@@ -135,27 +135,35 @@ bool CNodeManager::Employ(tcp::endpoint& ep)
     return false;
 }
 
-void CNodeManager::Dismiss(const tcp::endpoint& ep, bool fForceRetry)
+void CNodeManager::Dismiss(const tcp::endpoint& ep, bool fForceRetry, bool fReset)
 {
     map<tcp::endpoint, CNode>::iterator it = mapNode.find(ep);
     if (it != mapNode.end())
     {
         CNode& node = (*it).second;
-        node.nRetries = (fForceRetry ? 0 : node.nRetries + 1);
-        if (node.nRetries <= MAX_RETRIES)
+        if (fReset)
         {
-            int64 nIdleTo = GetTime() + (RETRY_INTERVAL_BASE << node.nRetries);
-            mapIdle.insert(make_pair(nIdleTo, node.ep));
-            StdLog("CNodeManager", "Dismiss: Add idle node, peer: %s, nRetries: %d, interval time: %ld s", GetEpString(ep).c_str(), node.nRetries, (RETRY_INTERVAL_BASE << node.nRetries));
-            if (mapIdle.size() > MAX_IDLENODES)
-            {
-                RemoveInactiveNodes();
-            }
+            mapIdle.insert(make_pair(GetTime() + RETRY_INTERVAL_BASE, node.ep));
         }
         else
         {
-            StdLog("CNodeManager", "Dismiss: remove node, peer: %s", GetEpString(ep).c_str());
-            mapNode.erase(it);
+            node.nRetries = (fForceRetry ? 0 : node.nRetries + 1);
+            if (node.nRetries <= MAX_RETRIES)
+            {
+                int64 nIdleTo = GetTime() + (RETRY_INTERVAL_BASE << node.nRetries);
+                mapIdle.insert(make_pair(nIdleTo, node.ep));
+                StdLog("CNodeManager", "Dismiss: Add idle node, peer: %s, nRetries: %d, interval time: %ld s",
+                       GetEpString(ep).c_str(), node.nRetries, (RETRY_INTERVAL_BASE << node.nRetries));
+                if (mapIdle.size() > MAX_IDLENODES)
+                {
+                    RemoveInactiveNodes();
+                }
+            }
+            else
+            {
+                StdLog("CNodeManager", "Dismiss: remove node, peer: %s", GetEpString(ep).c_str());
+                mapNode.erase(it);
+            }
         }
     }
 }

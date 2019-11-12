@@ -43,7 +43,7 @@ public:
     void Clear();
     void Ban(const boost::asio::ip::address& address, int64 nBanTo);
     bool Employ(boost::asio::ip::tcp::endpoint& ep);
-    void Dismiss(const boost::asio::ip::tcp::endpoint& ep, bool fForceRetry);
+    void Dismiss(const boost::asio::ip::tcp::endpoint& ep, bool fForceRetry, bool fReset);
     void Retrieve(std::vector<CNode>& vNode);
     int GetCandidateNodeCount()
     {
