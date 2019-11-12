@@ -146,37 +146,37 @@ void CDispatcher::HandleHalt()
 
 Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 {
-    Errno err = OK;
-    if (!pWorldLineCtrl->Exists(block.hashPrev))
-    {
-        return ERR_MISSING_PREV;
-    }
+    // Errno err = OK;
+    // if (!pWorldLineCtrl->Exists(block.hashPrev))
+    // {
+    //     return ERR_MISSING_PREV;
+    // }
 
-    CWorldLineUpdate updateWorldLine;
-    if (!block.IsOrigin())
-    {
-        err = pWorldLineCtrl->AddNewBlock(block, updateWorldLine, nNonce);
-        if (err == OK && !block.IsVacant())
-        {
-            if (!nNonce)
-            {
-                pDataStat->AddBlockMakerStatData(updateWorldLine.hashFork, block.IsProofOfWork(), block.vtx.size());
-            }
-            else
-            {
-                pDataStat->AddP2pSynRecvStatData(updateWorldLine.hashFork, 1, block.vtx.size());
-            }
-        }
-    }
-    else
-    {
-        err = pWorldLineCtrl->AddNewOrigin(block, updateWorldLine, nNonce);
-    }
+    // CWorldLineUpdate updateWorldLine;
+    // if (!block.IsOrigin())
+    // {
+    //     err = pWorldLineCtrl->AddNewBlock(block, updateWorldLine, nNonce);
+    //     if (err == OK && !block.IsVacant())
+    //     {
+    //         if (!nNonce)
+    //         {
+    //             pDataStat->AddBlockMakerStatData(updateWorldLine.hashFork, block.IsProofOfWork(), block.vtx.size());
+    //         }
+    //         else
+    //         {
+    //             pDataStat->AddP2pSynRecvStatData(updateWorldLine.hashFork, 1, block.vtx.size());
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     err = pWorldLineCtrl->AddNewOrigin(block, updateWorldLine, nNonce);
+    // }
 
-    if (err != OK || updateWorldLine.IsNull())
-    {
-        return err;
-    }
+    // if (err != OK || updateWorldLine.IsNull())
+    // {
+    //     return err;
+    // }
 
     // CTxSetChange changeTxSet;
     // if (!pTxPoolCtrl->SynchronizeWorldLine(updateWorldLine, changeTxSet))
@@ -186,11 +186,11 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     // if (block.IsOrigin())
     // {
-        // if (!pWallet->AddNewFork(updateWorldLine.hashFork, updateWorldLine.hashParent,
-        //                          updateWorldLine.nOriginHeight))
-        // {
-        //     return ERR_SYS_DATABASE_ERROR;
-        // }
+    // if (!pWallet->AddNewFork(updateWorldLine.hashFork, updateWorldLine.hashParent,
+    //                          updateWorldLine.nOriginHeight))
+    // {
+    //     return ERR_SYS_DATABASE_ERROR;
+    // }
     // }
 
     // if (!pWallet->SynchronizeTxSet(changeTxSet))
@@ -198,12 +198,12 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     //     return ERR_SYS_DATABASE_ERROR;
     // }
 
-    if (!block.IsOrigin() && !block.IsVacant())
-    {
-        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateWorldLine.hashFork, block.GetHash());
-        PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
-        pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
-    }
+    // if (!block.IsOrigin() && !block.IsVacant())
+    // {
+    //     auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateWorldLine.hashFork, block.GetHash());
+    //     PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
+    //     pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
+    // }
 
     // pService->NotifyWorldLineUpdate(updateWorldLine);
 

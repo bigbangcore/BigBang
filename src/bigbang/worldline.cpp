@@ -986,7 +986,7 @@ bool CWorldLineController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
+    RegisterPtrHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
 
     return true;
 }
@@ -1185,21 +1185,21 @@ bool CWorldLineController::GetBlockDelegateAgreement(const uint256& hashBlock, C
     return pWorldLine->GetBlockDelegateAgreement(hashBlock, agreement);
 }
 
-void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
+void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
 {
-    if (!msg.spNonce->fValid)
+    if (!msg->spNonce->fValid)
     {
-        TRACE("Discard a new block of invalid nonce (%u)", msg.spNonce->nNonce);
+        TRACE("Discard a new block of invalid nonce (%u)", msg->spNonce->nNonce);
         return;
     }
 
     // Add new block
     auto spAddedBlockMsg = CAddedBlockMessage::Create();
-    spAddedBlockMsg->spNonce = msg.spNonce;
-    spAddedBlockMsg->hashFork = msg.hashFork;
-    spAddedBlockMsg->block = msg.block;
+    spAddedBlockMsg->spNonce = msg->spNonce;
+    spAddedBlockMsg->hashFork = msg->hashFork;
+    spAddedBlockMsg->block = msg->block;
 
-    const CBlock& block = msg.block;
+    const CBlock& block = msg->block;
     if (!block.IsOrigin())
     {
         spAddedBlockMsg->nErrno = AddNewBlockIntoWorldLine(block, spAddedBlockMsg->update);
@@ -1208,11 +1208,15 @@ void CWorldLineController::HandleAddBlock(const CAddBlockMessage& msg)
     {
         spAddedBlockMsg->nErrno = AddNewOriginIntoWorldLine(block, spAddedBlockMsg->update);
     }
+
+    msg->promiseAdded.set_value(*spAddedBlockMsg);
+
     const CWorldLineUpdate& update = spAddedBlockMsg->update;
     PUBLISH_MESSAGE(spAddedBlockMsg);
 
     // Create new fork
-    vector<CTransaction> vForkTx;
+    vector<CTransaction>
+        vForkTx;
     vector<uint256> vActive, vDeactive;
     pForkManager->ForkUpdate(update, vForkTx, vActive, vDeactive);
 

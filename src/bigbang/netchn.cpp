@@ -1063,7 +1063,8 @@ void CNetChannelController::HandleAddedNewBlock(const CAddedBlockMessage& addedM
         CBlock* pBlock = pNetChannelModel->GetScheduleBlock(hashFork, nextBlockHash, nNonceSenderTemp);
         if (pBlock)
         {
-            auto spAddBlockMsg = CAddBlockMessage::Create();
+            std::promise<CAddedBlockMessage> promiseAdded;
+            auto spAddBlockMsg = CAddBlockMessage::Create(std::move(promiseAdded));
             spAddBlockMsg->hashFork = hashFork;
             spAddBlockMsg->spNonce = CNonce::Create(nNonceSenderTemp);
             spAddBlockMsg->block = *pBlock;
@@ -1251,7 +1252,8 @@ void CNetChannelController::AddNewBlock(const uint256& hashFork, const uint256& 
         CBlock* pBlock = pNetChannelModel->GetScheduleBlock(hashFork, hashBlock, nNonceSender);
         if (pBlock)
         {
-            auto spAddNewBlockMsg = CAddBlockMessage::Create();
+            std::promise<CAddedBlockMessage> promiseAdded;
+            auto spAddNewBlockMsg = CAddBlockMessage::Create(std::move(promiseAdded));
             spAddNewBlockMsg->block = *pBlock;
             spAddNewBlockMsg->hashFork = hashFork;
             spAddNewBlockMsg->spNonce = CNonce::Create(nNonceSender);

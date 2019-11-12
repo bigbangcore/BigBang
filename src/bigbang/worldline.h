@@ -121,7 +121,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleAddBlock(const CAddBlockMessage& msg);
+    void HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg);
 
 protected:
     IForkManager* pForkManager;
