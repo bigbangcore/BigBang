@@ -223,7 +223,7 @@ bool CEndpointManager::FetchOutBound(tcp::endpoint& ep)
         {
             return true;
         }
-        mngrNode.Dismiss(ep, false);
+        mngrNode.Dismiss(ep, false, true);
     }
     return false;
 }
@@ -269,7 +269,7 @@ void CEndpointManager::CloseEndpoint(const tcp::endpoint& ep, CloseReason reason
     }
     CAddressStatus& status = mapAddressStatus[ep.address()];
     status.Penalize(lost[index], now);
-    mngrNode.Dismiss(ep, (reason == NETWORK_ERROR));
+    mngrNode.Dismiss(ep, (reason == NETWORK_ERROR), false);
     status.RemoveConnection();
 
     if (now < status.nBanTo)
