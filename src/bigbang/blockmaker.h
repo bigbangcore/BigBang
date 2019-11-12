@@ -127,7 +127,6 @@ protected:
     IWorldLineController* pWorldLineCtrl;
     IForkManager* pForkManager;
     ITxPoolController* pTxPoolCtrl;
-    IDispatcher* pDispatcher;
     IConsensus* pConsensus;
 };
 

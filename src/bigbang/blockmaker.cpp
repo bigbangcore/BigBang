@@ -66,7 +66,6 @@ CBlockMaker::CBlockMaker()
     pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pConsensus = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
 }
@@ -103,12 +102,6 @@ bool CBlockMaker::HandleInitialize()
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         ERROR("Failed to request txpool");
-        return false;
-    }
-
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
         return false;
     }
 
@@ -152,7 +145,6 @@ void CBlockMaker::HandleDeinitialize()
     pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pConsensus = nullptr;
 
     mapWorkProfile.clear();
@@ -303,27 +295,6 @@ bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
         return false;
     }
 
-    CTxSetChange changeTxSet;
-    if (!pTxPoolCtrl->SynchronizeWorldLine(addedBlockMsg.update, changeTxSet))
-    {
-        ERROR("Dispatch new block failed (%d) : %s", ERR_SYS_DATABASE_ERROR, ErrorString(ERR_SYS_DATABASE_ERROR));
-        return false;
-    }
-
-    if (block.IsOrigin())
-    {
-        /* if (!pWallet->AddNewFork(addedBlockMsg.update.hashFork, addedBlockMsg.update.hashParent,
-                                 addedBlockMsg.update.nOriginHeight))
-        {
-            return ERR_SYS_DATABASE_ERROR;
-        }*/
-    }
-
-    /* if (!pWallet->SynchronizeTxSet(changeTxSet))
-    {
-        return ERR_SYS_DATABASE_ERROR;
-    }*/
-
     if (!block.IsOrigin() && !block.IsVacant())
     {
         auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(addedBlockMsg.update.hashFork, block.GetHash());
@@ -331,12 +302,6 @@ bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
         // pDataStat->AddP2pSynSendStatData(addedBlockMsg.update.hashFork, 1, block.vtx.size());
     }
 
-    //pService->NotifyWorldLineUpdate(addedBlockMsg.update);
-
-    if (block.IsPrimary())
-    {
-        // UpdatePrimaryBlock(block, updateWorldLine, changeTxSet, nNonce);
-    }
     return true;
 }
 
