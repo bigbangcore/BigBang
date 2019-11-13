@@ -629,7 +629,8 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
 
 bool CService::SendBlock(CNoncePtr spNonce, const uint256& hashFork, const uint256 blockHash, const CBlock& block)
 {
-    auto spAddBlockMsg = CAddBlockMessage::Create();
+    std::promise<CAddedBlockMessage> promiseAdded;
+    auto spAddBlockMsg = CAddBlockMessage::Create(std::move(promiseAdded));
     spAddBlockMsg->spNonce = spNonce;
     spAddBlockMsg->hashFork = hashFork;
     spAddBlockMsg->block = block;

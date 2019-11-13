@@ -5,10 +5,11 @@
 #ifndef COMMON_MESSAGE_H
 #define COMMON_MESSAGE_H
 
-#include <uint256.h>
-#include <vector>
+#include <future>
 #include <map>
 #include <memory>
+#include <uint256.h>
+#include <vector>
 
 #include "block.h"
 #include "message/message.h"
@@ -295,15 +296,6 @@ struct CSyncTxChangeMessage : public xengine::CMessage
 
 ////////////////// Block /////////////////////
 
-/// Add a new block.
-struct CAddBlockMessage : public xengine::CMessage
-{
-    GENERATE_MESSAGE_FUNCTION(CAddBlockMessage);
-    std::shared_ptr<CNonce> spNonce;
-    uint256 hashFork;
-    CBlock block;
-};
-
 /// Added a new block.
 struct CAddedBlockMessage : public xengine::CMessage
 {
@@ -313,6 +305,18 @@ struct CAddedBlockMessage : public xengine::CMessage
     CBlock block;
     int nErrno;
     CWorldLineUpdate update;
+};
+
+/// Add a new block.
+struct CAddBlockMessage : public xengine::CMessage
+{
+    GENERATE_MESSAGE_FUNCTION(CAddBlockMessage);
+    CAddBlockMessage(std::promise<CAddedBlockMessage>&& promiseAddedIn)
+      : promiseAdded(std::move(promiseAddedIn)) {}
+    std::shared_ptr<CNonce> spNonce;
+    uint256 hashFork;
+    CBlock block;
+    std::promise<CAddedBlockMessage> promiseAdded;
 };
 
 #endif // COMMON_MESSAGE_H

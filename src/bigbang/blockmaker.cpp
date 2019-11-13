@@ -66,7 +66,6 @@ CBlockMaker::CBlockMaker()
     pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pConsensus = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
 }
@@ -103,12 +102,6 @@ bool CBlockMaker::HandleInitialize()
     if (!GetObject("txpoolcontroller", pTxPoolCtrl))
     {
         ERROR("Failed to request txpool");
-        return false;
-    }
-
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        ERROR("Failed to request dispatcher");
         return false;
     }
 
@@ -152,7 +145,6 @@ void CBlockMaker::HandleDeinitialize()
     pWorldLineCtrl = nullptr;
     pForkManager = nullptr;
     pTxPoolCtrl = nullptr;
-    pDispatcher = nullptr;
     pConsensus = nullptr;
 
     mapWorkProfile.clear();
@@ -274,19 +266,42 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
     return profile.templMint->BuildBlockSignature(hashSig, vchMintSig, block.vchSig);
 }
 
-bool CBlockMaker::DispatchBlock(CBlock& block)
+bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
 {
     int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
         return false;
     }
-    Errno err = pDispatcher->AddNewBlock(block);
-    if (err != OK)
+
+    if (!pWorldLineCtrl->Exists(block.hashPrev))
     {
-        ERROR("Dispatch new block failed (%d) : %s", err, ErrorString(err));
+        ERROR("Dispatch new block failed (%d) : %s", ERR_MISSING_PREV, ErrorString(ERR_MISSING_PREV));
         return false;
     }
+
+    std::promise<CAddedBlockMessage> promiseAdded;
+    auto futureAdded = promiseAdded.get_future();
+    auto spAddBlockMsg = CAddBlockMessage::Create(std::move(promiseAdded));
+    spAddBlockMsg->spNonce = CNonce::Create();
+    spAddBlockMsg->hashFork = hashFork;
+    spAddBlockMsg->block = block;
+    PUBLISH_MESSAGE(spAddBlockMsg);
+
+    const CAddedBlockMessage& addedBlockMsg = futureAdded.get();
+    if (addedBlockMsg.nErrno != OK || addedBlockMsg.update.IsNull())
+    {
+        ERROR("Dispatch new block failed (%d) : %s", (Errno)addedBlockMsg.nErrno, ErrorString((Errno)addedBlockMsg.nErrno));
+        return false;
+    }
+
+    if (!block.IsOrigin() && !block.IsVacant())
+    {
+        auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(addedBlockMsg.update.hashFork, block.GetHash());
+        PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
+        // pDataStat->AddP2pSynSendStatData(addedBlockMsg.update.hashFork, 1, block.vtx.size());
+    }
+
     return true;
 }
 
@@ -344,7 +359,7 @@ void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgr
         CBlockMakerProfile& profile = (*it).second;
         if (CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile, agreement.nWeight))
         {
-            if (DispatchBlock(block))
+            if (DispatchBlock(pCoreProtocol->GetGenesisBlockHash(), block))
             {
                 CreatePiggyback(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrevHeight);
             }
@@ -433,7 +448,7 @@ void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDele
 
             if (CreateDelegatedBlock(block, hashFork, profile, agreement.nWeight))
             {
-                DispatchBlock(block);
+                DispatchBlock(hashFork, block);
             }
         }
     }
@@ -472,7 +487,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
             ArrangeBlockTx(block, hashFork, profile);
             if (!block.vtx.empty() && SignBlock(block, profile))
             {
-                DispatchBlock(block);
+                DispatchBlock(hashFork, block);
             }
         }
     }
@@ -680,7 +695,7 @@ void CBlockMaker::BlockMakerThreadFunc()
             {
                 if (CreateProofOfWorkBlock(block))
                 {
-                    if (Interrupted() || !DispatchBlock(block))
+                    if (Interrupted() || !DispatchBlock(pCoreProtocol->GetGenesisBlockHash(), block))
                     {
                         nNextStatus = MAKER_RESET;
                     }
