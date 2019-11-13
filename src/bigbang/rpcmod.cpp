@@ -2139,7 +2139,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     uint256 forkid(spParam->strForkid);
     CAddress addr(spParam->strAddr);
     bool bAcc = spParam->fSum;
-    int nMax = GetUint(spParam->nMax, 3);
+    int nMax = GetInt(spParam->nMax, 3);
     if(nMax < -1)
     {
         throw CRPCException(RPC_WALLET_ERROR, "nMax must be more than or equal to -1.");
