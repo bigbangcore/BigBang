@@ -6,6 +6,7 @@
 
 #include "delegatecomm.h"
 #include "delegateverify.h"
+#include "netchn.h"
 
 using namespace std;
 using namespace xengine;
@@ -965,7 +966,7 @@ Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBl
 // CWorldLineController
 
 CWorldLineController::CWorldLineController()
-  : pForkManager(nullptr)
+  : pForkManager(nullptr), pCoreProtocol(nullptr)
 {
 }
 
@@ -986,6 +987,18 @@ bool CWorldLineController::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("coreprotocol", pCoreProtocol))
+    {
+        ERROR("Failed to request coreprotocol");
+        return false;
+    }
+
+    if (!GetObject("netchannelmodel", pNetChannelModel))
+    {
+        ERROR("Failed to request netchannelmodel");
+        return false;
+    }
+
     RegisterPtrHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
 
     return true;
@@ -997,6 +1010,7 @@ void CWorldLineController::HandleDeinitialize()
 
     pWorldLine = nullptr;
     pForkManager = nullptr;
+    pCoreProtocol = nullptr;
 }
 
 bool CWorldLineController::HandleInvoke()
@@ -1213,7 +1227,7 @@ void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
 
     const CWorldLineUpdate& update = spAddedBlockMsg->update;
     PUBLISH_MESSAGE(spAddedBlockMsg);
-
+    SyncForkHeight(update.nLastBlockHeight);
     // Create new fork
     vector<CTransaction>
         vForkTx;
@@ -1272,6 +1286,47 @@ void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
     {
         auto spUnsubscribeMsg = CUnsubscribeForkMessage::Create(hashFork);
         PUBLISH_MESSAGE(spUnsubscribeMsg);
+    }
+}
+
+void CWorldLineController::SyncForkHeight(int nPrimaryHeight)
+{
+    map<uint256, CForkStatus> mapForkStatus;
+    GetForkStatus(mapForkStatus);
+    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    {
+        const uint256& hashFork = (*it).first;
+        CForkStatus& status = (*it).second;
+        if (!pForkManager->IsAllowed(hashFork) || !pNetChannelModel->IsForkSynchronized(hashFork))
+        {
+            continue;
+        }
+
+        vector<int64> vTimeStamp;
+        int nDepth = nPrimaryHeight - status.nLastBlockHeight;
+
+        if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
+            && GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
+        {
+            uint256 hashPrev = status.hashLastBlock;
+            for (int nHeight = status.nLastBlockHeight + 1; nHeight < nPrimaryHeight; nHeight++)
+            {
+                std::promise<CAddedBlockMessage> promiseAdded;
+                auto futureAdded = promiseAdded.get_future();
+                auto spAddBlockMsg = CAddBlockMessage::Create(std::move(promiseAdded));
+                spAddBlockMsg->hashFork = hashFork;
+                spAddBlockMsg->spNonce = CNonce::Create();
+                spAddBlockMsg->block.nType = CBlock::BLOCK_VACANT;
+                spAddBlockMsg->block.hashPrev = hashPrev;
+                spAddBlockMsg->block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
+                PUBLISH_MESSAGE(spAddBlockMsg);
+                if (futureAdded.get().nErrno != OK)
+                {
+                    break;
+                }
+                hashPrev = spAddBlockMsg->block.GetHash();
+            }
+        }
     }
 }
 

@@ -257,6 +257,7 @@ bool CDelegatedChannel::HandleInitialize()
 
     RegisterRefHandler<CAddedNewDistributeMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1));
     RegisterRefHandler<CAddedNewPublishMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewPublish, this, _1));
+    RegisterRefHandler<CCDelegateRoutineMessage>(boost::bind(&CDelegatedChannel::HandleDelegateRoutine, this, _1));
 
     return true;
 }
@@ -495,6 +496,12 @@ void CDelegatedChannel::HandleAddedNewPublish(const CAddedNewPublishMessage& mes
     {
         DispatchMisbehaveEvent(message.nNonce, CEndpointManager::DDOS_ATTACK);
     }
+}
+
+void CDelegatedChannel::HandleDelegateRoutine(const CCDelegateRoutineMessage& message)
+{
+    PrimaryUpdate(message.nStartHeight,
+                  message.routine.vEnrolledWeight, message.routine.mapDistributeData, message.routine.mapDistributeData);
 }
 
 void CDelegatedChannel::PrimaryUpdate(int nStartHeight,

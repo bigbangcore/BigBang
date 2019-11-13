@@ -14,6 +14,7 @@
 namespace bigbang
 {
 
+class INetChannelModel;
 class CWorldLine : public IWorldLine
 {
 public:
@@ -122,9 +123,12 @@ protected:
     void HandleHalt() override;
 
     void HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg);
+    void SyncForkHeight(int nPrimaryHeight);
 
 protected:
     IForkManager* pForkManager;
+    ICoreProtocol* pCoreProtocol;
+    INetChannelModel* pNetChannelModel;
 };
 
 } // namespace bigbang
