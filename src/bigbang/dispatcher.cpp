@@ -150,6 +150,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     Errno err = OK;
     if (!pBlockChain->Exists(block.hashPrev))
     {
+        StdError("CDispatcher", "AddNewBlock: prev block not exist, block: %s, prev: %s", block.GetHash().GetHex().c_str(), block.hashPrev.GetHex().c_str());
         return ERR_MISSING_PREV;
     }
 
@@ -183,6 +184,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CTxSetChange changeTxSet;
     if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))
     {
+        StdError("CDispatcher", "AddNewBlock: TxPool SynchronizeBlockChain fail, block: %s", block.GetHash().GetHex().c_str());
         return ERR_SYS_DATABASE_ERROR;
     }
 
@@ -197,6 +199,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (!pWallet->SynchronizeTxSet(changeTxSet))
     {
+        StdError("CDispatcher", "AddNewBlock: Wallet SynchronizeTxSet fail, block: %s", block.GetHash().GetHex().c_str());
         return ERR_SYS_DATABASE_ERROR;
     }
 
@@ -238,6 +241,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     err = pCoreProtocol->ValidateTransaction(tx);
     if (err != OK)
     {
+        StdError("CDispatcher", "AddNewTx: ValidateTransaction fail, txid: %s", tx.GetHash().GetHex().c_str());
         return err;
     }
 
@@ -247,6 +251,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     err = pTxPool->Push(tx, hashFork, destIn, nValueIn);
     if (err != OK)
     {
+        StdError("CDispatcher", "AddNewTx: TxPool Push fail, txid: %s", tx.GetHash().GetHex().c_str());
         return err;
     }
 
@@ -255,6 +260,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     CAssembledTx assembledTx(tx, -1, destIn, nValueIn);
     if (!pWallet->AddNewTx(hashFork, assembledTx))
     {
+        StdError("CDispatcher", "AddNewTx: Wallet AddNewTx fail, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_SYS_DATABASE_ERROR;
     }
 

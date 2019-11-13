@@ -315,17 +315,21 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
 
     if (mapTx.count(txid))
     {
+        StdError("CTxPool", "Push: tx existed, txid: %s", txid.GetHex().c_str());
         return ERR_ALREADY_HAVE;
     }
 
     if (tx.IsMintTx())
     {
+        StdError("CTxPool", "Push: tx is mint, txid: %s", txid.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
     int nHeight;
     if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
+        StdError("CTxPool", "Push: GetBlockLocation fail, txid: %s, hashAnchor: %s",
+                 txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
@@ -333,6 +337,8 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     int64 nTime;
     if (!pBlockChain->GetLastBlock(hashFork, hashLast, nHeight, nTime))
     {
+        StdError("CTxPool", "Push: GetLastBlock fail, txid: %s, hashFork: %s",
+                 txid.GetHex().c_str(), hashFork.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
@@ -343,11 +349,14 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         CPooledTx* pPooledTx = txView.Get(txid);
         if (pPooledTx == nullptr)
         {
+            StdError("CTxPool", "Push: txView Get fail, txid: %s", txid.GetHex().c_str());
             return ERR_NOT_FOUND;
         }
         destIn = pPooledTx->destIn;
         nValueIn = pPooledTx->nValueIn;
     }
+
+    StdTrace("CTxPool", "Push success, txid: %s", txid.GetHex().c_str());
 
     return err;
 }
@@ -358,16 +367,19 @@ void CTxPool::Pop(const uint256& txid)
     map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
     if (it == mapTx.end())
     {
+        StdError("CTxPool", "Pop: find fail, txid: %s", txid.GetHex().c_str());
         return;
     }
-    StdTrace("[TxPool][TRACE]", "Pop : %s.", txid.GetHex().c_str());
+
     CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
     if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
+        StdError("CTxPool", "Pop: GetBlockLocation fail, txid: %s", txid.GetHex().c_str());
         return;
     }
+
     vector<uint256> vInvalidTx;
     CTxPoolView& txView = mapPoolView[hashFork];
     txView.Remove(txid);
@@ -377,6 +389,8 @@ void CTxPool::Pop(const uint256& txid)
     {
         mapTx.erase(txidInvalid);
     }
+
+    StdTrace("CTxPool", "Pop success, txid: %s", txid.GetHex().c_str());
 }
 
 bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
@@ -463,6 +477,8 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
+            StdError("CTxPool", "FetchInputs: prevout is spent, txid: %s, prevout: [%d]:%s",
+                     tx.GetHash().GetHex().c_str(), tx.vInput[i].prevout.n, tx.vInput[i].prevout.hash.GetHex().c_str());
             return false;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
@@ -470,6 +486,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
 
     if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vUnspent))
     {
+        StdError("CTxPool", "FetchInputs: GetTxUnspent fail, txid: %s", tx.GetHash().GetHex().c_str());
         return false;
     }
 
@@ -478,6 +495,8 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (vUnspent[i].IsNull())
         {
+            StdError("CTxPool", "FetchInputs: not find unspent, txid: %s, prevout: [%d]:%s",
+                     tx.GetHash().GetHex().c_str(), tx.vInput[i].prevout.n, tx.vInput[i].prevout.hash.GetHex().c_str());
             return false;
         }
 
@@ -487,6 +506,8 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         }
         else if (destIn != vUnspent[i].destTo)
         {
+            StdError("CTxPool", "FetchInputs: destIn error, destIn: %s, destTo: %s",
+                     destIn.ToString().c_str(), vUnspent[i].destTo.ToString().c_str());
             return false;
         }
     }
@@ -496,7 +517,6 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
 
 bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
 {
-
     change.hashFork = update.hashFork;
 
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
@@ -604,7 +624,7 @@ bool CTxPool::LoadData()
     vector<pair<uint256, pair<uint256, CAssembledTx>>> vTx;
     if (!datTxPool.Load(vTx))
     {
-        StdTrace("[TxPool][TRACE]", "Load Data failed");
+        StdTrace("CTxPool", "Load Data failed");
         return false;
     }
 
@@ -653,7 +673,8 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
-            StdTrace("[TxPool][TRACE]", "TX conflicting input, prevout %s spent", tx.vInput[i].prevout.hash.ToString().c_str());
+            StdTrace("CTxPool", "AddNew: tx input is spent, txid: %s, prevout: [%d]:%s",
+                     txid.GetHex().c_str(), tx.vInput[i].prevout.n, tx.vInput[i].prevout.hash.ToString().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vPrevOutput[i]);
@@ -661,8 +682,8 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
 
     if (!pBlockChain->GetTxUnspent(hashFork, tx.vInput, vPrevOutput))
     {
-        StdTrace("[TxPool][TRACE]", "storage error, hashFork: %s, txid: %s", hashFork.ToString().c_str(),
-                 txid.ToString().c_str());
+        StdTrace("CTxPool", "AddNew: GetTxUnspent fail, txid: %s, hashFork: %s",
+                 txid.GetHex().c_str(), hashFork.GetHex().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -671,7 +692,8 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     {
         if (vPrevOutput[i].IsNull())
         {
-            StdTrace("[TxPool][TRACE]", "PrevOutPut: %s is null", vPrevOutput[i].ToString().c_str());
+            StdTrace("CTxPool", "AddNew: not find unspent, txid: %s, prevout: [%d]:%s",
+                     txid.GetHex().c_str(), tx.vInput[i].prevout.n, tx.vInput[i].prevout.hash.GetHex().c_str());
             return ERR_TRANSACTION_CONFLICTING_INPUT;
         }
         nValueIn += vPrevOutput[i].nAmount;
@@ -680,6 +702,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     Errno err = pCoreProtocol->VerifyTransaction(tx, vPrevOutput, nForkHeight, hashFork);
     if (err != OK)
     {
+        StdTrace("CTxPool", "AddNew: VerifyTransaction fail, txid: %s", txid.GetHex().c_str());
         return err;
     }
 
@@ -687,7 +710,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
     if (!txView.AddNew(txid, (*mi).second))
     {
-        StdTrace("[TxPool][TRACE]", "txView AddNew fail, txid: %s", txid.GetHex().c_str());
+        StdTrace("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
         return ERR_NOT_FOUND;
     }
     return OK;

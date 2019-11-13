@@ -318,6 +318,7 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
         int nAnchorHeight;
         if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
         {
+            StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
             return false;
         }
         nHeight = -1;
@@ -325,9 +326,15 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     }
     if (!pBlockChain->GetTransaction(txid, tx))
     {
+        StdLog("CService", "GetTransaction: BlockChain GetTransaction fail, txid: %s", txid.GetHex().c_str());
         return false;
     }
-    return pBlockChain->GetTxLocation(txid, hashFork, nHeight);
+    if (!pBlockChain->GetTxLocation(txid, hashFork, nHeight))
+    {
+        StdLog("CService", "GetTransaction: BlockChain GetTxLocation fail, txid: %s", txid.GetHex().c_str());
+        return false;
+    }
+    return true;
 }
 
 Errno CService::SendTransaction(CTransaction& tx)
@@ -426,22 +433,31 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     int nHeight;
     if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
+        StdError("CService", "SignTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return false;
     }
     vector<CTxOut> vUnspent;
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
+        StdError("CService", "SignTransaction: FetchInputs fail or vUnspent is empty, txid: %s", tx.GetHash().GetHex().c_str());
         return false;
     }
 
     const CDestination& destIn = vUnspent[0].destTo;
     if (!pWallet->SignTransaction(destIn, tx, fCompleted))
     {
+        StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
     }
-    return (!fCompleted
-            || (pCoreProtocol->ValidateTransaction(tx) == OK
-                && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK));
+
+    if (!(!fCompleted
+          || (pCoreProtocol->ValidateTransaction(tx) == OK
+              && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK)))
+    {
+        StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool CService::HaveTemplate(const CTemplateId& tid)
@@ -498,6 +514,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
         map<uint256, CForkStatus>::iterator it = mapForkStatus.find(hashFork);
         if (it == mapForkStatus.end())
         {
+            StdError("CService", "CreateTransaction: find fork fail, fork: %s", hashFork.GetHex().c_str());
             return false;
         }
         nForkHeight = it->second.nLastBlockHeight;
