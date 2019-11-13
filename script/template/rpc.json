@@ -2821,7 +2821,7 @@
                     "required": true
                 },
                 "max": {
-                    "type": "uint",
+                    "type": "int",
                     "desc": "maximum unspents(3 by default)",
                     "opt" : "n",
                     "required" : false
