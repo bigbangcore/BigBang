@@ -25,12 +25,8 @@ void CNodeManager::AddNew(const tcp::endpoint& ep, const string& strName, const 
 {
     if (mapNode.insert(make_pair(ep, CNode(ep, strName, data))).second)
     {
-        mapIdle.insert(make_pair(GetTime(), ep));
-        StdLog("CNodeManager", "AddNew: Add idle node, peer: %s, interval time: 0 s", GetEpString(ep).c_str());
-        if (mapIdle.size() > MAX_IDLENODES)
-        {
-            RemoveInactiveNodes();
-        }
+        StdLog("CNodeManager", "AddNew: Add idle node by AddNew, peer: %s, interval time: 0 s", GetEpString(ep).c_str());
+        AddIdleNode(0, ep);
     }
 }
 
@@ -39,7 +35,7 @@ void CNodeManager::Remove(const tcp::endpoint& ep)
     map<tcp::endpoint, CNode>::iterator mi = mapNode.find(ep);
     if (mi != mapNode.end())
     {
-        StdLog("CNodeManager", "Remove node, node: %s", GetEpString(ep).c_str());
+        StdLog("CNodeManager", "Remove: Remove node, node: %s", GetEpString(ep).c_str());
         mapNode.erase(mi);
 
         for (multimap<int64, tcp::endpoint>::iterator it = mapIdle.begin();
@@ -143,26 +139,41 @@ void CNodeManager::Dismiss(const tcp::endpoint& ep, bool fForceRetry, bool fRese
         CNode& node = (*it).second;
         if (fReset)
         {
-            mapIdle.insert(make_pair(GetTime() + RETRY_INTERVAL_BASE, node.ep));
+            StdLog("CNodeManager", "Dismiss: Add idle node by reset, peer: %s, interval time: %d s",
+                   GetEpString(ep).c_str(), RETRY_INTERVAL_BASE);
+            AddIdleNode(RETRY_INTERVAL_BASE, node.ep);
         }
         else
         {
-            node.nRetries = (fForceRetry ? 0 : node.nRetries + 1);
-            if (node.nRetries <= MAX_RETRIES)
+            if (node.strName == "dnseed")
             {
-                int64 nIdleTo = GetTime() + (RETRY_INTERVAL_BASE << node.nRetries);
-                mapIdle.insert(make_pair(nIdleTo, node.ep));
-                StdLog("CNodeManager", "Dismiss: Add idle node, peer: %s, nRetries: %d, interval time: %ld s",
-                       GetEpString(ep).c_str(), node.nRetries, (RETRY_INTERVAL_BASE << node.nRetries));
-                if (mapIdle.size() > MAX_IDLENODES)
+                if (node.nRetries >= MAX_RETRIES / 2)
                 {
-                    RemoveInactiveNodes();
+                    node.nRetries = 0;
                 }
+                else
+                {
+                    node.nRetries++;
+                }
+                StdLog("CNodeManager", "Dismiss: Add idle node by dnseed, peer: %s, nRetries: %d, interval time: %ld s",
+                       GetEpString(ep).c_str(), node.nRetries, (RETRY_INTERVAL_BASE << node.nRetries));
+                AddIdleNode((RETRY_INTERVAL_BASE << node.nRetries), node.ep);
             }
             else
             {
-                StdLog("CNodeManager", "Dismiss: remove node, peer: %s", GetEpString(ep).c_str());
-                mapNode.erase(it);
+                node.nRetries = (fForceRetry ? 0 : node.nRetries + 1);
+                if (node.nRetries <= MAX_RETRIES)
+                {
+                    StdLog("CNodeManager", "Dismiss: Add idle node, peer: %s, nRetries: %d, interval time: %ld s",
+                           GetEpString(ep).c_str(), node.nRetries, (RETRY_INTERVAL_BASE << node.nRetries));
+                    AddIdleNode((RETRY_INTERVAL_BASE << node.nRetries), node.ep);
+                }
+                else
+                {
+                    StdLog("CNodeManager", "Dismiss: too many reconnections, remove node, peer: %s, nRetries: %d",
+                           GetEpString(ep).c_str(), node.nRetries);
+                    mapNode.erase(it);
+                }
             }
         }
     }
@@ -176,20 +187,37 @@ void CNodeManager::Retrieve(vector<CNode>& vNode)
     }
 }
 
+void CNodeManager::AddIdleNode(int64 nIntervalTime, const boost::asio::ip::tcp::endpoint& ep)
+{
+    mapIdle.insert(make_pair(GetTime() + nIntervalTime, ep));
+    if (mapIdle.size() > MAX_IDLENODES)
+    {
+        RemoveInactiveNodes();
+    }
+}
+
 void CNodeManager::RemoveInactiveNodes()
 {
     int64 inactive = GetTime() + MAX_IDLETIME;
     int nRemoved = 0;
+    int nMaxRemoveCount = mapIdle.size() - MAX_IDLENODES;
+    if (nMaxRemoveCount > REMOVE_COUNT)
+    {
+        nMaxRemoveCount = REMOVE_COUNT;
+    }
 
     multimap<int64, tcp::endpoint>::reverse_iterator rit = mapIdle.rbegin();
-    while (rit != mapIdle.rend() && nRemoved < REMOVE_COUNT)
+    while (rit != mapIdle.rend() && nRemoved < nMaxRemoveCount)
     {
         if ((*rit).first > inactive || nRemoved == 0)
         {
-            StdLog("CNodeManager", "RemoveInactiveNodes: remove node, peer: %s", GetEpString(rit->second).c_str());
-            mapNode.erase((*rit).second);
-            mapIdle.erase((++rit).base());
-            nRemoved++;
+            if (GetName(rit->second) != "dnseed")
+            {
+                StdLog("CNodeManager", "RemoveInactiveNodes: remove node, peer: %s", GetEpString(rit->second).c_str());
+                mapNode.erase((*rit).second);
+                mapIdle.erase((++rit).base());
+                nRemoved++;
+            }
         }
         else
         {
