@@ -966,7 +966,7 @@ Errno CWorldLine::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBl
 // CWorldLineController
 
 CWorldLineController::CWorldLineController()
-  : pForkManager(nullptr), pCoreProtocol(nullptr)
+  : pForkManager(nullptr), pCoreProtocol(nullptr), pNetChannelModel(nullptr)
 {
 }
 
@@ -1011,6 +1011,7 @@ void CWorldLineController::HandleDeinitialize()
     pWorldLine = nullptr;
     pForkManager = nullptr;
     pCoreProtocol = nullptr;
+    pNetChannelModel = nullptr;
 }
 
 bool CWorldLineController::HandleInvoke()
