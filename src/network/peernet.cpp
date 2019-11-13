@@ -361,27 +361,30 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 
     UpdateNetTime(pBbPeer->GetRemote().address(), pBbPeer->nTimeDelta);
 
-    CEventPeerActive* pEventActive = new CEventPeerActive(pBbPeer->GetNonce());
-    if (pEventActive == nullptr)
+    if (setDNSeed.count(pBbPeer->GetRemote()) == 0)
     {
-        return false;
+        CEventPeerActive* pEventActive = new CEventPeerActive(pBbPeer->GetNonce());
+        if (pEventActive == nullptr)
+        {
+            return false;
+        }
+
+        pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+        // CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
+
+        pNetChannel->PostEvent(pEventActive);
+        // if (pEventActiveDelegated != nullptr)
+        // {
+        //     pDelegatedChannel->PostEvent(pEventActiveDelegated);
+        // }
+
+        pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     }
-
-    pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-    // CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
-
-    pNetChannel->PostEvent(pEventActive);
-    // if (pEventActiveDelegated != nullptr)
-    // {
-    //     pDelegatedChannel->PostEvent(pEventActiveDelegated);
-    // }
 
     if (!fEnclosed)
     {
         pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_GETADDRESS);
     }
-
-    pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     return true;
 }
 
@@ -450,10 +453,10 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                     }
                 }
 
-                if (!pBbPeer->IsInBound() && setDNSeed.count(pBbPeer->GetRemote()))
+                /*if (!pBbPeer->IsInBound() && setDNSeed.count(pBbPeer->GetRemote()))
                 {
                     RemoveNode(pBbPeer->GetRemote());
-                }
+                }*/
                 return true;
             }
             break;
