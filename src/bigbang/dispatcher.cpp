@@ -308,8 +308,8 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate
     {
         // pConsensus->PrimaryUpdate(updateWorldLine, changeTxSet, routineDelegate);
 
-        pDelegatedChannel->PrimaryUpdate(updateWorldLine.nLastBlockHeight - updateWorldLine.vBlockAddNew.size(),
-                                         routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+        // pDelegatedChannel->PrimaryUpdate(updateWorldLine.nLastBlockHeight - updateWorldLine.vBlockAddNew.size(),
+        //                              routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
 
         for (const CTransaction& tx : routineDelegate.vEnrollTx)
         {
@@ -318,7 +318,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CWorldLineUpdate
         }
     }
 
-    SyncForkHeight(updateWorldLine.nLastBlockHeight);
+    // SyncForkHeight(updateWorldLine.nLastBlockHeight);
 }
 
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
