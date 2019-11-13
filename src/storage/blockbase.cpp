@@ -125,11 +125,23 @@ bool CBlockView::RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent)
     map<CTxOutPoint, CUnspent>::const_iterator it = mapUnspent.find(out);
     if (it != mapUnspent.end())
     {
+        if ((*it).second.IsNull())
+        {
+            StdTrace("CBlockView", "RetrieveUnspent: unspent is null, txout: [%d]:%s", out.n, out.hash.GetHex().c_str());
+            return false;
+        }
         unspent = (*it).second;
-        return (!unspent.IsNull());
     }
-
-    return pBlockBase->GetTxUnspent(hashFork, out, unspent);
+    else
+    {
+        if (!pBlockBase->GetTxUnspent(hashFork, out, unspent))
+        {
+            StdTrace("CBlockView", "RetrieveUnspent: BlockBase GetTxUnspent fail, txout: [%d]:%s, hashFork: %s",
+                     out.n, out.hash.GetHex().c_str(), hashFork.GetHex().c_str());
+            return false;
+        }
+    }
+    return true;
 }
 
 void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn, int64 nValueIn)

@@ -183,12 +183,18 @@ const CCryptoCipher& CKey::GetCipher() const
 
 bool CKey::Sign(const uint256& hash, std::vector<uint8>& vchSig) const
 {
-    if (!IsNull() && !IsLocked())
+    if (IsNull())
     {
-        CryptoSign(*pCryptoKey, &hash, sizeof(hash), vchSig);
-        return true;
+        StdError("CKey", "Sign: pubkey is null");
+        return false;
     }
-    return false;
+    if (IsLocked())
+    {
+        StdError("CKey", "Sign: pubkey is locked");
+        return false;
+    }
+    CryptoSign(*pCryptoKey, &hash, sizeof(hash), vchSig);
+    return true;
 }
 
 bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& seed,

@@ -488,6 +488,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
+        Log("AddNew Block : Short chain, Fork chain trust: %s", pIndexFork->nChainTrust.GetHex().c_str());
         return OK;
     }
 
@@ -496,6 +497,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+    Log("AddNew Block : Commit block success, block: %s", hash.GetHex().c_str());
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
@@ -820,6 +822,7 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
         CTxOut output;
         if (!view.RetrieveUnspent(txin.prevout, output))
         {
+            Log("GetTxContxt: RetrieveUnspent fail, prevout: [%d]:%s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             return ERR_MISSING_PREV;
         }
         if (txContxt.destIn.IsNull())
@@ -828,6 +831,8 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
         }
         else if (txContxt.destIn != output.destTo)
         {
+            Log("GetTxContxt: destIn error, destIn: %s, destTo: %s",
+                txContxt.destIn.ToString().c_str(), output.destTo.ToString().c_str());
             return ERR_TRANSACTION_INVALID;
         }
         txContxt.vin.push_back(CTxInContxt(output));
