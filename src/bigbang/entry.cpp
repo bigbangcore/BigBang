@@ -12,7 +12,6 @@
 #include "core.h"
 #include "datastat.h"
 #include "delegatedchn.h"
-#include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
 #include "netchn.h"
@@ -196,14 +195,6 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::COREPROTOCOL:
         {
             if (!AttachModule(config.GetConfig()->fTestNet ? new CTestNetCoreProtocol : new CCoreProtocol()))
-            {
-                return false;
-            }
-            break;
-        }
-        case EModuleType::DISPATCHER:
-        {
-            if (!AttachModule(new CDispatcher()))
             {
                 return false;
             }
