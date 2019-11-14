@@ -124,15 +124,27 @@ void CSchedule::RemovePeer(uint64 nPeerNonce, set<uint64>& setSchedPeer)
     }
 }
 
+bool CSchedule::CheckAddICheckAddInvIdleLocationnvIdle(uint64 nPeerNonce, uint32 nInvType)
+{
+    if (mapState.size() < MAX_INV_COUNT
+        && mapPeer[nPeerNonce].GetCount(nInvType) < (nInvType == network::CInv::MSG_TX ? MAX_PEER_TX_INV_COUNT : MAX_PEER_BLOCK_INV_COUNT))
+    {
+        return true;
+    }
+    return false;
+}
+
 bool CSchedule::AddNewInv(const network::CInv& inv, uint64 nPeerNonce)
 {
-    CInvPeer& peer = mapPeer[nPeerNonce];
-    size_t nMaxPeerInv = (inv.nType == network::CInv::MSG_TX ? MAX_PEER_TX_INV_COUNT : MAX_PEER_BLOCK_INV_COUNT);
-    if (mapState.size() < MAX_INV_COUNT && peer.GetCount(inv.nType) < nMaxPeerInv)
+    if (CheckAddInvIdleLocation(nPeerNonce, inv.nType))
     {
-        mapState[inv].setKnownPeer.insert(nPeerNonce);
-        mapState[inv].nRecvInvTime = GetTime();
-        peer.AddNewInv(inv);
+        CInvState& state = mapState[inv];
+        state.setKnownPeer.insert(nPeerNonce);
+        if (state.nRecvInvTime == 0)
+        {
+            state.nRecvInvTime = GetTime();
+        }
+        mapPeer[nPeerNonce].AddNewInv(inv);
         return true;
     }
     return false;
@@ -303,7 +315,7 @@ bool CSchedule::ScheduleBlockInv(uint64 nPeerNonce, vector<network::CInv>& vInv,
             bool fReceivedAll;
             if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_BLOCK, vInv, nMaxCount, fReceivedAll))
             {
-                if (fReceivedAll && peer.CheckNextGetBlocksTime())
+                if (fReceivedAll && peer.CheckNextGetBlocksTime() && CheckAddInvIdleLocation(nPeerNonce, network::CInv::MSG_BLOCK))
                 {
                     fMissingPrev = true;
                 }
@@ -386,8 +398,7 @@ bool CSchedule::GetLocatorDepthHash(uint64 nPeerNonce, uint256& hashDepth)
 
 void CSchedule::SetLocatorDepthHash(uint64 nPeerNonce, const uint256& hashDepth)
 {
-    CInvPeer& peer = mapPeer[nPeerNonce];
-    peer.SetBlockLocatorDepth(hashDepth);
+    mapPeer[nPeerNonce].SetBlockLocatorDepth(hashDepth);
 }
 
 int CSchedule::GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock)
@@ -402,14 +413,12 @@ int CSchedule::GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock)
 
 void CSchedule::SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock, const uint256& hashNext)
 {
-    CInvPeer& peer = mapPeer[nPeerNonce];
-    peer.SetLocatorInvBlockHash(nHeight, hashBlock, hashNext);
+    mapPeer[nPeerNonce].SetLocatorInvBlockHash(nHeight, hashBlock, hashNext);
 }
 
 void CSchedule::SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime)
 {
-    CInvPeer& peer = mapPeer[nPeerNonce];
-    peer.SetNextGetBlocksTime(nWaitTime);
+    mapPeer[nPeerNonce].SetNextGetBlocksTime(nWaitTime);
 }
 
 void CSchedule::RemoveOrphan(const network::CInv& inv)
