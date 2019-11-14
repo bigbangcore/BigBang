@@ -560,7 +560,8 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
         // PoW difficulty = 2 ^ nBits
         CProofOfHashWorkCompact proof;
         proof.Load(block.vchProof);
-        return 1 << proof.nBits;
+        uint256 v(1);
+        return v << proof.nBits;
     }
     else
     {
