@@ -168,7 +168,6 @@ public:
                 EModuleType::WALLETCONTROLLER,
                 EModuleType::NETWORK,
                 EModuleType::NETCHANNEL,
-                EModuleType::DISPATCHER,
                 EModuleType::DELEGATEDCHANNEL,
                 EModuleType::SERVICE,
                 EModuleType::HTTPSERVER,

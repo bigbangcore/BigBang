@@ -5,17 +5,16 @@
 #include <chrono>
 #include <thread>
 
+#include "actor/actor.h"
 #include "blockmaker.h"
 #include "common/message.h"
 #include "consensus.h"
 #include "core.h"
 #include "datastat.h"
 #include "delegatedchn.h"
-#include "dispatcher.h"
 #include "docker/config.h"
 #include "docker/docker.h"
 #include "forkmanager.h"
-#include "actor/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "netchn.h"
@@ -155,7 +154,6 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
-    BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
     BOOST_CHECK(docker.Attach(new CNetChannelController()));
     auto pNetChannel = new CDummyNetChannel();
@@ -289,7 +287,6 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
-    BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CNetChannel()));
     BOOST_CHECK(docker.Attach(new CNetChannelController()));
     auto pDelegatedChannel = new CDummyDelegatedChannel();
@@ -371,7 +368,6 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     BOOST_CHECK(docker.Attach(new CWorldLineController()));
     BOOST_CHECK(docker.Attach(new CBlockMaker()));
     BOOST_CHECK(docker.Attach(new CDataStat()));
-    BOOST_CHECK(docker.Attach(new CDispatcher()));
     BOOST_CHECK(docker.Attach(new CNetChannel()));
     BOOST_CHECK(docker.Attach(new CNetChannelController()));
     BOOST_CHECK(docker.Attach(new CDelegatedChannel()));
