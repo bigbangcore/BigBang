@@ -746,7 +746,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = (ptime(date(2019, 9, 25), time_duration(14 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
+    block.nTimeStamp = (ptime(date(2019, 11, 14), time_duration(18 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
