@@ -507,6 +507,15 @@ void CConsensusController::HandleTxChange(const CSyncTxChangeMessage& msg)
             spRoutineMsg->nStartHeight = msg.update.nLastBlockHeight - msg.update.vBlockAddNew.size();
             PrimaryUpdate(msg.update, msg.change, spRoutineMsg->routine);
             PUBLISH_MESSAGE(spRoutineMsg);
+
+            for (const CTransaction& tx : spRoutineMsg->routine.vEnrollTx)
+            {
+                auto spAddTxMsg = CAddTxMessage::Create();
+                spAddTxMsg->spNonce = CNonce::Create();
+                spAddTxMsg->hashFork = msg.hashFork;
+                spAddTxMsg->tx = tx;
+                PUBLISH_MESSAGE(spAddTxMsg);
+            }
         }
     }
 }
