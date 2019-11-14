@@ -364,7 +364,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
-    txMint.hashAnchor = pCoreProtocol->GetGenesisBlockHash();
+    txMint.hashAnchor = block.hashPrev;
     txMint.sendTo = destSendTo;
     txMint.nAmount = nReward;
 
