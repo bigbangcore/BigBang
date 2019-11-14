@@ -124,7 +124,7 @@ void CSchedule::RemovePeer(uint64 nPeerNonce, set<uint64>& setSchedPeer)
     }
 }
 
-bool CSchedule::CheckAddICheckAddInvIdleLocationnvIdle(uint64 nPeerNonce, uint32 nInvType)
+bool CSchedule::CheckAddInvIdleLocation(uint64 nPeerNonce, uint32 nInvType)
 {
     if (mapState.size() < MAX_INV_COUNT
         && mapPeer[nPeerNonce].GetCount(nInvType) < (nInvType == network::CInv::MSG_TX ? MAX_PEER_TX_INV_COUNT : MAX_PEER_BLOCK_INV_COUNT))
