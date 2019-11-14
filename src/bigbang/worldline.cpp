@@ -999,14 +999,14 @@ bool CWorldLineController::HandleInitialize()
         return false;
     }
 
-    RegisterPtrHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
+    RegisterHandler(PTR_HANDLER(CAddBlockMessage, boost::bind(&CWorldLineController::HandleAddBlock, this, _1), true));
 
     return true;
 }
 
 void CWorldLineController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 
     pWorldLine = nullptr;
     pForkManager = nullptr;

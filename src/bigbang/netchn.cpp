@@ -566,23 +566,25 @@ bool CNetChannelController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CBroadcastBlockInvMessage>(boost::bind(&CNetChannelController::HandleBroadcastBlockInv, this, _1));
-    RegisterRefHandler<CBroadcastTxInvMessage>(boost::bind(&CNetChannelController::HandleBroadcastTxInv, this, _1));
-    RegisterRefHandler<CSubscribeForkMessage>(boost::bind(&CNetChannelController::HandleSubscribeFork, this, _1));
-    RegisterRefHandler<CUnsubscribeForkMessage>(boost::bind(&CNetChannelController::HandleUnsubscribeFork, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CBroadcastBlockInvMessage, boost::bind(&CNetChannelController::HandleBroadcastBlockInv, this, _1), true),
+        REF_HANDLER(CBroadcastTxInvMessage, boost::bind(&CNetChannelController::HandleBroadcastTxInv, this, _1), true),
+        REF_HANDLER(CSubscribeForkMessage, boost::bind(&CNetChannelController::HandleSubscribeFork, this, _1), true),
+        REF_HANDLER(CUnsubscribeForkMessage, boost::bind(&CNetChannelController::HandleUnsubscribeFork, this, _1), true),
 
-    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CNetChannelController::HandleActive, this, _1));
-    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CNetChannelController::HandleDeactive, this, _1));
-    RegisterRefHandler<CPeerSubscribeMessageInBound>(boost::bind(&CNetChannelController::HandleSubscribe, this, _1));
-    RegisterRefHandler<CPeerUnsubscribeMessageInBound>(boost::bind(&CNetChannelController::HandleUnsubscribe, this, _1));
-    RegisterRefHandler<CPeerInvMessageInBound>(boost::bind(&CNetChannelController::HandleInv, this, _1));
-    RegisterRefHandler<CPeerGetDataMessageInBound>(boost::bind(&CNetChannelController::HandleGetData, this, _1));
-    RegisterRefHandler<CPeerGetBlocksMessageInBound>(boost::bind(&CNetChannelController::HandleGetBlocks, this, _1));
-    RegisterRefHandler<CPeerTxMessageInBound>(boost::bind(&CNetChannelController::HandlePeerTx, this, _1));
-    RegisterRefHandler<CPeerBlockMessageInBound>(boost::bind(&CNetChannelController::HandlePeerBlock, this, _1));
+        REF_HANDLER(CPeerActiveMessage, boost::bind(&CNetChannelController::HandleActive, this, _1), true),
+        REF_HANDLER(CPeerDeactiveMessage, boost::bind(&CNetChannelController::HandleDeactive, this, _1), true),
+        REF_HANDLER(CPeerSubscribeMessageInBound, boost::bind(&CNetChannelController::HandleSubscribe, this, _1), true),
+        REF_HANDLER(CPeerUnsubscribeMessageInBound, boost::bind(&CNetChannelController::HandleUnsubscribe, this, _1), true),
+        REF_HANDLER(CPeerInvMessageInBound, boost::bind(&CNetChannelController::HandleInv, this, _1), true),
+        REF_HANDLER(CPeerGetDataMessageInBound, boost::bind(&CNetChannelController::HandleGetData, this, _1), true),
+        REF_HANDLER(CPeerGetBlocksMessageInBound, boost::bind(&CNetChannelController::HandleGetBlocks, this, _1), true),
+        REF_HANDLER(CPeerTxMessageInBound, boost::bind(&CNetChannelController::HandlePeerTx, this, _1), true),
+        REF_HANDLER(CPeerBlockMessageInBound, boost::bind(&CNetChannelController::HandlePeerBlock, this, _1), true),
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CNetChannelController::HandleAddedNewBlock, this, _1));
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CNetChannelController::HandleAddedNewTx, this, _1));
+        REF_HANDLER(CAddedBlockMessage, boost::bind(&CNetChannelController::HandleAddedNewBlock, this, _1), true),
+        REF_HANDLER(CAddedTxMessage, boost::bind(&CNetChannelController::HandleAddedNewTx, this, _1), true),
+    });
 
     return true;
 }
@@ -595,20 +597,7 @@ void CNetChannelController::HandleDeinitialize()
     pService = nullptr;
     pNetChannelModel = nullptr;
 
-    DeregisterHandler(CBroadcastBlockInvMessage::MessageType());
-    DeregisterHandler(CBroadcastTxInvMessage::MessageType());
-    DeregisterHandler(CSubscribeForkMessage::MessageType());
-    DeregisterHandler(CUnsubscribeForkMessage::MessageType());
-
-    DeregisterHandler(CPeerActiveMessage::MessageType());
-    DeregisterHandler(CPeerDeactiveMessage::MessageType());
-    DeregisterHandler(CPeerSubscribeMessageInBound::MessageType());
-    DeregisterHandler(CPeerUnsubscribeMessageInBound::MessageType());
-    DeregisterHandler(CPeerInvMessageInBound::MessageType());
-    DeregisterHandler(CPeerGetDataMessageInBound::MessageType());
-    DeregisterHandler(CPeerGetBlocksMessageInBound::MessageType());
-    DeregisterHandler(CPeerTxMessageInBound::MessageType());
-    DeregisterHandler(CPeerBlockMessageInBound::MessageType());
+    DeregisterHandler();
 }
 
 bool CNetChannelController::HandleInvoke()

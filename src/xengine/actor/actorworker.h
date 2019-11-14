@@ -11,7 +11,6 @@
 #include <map>
 #include <memory>
 #include <type_traits>
-#include <atomic>
 
 #include "docker/thread.h"
 #include "type.h"
@@ -20,80 +19,126 @@ namespace xengine
 {
 
 class CMessage;
+class CDocker;
+
+#define REF_HANDLER(Message, function, global) \
+    CMessageHandler::CreateRef<Message>(function, global)
+#define PTR_HANDLER(Message, function, global) \
+    CMessageHandler::CreatePtr<Message>(function, global)
 
 /**
- * @brief CIOActorWorker object can handle message.
- *        It is the worker of CIOActor.
- *        And There may be one or more workers behind CIOActor for scalability.
+ * @brief Message handler infomation
  */
-class CIOActorWorker
+class CMessageHandler final
 {
-    typedef std::function<void(const CMessage&)> HandlerFunction;
-
 public:
     /**
-     * @brief Actor worker constructor
+     * @brief Create a message handler which accept "const Message&" parameter
+     * @tparam Message Concrete message class to be registered
+     *         Message must be equal to or derived from CMessage
+     * @param handler The function (void handler(const Message&)) which handle message
+     * @warning Non-thread-safety. 
+     * @code
+     *     void HandlerDerivedFunction(const DerivedMessage&);
+     *     RegisterHandler(REF_HANDLER(DerivedMessage, HandlerDerivedFunction, true));
+     * 
+     *     void HandlerBaseFunction(const CMessage&);
+     *     RegisterHandler(REF_HANDLER(DerivedMessage, HandlerBaseFunction, true));
+     * @endcode
      */
-    CIOActorWorker(const std::string& strNameIn = "");
+    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
+    static CMessageHandler CreateRef(boost::function<void(const Message&)> handlerIn, bool fGlobalIn)
+    {
+        return CMessageHandler(Message::MessageType(), Message::MessageTag(), handlerIn, fGlobalIn);
+    }
+
+    /**
+     * @brief Create a message handler which accept "const shared_ptr<Message>" parameter
+     * @tparam Message Concrete message class to be registered
+     *         Message must be equal to or derived from CMessage
+     * @param handler The function (void handler(const std::shared_ptr<Message>)) which handle message
+     * @warning Non-thread-safety. 
+     * @code
+     *     void HandlerDerivedFunction(const std::shared_ptr<DerivedMessage>);
+     *     RegisterHandler(REF_HANDLER(DerivedMessage, HandlerDerivedFunction, true));
+     * 
+     *     void HandlerBaseFunction(const std::shared_ptr<CMessage>);
+     *     RegisterHandler(REF_HANDLER(DerivedMessage, HandlerBaseFunction, true));
+     * @endcode
+     */
+    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
+    static CMessageHandler CreatePtr(boost::function<void(const std::shared_ptr<Message>)> handlerIn, bool fGlobalIn)
+    {
+        return CMessageHandler(Message::MessageType(), Message::MessageTag(), handlerIn, fGlobalIn);
+    }
+
+    const uint32 nType;
+    const std::string strTag;
+    const boost::any handler;
+    const bool fGlobal;
+
+protected:
+    CMessageHandler(const uint32 nTypeIn, const std::string strTagIn, const boost::any handlerIn, const bool fGlobalIn)
+      : nType(nTypeIn), strTag(strTagIn), handler(handlerIn), fGlobal(fGlobalIn)
+    {
+    }
+};
+
+/**
+ * @brief CActorWorker object can handle message.
+ *        It contains a thread or coroutine.
+ *        There may be one or more workers in a CActor for scalability.
+ * @note A CActorWorker life cycle:
+ *          main thread in constructor:     RegisterHandler();
+ *          main thread in constructor:     Start();
+ *          worker thread:                  EnterLoop();
+ *          worker thread:                  in loop
+ *          worker thread:                  LeaveLoop();
+ *          main thread in deconstructor:   Stop();
+ *          main thread in deconstructor:   DeregisterHandler();
+ * 
+ *       If create object by "CActorWorker(const std::string&, const vector<CMessageHandler>&)", it will skip "Register()" function.
+ */
+class CActorWorker
+{
+public:
+    /**
+     * @brief Actor worker constructor by tuple(uint32, boost)
+     * @param strNameIn worker name
+     * @param vecHandler message handlers
+     */
+    CActorWorker(const std::string& strNameIn = "", const std::vector<CMessageHandler>& vecHandler = std::vector<CMessageHandler>());
 
     /**
      * @brief Actor worker destructor
      */
-    virtual ~CIOActorWorker();
+    virtual ~CActorWorker();
 
     /**
-     * @brief Publish a message to Actor worker.
-     * @param spMessage a shared_ptr object of CMessage or it's derived
-     * @note Thread safe.
-     */
-    void Publish(std::shared_ptr<CMessage> spMessage);
-
-    /**
-     * @brief Stop service.
-     */
-    void Stop();
-
-    /**
-     * @brief Register message handler for derived.
-     * @tparam Message Concrete message class to be registered.
-     *         Message is equal to or derived from CMessage.
-     * @param handler The function (void handler(const std::shared_ptr<Message>)) which handle message.
+     * @brief Register a message handler
+     * @param handler CMessageHandler object
      * @warning Non-thread-safety. 
-     * @code
-     *     void HandlerDerivedFunction(const std::shared_ptr<DerivedMessage>&);
-     *     RegisterPtrHandler<DerivedMessage>(HandlerDerivedFunction);
-     * 
-     *     void HandlerBaseFunction(const std::shared_ptr<CMessage>&);
-     *     RegisterPtrHandler<DerivedMessage>(HandlerBaseFunction);
-     * @endcode
      */
-    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    void RegisterPtrHandler(boost::function<void(const std::shared_ptr<Message>&)> handler)
-    {
-        mapHandler[Message::MessageType()] = handler;
-    }
+    void RegisterHandler(const CMessageHandler& handler);
 
     /**
-     * @brief Register message handler for derived.
-     * @tparam Message Concrete message class to be registered.
-     *         Message is equal to or derived from CMessage.
-     * @param handler The function (void handler(const Message&)) which handle message.
-     * @code
-     *     void HandlerDerivedFunction(const DerivedMessage&);
-     *     RegisterRefHandler<DerivedMessage>(HandlerDerivedFunction);
-     * 
-     *     void HandlerBaseFunction(const CMessage&);
-     *     RegisterRefHandler<DerivedMessage>(HandlerBaseFunction);
-     * @endcode
+     * @brief Register a batch of message handlers
+     * @param vecHandler a vector of CMessageHandler.
      */
-    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    void RegisterRefHandler(boost::function<void(const Message&)> handler)
-    {
-        mapHandler[Message::MessageType()] = handler;
-    }
+    void RegisterHandler(const std::vector<CMessageHandler>& vecHandler);
 
     /**
-     * @brief Deregister message handler for derived.
+     * @brief Start worker thread
+     */
+    virtual void Start();
+
+    /**
+     * @brief Stop worker thread
+     */
+    virtual void Stop();
+
+    /**
+     * @brief Deregister a message handler
      * @param nType The message type.
      * @warning Non-thread-safety. 
      * @code
@@ -101,6 +146,19 @@ public:
      * @endcode
      */
     void DeregisterHandler(const uint32 nType);
+
+    /**
+     * @brief Deregister all messages handler for derived.
+     * @warning Non-thread-safety. 
+     */
+    void DeregisterHandler();
+
+    /**
+     * @brief Publish a message to Actor worker.
+     * @param spMessage a shared_ptr object of CMessage or it's derived
+     * @note Thread safe.
+     */
+    void Publish(const std::shared_ptr<CMessage> spMessage);
 
     /**
      * @brief Get name of actor worker
@@ -128,13 +186,13 @@ public:
 
 protected:
     /**
-     * @brief Called before message handler thread running.
+     * @brief Called by worker thread after thread running and before loop
      * @return Successful or not.
      */
     virtual bool EnterLoop();
 
     /**
-     * @brief Called after message handler thread stopping.
+     * @brief Called by worker thread after thread loop and before stopping
      */
     virtual void LeaveLoop();
 
@@ -142,17 +200,17 @@ private:
     /// The function of the thread entry contains ioService.run().
     void HandlerThreadFunc();
     /// Message handler callback entry.
-    void MessageHandler(std::shared_ptr<CMessage> spMessage);
+    void MessageHandler(const std::shared_ptr<CMessage> spMessage);
 
 protected:
     std::string strName;
     boost::asio::io_service ioService;
     boost::asio::io_service::strand ioStrand;
-    CThread thrIOActorWorker;
+    CThread thr;
 
 private:
     boost::asio::io_service::work ioWork;
-    std::map<uint32, boost::any> mapHandler;
+    std::map<uint32, CMessageHandler> mapHandler;
 };
 
 } // namespace xengine

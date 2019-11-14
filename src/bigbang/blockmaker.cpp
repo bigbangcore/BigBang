@@ -132,14 +132,14 @@ bool CBlockMaker::HandleInitialize()
         }
     }
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CBlockMaker::HandleAddedBlock, this, _1));
+    RegisterHandler(REF_HANDLER(CAddedBlockMessage, boost::bind(&CBlockMaker::HandleAddedBlock, this, _1), true));
 
     return true;
 }
 
 void CBlockMaker::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;

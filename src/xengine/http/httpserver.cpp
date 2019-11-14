@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <openssl/rand.h>
+
 #include "nonce.h"
 
 using namespace std;
@@ -216,21 +217,21 @@ bool CHttpServer::HandleInitialize()
         }
     }
 
-    RegisterRefHandler<CHttpRspMessage>(boost::bind(&CHttpServer::HandleHttpRsp, this, _1));
+    RegisterHandler(REF_HANDLER(CHttpRspMessage, boost::bind(&CHttpServer::HandleHttpRsp, this, _1), true));
 
     return true;
 }
 
 void CHttpServer::HandleDeinitialize()
 {
+    DeregisterHandler();
+
     for (map<tcp::endpoint, CHttpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
     {
         delete (*it).second.pSSLContext;
     }
     mapProfile.clear();
-
-    DeregisterHandler(CHttpRspMessage::MessageType());
 }
 
 bool CHttpServer::EnterLoop()

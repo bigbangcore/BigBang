@@ -8,9 +8,9 @@
 #include <boost/test/unit_test.hpp>
 #include <thread>
 
+#include "actor/actor.h"
 #include "docker/config.h"
 #include "docker/docker.h"
-#include "actor/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "test_big.h"
@@ -68,16 +68,18 @@ boost::system_time CTimeoutMessageD::PublishTime;
 boost::system_time CTimeoutMessageD::HandledTimeA;
 boost::system_time CTimeoutMessageD::HandledTimeB;
 
-class CActorA : public CIOActor
+class CActorA : public CActor
 {
 public:
     CActorA()
-      : CIOActor("actorA") {}
+      : CActor("actorA") {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
-        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorA::HandlerMessageB, this, _1));
-        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
+        RegisterHandler({
+            REF_HANDLER(CTimeoutMessageA, boost::bind(&CActorA::HandlerMessageA, this, _1), true),
+            REF_HANDLER(CTimeoutMessageB, boost::bind(&CActorA::HandlerMessageB, this, _1), true),
+            REF_HANDLER(CTimeoutMessageC, boost::bind(&CActorA::HandlerMessageC, this, _1), true),
+        });
         return true;
     }
     virtual bool HandleInvoke() override
@@ -90,9 +92,7 @@ public:
     }
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CTimeoutMessageA::MessageType());
-        DeregisterHandler(CTimeoutMessageB::MessageType());
-        DeregisterHandler(CTimeoutMessageC::MessageType());
+        DeregisterHandler();
     }
 
 protected:
@@ -110,17 +110,19 @@ protected:
     }
 };
 
-class CActorB : public CIOActor
+class CActorB : public CActor
 {
 public:
     CActorB()
-      : CIOActor("actorB") {}
+      : CActor("actorB") {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterHandler({
+            REF_HANDLER(CTimeoutMessageA, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            REF_HANDLER(CTimeoutMessageB, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            REF_HANDLER(CTimeoutMessageC, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            REF_HANDLER(CTimeoutMessageD, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+        });
         return true;
     }
     virtual bool HandleInvoke() override
@@ -133,10 +135,7 @@ public:
     }
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CTimeoutMessageA::MessageType());
-        DeregisterHandler(CTimeoutMessageB::MessageType());
-        DeregisterHandler(CTimeoutMessageC::MessageType());
-        DeregisterHandler(CTimeoutMessageD::MessageType());
+        DeregisterHandler();
     }
 
 protected:

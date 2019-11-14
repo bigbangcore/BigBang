@@ -16,7 +16,7 @@ namespace xengine
 {
 
 CTimer::CTimer()
-  : CIOActor("timer"), timer(ioService)
+  : CActor("timer"), timer(ioService)
 {
 }
 
@@ -27,8 +27,10 @@ CTimer::~CTimer()
 
 bool CTimer::HandleInitialize()
 {
-    RegisterRefHandler<CSetTimerMessage>(boost::bind(&CTimer::SetTimer, this, _1));
-    RegisterRefHandler<CCancelTimerMessage>(boost::bind(&CTimer::CancelTimer, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CSetTimerMessage, boost::bind(&CTimer::SetTimer, this, _1), true),
+        REF_HANDLER(CCancelTimerMessage, boost::bind(&CTimer::CancelTimer, this, _1), true),
+    });
     return true;
 }
 
@@ -44,8 +46,7 @@ void CTimer::HandleHalt()
 
 void CTimer::HandleDeinitialize()
 {
-    DeregisterHandler(CSetTimerMessage::MessageType());
-    DeregisterHandler(CCancelTimerMessage::MessageType());
+    DeregisterHandler();
 }
 
 bool CTimer::EnterLoop()

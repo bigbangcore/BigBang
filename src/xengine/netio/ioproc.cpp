@@ -72,7 +72,7 @@ void CIOCompletion::Reset()
 // CIOProc
 
 CIOProc::CIOProc(const string& strOwnKeyIn)
-  : CIOActor(strOwnKeyIn),
+  : CActor(strOwnKeyIn),
     resolverHost(ioService), ioOutBound(this), ioSSLOutBound(this),
     timerHeartbeat(ioService, IOPROC_HEARTBEAT)
 {

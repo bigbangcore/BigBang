@@ -5,8 +5,8 @@
 #ifndef XENGINE_NONCE_H
 #define XENGINE_NONCE_H
 
-#include <openssl/rand.h>
 #include <atomic>
+#include <openssl/rand.h>
 
 #include "type.h"
 
@@ -44,13 +44,14 @@ inline bool NonceType(const uint64 nNonce, const uint8 nType)
 /**
  * @brief A wrapper of nonce. Common used with shared_ptr on multi-thread to judge nonce to be valid or not
  */
-class CNonce 
+class CNonce
 {
 public:
     uint64 nNonce;
     std::atomic<bool> fValid;
 
-    CNonce(const uint64 nNonceIn = 0) : nNonce(nNonceIn), fValid(true) {}
+    CNonce(const uint64 nNonceIn = 0)
+      : nNonce(nNonceIn), fValid(true) {}
 
     static std::shared_ptr<CNonce> Create(const uint64 nNonceIn = 0)
     {

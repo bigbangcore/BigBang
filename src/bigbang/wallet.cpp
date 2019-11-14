@@ -1408,12 +1408,10 @@ void CWallet::RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint2
 
 CWalletController::CWalletController()
 {
-
 }
 
 CWalletController::~CWalletController()
 {
-
 }
 
 bool CWalletController::HandleInitialize()
@@ -1424,18 +1422,18 @@ bool CWalletController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CWalletController::HandleNewFork, this, _1));
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CWalletController::HandleAddedTx, this, _1));
-    RegisterRefHandler<CSyncTxChangeMessage>(boost::bind(&CWalletController::HandleSyncTxChange, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CAddedBlockMessage, boost::bind(&CWalletController::HandleNewFork, this, _1), true),
+        REF_HANDLER(CAddedTxMessage, boost::bind(&CWalletController::HandleAddedTx, this, _1), true),
+        REF_HANDLER(CSyncTxChangeMessage, boost::bind(&CWalletController::HandleSyncTxChange, this, _1), true),
+    });
 
     return true;
 }
 
 void CWalletController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CSyncTxChangeMessage::MessageType());
+    DeregisterHandler();
 
     pWallet = nullptr;
 }

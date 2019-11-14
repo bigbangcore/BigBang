@@ -311,7 +311,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (txView.IsSpent(tx.vInput[i].prevout))
         {
-        TRACE("view prevout is spent");
+            TRACE("view prevout is spent");
             return false;
         }
         txView.GetUnspent(tx.vInput[i].prevout, vUnspent[i]);
@@ -328,7 +328,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     {
         if (vUnspent[i].IsNull())
         {
-        TRACE("unspent is not exists");
+            TRACE("unspent is not exists");
             return false;
         }
 
@@ -338,7 +338,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
         }
         else if (destIn != vUnspent[i].destTo)
         {
-        TRACE("destIn is not equal destTo");
+            TRACE("destIn is not equal destTo");
             return false;
         }
     }

@@ -458,16 +458,17 @@ bool CConsensusController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CConsensusController::HandleNewTx, this, _1));
-    RegisterRefHandler<CSyncTxChangeMessage>(boost::bind(&CConsensusController::HandleTxChange, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CAddedTxMessage, boost::bind(&CConsensusController::HandleNewTx, this, _1), true),
+        REF_HANDLER(CSyncTxChangeMessage, boost::bind(&CConsensusController::HandleTxChange, this, _1), true),
+    });
 
     return true;
 }
 
 void CConsensusController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CSyncTxChangeMessage::MessageType());
+    DeregisterHandler();
 
     pConsensus = nullptr;
     pCoreProtocol = nullptr;

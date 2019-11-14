@@ -6,8 +6,8 @@
 
 #include <memory>
 
+#include "actor/actorworker.h"
 #include "logger.h"
-#include "actor/actor.h"
 
 namespace xengine
 {
@@ -20,7 +20,7 @@ struct CSubscribeMessage : public CMessage
     GENERATE_MESSAGE_FUNCTION(CSubscribeMessage);
 
     uint32 nSubType;
-    CIOActor* pActor;
+    CActorWorker* pActor;
 };
 
 // The message type for unsubscribing message from CMessageCenter
@@ -29,7 +29,7 @@ struct CUnsubscribeMessage : public CMessage
     GENERATE_MESSAGE_FUNCTION(CUnsubscribeMessage);
 
     uint32 nUnsubType;
-    CIOActor* pActor;
+    CActorWorker* pActor;
 };
 
 } // namespace
@@ -47,7 +47,7 @@ CMessageCenter::~CMessageCenter()
     delete pDistThread;
 }
 
-void CMessageCenter::Subscribe(const uint32 nType, CIOActor* pActor)
+void CMessageCenter::Subscribe(const uint32 nType, CActorWorker* pActor)
 {
     CSubscribeMessage* pMessage = new CSubscribeMessage();
     pMessage->nSubType = nType;
@@ -55,7 +55,7 @@ void CMessageCenter::Subscribe(const uint32 nType, CIOActor* pActor)
     Publish(std::shared_ptr<CSubscribeMessage>(pMessage));
 }
 
-void CMessageCenter::Unsubscribe(const uint32 nType, CIOActor* pActor)
+void CMessageCenter::Unsubscribe(const uint32 nType, CActorWorker* pActor)
 {
     CUnsubscribeMessage* pMessage = new CUnsubscribeMessage();
     pMessage->nUnsubType = nType;

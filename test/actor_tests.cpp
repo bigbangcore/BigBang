@@ -8,13 +8,16 @@
 #include <boost/test/unit_test.hpp>
 #include <chrono>
 #include <thread>
+#include <type_traits>
 
+#include "actor/workermanager.h"
 #include "docker/config.h"
 #include "docker/docker.h"
 #include "lockfree/queue.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "test_big.h"
+// #include "message/calledmessage.h"
 
 using namespace std;
 using namespace xengine;
@@ -61,15 +64,27 @@ struct CTestMessageD : public CTestMessageB
 atomic<uint> CTestMessageD::nPublish;
 atomic<uint> CTestMessageD::nHandled;
 
-class CActorA : public CIOActor
+// struct CTestMessageE : public CCalledMessage<int>
+// {
+//     GENERATE_MESSAGE_FUNCTION(CTestMessageE);
+//     CTestMessageE(int i, int& j, int k)
+//         : CCalledMessage(i, j, k)
+//     {
+//     }
+// };
+
+class CActorA : public CActor
 {
 public:
     CActorA()
-      : CIOActor("actorA"), nHandled(0) {}
+      : CActor("actorA"), nHandled(0) {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CTestMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
-        RegisterRefHandler<CTestMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
+        RegisterHandler({
+            REF_HANDLER(CTestMessageA, boost::bind(&CActorA::HandlerMessageA, this, _1), true),
+            REF_HANDLER(CTestMessageC, boost::bind(&CActorA::HandlerMessageC, this, _1), true),
+            // REF_HANDLER(CTestMessageE, boost::bind(&CActorA::HandlerMessageE, this, _1), true),
+        });
         return true;
     }
     virtual bool HandleInvoke() override
@@ -82,8 +97,7 @@ public:
     }
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CTestMessageA::MessageType());
-        DeregisterHandler(CTestMessageC::MessageType());
+        DeregisterHandler();
     }
 
     atomic<int> nHandled;
@@ -101,104 +115,99 @@ protected:
         CTestMessageC::nHandled++;
         nHandled++;
     }
+    // void HandlerMessageE(const CTestMessageE& msg)
+    // {
+        // cout << "Actor A handle message C as CTestMessageB: " << msg.strB << endl;
+        // CTestMessageC::nHandled++;
+        // nHandled++;
+        // auto t = msg.spParam->Get();
+        // cout << "........ " << std::tuple_size<decltype(t)>::value << endl;
+        // cout << "0 param rvalue ref: " << std::is_rvalue_reference<decltype(get<0>(t))>::value << endl;
+        // cout << "1 param lvalue ref: " << std::is_lvalue_reference<decltype(get<1>(t))>::value << endl;
+        // cout << "2 param rvalue ref: " << std::is_rvalue_reference<decltype(get<2>(t))>::value << endl;
+        // get<0>(msg.spParam->Get()) = 11;
+        // get<1>(msg.spParam->Get()) = 12;
+        // get<2>(msg.spParam->Get()) = 13;
+    // }
 };
 
-class CActorB : public CIOActor
+class CActorB : public CActor
 {
 public:
     CActorB()
-      : CIOActor("actorB"), nHandled(0) {}
+      : CActor("actorB"), nHandled(0) {}
     virtual bool HandleInitialize() override
     {
-        RegisterPtrHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterPtrHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterPtrHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterPtrHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterHandler({
+            PTR_HANDLER(CTestMessageA, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTestMessageB, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTestMessageC, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTestMessageD, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+        });
 
         return true;
     }
     virtual bool HandleInvoke() override
     {
-        return StartActor();
-    }
-    virtual void HandleHalt() override
-    {
-        StopActor();
-    }
-    virtual void HandleDeinitialize() override
-    {
-        DeregisterHandler(CTestMessageA::MessageType());
-        DeregisterHandler(CTestMessageB::MessageType());
-        DeregisterHandler(CTestMessageC::MessageType());
-        DeregisterHandler(CTestMessageD::MessageType());
-    }
-
-    virtual bool EnterLoop() override
-    {
-        if (!CIOActor::EnterLoop())
+        if (!StartActor())
         {
             return false;
         }
 
-        CIOActorWorker* pWorkerA(new CIOActorWorker);
-        pWorkerA->RegisterRefHandler<CTestMessageA>(boost::bind(&CActorB::HandlerMessageA, this, _1));
-        mapWorkers[CTestMessageA::MessageType()] = pWorkerA;
-        ThreadStart(pWorkerA->GetThread());
+        auto spWorkerA = manager.Add(CTestMessageA::MessageType(), make_shared<CActorWorker>());
+        spWorkerA->RegisterHandler(REF_HANDLER(CTestMessageA, boost::bind(&CActorB::HandlerMessageA, this, _1), false));
+        spWorkerA->Start();
 
-        CIOActorWorker* pWorkerB(new CIOActorWorker);
-        pWorkerB->RegisterRefHandler<CTestMessageB>(boost::bind(&CActorB::HandlerMessageB, this, _1));
-        mapWorkers[CTestMessageB::MessageType()] = pWorkerB;
-        ThreadStart(pWorkerB->GetThread());
+        auto spWorkerB = manager.Add(CTestMessageB::MessageType(), make_shared<CActorWorker>());
+        spWorkerB->RegisterHandler(REF_HANDLER(CTestMessageB, boost::bind(&CActorB::HandlerMessageB, this, _1), false));
+        spWorkerB->Start();
 
-        CIOActorWorker* pWorkerC(new CIOActorWorker);
-        pWorkerC->RegisterRefHandler<CTestMessageC>(boost::bind(&CActorB::HandlerMessageC, this, _1));
-        mapWorkers[CTestMessageC::MessageType()] = pWorkerC;
-        ThreadStart(pWorkerC->GetThread());
+        auto spWorkerC = manager.Add(CTestMessageC::MessageType(), make_shared<CActorWorker>());
+        spWorkerC->RegisterHandler(REF_HANDLER(CTestMessageC, boost::bind(&CActorB::HandlerMessageC, this, _1), false));
+        spWorkerC->Start();
 
-        CIOActorWorker* pWorkerD(new CIOActorWorker);
-        pWorkerD->RegisterRefHandler<CTestMessageD>(boost::bind(&CActorB::HandlerMessageD, this, _1));
-        mapWorkers[CTestMessageD::MessageType()] = pWorkerD;
-        ThreadStart(pWorkerD->GetThread());
+        auto spWorkerD = manager.Add(CTestMessageD::MessageType(), make_shared<CActorWorker>());
+        spWorkerD->RegisterHandler(REF_HANDLER(CTestMessageD, boost::bind(&CActorB::HandlerMessageD, this, _1), false));
+        spWorkerD->Start();
+
+        return true;
+    }
+    virtual void HandleHalt() override
+    {
+        manager.Clear();
+
+        StopActor();
+    }
+    virtual void HandleDeinitialize() override
+    {
+        DeregisterHandler();
+    }
+
+    virtual bool EnterLoop() override
+    {
+        if (!CActor::EnterLoop())
+        {
+            return false;
+        }
 
         return true;
     }
 
     virtual void LeaveLoop() override
     {
-        for (auto it = mapWorkers.begin(); it != mapWorkers.end(); it++)
-        {
-            it->second->Stop();
-            delete it->second;
-        }
-        mapWorkers.clear();
-        CIOActor::LeaveLoop();
+        CActor::LeaveLoop();
     }
 
     atomic<int> nHandled;
-    map<uint32, CIOActorWorker*> mapWorkers;
+    CWorkerManager<uint32> manager;
 
 protected:
-    void HandlerMessage(const shared_ptr<CMessage>& spMsg)
+    void HandlerMessage(const shared_ptr<CMessage> spMsg)
     {
-        if (spMsg->Type() == CTestMessageA::MessageType())
+        auto spWorker = manager.Get(spMsg->Type());
+        if (spWorker)
         {
-            // CTestMessageA::nHandled++;
-            mapWorkers[spMsg->Type()]->Publish(spMsg);
-        }
-        else if (spMsg->Type() == CTestMessageB::MessageType())
-        {
-            // CTestMessageB::nHandled++;
-            mapWorkers[spMsg->Type()]->Publish(spMsg);
-        }
-        else if (spMsg->Type() == CTestMessageC::MessageType())
-        {
-            // CTestMessageC::nHandled++;
-            mapWorkers[spMsg->Type()]->Publish(spMsg);
-        }
-        else if (spMsg->Type() == CTestMessageD::MessageType())
-        {
-            // CTestMessageD::nHandled++;
-            mapWorkers[spMsg->Type()]->Publish(spMsg);
+            spWorker->Publish(spMsg);
         }
         else
         {
@@ -321,7 +330,7 @@ BOOST_AUTO_TEST_CASE(basic)
     int shouldHandledB = 4 * (nA + nB + nC + nD);
     while (pActorA->nHandled != shouldHandledA || pActorB->nHandled != shouldHandledB)
     {
-        this_thread::sleep_for(chrono::milliseconds(1));
+        this_thread::sleep_for(chrono::seconds(1));
     }
     auto end = chrono::steady_clock::now();
     uint nTotal = CTestMessageA::nHandled + CTestMessageB::nHandled + CTestMessageC::nHandled + CTestMessageD::nHandled;

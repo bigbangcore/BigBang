@@ -4,79 +4,135 @@
 
 #include "actorworker.h"
 
+#include "docker/docker.h"
 #include "logger.h"
 #include "message/message.h"
+#include "message/messagecenter.h"
 
 namespace xengine
 {
 
-CIOActorWorker::CIOActorWorker(const std::string& strNameIn)
+CActorWorker::CActorWorker(const std::string& strNameIn, const std::vector<CMessageHandler>& vecHandler)
   : strName(strNameIn), ioStrand(ioService), ioWork(ioService),
-    thrIOActorWorker(strNameIn, boost::bind(&CIOActorWorker::HandlerThreadFunc, this))
+    thr(strNameIn, boost::bind(&CActorWorker::HandlerThreadFunc, this))
 {
+    RegisterHandler(vecHandler);
 }
 
-CIOActorWorker::~CIOActorWorker()
+CActorWorker::~CActorWorker()
 {
-    mapHandler.clear();
+    Stop();
+
+    DeregisterHandler();
 }
 
-void CIOActorWorker::Publish(std::shared_ptr<CMessage> spMessage)
+void CActorWorker::RegisterHandler(const CMessageHandler& handler)
 {
-    ioStrand.post(boost::bind(&CIOActorWorker::MessageHandler, this, spMessage));
+    auto it = mapHandler.find(handler.nType);
+    if (it != mapHandler.end())
+    {
+        LOG_WARN(strName.c_str(), "Overwrite already registered message: %s", handler.strTag.c_str());
+        mapHandler.erase(it);
+    }
+    mapHandler.insert(std::make_pair(handler.nType, handler));
+
+    // register to message center
+    if (handler.fGlobal)
+    {
+        CMessageCenter::GetInstance().Subscribe(handler.nType, this);
+    }
 }
 
-void CIOActorWorker::Stop()
+void CActorWorker::RegisterHandler(const std::vector<CMessageHandler>& vecHandler)
+{
+    for (auto& handler : vecHandler)
+    {
+        RegisterHandler(handler);
+    }
+}
+
+void CActorWorker::Start()
+{
+    thr.Run();
+}
+
+void CActorWorker::Stop()
 {
     if (!ioService.stopped())
     {
         ioService.stop();
     }
-
-    thrIOActorWorker.Exit();
+    thr.Exit();
 }
 
-void CIOActorWorker::DeregisterHandler(const uint32 nType)
+void CActorWorker::DeregisterHandler(const uint32 nType)
 {
-    mapHandler.erase(nType);
+    auto it = mapHandler.find(nType);
+    if (it != mapHandler.end())
+    {
+        auto& handler = it->second;
+        if (handler.fGlobal)
+        {
+            CMessageCenter::GetInstance().Unsubscribe(handler.nType, this);
+        }
+        mapHandler.erase(it);
+    }
 }
 
-const std::string& CIOActorWorker::GetName() const
+void CActorWorker::DeregisterHandler()
+{
+    for (auto& e : mapHandler)
+    {
+        auto& handler = e.second;
+        if (handler.fGlobal)
+        {
+            CMessageCenter::GetInstance().Unsubscribe(handler.nType, this);
+        }
+    }
+    mapHandler.empty();
+}
+
+void CActorWorker::Publish(const std::shared_ptr<CMessage> spMessage)
+{
+    ioStrand.post(boost::bind(&CActorWorker::MessageHandler, this, spMessage));
+}
+
+const std::string& CActorWorker::GetName() const
 {
     return strName;
 }
 
-boost::asio::io_service& CIOActorWorker::GetService()
+boost::asio::io_service& CActorWorker::GetService()
 {
     return ioService;
 }
 
-boost::asio::io_service::strand& CIOActorWorker::GetStrand()
+boost::asio::io_service::strand& CActorWorker::GetStrand()
 {
     return ioStrand;
 }
 
-CThread& CIOActorWorker::GetThread()
+CThread& CActorWorker::GetThread()
 {
-    return thrIOActorWorker;
+    return thr;
 }
 
-bool CIOActorWorker::EnterLoop()
+bool CActorWorker::EnterLoop()
 {
     return true;
 }
 
-void CIOActorWorker::LeaveLoop()
+void CActorWorker::LeaveLoop()
 {
 }
 
-void CIOActorWorker::HandlerThreadFunc()
+void CActorWorker::HandlerThreadFunc()
 {
     ioService.reset();
 
     if (!EnterLoop())
     {
-        LOG_ERROR(strName, "Worker enter loop error");
+        LOG_ERROR(strName.c_str(), "Worker enter loop error");
     }
     else
     {
@@ -86,27 +142,27 @@ void CIOActorWorker::HandlerThreadFunc()
         }
         catch (const boost::system::system_error& err)
         {
-            LOG_ERROR(strName, "Worker thread error: %s", err.what());
+            LOG_ERROR(strName.c_str(), "Worker thread error: %s", err.what());
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR(strName, "Failed to run CIOActorWorker io_service: %s\n", e.what());
+            LOG_ERROR(strName.c_str(), "Failed to run CActorWorker io_service: %s", e.what());
         }
         catch (...)
         {
-            LOG_ERROR(strName, "Worker thread unknown error");
+            LOG_ERROR(strName.c_str(), "Worker thread unknown error");
         }
     }
 
     LeaveLoop();
 }
 
-void CIOActorWorker::MessageHandler(std::shared_ptr<CMessage> spMessage)
+void CActorWorker::MessageHandler(const std::shared_ptr<CMessage> spMessage)
 {
     auto it = mapHandler.find(spMessage->Type());
     if (it != mapHandler.end())
     {
-        spMessage->Handle(it->second);
+        spMessage->Handle(it->second.handler);
     }
 }
 

@@ -41,7 +41,7 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(scope, "Scope", attrs::named_scope::value_type);
 #define LOG(nLevel, pszName, pszFormat, ...)                                                                               \
     {                                                                                                                      \
         BOOST_LOG_SCOPED_THREAD_TAG(xengine::threadName.get_name(), xengine::GetThreadName());                             \
-        BOOST_LOG_FUNCTION();                                                                                         \
+        BOOST_LOG_FUNCTION();                                                                                              \
         BOOST_LOG_CHANNEL_SEV(xengine::logger::get(), pszName, nLevel) << xengine::FormatString(pszFormat, ##__VA_ARGS__); \
     }
 

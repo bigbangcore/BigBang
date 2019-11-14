@@ -34,10 +34,12 @@ bool CTxPoolController::HandleInitialize()
     }
 
     // TODO: Uncomment it when upgrade CDispatcher
-    RegisterRefHandler<CAddTxMessage>(boost::bind(&CTxPoolController::HandleAddTx, this, _1));
-    RegisterRefHandler<CRemoveTxMessage>(boost::bind(&CTxPoolController::HandleRemoveTx, this, _1));
-    RegisterRefHandler<CClearTxMessage>(boost::bind(&CTxPoolController::HandleClearTx, this, _1));
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CTxPoolController::HandleAddedBlock, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CAddTxMessage, boost::bind(&CTxPoolController::HandleAddTx, this, _1), true),
+        REF_HANDLER(CRemoveTxMessage, boost::bind(&CTxPoolController::HandleRemoveTx, this, _1), true),
+        REF_HANDLER(CClearTxMessage, boost::bind(&CTxPoolController::HandleClearTx, this, _1), true),
+        REF_HANDLER(CAddedBlockMessage, boost::bind(&CTxPoolController::HandleAddedBlock, this, _1), true),
+    });
 
     return true;
 }
@@ -45,10 +47,7 @@ bool CTxPoolController::HandleInitialize()
 void CTxPoolController::HandleDeinitialize()
 {
     // TODO: Uncomment it when upgrade CDispatcher
-    DeregisterHandler(CAddTxMessage::MessageType());
-    DeregisterHandler(CRemoveTxMessage::MessageType());
-    DeregisterHandler(CClearTxMessage::MessageType());
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 
     pTxPool = nullptr;
 

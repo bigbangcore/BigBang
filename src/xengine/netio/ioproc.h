@@ -48,7 +48,7 @@ protected:
     bool fAborted;
 };
 
-class CIOProc : public CIOActor
+class CIOProc : public CActor
 {
     friend class CIOOutBound;
     friend class CIOSSLOutBound;

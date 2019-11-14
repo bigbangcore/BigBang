@@ -37,15 +37,16 @@ public:
     CDummyPeerNet() {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CPeerNetCloseMessage>(boost::bind(&CDummyPeerNet::HandleNetClose, this, _1));
-        RegisterRefHandler<CPeerNetRewardMessage>(boost::bind(&CDummyPeerNet::HandleNetReward, this, _1));
+        RegisterHandler({
+            REF_HANDLER(CPeerNetCloseMessage, boost::bind(&CDummyPeerNet::HandleNetClose, this, _1), true),
+            REF_HANDLER(CPeerNetRewardMessage, boost::bind(&CDummyPeerNet::HandleNetReward, this, _1), true),
+        });
         return true;
     }
 
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CPeerNetCloseMessage::MessageType());
-        DeregisterHandler(CPeerNetRewardMessage::MessageType());
+        DeregisterHandler();
     }
 
     void AddTestNewPeer()

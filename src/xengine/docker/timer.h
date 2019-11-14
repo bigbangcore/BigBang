@@ -61,7 +61,7 @@ struct CCancelTimerMessage : public CMessage
 /**
  * @brief A timer actor.
  */
-class CTimer : public xengine::CIOActor
+class CTimer : public xengine::CActor
 {
 public:
     /**

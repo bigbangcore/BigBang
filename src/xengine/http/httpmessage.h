@@ -12,8 +12,8 @@
 #include "http/httpcookie.h"
 #include "http/httptype.h"
 #include "message/message.h"
-#include "stream/stream.h"
 #include "nonce.h"
+#include "stream/stream.h"
 
 namespace xengine
 {
@@ -85,7 +85,7 @@ struct CHttpRspMessage : public CHttpContent, public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpRspMessage);
 
-    CNoncePtr spNonce; 
+    CNoncePtr spNonce;
     MAPIKeyValue mapHeader;
     MAPCookie mapCookie;
     int nStatusCode;
@@ -103,7 +103,7 @@ struct CHttpBrokenMessage : public CMessage
 {
     GENERATE_MESSAGE_FUNCTION(CHttpBrokenMessage);
 
-    CNoncePtr spNonce; 
+    CNoncePtr spNonce;
     bool fEventStream;
 };
 

@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include "message.h"
 #include "actor/actor.h"
+#include "message.h"
 #include "netio/ioproc.h"
 #include "peernet/epmngr.h"
 #include "peernet/peer.h"

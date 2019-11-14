@@ -248,16 +248,17 @@ bool CDelegatedChannel::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CDelegatedChannel::HandleActive, this, _1));
-    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CDelegatedChannel::HandleDeactive, this, _1));
-    RegisterRefHandler<CPeerBulletinMessageInBound>(boost::bind(&CDelegatedChannel::HandleBulletin, this, _1));
-    RegisterRefHandler<CPeerGetDelegatedMessageInBound>(boost::bind(&CDelegatedChannel::HandleGetDelegate, this, _1));
-    RegisterRefHandler<CPeerDistributeMessageInBound>(boost::bind(&CDelegatedChannel::HandleDistribute, this, _1));
-    RegisterRefHandler<CPeerPublishMessageInBound>(boost::bind(&CDelegatedChannel::HandlePublish, this, _1));
-
-    RegisterRefHandler<CAddedNewDistributeMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1));
-    RegisterRefHandler<CAddedNewPublishMessage>(boost::bind(&CDelegatedChannel::HandleAddedNewPublish, this, _1));
-    RegisterRefHandler<CCDelegateRoutineMessage>(boost::bind(&CDelegatedChannel::HandleDelegateRoutine, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CPeerActiveMessage, boost::bind(&CDelegatedChannel::HandleActive, this, _1), true),
+        REF_HANDLER(CPeerDeactiveMessage, boost::bind(&CDelegatedChannel::HandleDeactive, this, _1), true),
+        REF_HANDLER(CPeerBulletinMessageInBound, boost::bind(&CDelegatedChannel::HandleBulletin, this, _1), true),
+        REF_HANDLER(CPeerGetDelegatedMessageInBound, boost::bind(&CDelegatedChannel::HandleGetDelegate, this, _1), true),
+        REF_HANDLER(CPeerDistributeMessageInBound, boost::bind(&CDelegatedChannel::HandleDistribute, this, _1), true),
+        REF_HANDLER(CPeerPublishMessageInBound, boost::bind(&CDelegatedChannel::HandlePublish, this, _1), true),
+        REF_HANDLER(CAddedNewDistributeMessage, boost::bind(&CDelegatedChannel::HandleAddedNewDistribute, this, _1), true),
+        REF_HANDLER(CAddedNewPublishMessage, boost::bind(&CDelegatedChannel::HandleAddedNewPublish, this, _1), true),
+        REF_HANDLER(CCDelegateRoutineMessage, boost::bind(&CDelegatedChannel::HandleDelegateRoutine, this, _1), true),
+    });
 
     return true;
 }
@@ -267,12 +268,7 @@ void CDelegatedChannel::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
 
-    DeregisterHandler(CPeerActiveMessage::MessageType());
-    DeregisterHandler(CPeerDeactiveMessage::MessageType());
-    DeregisterHandler(CPeerBulletinMessageInBound::MessageType());
-    DeregisterHandler(CPeerGetDelegatedMessageInBound::MessageType());
-    DeregisterHandler(CPeerDistributeMessageInBound::MessageType());
-    DeregisterHandler(CPeerPublishMessageInBound::MessageType());
+    DeregisterHandler();
 }
 
 bool CDelegatedChannel::HandleInvoke()

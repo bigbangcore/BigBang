@@ -17,7 +17,7 @@
 namespace bigbang
 {
 
-class CRPCMod : public xengine::CIOActor
+class CRPCMod : public xengine::CActor
 {
 protected:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr spNonce, rpc::CRPCParamPtr param);
@@ -53,8 +53,8 @@ protected:
     struct CWorker
     {
         CWorker(const std::string& strName)
-          : spWorker(new CIOActorWorker(strName)), nPayload(0) {}
-        std::shared_ptr<xengine::CIOActorWorker> spWorker;
+          : spWorker(new CActorWorker(strName)), nPayload(0) {}
+        std::shared_ptr<xengine::CActorWorker> spWorker;
         uint32 nPayload;
     };
 

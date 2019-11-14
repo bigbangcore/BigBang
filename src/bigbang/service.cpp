@@ -690,20 +690,19 @@ bool CServiceController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CServiceController::HandleAddedBlock, this, _1));
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CServiceController::HandleAddedTx, this, _1));
-    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CServiceController::HandlePeerActive, this, _1));
-    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CServiceController::HandlePeerDeactive, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CAddedBlockMessage, boost::bind(&CServiceController::HandleAddedBlock, this, _1), true),
+        REF_HANDLER(CAddedTxMessage, boost::bind(&CServiceController::HandleAddedTx, this, _1), true),
+        REF_HANDLER(CPeerActiveMessage, boost::bind(&CServiceController::HandlePeerActive, this, _1), true),
+        REF_HANDLER(CPeerDeactiveMessage, boost::bind(&CServiceController::HandlePeerDeactive, this, _1), true),
+    });
 
     return true;
 }
 
 void CServiceController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CPeerActiveMessage::MessageType());
-    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+    DeregisterHandler();
 
     pService = nullptr;
 }

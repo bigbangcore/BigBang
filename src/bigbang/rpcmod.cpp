@@ -146,7 +146,7 @@ public:
 // CRPCMod
 
 CRPCMod::CRPCMod(const uint nWorker)
-  : CIOActor("rpcmod"), nWorkCount(0),
+  : CActor("rpcmod"), nWorkCount(0),
     mapRPCFunc({
         /* System */
         { "help", &CRPCMod::RPCHelp },
@@ -257,11 +257,13 @@ bool CRPCMod::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CHttpReqMessage>(boost::bind(&CRPCMod::HandleHttpReq, this, _1));
-    RegisterRefHandler<CHttpBrokenMessage>(boost::bind(&CRPCMod::HandleHttpBroken, this, _1));
-    RegisterPtrHandler<CAddedTxMessage>(boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1));
-    RegisterPtrHandler<CAddedBlockMessage>(boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1));
-    RegisterRefHandler<CRPCSubmissionMessage>(boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CHttpReqMessage, boost::bind(&CRPCMod::HandleHttpReq, this, _1), true),
+        REF_HANDLER(CHttpBrokenMessage, boost::bind(&CRPCMod::HandleHttpBroken, this, _1), true),
+        PTR_HANDLER(CAddedTxMessage, boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1), true),
+        PTR_HANDLER(CAddedBlockMessage, boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1), true),
+        REF_HANDLER(CRPCSubmissionMessage, boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1), true),
+    });
 
     return true;
 }
@@ -289,11 +291,7 @@ void CRPCMod::HandleDeinitialize()
     pService = nullptr;
     pDataStat = nullptr;
 
-    DeregisterHandler(CHttpReqMessage::MessageType());
-    DeregisterHandler(CHttpBrokenMessage::MessageType());
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-    DeregisterHandler(CRPCSubmissionMessage::MessageType());
+    DeregisterHandler();
 }
 
 bool CRPCMod::EnterLoop()
@@ -301,7 +299,7 @@ bool CRPCMod::EnterLoop()
     for (auto it = vecWorker.begin(); it != vecWorker.end();)
     {
         auto& spWorker = it->spWorker;
-        spWorker->RegisterRefHandler<CRPCAssignmentMessage>(boost::bind(&CRPCMod::HandleAssignmentMsg, this, _1));
+        spWorker->RegisterHandler(REF_HANDLER(CRPCAssignmentMessage, boost::bind(&CRPCMod::HandleAssignmentMsg, this, _1), false));
         if (!ThreadStart(spWorker->GetThread()))
         {
             ERROR("Failed to start RPC worker (%s)", spWorker->GetName().c_str());
@@ -322,7 +320,7 @@ void CRPCMod::LeaveLoop()
     {
         auto& spWorker = it->spWorker;
         spWorker->Stop();
-        spWorker->DeregisterHandler(CRPCAssignmentMessage::MessageType());
+        spWorker->DeregisterHandler();
     }
 }
 

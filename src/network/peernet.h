@@ -5,8 +5,8 @@
 #ifndef NETWORK_PEERNET_H
 #define NETWORK_PEERNET_H
 
-#include "message.h"
 #include "actor/actor.h"
+#include "message.h"
 #include "peerevent.h"
 #include "proto.h"
 #include "xengine.h"
@@ -16,18 +16,18 @@ namespace bigbang
 namespace network
 {
 
-class INetChannelController : public xengine::CIOActor
+class INetChannelController : public xengine::CActor
 {
 public:
     INetChannelController()
-      : xengine::CIOActor("netchannelcontroller") {}
+      : xengine::CActor("netchannelcontroller") {}
 };
 
-class IDelegatedChannel : public xengine::CIOActor
+class IDelegatedChannel : public xengine::CActor
 {
 public:
     IDelegatedChannel()
-      : xengine::CIOActor("delegatedchannel") {}
+      : xengine::CActor("delegatedchannel") {}
     virtual void PrimaryUpdate(int nStartHeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,

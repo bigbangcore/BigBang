@@ -47,20 +47,21 @@ CBbPeerNet::~CBbPeerNet()
 
 bool CBbPeerNet::HandleInitialize()
 {
-    RegisterRefHandler<CPeerSubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleSubscribe, this, _1));
-    RegisterRefHandler<CPeerUnsubscribeMessageOutBound>(boost::bind(&CBbPeerNet::HandleUnsubscribe, this, _1));
-    RegisterRefHandler<CPeerInvMessageOutBound>(boost::bind(&CBbPeerNet::HandleInv, this, _1));
-    RegisterRefHandler<CPeerGetDataMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetData, this, _1));
-    RegisterRefHandler<CPeerGetBlocksMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetBlocks, this, _1));
-    RegisterRefHandler<CPeerTxMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerTx, this, _1));
-    RegisterRefHandler<CPeerBlockMessageOutBound>(boost::bind(&CBbPeerNet::HandlePeerBlock, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CPeerSubscribeMessageOutBound, boost::bind(&CBbPeerNet::HandleSubscribe, this, _1), true),
+        REF_HANDLER(CPeerUnsubscribeMessageOutBound, boost::bind(&CBbPeerNet::HandleUnsubscribe, this, _1), true),
+        REF_HANDLER(CPeerInvMessageOutBound, boost::bind(&CBbPeerNet::HandleInv, this, _1), true),
+        REF_HANDLER(CPeerGetDataMessageOutBound, boost::bind(&CBbPeerNet::HandleGetData, this, _1), true),
+        REF_HANDLER(CPeerGetBlocksMessageOutBound, boost::bind(&CBbPeerNet::HandleGetBlocks, this, _1), true),
+        REF_HANDLER(CPeerTxMessageOutBound, boost::bind(&CBbPeerNet::HandlePeerTx, this, _1), true),
+        REF_HANDLER(CPeerBlockMessageOutBound, boost::bind(&CBbPeerNet::HandlePeerBlock, this, _1), true),
 
-    RegisterRefHandler<CPeerBulletinMessageOutBound>(boost::bind(&CBbPeerNet::HandleBulletin, this, _1));
-    RegisterRefHandler<CPeerGetDelegatedMessageOutBound>(boost::bind(&CBbPeerNet::HandleGetDelegate, this, _1));
-    RegisterRefHandler<CPeerDistributeMessageOutBound>(boost::bind(&CBbPeerNet::HandleDistribute, this, _1));
-    RegisterRefHandler<CPeerPublishMessageOutBound>(boost::bind(&CBbPeerNet::HandlePublish, this, _1));
-
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CBbPeerNet::HandlePrimaryChainHeightUpdate, this, _1));
+        REF_HANDLER(CPeerBulletinMessageOutBound, boost::bind(&CBbPeerNet::HandleBulletin, this, _1), true),
+        REF_HANDLER(CPeerGetDelegatedMessageOutBound, boost::bind(&CBbPeerNet::HandleGetDelegate, this, _1), true),
+        REF_HANDLER(CPeerDistributeMessageOutBound, boost::bind(&CBbPeerNet::HandleDistribute, this, _1), true),
+        REF_HANDLER(CPeerPublishMessageOutBound, boost::bind(&CBbPeerNet::HandlePublish, this, _1), true),
+        REF_HANDLER(CAddedBlockMessage, boost::bind(&CBbPeerNet::HandlePrimaryChainHeightUpdate, this, _1), true),
+    });
 
     return true;
 }
@@ -69,20 +70,7 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
 
-    DeregisterHandler(CPeerSubscribeMessageOutBound::MessageType());
-    DeregisterHandler(CPeerUnsubscribeMessageOutBound::MessageType());
-    DeregisterHandler(CPeerInvMessageOutBound::MessageType());
-    DeregisterHandler(CPeerGetDataMessageOutBound::MessageType());
-    DeregisterHandler(CPeerGetBlocksMessageOutBound::MessageType());
-    DeregisterHandler(CPeerTxMessageOutBound::MessageType());
-    DeregisterHandler(CPeerBlockMessageOutBound::MessageType());
-
-    DeregisterHandler(CPeerBulletinMessageOutBound::MessageType());
-    DeregisterHandler(CPeerGetDelegatedMessageOutBound::MessageType());
-    DeregisterHandler(CPeerDistributeMessageOutBound::MessageType());
-    DeregisterHandler(CPeerPublishMessageOutBound::MessageType());
-
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 }
 
 void CBbPeerNet::HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg)

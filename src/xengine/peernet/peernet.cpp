@@ -9,8 +9,8 @@
 #include <string>
 
 #include "netio/nethost.h"
-#include "util.h"
 #include "nonce.h"
+#include "util.h"
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -26,32 +26,24 @@ namespace xengine
 CPeerNet::CPeerNet(const string& strOwnKeyIn)
   : CIOProc(strOwnKeyIn), confNetwork{}
 {
-    RegisterRefHandler<CPeerNetCloseMessage>(boost::bind(&CPeerNet::HandlePeerNetClose, this, _1));
-    RegisterRefHandler<CPeerNetRewardMessage>(boost::bind(&CPeerNet::HandlePeerNetReward, this, _1));
+    RegisterHandler({
+        REF_HANDLER(CPeerNetCloseMessage, boost::bind(&CPeerNet::HandlePeerNetClose, this, _1), true),
+        REF_HANDLER(CPeerNetRewardMessage, boost::bind(&CPeerNet::HandlePeerNetReward, this, _1), true),
 
-    RegisterPtrHandler<CPeerNetGetIPMessage>(boost::bind(&CPeerNet::HandlePeerGetIP, this, _1));
-    RegisterPtrHandler<CPeerNetGetCountMessage>(boost::bind(&CPeerNet::HandlePeerGetCount, this, _1));
-    RegisterPtrHandler<CPeerNetGetPeersMessage>(boost::bind(&CPeerNet::HandlePeerGetPeers, this, _1));
-    RegisterPtrHandler<CPeerNetAddNodeMessage>(boost::bind(&CPeerNet::HandlePeerAddNode, this, _1));
-    RegisterPtrHandler<CPeerNetRemoveNodeMessage>(boost::bind(&CPeerNet::HandlePeerRemoveNode, this, _1));
-    RegisterPtrHandler<CPeerNetGetBannedMessage>(boost::bind(&CPeerNet::HandlePeerGetBanned, this, _1));
-    RegisterPtrHandler<CPeerNetSetBanMessage>(boost::bind(&CPeerNet::HandlePeerSetBan, this, _1));
-    RegisterPtrHandler<CPeerNetClrBannedMessage>(boost::bind(&CPeerNet::HandlePeerClrBanned, this, _1));
+        PTR_HANDLER(CPeerNetGetIPMessage, boost::bind(&CPeerNet::HandlePeerGetIP, this, _1), true),
+        PTR_HANDLER(CPeerNetGetCountMessage, boost::bind(&CPeerNet::HandlePeerGetCount, this, _1), true),
+        PTR_HANDLER(CPeerNetGetPeersMessage, boost::bind(&CPeerNet::HandlePeerGetPeers, this, _1), true),
+        PTR_HANDLER(CPeerNetAddNodeMessage, boost::bind(&CPeerNet::HandlePeerAddNode, this, _1), true),
+        PTR_HANDLER(CPeerNetRemoveNodeMessage, boost::bind(&CPeerNet::HandlePeerRemoveNode, this, _1), true),
+        PTR_HANDLER(CPeerNetGetBannedMessage, boost::bind(&CPeerNet::HandlePeerGetBanned, this, _1), true),
+        PTR_HANDLER(CPeerNetSetBanMessage, boost::bind(&CPeerNet::HandlePeerSetBan, this, _1), true),
+        PTR_HANDLER(CPeerNetClrBannedMessage, boost::bind(&CPeerNet::HandlePeerClrBanned, this, _1), true),
+    });
 }
 
 CPeerNet::~CPeerNet()
 {
-    DeregisterHandler(CPeerNetCloseMessage::MessageType());
-    DeregisterHandler(CPeerNetRewardMessage::MessageType());
-
-    DeregisterHandler(CPeerNetGetIPMessage::MessageType());
-    DeregisterHandler(CPeerNetGetCountMessage::MessageType());
-    DeregisterHandler(CPeerNetGetPeersMessage::MessageType());
-    DeregisterHandler(CPeerNetAddNodeMessage::MessageType());
-    DeregisterHandler(CPeerNetRemoveNodeMessage::MessageType());
-    DeregisterHandler(CPeerNetGetBannedMessage::MessageType());
-    DeregisterHandler(CPeerNetSetBanMessage::MessageType());
-    DeregisterHandler(CPeerNetClrBannedMessage::MessageType());
+    DeregisterHandler();
 }
 
 void CPeerNet::ConfigNetwork(CPeerNetConfig& config)

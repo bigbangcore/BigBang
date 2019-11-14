@@ -8,9 +8,9 @@
 #include <boost/thread/thread.hpp>
 
 #include "base.h"
+#include "message.h"
 #include "walletdb.h"
 #include "wallettx.h"
-#include "message.h"
 
 namespace bigbang
 {
