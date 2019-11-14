@@ -198,6 +198,7 @@ public:
     bool Exists(const network::CInv& inv);
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
+    bool CheckAddInvIdleLocation(uint64 nPeerNonce, uint32 nInvType);
     bool AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
     bool RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     bool ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, std::set<uint64>& setSchedPeer);
