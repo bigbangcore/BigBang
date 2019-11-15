@@ -932,7 +932,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
         if (!GetBlockMintReward(block.hashPrev, nReward))
         {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            return ERR_BLOCK_COINBASE_INVALID;
         }
 
         //if (agreement.IsProofOfWork())
@@ -943,6 +943,10 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         //{
         // return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
         //}
+    }
+    else
+    {
+        return ERR_BLOCK_TYPE_INVALID;
     }
     // else if (!block.IsVacant())
     // {
@@ -998,8 +1002,10 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
     //     return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, pIndexRef, agreement);
     // }
-
-    return OK;
+    // else
+    // {
+    //     return OK;
+    // }
 }
 
 } // namespace bigbang
