@@ -160,6 +160,11 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
+    if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_CERT && tx.nType != CTransaction::TX_GENESIS
+        && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
+    {
+        return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
+    }
     if (tx.nType == CTransaction::TX_TOKEN
         && (tx.sendTo.IsPubKey()
             || (tx.sendTo.IsTemplate()
