@@ -276,7 +276,8 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     }
 
     vector<uint256> vMerkleTree;
-    if (block.hashMerkle != block.BuildMerkleTree(vMerkleTree))
+    bool fMutated;
+    if (block.hashMerkle != block.BuildMerkleTree(vMerkleTree, fMutated) || !fMutated)
     {
         return DEBUG(ERR_BLOCK_TXHASH_MISMATCH, "tx merkeroot mismatched\n");
     }

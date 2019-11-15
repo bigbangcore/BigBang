@@ -139,17 +139,26 @@ public:
         }
         return GetBlockMint(nTotalTxFee);
     }
-    uint256 BuildMerkleTree(std::vector<uint256>& vMerkleTree) const
+    uint256 BuildMerkleTree(std::vector<uint256>& vMerkleTree, bool& fMutated) const
     {
         vMerkleTree.clear();
+        fMutated = false;
+
         for (const CTransaction& tx : vtx)
+        {
             vMerkleTree.push_back(tx.GetHash());
+        }
+
         int j = 0;
         for (int nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
         {
             for (int i = 0; i < nSize; i += 2)
             {
                 int i2 = std::min(i + 1, nSize - 1);
+                if (i != i2 && vMerkleTree[j + i] == vMerkleTree[j + i2])
+                {
+                    fMutated = true;
+                }
                 vMerkleTree.push_back(bigbang::crypto::CryptoHash(vMerkleTree[j + i], vMerkleTree[j + i2]));
             }
             j += nSize;
@@ -159,7 +168,8 @@ public:
     uint256 CalcMerkleTreeRoot() const
     {
         std::vector<uint256> vMerkleTree;
-        return BuildMerkleTree(vMerkleTree);
+        bool fMutated;
+        return BuildMerkleTree(vMerkleTree, fMutated);
     }
     static uint32 GetBlockHeightByHash(const uint256& hash)
     {
