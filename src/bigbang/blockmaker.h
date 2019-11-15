@@ -17,11 +17,11 @@ public:
     CBlockMakerHashAlgo(const std::string& strAlgoIn, int64 nHashRateIn)
       : strAlgo(strAlgoIn), nHashRate(nHashRateIn) {}
     virtual ~CBlockMakerHashAlgo() {}
-    const std::string strAlgo;
-    int64 nHashRate;
+    virtual uint256 Hash(const std::vector<unsigned char>& vchData) = 0;
 
 public:
-    virtual uint256 Hash(const std::vector<unsigned char>& vchData) = 0;
+    const std::string strAlgo;
+    int64 nHashRate;
 };
 
 class CBlockMakerProfile

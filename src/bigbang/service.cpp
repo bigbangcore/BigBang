@@ -614,7 +614,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
     txMint.nTimeStamp = block.nTimeStamp;
-    txMint.hashAnchor = pCoreProtocol->GetGenesisBlockHash();
+    txMint.hashAnchor = block.hashPrev;
     txMint.sendTo = CDestination(templMint->GetTemplateId());
     txMint.nAmount = nReward;
 

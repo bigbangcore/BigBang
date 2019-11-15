@@ -568,7 +568,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
 
     int64& nHashRate = pHashAlgo->nHashRate;
     int64 nHashComputeCount = 0;
-    int64 nHashCmputeBeginTime = GetTime();
+    int64 nHashComputeBeginTime = GetTime();
 
     Log("Proof-of-work: start hash compute, difficulty bits: (%d)", nBits);
 
@@ -588,7 +588,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                 proof.Save(block.vchProof);
 
                 Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, GetTime() - nHashCmputeBeginTime, nBits,
+                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, GetTime() - nHashComputeBeginTime, nBits,
                     hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
