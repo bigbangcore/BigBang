@@ -613,7 +613,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             mapTx.erase(it);
         }
     }
-    change.vTxRemove.insert(change.vTxRemove.end(), vTxRemove.begin(), vTxRemove.end());
+    change.vTxRemove.insert(change.vTxRemove.end(), vTxRemove.rbegin(), vTxRemove.rend());
     return true;
 }
 
