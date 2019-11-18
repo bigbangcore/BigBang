@@ -24,7 +24,7 @@ using namespace bigbang::rpc;
 using namespace bigbang;
 namespace fs = boost::filesystem;
 
-#define UNLOCKKEY_RELEASE_DEFAULT_TIME 10
+#define UNLOCKKEY_RELEASE_DEFAULT_TIME 60
 
 const char* GetGitVersion();
 
