@@ -60,11 +60,11 @@ public:
     }
 
 protected:
-    void HandleNetClose(const shared_ptr<CPeerNetCloseMessage> spMsg)
+    void HandleNetClose(const shared_ptr<CPeerNetCloseMessage>& spMsg)
     {
     }
 
-    void HandleNetReward(const shared_ptr<CPeerNetRewardMessage> spMsg)
+    void HandleNetReward(const shared_ptr<CPeerNetRewardMessage>& spMsg)
     {
     }
 };

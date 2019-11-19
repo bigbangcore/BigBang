@@ -217,23 +217,23 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleBroadcastBlockInv(const std::shared_ptr<CBroadcastBlockInvMessage> spMsg);
-    void HandleBroadcastTxInv(const std::shared_ptr<CBroadcastTxInvMessage> spMsg);
-    void HandleSubscribeFork(const std::shared_ptr<CSubscribeForkMessage> spMsg);
-    void HandleUnsubscribeFork(const std::shared_ptr<CUnsubscribeForkMessage> spMsg);
+    void HandleBroadcastBlockInv(const std::shared_ptr<CBroadcastBlockInvMessage>& spMsg);
+    void HandleBroadcastTxInv(const std::shared_ptr<CBroadcastTxInvMessage>& spMsg);
+    void HandleSubscribeFork(const std::shared_ptr<CSubscribeForkMessage>& spMsg);
+    void HandleUnsubscribeFork(const std::shared_ptr<CUnsubscribeForkMessage>& spMsg);
 
-    void HandleActive(const std::shared_ptr<CPeerActiveMessage> spMsg);
-    void HandleDeactive(const std::shared_ptr<CPeerDeactiveMessage> spMsg);
-    void HandleSubscribe(const std::shared_ptr<CPeerSubscribeMessageInBound> spMsg);
-    void HandleUnsubscribe(const std::shared_ptr<CPeerUnsubscribeMessageInBound> spMsg);
-    void HandleInv(const std::shared_ptr<CPeerInvMessageInBound> spMsg);
-    void HandleGetData(const std::shared_ptr<CPeerGetDataMessageInBound> spMsg);
-    void HandleGetBlocks(const std::shared_ptr<CPeerGetBlocksMessageInBound> spMsg);
-    void HandlePeerTx(const std::shared_ptr<CPeerTxMessageInBound> spMsg);
-    void HandlePeerBlock(const std::shared_ptr<CPeerBlockMessageInBound> spMsg);
+    void HandleActive(const std::shared_ptr<CPeerActiveMessage>& spMsg);
+    void HandleDeactive(const std::shared_ptr<CPeerDeactiveMessage>& spMsg);
+    void HandleSubscribe(const std::shared_ptr<CPeerSubscribeMessageInBound>& spMsg);
+    void HandleUnsubscribe(const std::shared_ptr<CPeerUnsubscribeMessageInBound>& spMsg);
+    void HandleInv(const std::shared_ptr<CPeerInvMessageInBound>& spMsg);
+    void HandleGetData(const std::shared_ptr<CPeerGetDataMessageInBound>& spMsg);
+    void HandleGetBlocks(const std::shared_ptr<CPeerGetBlocksMessageInBound>& spMsg);
+    void HandlePeerTx(const std::shared_ptr<CPeerTxMessageInBound>& spMsg);
+    void HandlePeerBlock(const std::shared_ptr<CPeerBlockMessageInBound>& spMsg);
 
-    void HandleAddedNewBlock(const std::shared_ptr<CAddedBlockMessage> spMsg);
-    void HandleAddedNewTx(const std::shared_ptr<CAddedTxMessage> spMsg);
+    void HandleAddedNewBlock(const std::shared_ptr<CAddedBlockMessage>& spMsg);
+    void HandleAddedNewTx(const std::shared_ptr<CAddedTxMessage>& spMsg);
 
     void DispatchGetBlocksFromHashEvent(uint64 nNonce, const uint256& hashFork, const uint256& hashBlock);
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);

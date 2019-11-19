@@ -426,7 +426,7 @@ void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const 
     pHttpClient->SendResponse(strRsp);
 }
 
-void CHttpServer::HandleHttpRsp(const shared_ptr<CHttpRspMessage> spMsg)
+void CHttpServer::HandleHttpRsp(const shared_ptr<CHttpRspMessage>& spMsg)
 {
     auto it = mapClient.find(spMsg->spNonce);
     if (it == mapClient.end())

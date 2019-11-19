@@ -49,20 +49,20 @@ protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
 
-    void HandleSubscribe(const std::shared_ptr<CPeerSubscribeMessageOutBound> spMsg);
-    void HandleUnsubscribe(const std::shared_ptr<CPeerUnsubscribeMessageOutBound> spMsg);
-    void HandleInv(const std::shared_ptr<CPeerInvMessageOutBound> spMsg);
-    void HandleGetData(const std::shared_ptr<CPeerGetDataMessageOutBound> spMsg);
-    void HandleGetBlocks(const std::shared_ptr<CPeerGetBlocksMessageOutBound> spMsg);
-    void HandlePeerTx(const std::shared_ptr<CPeerTxMessageOutBound> spMsg);
-    void HandlePeerBlock(const std::shared_ptr<CPeerBlockMessageOutBound> spMsg);
+    void HandleSubscribe(const std::shared_ptr<CPeerSubscribeMessageOutBound>& spMsg);
+    void HandleUnsubscribe(const std::shared_ptr<CPeerUnsubscribeMessageOutBound>& spMsg);
+    void HandleInv(const std::shared_ptr<CPeerInvMessageOutBound>& spMsg);
+    void HandleGetData(const std::shared_ptr<CPeerGetDataMessageOutBound>& spMsg);
+    void HandleGetBlocks(const std::shared_ptr<CPeerGetBlocksMessageOutBound>& spMsg);
+    void HandlePeerTx(const std::shared_ptr<CPeerTxMessageOutBound>& spMsg);
+    void HandlePeerBlock(const std::shared_ptr<CPeerBlockMessageOutBound>& spMsg);
 
-    void HandleBulletin(const std::shared_ptr<CPeerBulletinMessageOutBound> spMsg);
-    void HandleGetDelegate(const std::shared_ptr<CPeerGetDelegatedMessageOutBound> spMsg);
-    void HandleDistribute(const std::shared_ptr<CPeerDistributeMessageOutBound> spMsg);
-    void HandlePublish(const std::shared_ptr<CPeerPublishMessageOutBound> spMsg);
+    void HandleBulletin(const std::shared_ptr<CPeerBulletinMessageOutBound>& spMsg);
+    void HandleGetDelegate(const std::shared_ptr<CPeerGetDelegatedMessageOutBound>& spMsg);
+    void HandleDistribute(const std::shared_ptr<CPeerDistributeMessageOutBound>& spMsg);
+    void HandlePublish(const std::shared_ptr<CPeerPublishMessageOutBound>& spMsg);
 
-    void HandlePrimaryChainHeightUpdate(const std::shared_ptr<CAddedBlockMessage> spMsg);
+    void HandlePrimaryChainHeightUpdate(const std::shared_ptr<CAddedBlockMessage>& spMsg);
 
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;

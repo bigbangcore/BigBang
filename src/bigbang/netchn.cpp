@@ -635,7 +635,7 @@ void CNetChannelController::HandleHalt()
     pNetChannelModel->CleanUpForkScheduler();
 }
 
-void CNetChannelController::HandleBroadcastBlockInv(const shared_ptr<CBroadcastBlockInvMessage> spMsg)
+void CNetChannelController::HandleBroadcastBlockInv(const shared_ptr<CBroadcastBlockInvMessage>& spMsg)
 {
 
     set<uint64> setKnownPeer;
@@ -659,7 +659,7 @@ void CNetChannelController::HandleBroadcastBlockInv(const shared_ptr<CBroadcastB
     }
 }
 
-void CNetChannelController::HandleBroadcastTxInv(const shared_ptr<CBroadcastTxInvMessage> spMsg)
+void CNetChannelController::HandleBroadcastTxInv(const shared_ptr<CBroadcastTxInvMessage>& spMsg)
 {
     boost::unique_lock<boost::mutex> lock(mtxPushTx);
     if (nTimerPushTx == 0)
@@ -676,7 +676,7 @@ void CNetChannelController::HandleBroadcastTxInv(const shared_ptr<CBroadcastTxIn
     }
 }
 
-void CNetChannelController::HandleSubscribeFork(const shared_ptr<CSubscribeForkMessage> spMsg)
+void CNetChannelController::HandleSubscribeFork(const shared_ptr<CSubscribeForkMessage>& spMsg)
 {
     if (!pNetChannelModel->AddNewForkSchedule(spMsg->hashFork))
     {
@@ -695,7 +695,7 @@ void CNetChannelController::HandleSubscribeFork(const shared_ptr<CSubscribeForkM
     }
 }
 
-void CNetChannelController::HandleUnsubscribeFork(const shared_ptr<CUnsubscribeForkMessage> spMsg)
+void CNetChannelController::HandleUnsubscribeFork(const shared_ptr<CUnsubscribeForkMessage>& spMsg)
 {
     if (!pNetChannelModel->RemoveForkSchudule(spMsg->hashFork))
     {
@@ -713,7 +713,7 @@ void CNetChannelController::HandleUnsubscribeFork(const shared_ptr<CUnsubscribeF
     }
 }
 
-void CNetChannelController::HandleActive(const shared_ptr<CPeerActiveMessage> spMsg)
+void CNetChannelController::HandleActive(const shared_ptr<CPeerActiveMessage>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     if ((spMsg->address.nService & network::NODE_NETWORK))
@@ -740,14 +740,14 @@ void CNetChannelController::HandleActive(const shared_ptr<CPeerActiveMessage> sp
     pNetChannelModel->AddPeer(nNonce, spMsg->address.nService, pCoreProtocol->GetGenesisBlockHash());
 }
 
-void CNetChannelController::HandleDeactive(const shared_ptr<CPeerDeactiveMessage> spMsg)
+void CNetChannelController::HandleDeactive(const shared_ptr<CPeerDeactiveMessage>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     SchedulePeerInv(nNonce, uint256(), false, uint256());
     pNetChannelModel->RemovePeer(nNonce);
 }
 
-void CNetChannelController::HandleSubscribe(const shared_ptr<CPeerSubscribeMessageInBound> spMsg)
+void CNetChannelController::HandleSubscribe(const shared_ptr<CPeerSubscribeMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -769,7 +769,7 @@ void CNetChannelController::HandleSubscribe(const shared_ptr<CPeerSubscribeMessa
     }
 }
 
-void CNetChannelController::HandleUnsubscribe(const shared_ptr<CPeerUnsubscribeMessageInBound> spMsg)
+void CNetChannelController::HandleUnsubscribe(const shared_ptr<CPeerUnsubscribeMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -786,7 +786,7 @@ void CNetChannelController::HandleUnsubscribe(const shared_ptr<CPeerUnsubscribeM
     }
 }
 
-void CNetChannelController::HandleInv(const shared_ptr<CPeerInvMessageInBound> spMsg)
+void CNetChannelController::HandleInv(const shared_ptr<CPeerInvMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -849,7 +849,7 @@ void CNetChannelController::HandleInv(const shared_ptr<CPeerInvMessageInBound> s
     }
 }
 
-void CNetChannelController::HandleGetData(const shared_ptr<CPeerGetDataMessageInBound> spMsg)
+void CNetChannelController::HandleGetData(const shared_ptr<CPeerGetDataMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -890,7 +890,7 @@ void CNetChannelController::HandleGetData(const shared_ptr<CPeerGetDataMessageIn
     }
 }
 
-void CNetChannelController::HandleGetBlocks(const shared_ptr<CPeerGetBlocksMessageInBound> spMsg)
+void CNetChannelController::HandleGetBlocks(const shared_ptr<CPeerGetBlocksMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -915,7 +915,7 @@ void CNetChannelController::HandleGetBlocks(const shared_ptr<CPeerGetBlocksMessa
     PUBLISH(spInvMsg);
 }
 
-void CNetChannelController::HandlePeerTx(const shared_ptr<CPeerTxMessageInBound> spMsg)
+void CNetChannelController::HandlePeerTx(const shared_ptr<CPeerTxMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -970,7 +970,7 @@ void CNetChannelController::HandlePeerTx(const shared_ptr<CPeerTxMessageInBound>
     }
 }
 
-void CNetChannelController::HandlePeerBlock(const shared_ptr<CPeerBlockMessageInBound> spMsg)
+void CNetChannelController::HandlePeerBlock(const shared_ptr<CPeerBlockMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashFork = spMsg->hashFork;
@@ -1011,7 +1011,7 @@ void CNetChannelController::HandlePeerBlock(const shared_ptr<CPeerBlockMessageIn
     }
 }
 
-void CNetChannelController::HandleAddedNewBlock(const shared_ptr<CAddedBlockMessage> spMsg)
+void CNetChannelController::HandleAddedNewBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
     Errno err = static_cast<Errno>(spMsg->nErrno);
     const uint256& hashFork = spMsg->hashFork;
@@ -1064,7 +1064,7 @@ void CNetChannelController::HandleAddedNewBlock(const shared_ptr<CAddedBlockMess
     PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
 }
 
-void CNetChannelController::HandleAddedNewTx(const shared_ptr<CAddedTxMessage> spMsg)
+void CNetChannelController::HandleAddedNewTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
     Errno err = static_cast<Errno>(spMsg->nErrno);
     const uint256& hashFork = spMsg->hashFork;

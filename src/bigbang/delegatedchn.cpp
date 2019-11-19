@@ -306,7 +306,7 @@ void CDelegatedChannel::HandleHalt()
     dataChain.Clear();
 }
 
-void CDelegatedChannel::HandleActive(const shared_ptr<CPeerActiveMessage> spMsg)
+void CDelegatedChannel::HandleActive(const shared_ptr<CPeerActiveMessage>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     if ((spMsg->address.nService & network::NODE_DELEGATED))
@@ -316,7 +316,7 @@ void CDelegatedChannel::HandleActive(const shared_ptr<CPeerActiveMessage> spMsg)
     }
 }
 
-void CDelegatedChannel::HandleDeactive(const shared_ptr<CPeerDeactiveMessage> spMsg)
+void CDelegatedChannel::HandleDeactive(const shared_ptr<CPeerDeactiveMessage>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     {
@@ -326,7 +326,7 @@ void CDelegatedChannel::HandleDeactive(const shared_ptr<CPeerDeactiveMessage> sp
     }
 }
 
-void CDelegatedChannel::HandleBulletin(const shared_ptr<CPeerBulletinMessageInBound> spMsg)
+void CDelegatedChannel::HandleBulletin(const shared_ptr<CPeerBulletinMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashAnchor = spMsg->hashAnchor;
@@ -352,7 +352,7 @@ void CDelegatedChannel::HandleBulletin(const shared_ptr<CPeerBulletinMessageInBo
     }
 }
 
-void CDelegatedChannel::HandleGetDelegate(const shared_ptr<CPeerGetDelegatedMessageInBound> spMsg)
+void CDelegatedChannel::HandleGetDelegate(const shared_ptr<CPeerGetDelegatedMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashAnchor = spMsg->hashAnchor;
@@ -382,7 +382,7 @@ void CDelegatedChannel::HandleGetDelegate(const shared_ptr<CPeerGetDelegatedMess
     }
 }
 
-void CDelegatedChannel::HandleDistribute(const shared_ptr<CPeerDistributeMessageInBound> spMsg)
+void CDelegatedChannel::HandleDistribute(const shared_ptr<CPeerDistributeMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashAnchor = spMsg->hashAnchor;
@@ -422,7 +422,7 @@ void CDelegatedChannel::HandleDistribute(const shared_ptr<CPeerDistributeMessage
     }
 }
 
-void CDelegatedChannel::HandleAddedNewDistribute(const shared_ptr<CAddedNewDistributeMessage> spMsg)
+void CDelegatedChannel::HandleAddedNewDistribute(const shared_ptr<CAddedNewDistributeMessage>& spMsg)
 {
     if (spMsg->fResult)
     {
@@ -438,7 +438,7 @@ void CDelegatedChannel::HandleAddedNewDistribute(const shared_ptr<CAddedNewDistr
     }
 }
 
-void CDelegatedChannel::HandlePublish(const shared_ptr<CPeerPublishMessageInBound> spMsg)
+void CDelegatedChannel::HandlePublish(const shared_ptr<CPeerPublishMessageInBound>& spMsg)
 {
     uint64 nNonce = spMsg->nNonce;
     const uint256& hashAnchor = spMsg->hashAnchor;
@@ -478,7 +478,7 @@ void CDelegatedChannel::HandlePublish(const shared_ptr<CPeerPublishMessageInBoun
     }
 }
 
-void CDelegatedChannel::HandleAddedNewPublish(const shared_ptr<CAddedNewPublishMessage> spMsg)
+void CDelegatedChannel::HandleAddedNewPublish(const shared_ptr<CAddedNewPublishMessage>& spMsg)
 {
     if (spMsg->fResult)
     {
@@ -494,7 +494,7 @@ void CDelegatedChannel::HandleAddedNewPublish(const shared_ptr<CAddedNewPublishM
     }
 }
 
-void CDelegatedChannel::HandleDelegateRoutine(const shared_ptr<CCDelegateRoutineMessage> spMsg)
+void CDelegatedChannel::HandleDelegateRoutine(const shared_ptr<CCDelegateRoutineMessage>& spMsg)
 {
     PrimaryUpdate(spMsg->nStartHeight, spMsg->routine.vEnrolledWeight,
                   spMsg->routine.mapDistributeData, spMsg->routine.mapDistributeData);

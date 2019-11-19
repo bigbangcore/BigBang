@@ -96,15 +96,15 @@ public:
     }
 
 protected:
-    void HandlerMessageA(const shared_ptr<CTimeoutMessageA> spMsg)
+    void HandlerMessageA(const shared_ptr<CTimeoutMessageA>& spMsg)
     {
         CTimeoutMessageA::HandledTimeA = boost::get_system_time();
     }
-    void HandlerMessageB(const shared_ptr<CTimeoutMessageB> spMsg)
+    void HandlerMessageB(const shared_ptr<CTimeoutMessageB>& spMsg)
     {
         CTimeoutMessageB::HandledTimeA = boost::get_system_time();
     }
-    void HandlerMessageC(const shared_ptr<CTimeoutMessageC> spMsg)
+    void HandlerMessageC(const shared_ptr<CTimeoutMessageC>& spMsg)
     {
         CTimeoutMessageC::HandledTimeA = boost::get_system_time();
     }
@@ -139,7 +139,7 @@ public:
     }
 
 protected:
-    void HandlerMessage(const shared_ptr<CTimeoutMessage> spMsg)
+    void HandlerMessage(const shared_ptr<CTimeoutMessage>& spMsg)
     {
         if (spMsg->Type() == CTimeoutMessageA::MessageType())
         {

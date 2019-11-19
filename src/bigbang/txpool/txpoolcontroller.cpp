@@ -133,7 +133,7 @@ bool CTxPoolController::SynchronizeWorldLine(const CWorldLineUpdate& update, CTx
     return SynchronizeWorldLineWithTxPool(update, change);
 }
 
-void CTxPoolController::HandleAddTx(const shared_ptr<CAddTxMessage> spMsg)
+void CTxPoolController::HandleAddTx(const shared_ptr<CAddTxMessage>& spMsg)
 {
     auto spAddedMsg = CAddedTxMessage::Create();
     spAddedMsg->spNonce = spMsg->spNonce;
@@ -142,13 +142,13 @@ void CTxPoolController::HandleAddTx(const shared_ptr<CAddTxMessage> spMsg)
     PUBLISH(spAddedMsg);
 }
 
-void CTxPoolController::HandleRemoveTx(const shared_ptr<CRemoveTxMessage> spMsg)
+void CTxPoolController::HandleRemoveTx(const shared_ptr<CRemoveTxMessage>& spMsg)
 {
     auto& txId = spMsg->txId;
     Pop(txId);
 }
 
-void CTxPoolController::HandleClearTx(const shared_ptr<CClearTxMessage> spMsg)
+void CTxPoolController::HandleClearTx(const shared_ptr<CClearTxMessage>& spMsg)
 {
     if (spMsg->hashFork == 0)
     {
@@ -160,7 +160,7 @@ void CTxPoolController::HandleClearTx(const shared_ptr<CClearTxMessage> spMsg)
     }
 }
 
-void CTxPoolController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage> spMsg)
+void CTxPoolController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
     if (spMsg->nErrno == OK && !spMsg->update.IsNull())
     {

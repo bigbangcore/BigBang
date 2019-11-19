@@ -73,7 +73,7 @@ public:
     atomic<int> nHandled;
 
 protected:
-    void HandlerMessageA(const shared_ptr<CTestMessageA> spMsg)
+    void HandlerMessageA(const shared_ptr<CTestMessageA>& spMsg)
     {
         // cout << "Actor A handle message A as CTestMessageA: " << spMsg->strA << endl;
         CTestMessageA::nHandled++;
@@ -142,7 +142,7 @@ public:
     CWorkerManager<uint32> manager;
 
 protected:
-    void HandlerMessage(const shared_ptr<CMessage> spMsg)
+    void HandlerMessage(const shared_ptr<CMessage>& spMsg)
     {
         auto spWorker = manager.Get(spMsg->Type());
         if (spWorker)
@@ -155,13 +155,13 @@ protected:
         }
     }
 
-    void HandlerMessageA(const shared_ptr<CTestMessageA> spMsg)
+    void HandlerMessageA(const shared_ptr<CTestMessageA>& spMsg)
     {
         CTestMessageA::nHandled++;
         nHandled++;
     }
 
-    void HandlerMessageB(const shared_ptr<CTestMessageB> spMsg)
+    void HandlerMessageB(const shared_ptr<CTestMessageB>& spMsg)
     {
         CTestMessageB::nHandled++;
         nHandled++;

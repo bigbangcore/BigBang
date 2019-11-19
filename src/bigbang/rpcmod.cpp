@@ -324,7 +324,7 @@ void CRPCMod::LeaveLoop()
     }
 }
 
-void CRPCMod::HandleHttpReq(const shared_ptr<CHttpReqMessage> spMsg)
+void CRPCMod::HandleHttpReq(const shared_ptr<CHttpReqMessage>& spMsg)
 {
     // invalid nonce
     if (!spMsg->spNonce->fValid)
@@ -420,7 +420,7 @@ void CRPCMod::HandleHttpReq(const shared_ptr<CHttpReqMessage> spMsg)
     }
 }
 
-void CRPCMod::HandleHttpBroken(const shared_ptr<CHttpBrokenMessage> spMsg)
+void CRPCMod::HandleHttpBroken(const shared_ptr<CHttpBrokenMessage>& spMsg)
 {
     auto it = mapWork.find(spMsg->spNonce);
     if (it != mapWork.end())
@@ -441,14 +441,14 @@ void CRPCMod::HandleAddedBlockMsg(shared_ptr<CAddedBlockMessage> spMsg)
     CompletedWork(spMsg->spNonce, 0, nullptr, spMsg);
 }
 
-void CRPCMod::HandleSubmissionMsg(const shared_ptr<CRPCSubmissionMessage> spMsg)
+void CRPCMod::HandleSubmissionMsg(const shared_ptr<CRPCSubmissionMessage>& spMsg)
 {
     vecWorker[spMsg->nWorkerId].nPayload--;
     TRACE("Submission message worker (%s) payload (%u)", vecWorker[spMsg->nWorkerId].spWorker->GetName().c_str(), vecWorker[spMsg->nWorkerId].nPayload);
     CompletedWork(spMsg->spNonce, spMsg->nIndex, spMsg->spResp, nullptr);
 }
 
-void CRPCMod::HandleAssignmentMsg(const shared_ptr<CRPCAssignmentMessage> spMsg)
+void CRPCMod::HandleAssignmentMsg(const shared_ptr<CRPCAssignmentMessage>& spMsg)
 {
     auto spSubmissionMsg = CRPCSubmissionMessage::Create();
     spSubmissionMsg->spNonce = spMsg->spNonce;
@@ -2612,7 +2612,7 @@ CRPCResultPtr CRPCMod::RPCQueryStat(CNoncePtr spNonce, CRPCParamPtr param)
     return MakeCQueryStatResultPtr(string("error"));
 }
 
-CRPCResultPtr CRPCMod::MsgSubmitWork(const shared_ptr<CMessage> spMsg)
+CRPCResultPtr CRPCMod::MsgSubmitWork(const shared_ptr<CMessage>& spMsg)
 {
     auto spAddedMsg = dynamic_pointer_cast<CAddedBlockMessage>(spMsg);
     Errno err = (Errno)spAddedMsg->nErrno;
@@ -2623,7 +2623,7 @@ CRPCResultPtr CRPCMod::MsgSubmitWork(const shared_ptr<CMessage> spMsg)
     return MakeCSubmitWorkResultPtr(spAddedMsg->block.GetHash().GetHex());
 }
 
-CRPCResultPtr CRPCMod::MsgSendFrom(const shared_ptr<CMessage> spMsg)
+CRPCResultPtr CRPCMod::MsgSendFrom(const shared_ptr<CMessage>& spMsg)
 {
     auto spAddedMsg = dynamic_pointer_cast<const CAddedTxMessage>(spMsg);
     Errno err = (Errno)spAddedMsg->nErrno;
@@ -2634,7 +2634,7 @@ CRPCResultPtr CRPCMod::MsgSendFrom(const shared_ptr<CMessage> spMsg)
     return MakeCSendFromResultPtr(spAddedMsg->tx.GetHash().GetHex());
 }
 
-CRPCResultPtr CRPCMod::MsgSendTransaction(const shared_ptr<CMessage> spMsg)
+CRPCResultPtr CRPCMod::MsgSendTransaction(const shared_ptr<CMessage>& spMsg)
 {
     auto spAddedMsg = dynamic_pointer_cast<CAddedTxMessage>(spMsg);
     Errno err = (Errno)spAddedMsg->nErrno;

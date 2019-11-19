@@ -21,7 +21,7 @@ class CRPCMod : public xengine::CActor
 {
 protected:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr, rpc::CRPCParamPtr);
-    typedef rpc::CRPCResultPtr (CRPCMod::*MessageFunc)(const std::shared_ptr<xengine::CMessage>);
+    typedef rpc::CRPCResultPtr (CRPCMod::*MessageFunc)(const std::shared_ptr<xengine::CMessage>&);
 
     struct CRPCAssignmentMessage : public xengine::CMessage
     {
@@ -63,12 +63,12 @@ public:
     ~CRPCMod();
 
 protected:
-    void HandleHttpReq(const std::shared_ptr<xengine::CHttpReqMessage> spMsg);
-    void HandleHttpBroken(const std::shared_ptr<xengine::CHttpBrokenMessage> spMsg);
+    void HandleHttpReq(const std::shared_ptr<xengine::CHttpReqMessage>& spMsg);
+    void HandleHttpBroken(const std::shared_ptr<xengine::CHttpBrokenMessage>& spMsg);
     void HandleAddedTxMsg(std::shared_ptr<CAddedTxMessage> spMsg);
     void HandleAddedBlockMsg(std::shared_ptr<CAddedBlockMessage> spMsg);
-    void HandleSubmissionMsg(const std::shared_ptr<CRPCSubmissionMessage> spMsg);
-    void HandleAssignmentMsg(const std::shared_ptr<CRPCAssignmentMessage> spMsg);
+    void HandleSubmissionMsg(const std::shared_ptr<CRPCSubmissionMessage>& spMsg);
+    void HandleAssignmentMsg(const std::shared_ptr<CRPCAssignmentMessage>& spMsg);
 
     rpc::CRPCRespPtr StartWork(CNoncePtr spNonce, rpc::CRPCReqPtr spReq);
     rpc::CRPCRespPtr CheckAsyncWork(CWork& work, size_t& nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage>& spMsg);
@@ -186,9 +186,9 @@ protected:
     rpc::CRPCResultPtr RPCQueryStat(CNoncePtr spNonce, rpc::CRPCParamPtr param);
 
 protected:
-    rpc::CRPCResultPtr MsgSubmitWork(const std::shared_ptr<xengine::CMessage> spMsg);
-    rpc::CRPCResultPtr MsgSendFrom(const std::shared_ptr<xengine::CMessage> spMsg);
-    rpc::CRPCResultPtr MsgSendTransaction(const std::shared_ptr<xengine::CMessage> spMsg);
+    rpc::CRPCResultPtr MsgSubmitWork(const std::shared_ptr<xengine::CMessage>& spMsg);
+    rpc::CRPCResultPtr MsgSendFrom(const std::shared_ptr<xengine::CMessage>& spMsg);
+    rpc::CRPCResultPtr MsgSendTransaction(const std::shared_ptr<xengine::CMessage>& spMsg);
 
 protected:
     xengine::CIOProc* pHttpServer;

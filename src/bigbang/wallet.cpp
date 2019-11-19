@@ -1453,7 +1453,7 @@ void CWalletController::HandleHalt()
     StopActor();
 }
 
-void CWalletController::HandleNewFork(const shared_ptr<CAddedBlockMessage> spMsg)
+void CWalletController::HandleNewFork(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
     TRACE("Wallet received new block message");
     if (spMsg->nErrno == OK && !spMsg->update.IsNull() && spMsg->block.IsOrigin())
@@ -1462,13 +1462,13 @@ void CWalletController::HandleNewFork(const shared_ptr<CAddedBlockMessage> spMsg
     }
 }
 
-void CWalletController::HandleAddedTx(const shared_ptr<CAddedTxMessage> spMsg)
+void CWalletController::HandleAddedTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
     TRACE("Wallet received new tx message");
     AddNewTx(spMsg->hashFork, spMsg->tx);
 }
 
-void CWalletController::HandleSyncTxChange(const shared_ptr<CSyncTxChangeMessage> spMsg)
+void CWalletController::HandleSyncTxChange(const shared_ptr<CSyncTxChangeMessage>& spMsg)
 {
     TRACE("Wallet received sync tx change message");
     SynchronizeTxSet(spMsg->change);

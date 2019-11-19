@@ -722,7 +722,7 @@ void CServiceController::HandleHalt()
     StopActor();
 }
 
-void CServiceController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage> spMsg)
+void CServiceController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
     if (spMsg->nErrno == OK)
     {
@@ -730,7 +730,7 @@ void CServiceController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage> s
     }
 }
 
-void CServiceController::HandleAddedTx(const shared_ptr<CAddedTxMessage> spMsg)
+void CServiceController::HandleAddedTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
     if (spMsg->nErrno == OK)
     {
@@ -742,7 +742,7 @@ void CServiceController::HandleAddedTx(const shared_ptr<CAddedTxMessage> spMsg)
     }
 }
 
-void CServiceController::HandlePeerActive(const shared_ptr<CPeerActiveMessage> spMsg)
+void CServiceController::HandlePeerActive(const shared_ptr<CPeerActiveMessage>& spMsg)
 {
     CNetworkPeerUpdate update;
     update.nPeerNonce = spMsg->nNonce;
@@ -751,7 +751,7 @@ void CServiceController::HandlePeerActive(const shared_ptr<CPeerActiveMessage> s
     NotifyNetworkPeerUpdate(update);
 }
 
-void CServiceController::HandlePeerDeactive(const shared_ptr<CPeerDeactiveMessage> spMsg)
+void CServiceController::HandlePeerDeactive(const shared_ptr<CPeerDeactiveMessage>& spMsg)
 {
     CNetworkPeerUpdate update;
     update.nPeerNonce = spMsg->nNonce;

@@ -779,7 +779,7 @@ void CBlockMaker::ExtendedMakerThreadFunc()
     INFO("Extended block maker exited");
 }
 
-void CBlockMaker::HandleAddedBlock(const shared_ptr<CAddedBlockMessage> spMsg)
+void CBlockMaker::HandleAddedBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
     if (!spMsg->block.IsPrimary())
     {

@@ -455,7 +455,7 @@ void CPeerNet::HandlePeerClrBanned(std::shared_ptr<CPeerNetClrBannedMessage> clr
     clrBannedMsg->count.set_value(vAddrToClear.size());
 }
 
-void CPeerNet::HandlePeerNetClose(const shared_ptr<CPeerNetCloseMessage> spMsg)
+void CPeerNet::HandlePeerNetClose(const shared_ptr<CPeerNetCloseMessage>& spMsg)
 {
     CPeer* pPeer = GetPeer(spMsg->nNonce);
     if (!pPeer)
@@ -465,7 +465,7 @@ void CPeerNet::HandlePeerNetClose(const shared_ptr<CPeerNetCloseMessage> spMsg)
     RemovePeer(pPeer, spMsg->closeReason);
 }
 
-void CPeerNet::HandlePeerNetReward(const shared_ptr<CPeerNetRewardMessage> spMsg)
+void CPeerNet::HandlePeerNetReward(const shared_ptr<CPeerNetRewardMessage>& spMsg)
 {
     CPeer* pPeer = GetPeer(spMsg->nNonce);
     if (!pPeer)

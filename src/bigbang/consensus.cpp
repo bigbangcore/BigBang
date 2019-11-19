@@ -492,7 +492,7 @@ void CConsensusController::HandleHalt()
     StopActor();
 }
 
-void CConsensusController::HandleNewTx(const shared_ptr<CAddedTxMessage> spMsg)
+void CConsensusController::HandleNewTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
     if (spMsg->hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
@@ -500,7 +500,7 @@ void CConsensusController::HandleNewTx(const shared_ptr<CAddedTxMessage> spMsg)
     }
 }
 
-void CConsensusController::HandleTxChange(const shared_ptr<CSyncTxChangeMessage> spMsg)
+void CConsensusController::HandleTxChange(const shared_ptr<CSyncTxChangeMessage>& spMsg)
 {
     if (spMsg->hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
@@ -523,7 +523,7 @@ void CConsensusController::HandleTxChange(const shared_ptr<CSyncTxChangeMessage>
     }
 }
 
-void CConsensusController::HandleNewDistribute(const shared_ptr<CAddNewDistributeMessage> spMsg)
+void CConsensusController::HandleNewDistribute(const shared_ptr<CAddNewDistributeMessage>& spMsg)
 {
     auto spAddedMsg = CAddedNewDistributeMessage::Create();
     spAddedMsg->nNonce = spMsg->nNonce;
@@ -541,7 +541,7 @@ void CConsensusController::HandleNewDistribute(const shared_ptr<CAddNewDistribut
     PUBLISH(spAddedMsg);
 }
 
-void CConsensusController::HandleNewPublish(const shared_ptr<CAddNewPublishMessage> spMsg)
+void CConsensusController::HandleNewPublish(const shared_ptr<CAddNewPublishMessage>& spMsg)
 {
     auto spAddedMsg = CAddedNewPublishMessage::Create();
     spAddedMsg->nNonce = spMsg->nNonce;

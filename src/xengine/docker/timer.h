@@ -87,9 +87,9 @@ protected:
     void NewTimer(const boost::system_time& expiryAt);
 
     // Handle set timer message
-    virtual void SetTimer(const std::shared_ptr<CSetTimerMessage> spMsg);
+    virtual void SetTimer(const std::shared_ptr<CSetTimerMessage>& spMsg);
     // Handle cancel timer message
-    virtual void CancelTimer(const std::shared_ptr<CCancelTimerMessage> spMsg);
+    virtual void CancelTimer(const std::shared_ptr<CCancelTimerMessage>& spMsg);
 
 protected:
     struct CTagId

@@ -89,7 +89,7 @@ void CActorWorker::DeregisterHandler()
             CMessageCenter::GetInstance().Unsubscribe(handler.nType, this);
         }
     }
-    mapHandler.empty();
+    mapHandler.clear();
 }
 
 void CActorWorker::Publish(const std::shared_ptr<CMessage> spMessage)

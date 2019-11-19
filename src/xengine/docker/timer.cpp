@@ -75,7 +75,7 @@ void CTimer::TimerCallback(const boost::system::error_code& err)
     }
 }
 
-void CTimer::SetTimer(const std::shared_ptr<CSetTimerMessage> spMsg)
+void CTimer::SetTimer(const std::shared_ptr<CSetTimerMessage>& spMsg)
 {
     if (spMsg->spTimeout)
     {
@@ -97,7 +97,7 @@ void CTimer::SetTimer(const std::shared_ptr<CSetTimerMessage> spMsg)
     }
 }
 
-void CTimer::CancelTimer(const std::shared_ptr<CCancelTimerMessage> spMsg)
+void CTimer::CancelTimer(const std::shared_ptr<CCancelTimerMessage>& spMsg)
 {
     setTimerTask.get<CTagId>().erase(spMsg->spTimeout);
 }

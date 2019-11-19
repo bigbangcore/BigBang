@@ -212,9 +212,9 @@ protected:
     void HandleHalt() override;
     void HandleDeinitialize() override;
 
-    void HandleNewFork(const std::shared_ptr<CAddedBlockMessage> spMsg);
-    void HandleAddedTx(const std::shared_ptr<CAddedTxMessage> spMsg);
-    void HandleSyncTxChange(const std::shared_ptr<CSyncTxChangeMessage> spMsg);
+    void HandleNewFork(const std::shared_ptr<CAddedBlockMessage>& spMsg);
+    void HandleAddedTx(const std::shared_ptr<CAddedTxMessage>& spMsg);
+    void HandleSyncTxChange(const std::shared_ptr<CSyncTxChangeMessage>& spMsg);
 };
 
 // dummy wallet for on wallet server

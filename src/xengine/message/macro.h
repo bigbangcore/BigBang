@@ -187,7 +187,7 @@ R Apply_impl(F f, Tuple t, IndexSequence<I...>)
     class cls : public CCalledMessage<ret_type>                                            \
     {                                                                                      \
     public:                                                                                \
-        using PtrHandlerType = boost::function<void(const std::shared_ptr<cls>)>;          \
+        using PtrHandlerType = boost::function<void(const std::shared_ptr<cls>&)>;         \
         using FunHandlerType = typename boost::function<ret_type(TYPE_LIST(__VA_ARGS__))>; \
         using ParamType = std::tuple<TYPE_LIST(__VA_ARGS__)>;                              \
                                                                                            \
@@ -232,7 +232,7 @@ R Apply_impl(F f, Tuple t, IndexSequence<I...>)
 
 #define PUBLISHED_MESSAGE(cls)                                                    \
     MESSAGE_COMMON_FUNCTION(cls)                                                  \
-    using PtrHandlerType = boost::function<void(const std::shared_ptr<cls>)>;     \
+    using PtrHandlerType = boost::function<void(const std::shared_ptr<cls>&)>;    \
     virtual void Handle(boost::any handler) override                              \
     {                                                                             \
         try                                                                       \
