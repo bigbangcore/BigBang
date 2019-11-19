@@ -78,7 +78,7 @@ public:
     const bool fGlobal;
 
 protected:
-    CMessageHandler(const uint32 nTypeIn, const std::string strTagIn, const boost::any handlerIn, const bool fGlobalIn)
+    CMessageHandler(const uint32 nTypeIn, const std::string& strTagIn, const boost::any handlerIn, const bool fGlobalIn)
       : nType(nTypeIn), strTag(strTagIn), handler(handlerIn), fGlobal(fGlobalIn)
     {
     }
@@ -158,7 +158,7 @@ public:
      * @param spMessage a shared_ptr object of CMessage or it's derived
      * @note Thread safe.
      */
-    void Publish(const std::shared_ptr<CMessage> spMessage);
+    void Publish(const std::shared_ptr<CMessage>& spMsg);
 
     /**
      * @brief Publish a message to Actor worker.
@@ -213,7 +213,7 @@ private:
     /// The function of the thread entry contains ioService.run().
     void HandlerThreadFunc();
     /// Message handler callback entry.
-    void MessageHandler(const std::shared_ptr<CMessage> spMessage);
+    void MessageHandler(const std::shared_ptr<CMessage>& spMsg);
 
 protected:
     std::string strName;

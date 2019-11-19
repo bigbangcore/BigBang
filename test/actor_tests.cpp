@@ -373,24 +373,13 @@ BOOST_AUTO_TEST_CASE(spsc)
 
 namespace actor_tests
 {
-DECLARE_CALLED_MESSAGE_CLASS(FunDefaultResult,
-                             RETURN(int, -1),
-                             PARAM(int, i));
+DECLARE_CALLED_MESSAGE_CLASS(FunDefaultResult, RETURN(int, -1), PARAM(int, i));
 
-DECLARE_CALLED_MESSAGE_CLASS(FunVoidResult,
-                             RETURN(void),
-                             PARAM(string&, str),
-                             PARAM(const int, i, 15));
+DECLARE_CALLED_MESSAGE_CLASS(FunVoidResult, RETURN(void), PARAM(string&, str), PARAM(const int, i, 15));
 
-DECLARE_CALLED_MESSAGE_CLASS(FunDefaultParam,
-                             RETURN(int),
-                             PARAM(int, i),
-                             PARAM(const string&, str, "123"));
+DECLARE_CALLED_MESSAGE_CLASS(FunDefaultParam, RETURN(int), PARAM(int, i), PARAM(const string&, str, "123"));
 
-DECLARE_CALLED_MESSAGE_CLASS(FunReference,
-                             RETURN(bool),
-                             PARAM(int&, i),
-                             PARAM(string&, str));
+DECLARE_CALLED_MESSAGE_CLASS(FunReference, RETURN(bool), PARAM(int&, i), PARAM(string&, str));
 } // namespace actor_tests
 
 class CActorC : public CActor

@@ -92,9 +92,9 @@ void CActorWorker::DeregisterHandler()
     mapHandler.clear();
 }
 
-void CActorWorker::Publish(const std::shared_ptr<CMessage> spMessage)
+void CActorWorker::Publish(const std::shared_ptr<CMessage>& spMsg)
 {
-    ioStrand.post(boost::bind(&CActorWorker::MessageHandler, this, spMessage));
+    ioStrand.post(boost::bind(&CActorWorker::MessageHandler, this, spMsg));
 }
 
 const std::string& CActorWorker::GetName() const
@@ -157,12 +157,12 @@ void CActorWorker::HandlerThreadFunc()
     LeaveLoop();
 }
 
-void CActorWorker::MessageHandler(const std::shared_ptr<CMessage> spMessage)
+void CActorWorker::MessageHandler(const std::shared_ptr<CMessage>& spMsg)
 {
-    auto it = mapHandler.find(spMessage->Type());
+    auto it = mapHandler.find(spMsg->Type());
     if (it != mapHandler.end())
     {
-        spMessage->Handle(it->second.handler);
+        spMsg->Handle(it->second.handler);
     }
 }
 
