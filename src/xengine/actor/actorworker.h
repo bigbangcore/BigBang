@@ -13,16 +13,16 @@
 #include <type_traits>
 
 #include "docker/thread.h"
+#include "message/message.h"
 #include "type.h"
 
 namespace xengine
 {
 
-class CMessage;
 class CDocker;
 
-#define REF_HANDLER(Message, function, global) \
-    CMessageHandler::CreateRef<Message>(function, global)
+#define FUN_HANDLER(Message, function, global) \
+    CMessageHandler::CreateFun<Message>(function, global)
 #define PTR_HANDLER(Message, function, global) \
     CMessageHandler::CreatePtr<Message>(function, global)
 
@@ -47,7 +47,7 @@ public:
      * @endcode
      */
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    static CMessageHandler CreateRef(boost::function<void(const Message&)> handlerIn, bool fGlobalIn)
+    static CMessageHandler CreateFun(typename Message::FunHandlerType handlerIn, bool fGlobalIn)
     {
         return CMessageHandler(Message::MessageType(), Message::MessageTag(), handlerIn, fGlobalIn);
     }
@@ -67,7 +67,7 @@ public:
      * @endcode
      */
     template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    static CMessageHandler CreatePtr(boost::function<void(const std::shared_ptr<Message>)> handlerIn, bool fGlobalIn)
+    static CMessageHandler CreatePtr(typename Message::PtrHandlerType handlerIn, bool fGlobalIn)
     {
         return CMessageHandler(Message::MessageType(), Message::MessageTag(), handlerIn, fGlobalIn);
     }
@@ -159,6 +159,19 @@ public:
      * @note Thread safe.
      */
     void Publish(const std::shared_ptr<CMessage> spMessage);
+
+    /**
+     * @brief Publish a message to Actor worker.
+     * @param spMessage a shared_ptr object of CMessage or it's derived
+     * @note Thread safe.
+     */
+    template <typename T>
+    T Call(CCalledMessage<T>&& msg)
+    {
+        auto spMsg = std::shared_ptr<CCalledMessage<T>>(msg.Move());
+        Publish(spMsg);
+        return spMsg->Wait();
+    }
 
     /**
      * @brief Get name of actor worker

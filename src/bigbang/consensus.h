@@ -132,10 +132,10 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleNewTx(const CAddedTxMessage& msg);
-    void HandleTxChange(const CSyncTxChangeMessage& msg);
-    void HandleNewDistribute(const CAddNewDistributeMessage& msg);
-    void HandleNewPublish(const CAddNewPublishMessage& msg);
+    void HandleNewTx(const std::shared_ptr<CAddedTxMessage> spMsg);
+    void HandleTxChange(const std::shared_ptr<CSyncTxChangeMessage> spMsg);
+    void HandleNewDistribute(const std::shared_ptr<CAddNewDistributeMessage> spMsg);
+    void HandleNewPublish(const std::shared_ptr<CAddNewPublishMessage> spMsg);
 
 protected:
     ICoreProtocol* pCoreProtocol;

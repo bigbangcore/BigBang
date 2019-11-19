@@ -1423,9 +1423,9 @@ bool CWalletController::HandleInitialize()
     }
 
     RegisterHandler({
-        REF_HANDLER(CAddedBlockMessage, boost::bind(&CWalletController::HandleNewFork, this, _1), true),
-        REF_HANDLER(CAddedTxMessage, boost::bind(&CWalletController::HandleAddedTx, this, _1), true),
-        REF_HANDLER(CSyncTxChangeMessage, boost::bind(&CWalletController::HandleSyncTxChange, this, _1), true),
+        PTR_HANDLER(CAddedBlockMessage, boost::bind(&CWalletController::HandleNewFork, this, _1), true),
+        PTR_HANDLER(CAddedTxMessage, boost::bind(&CWalletController::HandleAddedTx, this, _1), true),
+        PTR_HANDLER(CSyncTxChangeMessage, boost::bind(&CWalletController::HandleSyncTxChange, this, _1), true),
     });
 
     return true;
@@ -1453,25 +1453,25 @@ void CWalletController::HandleHalt()
     StopActor();
 }
 
-void CWalletController::HandleNewFork(const CAddedBlockMessage& msg)
+void CWalletController::HandleNewFork(const shared_ptr<CAddedBlockMessage> spMsg)
 {
     TRACE("Wallet received new block message");
-    if (msg.nErrno == OK && !msg.update.IsNull() && msg.block.IsOrigin())
+    if (spMsg->nErrno == OK && !spMsg->update.IsNull() && spMsg->block.IsOrigin())
     {
-        AddNewFork(msg.update.hashFork, msg.update.hashParent, msg.update.nOriginHeight);
+        AddNewFork(spMsg->update.hashFork, spMsg->update.hashParent, spMsg->update.nOriginHeight);
     }
 }
 
-void CWalletController::HandleAddedTx(const CAddedTxMessage& msg)
+void CWalletController::HandleAddedTx(const shared_ptr<CAddedTxMessage> spMsg)
 {
     TRACE("Wallet received new tx message");
-    AddNewTx(msg.hashFork, msg.tx);
+    AddNewTx(spMsg->hashFork, spMsg->tx);
 }
 
-void CWalletController::HandleSyncTxChange(const CSyncTxChangeMessage& msg)
+void CWalletController::HandleSyncTxChange(const shared_ptr<CSyncTxChangeMessage> spMsg)
 {
     TRACE("Wallet received sync tx change message");
-    SynchronizeTxSet(msg.change);
+    SynchronizeTxSet(spMsg->change);
 }
 
 } // namespace bigbang

@@ -201,7 +201,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     // if (!block.IsOrigin() && !block.IsVacant())
     // {
     //     auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(updateWorldLine.hashFork, block.GetHash());
-    //     PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
+    //     PUBLISH(spBroadcastBlockInvMsg);
     //     pDataStat->AddP2pSynSendStatData(updateWorldLine.hashFork, 1, block.vtx.size());
     // }
 
@@ -220,7 +220,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     //     for (const uint256 hashFork : vDeactive)
     //     {
     //         auto spUnsubscribeForkMsg = CUnsubscribeForkMessage::Create(hashFork);
-    //         PUBLISH_MESSAGE(spUnsubscribeForkMsg);
+    //         PUBLISH(spUnsubscribeForkMsg);
     //     }
     // }
 
@@ -267,7 +267,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     if (!nNonce)
     {
         auto spBroadcastTxInvMsg = CBroadcastTxInvMessage::Create(hashFork);
-        PUBLISH_MESSAGE(spBroadcastTxInvMsg);
+        PUBLISH(spBroadcastTxInvMsg);
     }
 
     // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
@@ -349,7 +349,7 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
     }
 
     auto spSubscribeForkMsg = CSubscribeForkMessage::Create(hashFork, nNonce);
-    PUBLISH_MESSAGE(spSubscribeForkMsg);
+    PUBLISH(spSubscribeForkMsg);
 
     INFO("Activated fork %s ..", hashFork.GetHex().c_str());
 }

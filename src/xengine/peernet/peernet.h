@@ -96,8 +96,8 @@ protected:
     void HandlePeerSetBan(std::shared_ptr<CPeerNetSetBanMessage> setBanMsg);
     void HandlePeerClrBanned(std::shared_ptr<CPeerNetClrBannedMessage> clrBannedMsg);
 
-    void HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg);
-    void HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg);
+    void HandlePeerNetClose(const std::shared_ptr<CPeerNetCloseMessage> spMsg);
+    void HandlePeerNetReward(const std::shared_ptr<CPeerNetRewardMessage> spMsg);
 
     int GetCandidateNodeCount()
     {

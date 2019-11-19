@@ -28,6 +28,7 @@
 
 using namespace xengine;
 using namespace bigbang;
+using namespace std;
 
 BOOST_FIXTURE_TEST_SUITE(network_tests, BasicUtfSetup)
 
@@ -38,8 +39,8 @@ public:
     virtual bool HandleInitialize() override
     {
         RegisterHandler({
-            REF_HANDLER(CPeerNetCloseMessage, boost::bind(&CDummyPeerNet::HandleNetClose, this, _1), true),
-            REF_HANDLER(CPeerNetRewardMessage, boost::bind(&CDummyPeerNet::HandleNetReward, this, _1), true),
+            PTR_HANDLER(CPeerNetCloseMessage, boost::bind(&CDummyPeerNet::HandleNetClose, this, _1), true),
+            PTR_HANDLER(CPeerNetRewardMessage, boost::bind(&CDummyPeerNet::HandleNetReward, this, _1), true),
         });
         return true;
     }
@@ -59,11 +60,11 @@ public:
     }
 
 protected:
-    void HandleNetClose(const CPeerNetCloseMessage& msg)
+    void HandleNetClose(const shared_ptr<CPeerNetCloseMessage> spMsg)
     {
     }
 
-    void HandleNetReward(const CPeerNetRewardMessage& msg)
+    void HandleNetReward(const shared_ptr<CPeerNetRewardMessage> spMsg)
     {
     }
 };
@@ -169,7 +170,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = nTestNonce;
     spActiveMsg->address = network::CAddress(network::NODE_NETWORK, network::CEndpoint());
-    PUBLISH_MESSAGE(spActiveMsg);
+    PUBLISH(spActiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -181,12 +182,12 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     spSubscribeInBound->nNonce = nTestNonce;
     spSubscribeInBound->hashFork = pCoreProtocol->GetGenesisBlockHash();
     spSubscribeInBound->vecForks.push_back(uint256("testfork"));
-    PUBLISH_MESSAGE(spSubscribeInBound);
+    PUBLISH(spSubscribeInBound);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     auto spSubscribeForkMsg = CSubscribeForkMessage::Create(uint256("testfork"), nTestNonce);
-    PUBLISH_MESSAGE(spSubscribeForkMsg);
+    PUBLISH(spSubscribeForkMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -198,7 +199,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     spUnsubscribeInBound->nNonce = nTestNonce;
     spUnsubscribeInBound->hashFork = pCoreProtocol->GetGenesisBlockHash();
     spUnsubscribeInBound->vecForks.push_back(uint256("testfork"));
-    PUBLISH_MESSAGE(spUnsubscribeInBound);
+    PUBLISH(spUnsubscribeInBound);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -209,7 +210,7 @@ BOOST_AUTO_TEST_CASE(netchn_msg)
     auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_NETWORK, network::CEndpoint());
-    PUBLISH_MESSAGE(spDeactiveMsg);
+    PUBLISH(spDeactiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -302,7 +303,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     auto spActiveMsg = CPeerActiveMessage::Create();
     spActiveMsg->nNonce = nTestNonce;
     spActiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    PUBLISH_MESSAGE(spActiveMsg);
+    PUBLISH(spActiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -315,7 +316,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     spBulletinMsg->hashAnchor = uint256("testHashAchor");
     spBulletinMsg->deletegatedBulletin.bmDistribute = 0x001;
     spBulletinMsg->deletegatedBulletin.bmPublish = 0x002;
-    PUBLISH_MESSAGE(spBulletinMsg);
+    PUBLISH(spBulletinMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -326,7 +327,7 @@ BOOST_AUTO_TEST_CASE(delegated_chn_msg)
     auto spDeactiveMsg = CPeerDeactiveMessage::Create();
     spDeactiveMsg->nNonce = nTestNonce;
     spDeactiveMsg->address = network::CAddress(network::NODE_DELEGATED, network::CEndpoint());
-    PUBLISH_MESSAGE(spDeactiveMsg);
+    PUBLISH(spDeactiveMsg);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -378,14 +379,14 @@ BOOST_AUTO_TEST_CASE(peernet_msg)
     std::promise<std::string> promiseIP;
     std::future<std::string> futureIP = promiseIP.get_future();
     auto spGetIPMsg = CPeerNetGetIPMessage::Create(std::move(promiseIP));
-    PUBLISH_MESSAGE(spGetIPMsg);
+    PUBLISH(spGetIPMsg);
 
     BOOST_CHECK(futureIP.get() == "0.0.0.0");
 
     std::promise<std::size_t> promiseCount;
     std::future<std::size_t> futureCount = promiseCount.get_future();
     auto spGetPeerCountMsg = CPeerNetGetCountMessage::Create(std::move(promiseCount));
-    PUBLISH_MESSAGE(spGetPeerCountMsg);
+    PUBLISH(spGetPeerCountMsg);
 
     BOOST_CHECK(futureCount.get() == 0);
 

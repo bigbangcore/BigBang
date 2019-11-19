@@ -38,10 +38,10 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleAddTx(const CAddTxMessage& msg);
-    void HandleRemoveTx(const CRemoveTxMessage& msg);
-    void HandleClearTx(const CClearTxMessage& msg);
-    void HandleAddedBlock(const CAddedBlockMessage& msg);
+    void HandleAddTx(const std::shared_ptr<CAddTxMessage> spMsg);
+    void HandleRemoveTx(const std::shared_ptr<CRemoveTxMessage> spMsg);
+    void HandleClearTx(const std::shared_ptr<CClearTxMessage> spMsg);
+    void HandleAddedBlock(const std::shared_ptr<CAddedBlockMessage> spMsg);
 };
 
 } // namespace bigbang

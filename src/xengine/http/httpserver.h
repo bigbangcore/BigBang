@@ -112,7 +112,7 @@ protected:
     CHttpClient* AddNewClient(CIOClient* pClient, CHttpProfile* pHttpProfile);
     void RemoveClient(CHttpClient* pHttpClient);
     void RespondError(CHttpClient* pHttpClient, int nStatusCode, const std::string& strError = "");
-    void HandleHttpRsp(const CHttpRspMessage& msg);
+    void HandleHttpRsp(const std::shared_ptr<CHttpRspMessage> spMsg);
 
 protected:
     std::vector<CHttpHostConfig> vecHostConfig;

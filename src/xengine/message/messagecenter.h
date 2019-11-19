@@ -21,7 +21,13 @@ namespace xengine
  * @brief A shortcut to publish message.
  * @warning Don't modify members of msg after calling it, unless you know the consequence. See CMessageCenter::Publish()
  */
-#define PUBLISH_MESSAGE(msg) CMessageCenter::GetInstance().Publish(std::move(msg))
+#define PUBLISH(msg) CMessageCenter::GetInstance().Publish(std::move(msg))
+
+/**
+ * @brief A shortcut to call message.
+ * @warning msg must be a rvalue.
+ */
+#define CALL(msg) CMessageCenter::GetInstance().Call(msg)
 
 class CActorWorker;
 
@@ -63,11 +69,24 @@ public:
     /**
      * @brief Publish a spMessage->Type() message to subscribers.
      * @param spMessage The rvalue of message smart pointer. It will be seted nullptr when return.
-     * @return const shared pointer of spMessage.
+     * @return The const shared pointer of spMessage.
      * @warning spMessage will be seted nullptr when return.
      *          Don't modify members of the original pointer of spMessage after published it, unless you know the consequence.
      */
     const std::shared_ptr<CMessage> Publish(std::shared_ptr<CMessage>&& spMessage);
+
+    /**
+     * @brief Call a spMessage->Type() message to subscribers, and wait result synchronously.
+     * @param msg The rvalue of message.
+     * @return Called result.
+     */
+    template <typename T>
+    T Call(CCalledMessage<T>&& msg)
+    {
+        auto spMsg = std::shared_ptr<CCalledMessage<T>>(msg.Move());
+        Publish(spMsg);
+        return spMsg->Wait();
+    }
 
     /**
      * @brief Get the size of undistributed message.

@@ -13,6 +13,7 @@
 #include <string>
 #include <tuple>
 
+#include "logger.h"
 #include "message/macro.h"
 #include "type.h"
 #include "util.h"
@@ -26,7 +27,7 @@ namespace xengine
  * @code
  *    struct CDerivedMessage : public CMessage
  *    {
- *        GENERATE_MESSAGE_FUNCTION(CDerivedMessage);
+ *        DECLARE_PUBLISHED_MESSAGE_FUNCTION(CDerivedMessage);
  *        // self member variables
  *        string str;
  *        int n;
@@ -88,179 +89,145 @@ protected:
     }
 };
 
+/// Apply a function with params in a tuple
+template <typename R, typename F, typename Tuple>
+R Apply(F f, Tuple&& t)
+{
+    using Indices = MakeIndexSequence<std::tuple_size<typename std::decay<Tuple>::type>::value>;
+    return Apply_impl<R>(f, std::forward<Tuple>(t), Indices());
+}
+
 /**
  * @brief Send a message which is handled by functional-like function and wait(sync or async) a result
  */
-template <const char* Name, typename R, typename... Args>
-struct CCalledMessage final : public CMessage
+template <typename R>
+class CCalledMessage : public CMessage
 {
-    using ResultType = R;
-    using Self = CCalledMessage<Name, R, Args...>;
-    using HandlerType = typename boost::function<ResultType(Args...)>;
-    using ParamType = std::tuple<Args...>;
-
-    std::promise<ResultType> result;
-    ParamType param;
-    ResultType failure;
-
 public:
-    CCalledMessage(R failure, Args... args)
-      : failure(failure), param(std::forward_as_tuple(args...)) {}
+    /// handle result
+    mutable std::promise<R> result;
+    /// failure result
+    R failure;
 
-    static uint32 MessageType()
+    /**
+     * @brief Default constructor
+     */
+    CCalledMessage() {}
+    /**
+     * @brief Construct with failure value
+     */
+    CCalledMessage(R failure)
+      : failure(failure) {}
+    /**
+     * @brief Default move constructor
+     */
+    CCalledMessage(CCalledMessage&&) = default;
+
+    /**
+     * @brief New a object of moved self.
+     */
+    virtual CCalledMessage<R>* Move() = 0;
+
+    /**
+     * @brief Apply the handler. Called by the executor
+     */
+    template <typename F, typename Tuple>
+    void ApplyHandler(F f, Tuple&& t)
     {
-        static const uint32 nType = CMessage::NewMessageType();
-        return nType;
-    }
-    static std::string MessageTag()
-    {
-        static const std::string strTag = Name;
-        return strTag;
-    }
-    virtual uint32 Type() const override
-    {
-        return Self::MessageType();
-    }
-    virtual std::string Tag() const override
-    {
-        return Self::MessageTag();
-    }
-    virtual void Handle(boost::any handler) override
-    {
-        using PtrHandlerType = boost::function<void(const std::shared_ptr<Self>)>;
         try
         {
-            if (handler.type() == typeid(HandlerType))
-            {
-                auto f = boost::any_cast<HandlerType>(handler);
-                auto ret = Apply(f, Self::param);
-                Self::result.set_value(ret);
-            }
-            else if (handler.type() == typeid(PtrHandlerType))
-            {
-                auto f = boost::any_cast<PtrHandlerType>(handler);
-                f(SharedFromBase<Self>());
-            }
-            else
-            {
-                throw std::runtime_error("Unknown type");
-            }
+            auto ret = Apply<R>(f, std::forward<Tuple>(t));
+            result.set_value(ret);
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR(Tag().c_str(), "Message handler type error: %s", e.what());
+            LOG_ERROR(Tag().c_str(), "Apply Handler error: %s", e.what());
+            result.set_value(failure);
         }
     }
-};
 
-template <const char* Name, typename... Args>
-struct CCalledMessage<Name, void, Args...> : public CMessage
-{
-    using Self = CCalledMessage<Name, void, Args...>;
-    using HandlerType = typename boost::function<void(Args...)>;
-    using ParamType = std::tuple<Args...>;
-
-    std::promise<void> result;
-    ParamType param;
-
-public:
-    CCalledMessage(Args... args)
-      : param(std::forward_as_tuple(args...)) {}
-
-    static uint32 MessageType()
+    /**
+     * @brief Wait the result. Called by the caller
+     */
+    R Wait() const
     {
-        static const uint32 nType = CMessage::NewMessageType();
-        return nType;
-    }
-    static std::string MessageTag()
-    {
-        static const std::string strTag = Name;
-        return strTag;
-    }
-    virtual uint32 Type() const override
-    {
-        return Self::MessageType();
-    }
-    virtual std::string Tag() const override
-    {
-        return Self::MessageTag();
-    }
-    virtual void Handle(boost::any handler) override
-    {
-        using PtrHandlerType = boost::function<void(const std::shared_ptr<Self>)>;
         try
         {
-            if (handler.type() == typeid(HandlerType))
-            {
-                auto f = boost::any_cast<HandlerType>(handler);
-                Apply(f, Self::param);
-                Self::result.set_value();
-            }
-            else if (handler.type() == typeid(PtrHandlerType))
-            {
-                auto f = boost::any_cast<PtrHandlerType>(handler);
-                f(SharedFromBase<Self>());
-            }
-            else
-            {
-                throw std::runtime_error("Unknown type");
-            }
+            return result.get_future().get();
         }
-        catch (const std::exception& e)
+        catch (...)
         {
-            LOG_ERROR(Tag().c_str(), "Message handler type error: %s", e.what());
+            return failure;
         }
     }
 };
 
 /**
- * @brief Create the virtual function of class derived from CMessage: Type() and destructor.
+ * @brief The specialization CCalledMessage<void> of CCalledMessage<R> 
+ */
+template <>
+class CCalledMessage<void> : public CMessage
+{
+public:
+    mutable std::promise<void> result;
+
+    /**
+     * @brief Default constructor
+     */
+    CCalledMessage() {}
+    /**
+     * @brief Default move constructor
+     */
+    CCalledMessage(CCalledMessage&&) = default;
+
+    /**
+     * @brief New a object of moved self.
+     */
+    virtual CCalledMessage<void>* Move() = 0;
+
+    /**
+     * @brief Apply the handler. Called by the executor
+     */
+    template <typename F, typename Tuple>
+    void ApplyHandler(F f, Tuple&& t)
+    {
+        try
+        {
+            Apply<void>(f, std::forward<Tuple>(t));
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(Tag().c_str(), "Apply Handler error: %s", e.what());
+        }
+        result.set_value();
+    }
+
+    /**
+     * @brief Wait the result. Called by the caller
+     */
+    void Wait() const
+    {
+        try
+        {
+            result.get_future().get();
+        }
+        catch (...)
+        {
+        }
+    }
+};
+
+/**
+ * @brief Create the  function of class derived from CMessage: Type() and destructor.
  * @param cls Derived class name.
  */
-#define GENERATE_MESSAGE_FUNCTION(cls)                                            \
-    template <typename... Args>                                                   \
-    static std::shared_ptr<cls> Create(Args&&... args)                            \
-    {                                                                             \
-        return std::make_shared<cls>(std::forward<Args>(args)...);                \
-    }                                                                             \
-    static uint32 MessageType()                                                   \
-    {                                                                             \
-        static const uint32 nType = CMessage::NewMessageType();                   \
-        return nType;                                                             \
-    }                                                                             \
-    static std::string MessageTag()                                               \
-    {                                                                             \
-        static const std::string strTag = #cls;                                   \
-        return strTag;                                                            \
-    }                                                                             \
-    virtual uint32 Type() const override                                          \
-    {                                                                             \
-        return cls::MessageType();                                                \
-    }                                                                             \
-    virtual std::string Tag() const override                                      \
-    {                                                                             \
-        return cls::MessageTag();                                                 \
-    }                                                                             \
-    virtual void Handle(boost::any handler) override                              \
-    {                                                                             \
-        using PtrHandlerType = boost::function<void(const std::shared_ptr<cls>)>; \
-        try                                                                       \
-        {                                                                         \
-            if (handler.type() == typeid(PtrHandlerType))                         \
-            {                                                                     \
-                auto f = boost::any_cast<PtrHandlerType>(handler);                \
-                f(SharedFromBase<cls>());                                         \
-            }                                                                     \
-            else                                                                  \
-            {                                                                     \
-                throw std::runtime_error("Unknown type");                         \
-            }                                                                     \
-        }                                                                         \
-        catch (const exception& e)                                                \
-        {                                                                         \
-            LOG_ERROR(Tag().c_str(), "Message handler type error: %s", e.what()); \
-        }                                                                         \
-    }
+#define DECLARE_CALLED_MESSAGE_CLASS(cls, ...) CALLED_MESSAGE(cls, __VA_ARGS__)
+
+/**
+ * @brief Create the virtual functions of the class derived from CMessage: Type() and destructor.
+ * @param cls Derived class name.
+ */
+#define DECLARE_PUBLISHED_MESSAGE_FUNCTION(cls) PUBLISHED_MESSAGE(cls)
 
 } // namespace xengine
 

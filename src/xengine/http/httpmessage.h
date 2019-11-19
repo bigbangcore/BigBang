@@ -59,7 +59,7 @@ namespace xengine
 
 struct CHttpReqMessage : public CHttpContent, public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CHttpReqMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CHttpReqMessage);
 
     CNoncePtr spNonce;
     std::string strUser;
@@ -71,7 +71,7 @@ struct CHttpReqMessage : public CHttpContent, public CMessage
 
 struct CHttpReqDataMessage : public CHttpReqMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CHttpReqDataMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CHttpReqDataMessage);
 
     std::string strIOModule;
     std::string strProtocol;
@@ -83,7 +83,7 @@ struct CHttpReqDataMessage : public CHttpReqMessage
 
 struct CHttpRspMessage : public CHttpContent, public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CHttpRspMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CHttpRspMessage);
 
     CNoncePtr spNonce;
     MAPIKeyValue mapHeader;
@@ -93,7 +93,7 @@ struct CHttpRspMessage : public CHttpContent, public CMessage
 
 struct CHttpAbortMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CHttpAbortMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CHttpAbortMessage);
 
     std::string strIOModule;
     std::vector<uint64> vNonce;
@@ -101,7 +101,7 @@ struct CHttpAbortMessage : public CMessage
 
 struct CHttpBrokenMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CHttpBrokenMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CHttpBrokenMessage);
 
     CNoncePtr spNonce;
     bool fEventStream;

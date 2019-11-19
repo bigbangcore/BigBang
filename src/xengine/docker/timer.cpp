@@ -28,8 +28,8 @@ CTimer::~CTimer()
 bool CTimer::HandleInitialize()
 {
     RegisterHandler({
-        REF_HANDLER(CSetTimerMessage, boost::bind(&CTimer::SetTimer, this, _1), true),
-        REF_HANDLER(CCancelTimerMessage, boost::bind(&CTimer::CancelTimer, this, _1), true),
+        PTR_HANDLER(CSetTimerMessage, boost::bind(&CTimer::SetTimer, this, _1), true),
+        PTR_HANDLER(CCancelTimerMessage, boost::bind(&CTimer::CancelTimer, this, _1), true),
     });
     return true;
 }
@@ -65,7 +65,7 @@ void CTimer::TimerCallback(const boost::system::error_code& err)
     const boost::system_time now = boost::get_system_time();
     for (auto it = index.begin(); it != index.end() && it->expiryAt <= now;)
     {
-        PUBLISH_MESSAGE(it->spTimeout);
+        PUBLISH(it->spTimeout);
         index.erase(it++);
     }
 
@@ -75,31 +75,31 @@ void CTimer::TimerCallback(const boost::system::error_code& err)
     }
 }
 
-void CTimer::SetTimer(const CSetTimerMessage& message)
+void CTimer::SetTimer(const std::shared_ptr<CSetTimerMessage> spMsg)
 {
-    if (message.spTimeout)
+    if (spMsg->spTimeout)
     {
         auto& index = setTimerTask.get<CTagId>();
-        auto it = index.find(message.spTimeout);
+        auto it = index.find(spMsg->spTimeout);
         if (it == index.end())
         {
-            index.insert(CTimerTask{ message.expiryAt, message.spTimeout });
+            index.insert(CTimerTask{ spMsg->expiryAt, spMsg->spTimeout });
         }
         else
         {
-            index.modify(it, [&message](CTimerTask& task) { task.expiryAt = message.expiryAt; });
+            index.modify(it, [&spMsg](CTimerTask& task) { task.expiryAt = spMsg->expiryAt; });
         }
 
-        if (timer.expires_at() > message.expiryAt)
+        if (timer.expires_at() > spMsg->expiryAt)
         {
-            NewTimer(message.expiryAt);
+            NewTimer(spMsg->expiryAt);
         }
     }
 }
 
-void CTimer::CancelTimer(const CCancelTimerMessage& message)
+void CTimer::CancelTimer(const std::shared_ptr<CCancelTimerMessage> spMsg)
 {
-    setTimerTask.get<CTagId>().erase(message.spTimeout);
+    setTimerTask.get<CTagId>().erase(spMsg->spTimeout);
 }
 
 void CTimer::NewTimer(const boost::system_time& expiryAt)

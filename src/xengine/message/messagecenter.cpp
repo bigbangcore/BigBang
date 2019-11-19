@@ -17,7 +17,7 @@ namespace
 // The message type for subscribing message to CMessageCenter
 struct CSubscribeMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CSubscribeMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CSubscribeMessage);
 
     uint32 nSubType;
     CActorWorker* pActor;
@@ -26,7 +26,7 @@ struct CSubscribeMessage : public CMessage
 // The message type for unsubscribing message from CMessageCenter
 struct CUnsubscribeMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CUnsubscribeMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CUnsubscribeMessage);
 
     uint32 nUnsubType;
     CActorWorker* pActor;
@@ -86,18 +86,20 @@ void CMessageCenter::DistributionThreadFunc()
             {
                 std::shared_ptr<CSubscribeMessage> spSubMessage = std::dynamic_pointer_cast<CSubscribeMessage>(spMessage);
                 mapMessage[spSubMessage->nSubType].insert(spSubMessage->pActor);
+                // LOG_TRACE("message-center", "Actor (%s) subscribe message (%u)", spSubMessage->pActor->GetName().c_str(), spSubMessage->nSubType);
             }
             else if (spMessage->Type() == CUnsubscribeMessage::MessageType())
             {
                 std::shared_ptr<CUnsubscribeMessage> spUnsubMessage = std::dynamic_pointer_cast<CUnsubscribeMessage>(spMessage);
                 mapMessage[spUnsubMessage->nUnsubType].erase(spUnsubMessage->pActor);
+                // LOG_TRACE("message-center", "Actor (%s) unsubscribe message (%u)", spUnsubMessage->pActor->GetName().c_str(), spUnsubMessage->nUnsubType);
             }
             else
             {
                 auto it = mapMessage.find(spMessage->Type());
-                if (it != mapMessage.end() && !it->second.empty())
+                // LOG_TRACE("message-center", "Dispatch message tag (%s) type(%u) to actors, number is (%d)", spMessage->Tag().c_str(), spMessage->Type(), (it != mapMessage.end()) ? it->second.size() : 0);
+                if (it != mapMessage.end())
                 {
-                    // LOG_TRACE("message-center", "Dispatch tag (%s) message to actors, number is (%d)", spMessage->Tag().c_str(), it->second.size());
                     for (auto& pActor : it->second)
                     {
                         pActor->Publish(spMessage);

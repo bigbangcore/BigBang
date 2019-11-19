@@ -49,20 +49,20 @@ protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
 
-    void HandleSubscribe(const CPeerSubscribeMessageOutBound& subscribeMsg);
-    void HandleUnsubscribe(const CPeerUnsubscribeMessageOutBound& unsubscribeMsg);
-    void HandleInv(const CPeerInvMessageOutBound& invMsg);
-    void HandleGetData(const CPeerGetDataMessageOutBound& getDataMsg);
-    void HandleGetBlocks(const CPeerGetBlocksMessageOutBound& getBlocksMsg);
-    void HandlePeerTx(const CPeerTxMessageOutBound& txMsg);
-    void HandlePeerBlock(const CPeerBlockMessageOutBound& blockMsg);
+    void HandleSubscribe(const std::shared_ptr<CPeerSubscribeMessageOutBound> spMsg);
+    void HandleUnsubscribe(const std::shared_ptr<CPeerUnsubscribeMessageOutBound> spMsg);
+    void HandleInv(const std::shared_ptr<CPeerInvMessageOutBound> spMsg);
+    void HandleGetData(const std::shared_ptr<CPeerGetDataMessageOutBound> spMsg);
+    void HandleGetBlocks(const std::shared_ptr<CPeerGetBlocksMessageOutBound> spMsg);
+    void HandlePeerTx(const std::shared_ptr<CPeerTxMessageOutBound> spMsg);
+    void HandlePeerBlock(const std::shared_ptr<CPeerBlockMessageOutBound> spMsg);
 
-    void HandleBulletin(const CPeerBulletinMessageOutBound& bulletinMsg);
-    void HandleGetDelegate(const CPeerGetDelegatedMessageOutBound& getDelegatedMsg);
-    void HandleDistribute(const CPeerDistributeMessageOutBound& distributeMsg);
-    void HandlePublish(const CPeerPublishMessageOutBound& publishMsg);
+    void HandleBulletin(const std::shared_ptr<CPeerBulletinMessageOutBound> spMsg);
+    void HandleGetDelegate(const std::shared_ptr<CPeerGetDelegatedMessageOutBound> spMsg);
+    void HandleDistribute(const std::shared_ptr<CPeerDistributeMessageOutBound> spMsg);
+    void HandlePublish(const std::shared_ptr<CPeerPublishMessageOutBound> spMsg);
 
-    void HandlePrimaryChainHeightUpdate(const CAddedBlockMessage& addedBlockMsg);
+    void HandlePrimaryChainHeightUpdate(const std::shared_ptr<CAddedBlockMessage> spMsg);
 
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;

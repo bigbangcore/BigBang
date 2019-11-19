@@ -217,7 +217,7 @@ bool CHttpServer::HandleInitialize()
         }
     }
 
-    RegisterHandler(REF_HANDLER(CHttpRspMessage, boost::bind(&CHttpServer::HandleHttpRsp, this, _1), true));
+    RegisterHandler(PTR_HANDLER(CHttpRspMessage, boost::bind(&CHttpServer::HandleHttpRsp, this, _1), true));
 
     return true;
 }
@@ -331,7 +331,7 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
             return;
         }
     }
-    PUBLISH_MESSAGE(spHttpReqMsg);
+    PUBLISH(spHttpReqMsg);
 }
 
 void CHttpServer::HandleClientSent(CHttpClient* pHttpClient)
@@ -386,7 +386,7 @@ void CHttpServer::RemoveClient(CHttpClient* pHttpClient)
     auto spHttpBrokenMsg = CHttpBrokenMessage::Create();
     spHttpBrokenMsg->spNonce = pHttpClient->GetNonce();
     spHttpBrokenMsg->fEventStream = pHttpClient->IsEventStream();
-    PUBLISH_MESSAGE(spHttpBrokenMsg);
+    PUBLISH(spHttpBrokenMsg);
 }
 
 void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const string& strError)
@@ -426,9 +426,9 @@ void CHttpServer::RespondError(CHttpClient* pHttpClient, int nStatusCode, const 
     pHttpClient->SendResponse(strRsp);
 }
 
-void CHttpServer::HandleHttpRsp(const CHttpRspMessage& msg)
+void CHttpServer::HandleHttpRsp(const shared_ptr<CHttpRspMessage> spMsg)
 {
-    auto it = mapClient.find(msg.spNonce);
+    auto it = mapClient.find(spMsg->spNonce);
     if (it == mapClient.end())
     {
         return;
@@ -436,19 +436,19 @@ void CHttpServer::HandleHttpRsp(const CHttpRspMessage& msg)
 
     CHttpClient* pHttpClient = (*it).second;
 
-    auto mapHeader = msg.mapHeader;
-    auto mapCookie = msg.mapCookie;
-    string strRsp = CHttpUtil().BuildResponseHeader(msg.nStatusCode, mapHeader,
-                                                    mapCookie, msg.strContent.size())
-                    + msg.strContent;
+    auto mapHeader = spMsg->mapHeader;
+    auto mapCookie = spMsg->mapCookie;
+    string strRsp = CHttpUtil().BuildResponseHeader(spMsg->nStatusCode, mapHeader,
+                                                    mapCookie, spMsg->strContent.size())
+                    + spMsg->strContent;
 
-    if (msg.mapHeader.count("content-type")
-        && msg.mapHeader.at("content-type") == "text/event-stream")
+    if (spMsg->mapHeader.count("content-type")
+        && spMsg->mapHeader.at("content-type") == "text/event-stream")
     {
         pHttpClient->SetEventStream();
     }
 
-    if (msg.mapHeader.count("connection") && msg.mapHeader.at("connection") == "Keep-Alive")
+    if (spMsg->mapHeader.count("connection") && spMsg->mapHeader.at("connection") == "Keep-Alive")
     {
         pHttpClient->KeepAlive();
     }

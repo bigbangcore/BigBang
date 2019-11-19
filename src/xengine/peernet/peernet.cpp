@@ -27,8 +27,8 @@ CPeerNet::CPeerNet(const string& strOwnKeyIn)
   : CIOProc(strOwnKeyIn), confNetwork{}
 {
     RegisterHandler({
-        REF_HANDLER(CPeerNetCloseMessage, boost::bind(&CPeerNet::HandlePeerNetClose, this, _1), true),
-        REF_HANDLER(CPeerNetRewardMessage, boost::bind(&CPeerNet::HandlePeerNetReward, this, _1), true),
+        PTR_HANDLER(CPeerNetCloseMessage, boost::bind(&CPeerNet::HandlePeerNetClose, this, _1), true),
+        PTR_HANDLER(CPeerNetRewardMessage, boost::bind(&CPeerNet::HandlePeerNetReward, this, _1), true),
 
         PTR_HANDLER(CPeerNetGetIPMessage, boost::bind(&CPeerNet::HandlePeerGetIP, this, _1), true),
         PTR_HANDLER(CPeerNetGetCountMessage, boost::bind(&CPeerNet::HandlePeerGetCount, this, _1), true),
@@ -455,24 +455,24 @@ void CPeerNet::HandlePeerClrBanned(std::shared_ptr<CPeerNetClrBannedMessage> clr
     clrBannedMsg->count.set_value(vAddrToClear.size());
 }
 
-void CPeerNet::HandlePeerNetClose(const CPeerNetCloseMessage& netCloseMsg)
+void CPeerNet::HandlePeerNetClose(const shared_ptr<CPeerNetCloseMessage> spMsg)
 {
-    CPeer* pPeer = GetPeer(netCloseMsg.nNonce);
+    CPeer* pPeer = GetPeer(spMsg->nNonce);
     if (!pPeer)
     {
         return;
     }
-    RemovePeer(pPeer, netCloseMsg.closeReason);
+    RemovePeer(pPeer, spMsg->closeReason);
 }
 
-void CPeerNet::HandlePeerNetReward(const CPeerNetRewardMessage& netRewardMsg)
+void CPeerNet::HandlePeerNetReward(const shared_ptr<CPeerNetRewardMessage> spMsg)
 {
-    CPeer* pPeer = GetPeer(netRewardMsg.nNonce);
+    CPeer* pPeer = GetPeer(spMsg->nNonce);
     if (!pPeer)
     {
         return;
     }
-    epMngr.RewardEndpoint(pPeer->GetRemote(), netRewardMsg.bonus);
+    epMngr.RewardEndpoint(pPeer->GetRemote(), spMsg->bonus);
 }
 
 } // namespace xengine

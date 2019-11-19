@@ -20,12 +20,12 @@ namespace bigbang
 class CRPCMod : public xengine::CActor
 {
 protected:
-    typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr spNonce, rpc::CRPCParamPtr param);
-    typedef rpc::CRPCResultPtr (CRPCMod::*RPCMessageFunc)(const xengine::CMessage& msg);
+    typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(CNoncePtr, rpc::CRPCParamPtr);
+    typedef rpc::CRPCResultPtr (CRPCMod::*MessageFunc)(const std::shared_ptr<xengine::CMessage>);
 
     struct CRPCAssignmentMessage : public xengine::CMessage
     {
-        GENERATE_MESSAGE_FUNCTION(CRPCAssignmentMessage);
+        DECLARE_PUBLISHED_MESSAGE_FUNCTION(CRPCAssignmentMessage);
         std::shared_ptr<CNonce> spNonce;
         size_t nIndex;
         size_t nWorkerId;
@@ -33,7 +33,7 @@ protected:
     };
     struct CRPCSubmissionMessage : public xengine::CMessage
     {
-        GENERATE_MESSAGE_FUNCTION(CRPCSubmissionMessage);
+        DECLARE_PUBLISHED_MESSAGE_FUNCTION(CRPCSubmissionMessage);
         std::shared_ptr<CNonce> spNonce;
         size_t nIndex;
         size_t nWorkerId;
@@ -63,12 +63,12 @@ public:
     ~CRPCMod();
 
 protected:
-    void HandleHttpReq(const xengine::CHttpReqMessage& msg);
-    void HandleHttpBroken(const xengine::CHttpBrokenMessage& msg);
+    void HandleHttpReq(const std::shared_ptr<xengine::CHttpReqMessage> spMsg);
+    void HandleHttpBroken(const std::shared_ptr<xengine::CHttpBrokenMessage> spMsg);
     void HandleAddedTxMsg(std::shared_ptr<CAddedTxMessage> spMsg);
     void HandleAddedBlockMsg(std::shared_ptr<CAddedBlockMessage> spMsg);
-    void HandleSubmissionMsg(const CRPCSubmissionMessage& msg);
-    void HandleAssignmentMsg(const CRPCAssignmentMessage& msg);
+    void HandleSubmissionMsg(const std::shared_ptr<CRPCSubmissionMessage> spMsg);
+    void HandleAssignmentMsg(const std::shared_ptr<CRPCAssignmentMessage> spMsg);
 
     rpc::CRPCRespPtr StartWork(CNoncePtr spNonce, rpc::CRPCReqPtr spReq);
     rpc::CRPCRespPtr CheckAsyncWork(CWork& work, size_t& nIndex, rpc::CRPCRespPtr spResp, std::shared_ptr<xengine::CMessage>& spMsg);
@@ -186,9 +186,9 @@ protected:
     rpc::CRPCResultPtr RPCQueryStat(CNoncePtr spNonce, rpc::CRPCParamPtr param);
 
 protected:
-    rpc::CRPCResultPtr RPCMsgSubmitWork(const xengine::CMessage& msg);
-    rpc::CRPCResultPtr RPCMsgSendFrom(const xengine::CMessage& msg);
-    rpc::CRPCResultPtr RPCMsgSendTransaction(const xengine::CMessage& msg);
+    rpc::CRPCResultPtr MsgSubmitWork(const std::shared_ptr<xengine::CMessage> spMsg);
+    rpc::CRPCResultPtr MsgSendFrom(const std::shared_ptr<xengine::CMessage> spMsg);
+    rpc::CRPCResultPtr MsgSendTransaction(const std::shared_ptr<xengine::CMessage> spMsg);
 
 protected:
     xengine::CIOProc* pHttpServer;
@@ -197,7 +197,7 @@ protected:
     IDataStat* pDataStat;
 
     std::map<std::string, RPCFunc> mapRPCFunc;
-    std::map<std::string, RPCMessageFunc> mapRPCMessageFunc;
+    std::map<std::string, MessageFunc> mapMessageFunc;
 
     size_t nWorkCount;
     std::map<xengine::CNoncePtr, CWork> mapWork;

@@ -35,10 +35,10 @@ bool CTxPoolController::HandleInitialize()
 
     // TODO: Uncomment it when upgrade CDispatcher
     RegisterHandler({
-        REF_HANDLER(CAddTxMessage, boost::bind(&CTxPoolController::HandleAddTx, this, _1), true),
-        REF_HANDLER(CRemoveTxMessage, boost::bind(&CTxPoolController::HandleRemoveTx, this, _1), true),
-        REF_HANDLER(CClearTxMessage, boost::bind(&CTxPoolController::HandleClearTx, this, _1), true),
-        REF_HANDLER(CAddedBlockMessage, boost::bind(&CTxPoolController::HandleAddedBlock, this, _1), true),
+        PTR_HANDLER(CAddTxMessage, boost::bind(&CTxPoolController::HandleAddTx, this, _1), true),
+        PTR_HANDLER(CRemoveTxMessage, boost::bind(&CTxPoolController::HandleRemoveTx, this, _1), true),
+        PTR_HANDLER(CClearTxMessage, boost::bind(&CTxPoolController::HandleClearTx, this, _1), true),
+        PTR_HANDLER(CAddedBlockMessage, boost::bind(&CTxPoolController::HandleAddedBlock, this, _1), true),
     });
 
     return true;
@@ -133,24 +133,24 @@ bool CTxPoolController::SynchronizeWorldLine(const CWorldLineUpdate& update, CTx
     return SynchronizeWorldLineWithTxPool(update, change);
 }
 
-void CTxPoolController::HandleAddTx(const CAddTxMessage& msg)
+void CTxPoolController::HandleAddTx(const shared_ptr<CAddTxMessage> spMsg)
 {
     auto spAddedMsg = CAddedTxMessage::Create();
-    spAddedMsg->spNonce = msg.spNonce;
-    Push(msg.tx, spAddedMsg->hashFork, spAddedMsg->destIn, spAddedMsg->nValueIn);
-    spAddedMsg->tx = CAssembledTx(msg.tx, -1, spAddedMsg->destIn, spAddedMsg->nValueIn);
-    PUBLISH_MESSAGE(spAddedMsg);
+    spAddedMsg->spNonce = spMsg->spNonce;
+    Push(spMsg->tx, spAddedMsg->hashFork, spAddedMsg->destIn, spAddedMsg->nValueIn);
+    spAddedMsg->tx = CAssembledTx(spMsg->tx, -1, spAddedMsg->destIn, spAddedMsg->nValueIn);
+    PUBLISH(spAddedMsg);
 }
 
-void CTxPoolController::HandleRemoveTx(const CRemoveTxMessage& msg)
+void CTxPoolController::HandleRemoveTx(const shared_ptr<CRemoveTxMessage> spMsg)
 {
-    auto& txId = msg.txId;
+    auto& txId = spMsg->txId;
     Pop(txId);
 }
 
-void CTxPoolController::HandleClearTx(const CClearTxMessage& msg)
+void CTxPoolController::HandleClearTx(const shared_ptr<CClearTxMessage> spMsg)
 {
-    if (msg.hashFork == 0)
+    if (spMsg->hashFork == 0)
     {
         ClearTxPool();
     }
@@ -160,15 +160,15 @@ void CTxPoolController::HandleClearTx(const CClearTxMessage& msg)
     }
 }
 
-void CTxPoolController::HandleAddedBlock(const CAddedBlockMessage& msg)
+void CTxPoolController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage> spMsg)
 {
-    if (msg.nErrno == OK && !msg.update.IsNull())
+    if (spMsg->nErrno == OK && !spMsg->update.IsNull())
     {
         auto spSyncMsg = CSyncTxChangeMessage::Create();
-        spSyncMsg->hashFork = msg.hashFork;
-        spSyncMsg->update = msg.update;
-        SynchronizeWorldLineWithTxPool(msg.update, spSyncMsg->change);
-        PUBLISH_MESSAGE(spSyncMsg);
+        spSyncMsg->hashFork = spMsg->hashFork;
+        spSyncMsg->update = spMsg->update;
+        SynchronizeWorldLineWithTxPool(spMsg->update, spSyncMsg->change);
+        PUBLISH(spSyncMsg);
     }
 }
 
