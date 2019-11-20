@@ -7,7 +7,6 @@ sys.dont_write_bytecode = True
 import os
 import auto_options as options
 import auto_protocol as protocol
-import auto_rpc as rpc
 from tool import *
 
 
@@ -87,7 +86,6 @@ def generate():
     options.generate_options(json_files['options_json'], cpp_files['options_h'])
     protocol.generate_protocol(json_files['rpc_json'], json_files['mode_json'], cpp_files['protocol_h'],
                                cpp_files['protocol_cpp'], cpp_files['config_h'], cpp_files['config_cpp'])
-    # rpc.generate_rpc(json_files['mode_json'], json_files['rpc_json'], cpp_files['rpc_h'], cpp_files['rpc_cpp'])
 
 
 if __name__ == '__main__':

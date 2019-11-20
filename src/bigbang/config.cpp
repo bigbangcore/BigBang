@@ -124,12 +124,12 @@ bool CConfig::PostLoad()
         }
         catch (rpc::CRPCException& e)
         {
-            StdError(__PRETTY_FUNCTION__, (e.strMessage + rpc::strHelpTips).c_str());
+            std::cerr << e.strMessage << rpc::strClientHelpTips << std::endl;
             return false;
         }
         catch (std::exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            std::cerr << e.what() << std::endl;
             return false;
         }
     }
