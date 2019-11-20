@@ -63,11 +63,11 @@ public:
 class CListUnspentWalker : public CForkUnspentDBWalker
 {
 public:
-    CListUnspentWalker(const uint256& forkidIn, const CDestination& destOwnerIn, int maxIn)
+    CListUnspentWalker(const uint256& forkidIn, const CDestination& destOwnerIn, uint32 maxIn)
       : forkId(forkidIn), destOwner(destOwnerIn), nMax(maxIn), nCounter(0) {}
     bool Walk(const CTxOutPoint& txout, const CTxOut& output) override
     {
-        if (nMax > -1 && nCounter >= nMax)
+        if (nMax != 0 && nCounter >= nMax)
         {
             return false; //exit walk through processing
         }
@@ -82,8 +82,8 @@ public:
 public:
     const uint256& forkId;
     const CDestination& destOwner;
-    int nMax;
-    int nCounter;
+    uint32 nMax;
+    uint32 nCounter;
     std::vector<CTxUnspent> vUnspent;
 };
 

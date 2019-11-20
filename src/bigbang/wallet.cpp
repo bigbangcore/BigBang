@@ -616,6 +616,33 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     return true;
 }
 
+bool CWallet::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
+{
+    auto it = mapWalletUnspent.find(dest);
+    if (it == mapWalletUnspent.end())
+    {
+        return false;
+    }
+    auto& setCoins = it->second.GetCoins(hashFork).setCoins;
+
+    vUnspent.clear();
+    if (nMax > 0)
+    {
+        vUnspent.reserve(min((size_t)nMax, setCoins.size()));
+    }
+    uint32 nCounter = 0;
+    for (auto& out : setCoins)
+    {
+        vUnspent.push_back(CTxUnspent(out.GetTxOutPoint(), out.GetTxOutput()));
+
+        if (nMax != 0 && ++nCounter >= nMax)
+        {
+            break;
+        }
+    }
+    return true;
+}
+
 bool CWallet::UpdateTx(const uint256& hashFork, const CAssembledTx& tx)
 {
     vector<CWalletTx> vWalletTx;
@@ -1128,7 +1155,13 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
 {
     vCoins.clear();
 
-    CWalletCoins& walletCoins = mapWalletUnspent[dest].GetCoins(hashFork);
+    auto it = mapWalletUnspent.find(dest);
+    if (it == mapWalletUnspent.end())
+    {
+        return 0;
+    }
+
+    CWalletCoins& walletCoins = it->second.GetCoins(hashFork);
     if (walletCoins.nTotalValue < nTargetValue)
     {
         return 0;
