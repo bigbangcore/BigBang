@@ -5,10 +5,10 @@
 #ifndef XENGINE_UTIL_H
 #define XENGINE_UTIL_H
 
+#include <atomic>
 #include <boost/asio/ip/address.hpp>
 #include <boost/date_time.hpp>
 #include <openssl/rand.h>
-#include <atomic>
 
 #include "type.h"
 

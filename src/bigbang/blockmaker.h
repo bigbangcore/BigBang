@@ -94,7 +94,7 @@ protected:
     bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
     bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
 
-    void HandleAddedBlock(const CAddedBlockMessage& msg);
+    void HandleAddedBlock(const std::shared_ptr<CAddedBlockMessage>& spMsg);
 
 private:
     enum

@@ -108,11 +108,11 @@ protected:
     }
 };
 
-class IWorldLineController : public xengine::CIOActor
+class IWorldLineController : public xengine::CActor
 {
 public:
     IWorldLineController()
-      : CIOActor("worldlinecontroller"), pWorldLine(nullptr) {}
+      : CActor("worldlinecontroller"), pWorldLine(nullptr) {}
 
     // TODO: remove these functions because of existed in IWorldLine
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
@@ -194,11 +194,11 @@ protected:
     virtual bool SynchronizeWorldLine(const CWorldLineUpdate& update, CTxSetChange& change) = 0;
 };
 
-class ITxPoolController : public xengine::CIOActor
+class ITxPoolController : public xengine::CActor
 {
 public:
     ITxPoolController()
-      : CIOActor("txpoolcontroller"), pTxPool(nullptr) {}
+      : CActor("txpoolcontroller"), pTxPool(nullptr) {}
     virtual void Clear() = 0;
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
@@ -283,11 +283,11 @@ protected:
     virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
 };
 
-class IConsensusController : public xengine::CIOActor
+class IConsensusController : public xengine::CActor
 {
 public:
     IConsensusController()
-      : CIOActor("consensuscontroller"), pConsensus(nullptr) {}
+      : CActor("consensuscontroller"), pConsensus(nullptr) {}
 
 protected:
     void PrimaryUpdate(const CWorldLineUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
@@ -314,11 +314,11 @@ protected:
     IConsensus* pConsensus;
 };
 
-class IBlockMaker : public xengine::CIOActor
+class IBlockMaker : public xengine::CActor
 {
 public:
     IBlockMaker()
-      : CIOActor("blockmaker") {}
+      : CActor("blockmaker") {}
     const CMintConfig* MintConfig()
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
@@ -377,11 +377,11 @@ protected:
     virtual bool AddNewFork(const uint256& hashFork, const uint256& hashParent, int nOriginHeight) = 0;
 };
 
-class IWalletController : public xengine::CIOActor
+class IWalletController : public xengine::CActor
 {
 public:
     IWalletController()
-      : CIOActor("walletcontroller"), pWallet(nullptr) {}
+      : CActor("walletcontroller"), pWallet(nullptr) {}
 
 protected:
     bool SynchronizeTxSet(const CTxSetChange& change)
@@ -485,11 +485,11 @@ protected:
     virtual void NotifyTransactionUpdate(const CTransactionUpdate& update) = 0;
 };
 
-class IServiceController : public xengine::CIOActor
+class IServiceController : public xengine::CActor
 {
 public:
     IServiceController()
-      : CIOActor("servicecontroller"), pService(nullptr) {}
+      : CActor("servicecontroller"), pService(nullptr) {}
 
 protected:
     void NotifyWorldLineUpdate(const CWorldLineUpdate& update)

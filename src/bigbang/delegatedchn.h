@@ -188,16 +188,16 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleActive(const CPeerActiveMessage& activeMsg);
-    void HandleDeactive(const CPeerDeactiveMessage& deactiveMsg);
-    void HandleBulletin(const CPeerBulletinMessageInBound& bulletinMsg);
-    void HandleGetDelegate(const CPeerGetDelegatedMessageInBound& getDelegatedMsg);
-    void HandleDistribute(const CPeerDistributeMessageInBound& distributeMsg);
-    void HandlePublish(const CPeerPublishMessageInBound& publishMsg);
+    void HandleActive(const std::shared_ptr<CPeerActiveMessage>& spMsg);
+    void HandleDeactive(const std::shared_ptr<CPeerDeactiveMessage>& spMsg);
+    void HandleBulletin(const std::shared_ptr<CPeerBulletinMessageInBound>& spMsg);
+    void HandleGetDelegate(const std::shared_ptr<CPeerGetDelegatedMessageInBound>& spMsg);
+    void HandleDistribute(const std::shared_ptr<CPeerDistributeMessageInBound>& spMsg);
+    void HandlePublish(const std::shared_ptr<CPeerPublishMessageInBound>& spMsg);
 
-    void HandleAddedNewDistribute(const CAddedNewDistributeMessage& message);
-    void HandleAddedNewPublish(const CAddedNewPublishMessage& message);
-    void HandleDelegateRoutine(const CCDelegateRoutineMessage& message);
+    void HandleAddedNewDistribute(const std::shared_ptr<CAddedNewDistributeMessage>& spMsg);
+    void HandleAddedNewPublish(const std::shared_ptr<CAddedNewPublishMessage>& spMsg);
+    void HandleDelegateRoutine(const std::shared_ptr<CCDelegateRoutineMessage>& spMsg);
 
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();

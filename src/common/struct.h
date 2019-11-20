@@ -14,9 +14,9 @@
 #include <vector>
 
 #include "block.h"
+#include "proto.h"
 #include "transaction.h"
 #include "uint256.h"
-#include "proto.h"
 
 // Status
 class CForkStatus

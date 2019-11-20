@@ -9,19 +9,19 @@
 namespace xengine
 {
 
-CIOActor::CIOActor(const std::string& strOwnKeyIn)
+CActor::CActor(const std::string& strOwnKeyIn)
   : IController(strOwnKeyIn),
-    CIOActorWorker(strOwnKeyIn)
+    CActorWorker(strOwnKeyIn)
 {
 }
 
-CIOActor::~CIOActor()
+CActor::~CActor()
 {
 }
 
-bool CIOActor::StartActor()
+bool CActor::StartActor()
 {
-    if (!ThreadDelayStart(thrIOActorWorker))
+    if (!ThreadDelayStart(thr))
     {
         ERROR("Failed to start thread");
         return false;
@@ -30,24 +30,18 @@ bool CIOActor::StartActor()
     return true;
 }
 
-void CIOActor::StopActor()
+void CActor::StopActor()
 {
     Stop();
 }
 
-bool CIOActor::EnterLoop()
+bool CActor::EnterLoop()
 {
     return true;
 }
 
-void CIOActor::LeaveLoop()
+void CActor::LeaveLoop()
 {
-}
-
-void CIOActor::DeregisterHandler(const uint32 nType)
-{
-    CMessageCenter::GetInstance().Unsubscribe(nType, this);
-    CIOActorWorker::DeregisterHandler(nType);
 }
 
 } // namespace xengine

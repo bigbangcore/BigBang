@@ -8,9 +8,9 @@
 #include <boost/test/unit_test.hpp>
 #include <thread>
 
+#include "actor/actor.h"
 #include "docker/config.h"
 #include "docker/docker.h"
-#include "actor/actor.h"
 #include "message/message.h"
 #include "message/messagecenter.h"
 #include "test_big.h"
@@ -22,7 +22,7 @@ BOOST_FIXTURE_TEST_SUITE(timer_tests, BasicUtfSetup)
 
 struct CTimeoutMessageA : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageA);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CTimeoutMessageA);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
@@ -34,7 +34,7 @@ boost::system_time CTimeoutMessageA::HandledTimeB;
 
 struct CTimeoutMessageB : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageB);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CTimeoutMessageB);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
@@ -46,7 +46,7 @@ boost::system_time CTimeoutMessageB::HandledTimeB;
 
 struct CTimeoutMessageC : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageC);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CTimeoutMessageC);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
@@ -58,7 +58,7 @@ boost::system_time CTimeoutMessageC::HandledTimeB;
 
 struct CTimeoutMessageD : public CTimeoutMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CTimeoutMessageD);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CTimeoutMessageD);
     boost::system_time tm;
     static boost::system_time PublishTime;
     static boost::system_time HandledTimeA;
@@ -68,16 +68,18 @@ boost::system_time CTimeoutMessageD::PublishTime;
 boost::system_time CTimeoutMessageD::HandledTimeA;
 boost::system_time CTimeoutMessageD::HandledTimeB;
 
-class CActorA : public CIOActor
+class CActorA : public CActor
 {
 public:
     CActorA()
-      : CIOActor("actorA") {}
+      : CActor("actorA") {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorA::HandlerMessageA, this, _1));
-        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorA::HandlerMessageB, this, _1));
-        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorA::HandlerMessageC, this, _1));
+        RegisterHandler({
+            PTR_HANDLER(CTimeoutMessageA, boost::bind(&CActorA::HandlerMessageA, this, _1), true),
+            PTR_HANDLER(CTimeoutMessageB, boost::bind(&CActorA::HandlerMessageB, this, _1), true),
+            PTR_HANDLER(CTimeoutMessageC, boost::bind(&CActorA::HandlerMessageC, this, _1), true),
+        });
         return true;
     }
     virtual bool HandleInvoke() override
@@ -90,37 +92,37 @@ public:
     }
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CTimeoutMessageA::MessageType());
-        DeregisterHandler(CTimeoutMessageB::MessageType());
-        DeregisterHandler(CTimeoutMessageC::MessageType());
+        DeregisterHandler();
     }
 
 protected:
-    void HandlerMessageA(const CTimeoutMessageA& msg)
+    void HandlerMessageA(const shared_ptr<CTimeoutMessageA>& spMsg)
     {
         CTimeoutMessageA::HandledTimeA = boost::get_system_time();
     }
-    void HandlerMessageB(const CTimeoutMessageB& msg)
+    void HandlerMessageB(const shared_ptr<CTimeoutMessageB>& spMsg)
     {
         CTimeoutMessageB::HandledTimeA = boost::get_system_time();
     }
-    void HandlerMessageC(const CTimeoutMessageC& msg)
+    void HandlerMessageC(const shared_ptr<CTimeoutMessageC>& spMsg)
     {
         CTimeoutMessageC::HandledTimeA = boost::get_system_time();
     }
 };
 
-class CActorB : public CIOActor
+class CActorB : public CActor
 {
 public:
     CActorB()
-      : CIOActor("actorB") {}
+      : CActor("actorB") {}
     virtual bool HandleInitialize() override
     {
-        RegisterRefHandler<CTimeoutMessageA>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageB>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageC>(boost::bind(&CActorB::HandlerMessage, this, _1));
-        RegisterRefHandler<CTimeoutMessageD>(boost::bind(&CActorB::HandlerMessage, this, _1));
+        RegisterHandler({
+            PTR_HANDLER(CTimeoutMessageA, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTimeoutMessageB, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTimeoutMessageC, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+            PTR_HANDLER(CTimeoutMessageD, boost::bind(&CActorB::HandlerMessage, this, _1), true),
+        });
         return true;
     }
     virtual bool HandleInvoke() override
@@ -133,34 +135,31 @@ public:
     }
     virtual void HandleDeinitialize() override
     {
-        DeregisterHandler(CTimeoutMessageA::MessageType());
-        DeregisterHandler(CTimeoutMessageB::MessageType());
-        DeregisterHandler(CTimeoutMessageC::MessageType());
-        DeregisterHandler(CTimeoutMessageD::MessageType());
+        DeregisterHandler();
     }
 
 protected:
-    void HandlerMessage(const CTimeoutMessage& msg)
+    void HandlerMessage(const shared_ptr<CTimeoutMessage>& spMsg)
     {
-        if (msg.Type() == CTimeoutMessageA::MessageType())
+        if (spMsg->Type() == CTimeoutMessageA::MessageType())
         {
             CTimeoutMessageA::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageB::MessageType())
+        else if (spMsg->Type() == CTimeoutMessageB::MessageType())
         {
             CTimeoutMessageB::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageC::MessageType())
+        else if (spMsg->Type() == CTimeoutMessageC::MessageType())
         {
             CTimeoutMessageC::HandledTimeB = boost::get_system_time();
         }
-        else if (msg.Type() == CTimeoutMessageD::MessageType())
+        else if (spMsg->Type() == CTimeoutMessageD::MessageType())
         {
             CTimeoutMessageD::HandledTimeB = boost::get_system_time();
         }
         else
         {
-            cout << "Unknown CMessage: " << msg.Type() << endl;
+            cout << "Unknown CMessage: " << spMsg->Type() << endl;
         }
     }
 };
@@ -189,7 +188,7 @@ BOOST_AUTO_TEST_CASE(basic)
     auto handledTimeA = spTimeoutA->tm + boost::posix_time::milliseconds(100);
 
     auto spSetTimerA = CSetTimerMessage::Create(spTimeoutA, handledTimeA);
-    PUBLISH_MESSAGE(spSetTimerA);
+    PUBLISH(spSetTimerA);
 
     // publish B
     auto spTimeoutB = CTimeoutMessageB::Create();
@@ -197,7 +196,7 @@ BOOST_AUTO_TEST_CASE(basic)
     auto handledTimeB = spTimeoutB->tm + boost::posix_time::milliseconds(300);
 
     auto spSetTimerB = CSetTimerMessage::Create(spTimeoutB, handledTimeB);
-    PUBLISH_MESSAGE(spSetTimerB);
+    PUBLISH(spSetTimerB);
 
     // publish C
     auto spTimeoutC = CTimeoutMessageC::Create();
@@ -205,7 +204,7 @@ BOOST_AUTO_TEST_CASE(basic)
     auto handledTimeC = spTimeoutC->tm + boost::posix_time::milliseconds(500);
 
     auto spSetTimerC = CSetTimerMessage::Create(spTimeoutC, handledTimeC);
-    PUBLISH_MESSAGE(spSetTimerC);
+    PUBLISH(spSetTimerC);
 
     // publish D
     auto spTimeoutD = CTimeoutMessageD::Create();
@@ -213,12 +212,12 @@ BOOST_AUTO_TEST_CASE(basic)
     auto handledTimeD = spTimeoutD->tm + boost::posix_time::milliseconds(800);
 
     auto spSetTimerD = CSetTimerMessage::Create(spTimeoutD, handledTimeD);
-    PUBLISH_MESSAGE(spSetTimerD);
+    PUBLISH(spSetTimerD);
 
     // cancel C
     auto spCancelC = CCancelTimerMessage::Create();
     spCancelC->spTimeout = spTimeoutC;
-    PUBLISH_MESSAGE(spCancelC);
+    PUBLISH(spCancelC);
 
     this_thread::sleep_for(chrono::seconds(1));
 

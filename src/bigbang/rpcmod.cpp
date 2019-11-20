@@ -146,7 +146,7 @@ public:
 // CRPCMod
 
 CRPCMod::CRPCMod(const uint nWorker)
-  : CIOActor("rpcmod"), nWorkCount(0),
+  : CActor("rpcmod"), nWorkCount(0),
     mapRPCFunc({
         /* System */
         { "help", &CRPCMod::RPCHelp },
@@ -206,10 +206,10 @@ CRPCMod::CRPCMod(const uint nWorker)
         /* tool */
         { "querystat", &CRPCMod::RPCQueryStat },
     }),
-    mapRPCMessageFunc({
-        { "submitwork", &CRPCMod::RPCMsgSubmitWork },
-        { "sendfrom", &CRPCMod::RPCMsgSendFrom },
-        { "sendtransaction", &CRPCMod::RPCMsgSendTransaction },
+    mapMessageFunc({
+        { "submitwork", &CRPCMod::MsgSubmitWork },
+        { "sendfrom", &CRPCMod::MsgSendFrom },
+        { "sendtransaction", &CRPCMod::MsgSendTransaction },
     })
 {
     pHttpServer = nullptr;
@@ -257,11 +257,13 @@ bool CRPCMod::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CHttpReqMessage>(boost::bind(&CRPCMod::HandleHttpReq, this, _1));
-    RegisterRefHandler<CHttpBrokenMessage>(boost::bind(&CRPCMod::HandleHttpBroken, this, _1));
-    RegisterPtrHandler<CAddedTxMessage>(boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1));
-    RegisterPtrHandler<CAddedBlockMessage>(boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1));
-    RegisterRefHandler<CRPCSubmissionMessage>(boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1));
+    RegisterHandler({
+        PTR_HANDLER(CHttpReqMessage, boost::bind(&CRPCMod::HandleHttpReq, this, _1), true),
+        PTR_HANDLER(CHttpBrokenMessage, boost::bind(&CRPCMod::HandleHttpBroken, this, _1), true),
+        PTR_HANDLER(CAddedTxMessage, boost::bind(&CRPCMod::HandleAddedTxMsg, this, _1), true),
+        PTR_HANDLER(CAddedBlockMessage, boost::bind(&CRPCMod::HandleAddedBlockMsg, this, _1), true),
+        PTR_HANDLER(CRPCSubmissionMessage, boost::bind(&CRPCMod::HandleSubmissionMsg, this, _1), true),
+    });
 
     return true;
 }
@@ -289,11 +291,7 @@ void CRPCMod::HandleDeinitialize()
     pService = nullptr;
     pDataStat = nullptr;
 
-    DeregisterHandler(CHttpReqMessage::MessageType());
-    DeregisterHandler(CHttpBrokenMessage::MessageType());
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-    DeregisterHandler(CRPCSubmissionMessage::MessageType());
+    DeregisterHandler();
 }
 
 bool CRPCMod::EnterLoop()
@@ -301,7 +299,7 @@ bool CRPCMod::EnterLoop()
     for (auto it = vecWorker.begin(); it != vecWorker.end();)
     {
         auto& spWorker = it->spWorker;
-        spWorker->RegisterRefHandler<CRPCAssignmentMessage>(boost::bind(&CRPCMod::HandleAssignmentMsg, this, _1));
+        spWorker->RegisterHandler(PTR_HANDLER(CRPCAssignmentMessage, boost::bind(&CRPCMod::HandleAssignmentMsg, this, _1), false));
         if (!ThreadStart(spWorker->GetThread()))
         {
             ERROR("Failed to start RPC worker (%s)", spWorker->GetName().c_str());
@@ -322,27 +320,27 @@ void CRPCMod::LeaveLoop()
     {
         auto& spWorker = it->spWorker;
         spWorker->Stop();
-        spWorker->DeregisterHandler(CRPCAssignmentMessage::MessageType());
+        spWorker->DeregisterHandler();
     }
 }
 
-void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
+void CRPCMod::HandleHttpReq(const shared_ptr<CHttpReqMessage>& spMsg)
 {
     // invalid nonce
-    if (!msg.spNonce->fValid)
+    if (!spMsg->spNonce->fValid)
     {
         ERROR("RPCMod ignore RPC because of invalid nonce");
         return;
     }
 
-    auto workPair = mapWork.insert(make_pair(msg.spNonce, CWork()));
+    auto workPair = mapWork.insert(make_pair(spMsg->spNonce, CWork()));
     // Repeated request
     if (!workPair.second)
     {
         auto spError = MakeCRPCErrorPtr(RPC_INVALID_REQUEST, "Repeated request");
         CRPCResp resp(spError->valData, spError);
         string strResult = resp.Serialize();
-        JsonReply(msg.spNonce, strResult);
+        JsonReply(spMsg->spNonce, strResult);
 
         TRACE("response : %s", MaskSensitiveData(strResult).c_str());
         return;
@@ -353,9 +351,9 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
     try
     {
         // check version
-        if (msg.mapHeader.count("url"))
+        if (spMsg->mapHeader.count("url"))
         {
-            string strVersion = msg.mapHeader.at("url").substr(1);
+            string strVersion = spMsg->mapHeader.at("url").substr(1);
             if (!strVersion.empty() && !CheckVersion(strVersion))
             {
                 throw CRPCException(RPC_VERSION_OUT_OF_DATE,
@@ -364,7 +362,7 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
             }
         }
 
-        work.vecReq = DeserializeCRPCReq(msg.strContent, work.fArray);
+        work.vecReq = DeserializeCRPCReq(spMsg->strContent, work.fArray);
         work.nRemainder = work.vecReq.size();
         work.vecResp.resize(work.nRemainder);
     }
@@ -385,7 +383,7 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
     // no result means no return
     if (!strResult.empty())
     {
-        JsonReply(msg.spNonce, strResult);
+        JsonReply(spMsg->spNonce, strResult);
         TRACE("response : %s", MaskSensitiveData(strResult).c_str());
         return;
     }
@@ -397,18 +395,18 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
     {
         if (vecWorker.empty())
         {
-            auto spResp = StartWork(msg.spNonce, work.vecReq[i]);
-            CompletedWork(msg.spNonce, i, spResp, nullptr);
+            auto spResp = StartWork(spMsg->spNonce, work.vecReq[i]);
+            CompletedWork(spMsg->spNonce, i, spResp, nullptr);
         }
         else
         {
             auto spAssignmentMsg = CRPCAssignmentMessage::Create();
-            spAssignmentMsg->spNonce = msg.spNonce;
+            spAssignmentMsg->spNonce = spMsg->spNonce;
             spAssignmentMsg->nIndex = i;
             spAssignmentMsg->spReq = work.vecReq[i];
 
             // Average assignment
-            size_t nWorkerId = (msg.spNonce->nNonce + i) % vecWorker.size();
+            size_t nWorkerId = (spMsg->spNonce->nNonce + i) % vecWorker.size();
             while (vecWorker[nWorkerId].nPayload > nAvgPayload)
             {
                 nWorkerId = (nWorkerId + 1) % vecWorker.size();
@@ -422,9 +420,9 @@ void CRPCMod::HandleHttpReq(const CHttpReqMessage& msg)
     }
 }
 
-void CRPCMod::HandleHttpBroken(const CHttpBrokenMessage& msg)
+void CRPCMod::HandleHttpBroken(const shared_ptr<CHttpBrokenMessage>& spMsg)
 {
-    auto it = mapWork.find(msg.spNonce);
+    auto it = mapWork.find(spMsg->spNonce);
     if (it != mapWork.end())
     {
         nWorkCount -= it->second.vecReq.size();
@@ -443,22 +441,22 @@ void CRPCMod::HandleAddedBlockMsg(shared_ptr<CAddedBlockMessage> spMsg)
     CompletedWork(spMsg->spNonce, 0, nullptr, spMsg);
 }
 
-void CRPCMod::HandleSubmissionMsg(const CRPCSubmissionMessage& msg)
+void CRPCMod::HandleSubmissionMsg(const shared_ptr<CRPCSubmissionMessage>& spMsg)
 {
-    vecWorker[msg.nWorkerId].nPayload--;
-    TRACE("Submission message worker (%s) payload (%u)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), vecWorker[msg.nWorkerId].nPayload);
-    CompletedWork(msg.spNonce, msg.nIndex, msg.spResp, nullptr);
+    vecWorker[spMsg->nWorkerId].nPayload--;
+    TRACE("Submission message worker (%s) payload (%u)", vecWorker[spMsg->nWorkerId].spWorker->GetName().c_str(), vecWorker[spMsg->nWorkerId].nPayload);
+    CompletedWork(spMsg->spNonce, spMsg->nIndex, spMsg->spResp, nullptr);
 }
 
-void CRPCMod::HandleAssignmentMsg(const CRPCAssignmentMessage& msg)
+void CRPCMod::HandleAssignmentMsg(const shared_ptr<CRPCAssignmentMessage>& spMsg)
 {
     auto spSubmissionMsg = CRPCSubmissionMessage::Create();
-    spSubmissionMsg->spNonce = msg.spNonce;
-    spSubmissionMsg->nIndex = msg.nIndex;
-    spSubmissionMsg->nWorkerId = msg.nWorkerId;
+    spSubmissionMsg->spNonce = spMsg->spNonce;
+    spSubmissionMsg->nIndex = spMsg->nIndex;
+    spSubmissionMsg->nWorkerId = spMsg->nWorkerId;
 
-    TRACE("Worker (%s) start work (%s)", vecWorker[msg.nWorkerId].spWorker->GetName().c_str(), msg.spReq->strMethod.c_str());
-    spSubmissionMsg->spResp = StartWork(msg.spNonce, msg.spReq);
+    TRACE("Worker (%s) start work (%s)", vecWorker[spMsg->nWorkerId].spWorker->GetName().c_str(), spMsg->spReq->strMethod.c_str());
+    spSubmissionMsg->spResp = StartWork(spMsg->spNonce, spMsg->spReq);
     Publish(spSubmissionMsg);
 }
 
@@ -566,15 +564,15 @@ CRPCRespPtr CRPCMod::CheckAsyncWork(CWork& work, size_t& nIndex, CRPCRespPtr spR
 
     TRACE("Async work (%s), index (%u)", work.vecReq[nIndex]->strMethod.c_str(), nIndex);
     auto& spReq = work.vecReq[nIndex];
-    auto funIt = mapRPCMessageFunc.find(spReq->strMethod);
-    if (funIt == mapRPCMessageFunc.end())
+    auto funIt = mapMessageFunc.find(spReq->strMethod);
+    if (funIt == mapMessageFunc.end())
     {
         auto spError = CRPCErrorPtr(new CRPCError(RPC_METHOD_NOT_FOUND, string("RPC Message function (") + spReq->strMethod + ") not found"));
         return MakeCRPCRespPtr(spReq->valID, spError);
     }
     else
     {
-        auto spResult = (this->*(*funIt).second)(*spMsg);
+        auto spResult = (this->*(*funIt).second)(spMsg);
         return MakeCRPCRespPtr(spReq->valID, spResult);
     }
 }
@@ -633,7 +631,7 @@ void CRPCMod::JsonReply(CNoncePtr spNonce, const std::string& result)
     spMsg->mapHeader["connection"] = "Keep-Alive";
     spMsg->mapHeader["server"] = "bigbang-rpc";
     spMsg->strContent = result + "\n";
-    PUBLISH_MESSAGE(spMsg);
+    PUBLISH(spMsg);
 }
 
 bool CRPCMod::CheckWalletError(Errno err)
@@ -2614,37 +2612,37 @@ CRPCResultPtr CRPCMod::RPCQueryStat(CNoncePtr spNonce, CRPCParamPtr param)
     return MakeCQueryStatResultPtr(string("error"));
 }
 
-CRPCResultPtr CRPCMod::RPCMsgSubmitWork(const CMessage& message)
+CRPCResultPtr CRPCMod::MsgSubmitWork(const shared_ptr<CMessage>& spMsg)
 {
-    const CAddedBlockMessage& msg = static_cast<const CAddedBlockMessage&>(message);
-    Errno err = (Errno)msg.nErrno;
+    auto spAddedMsg = dynamic_pointer_cast<CAddedBlockMessage>(spMsg);
+    Errno err = (Errno)spAddedMsg->nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, string("Block rejected : ") + ErrorString(err));
     }
-    return MakeCSubmitWorkResultPtr(msg.block.GetHash().GetHex());
+    return MakeCSubmitWorkResultPtr(spAddedMsg->block.GetHash().GetHex());
 }
 
-CRPCResultPtr CRPCMod::RPCMsgSendFrom(const CMessage& message)
+CRPCResultPtr CRPCMod::MsgSendFrom(const shared_ptr<CMessage>& spMsg)
 {
-    const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
-    Errno err = (Errno)msg.nErrno;
+    auto spAddedMsg = dynamic_pointer_cast<const CAddedTxMessage>(spMsg);
+    Errno err = (Errno)spAddedMsg->nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));
     }
-    return MakeCSendFromResultPtr(msg.tx.GetHash().GetHex());
+    return MakeCSendFromResultPtr(spAddedMsg->tx.GetHash().GetHex());
 }
 
-CRPCResultPtr CRPCMod::RPCMsgSendTransaction(const CMessage& message)
+CRPCResultPtr CRPCMod::MsgSendTransaction(const shared_ptr<CMessage>& spMsg)
 {
-    const CAddedTxMessage& msg = static_cast<const CAddedTxMessage&>(message);
-    Errno err = (Errno)msg.nErrno;
+    auto spAddedMsg = dynamic_pointer_cast<CAddedTxMessage>(spMsg);
+    Errno err = (Errno)spAddedMsg->nErrno;
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ") + ErrorString(err));
     }
-    return MakeCSendTransactionResultPtr(msg.tx.GetHash().GetHex());
+    return MakeCSendTransactionResultPtr(spAddedMsg->tx.GetHash().GetHex());
 }
 
 } // namespace bigbang

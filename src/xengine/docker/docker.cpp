@@ -330,32 +330,14 @@ void CDocker::FatalError(const std::string& key)
 
 bool CDocker::ThreadStart(CThread& thr)
 {
-    try
-    {
-        boost::thread::attributes attr;
-        attr.set_stack_size(16 * 1024 * 1024);
-        thr.pThread = new boost::thread(attr, boost::bind(&CDocker::ThreadRun, this, boost::ref(thr)));
-        return (thr.pThread != nullptr);
-    }
-    catch (exception& e)
-    {
-        ERROR("Thread (%s) start error: %s", thr.strThreadName.c_str(), e.what());
-    }
-    return false;
+    thr.pThread = new boost::thread(boost::bind(&CDocker::ThreadRun, this, boost::ref(thr)));
+    return (thr.pThread != nullptr);
 }
 
 bool CDocker::ThreadDelayStart(CThread& thr)
 {
-    try
-    {
-        thr.pThread = new boost::thread(boost::bind(&CDocker::ThreadDelayRun, this, boost::ref(thr)));
-        return (thr.pThread != nullptr);
-    }
-    catch (exception& e)
-    {
-        ERROR("Thread (%s) delay start error: %s", thr.strThreadName.c_str(), e.what());
-    }
-    return false;
+    thr.pThread = new boost::thread(boost::bind(&CDocker::ThreadDelayRun, this, boost::ref(thr)));
+    return (thr.pThread != nullptr);
 }
 
 void CDocker::ThreadExit(CThread& thr)

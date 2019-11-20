@@ -12,8 +12,8 @@
 #include <set>
 #include <type_traits>
 
-#include "base/controller.h"
 #include "actor/actorworker.h"
+#include "base/controller.h"
 #include "message/messagecenter.h"
 
 namespace xengine
@@ -22,22 +22,20 @@ namespace xengine
 class CMessage;
 
 /**
- * @brief CIOActor object can handle message.
+ * @brief CActor object can handle message.
  */
-class CIOActor : public IController, public CIOActorWorker
+class CActor : public IController, public CActorWorker
 {
-    typedef std::function<void(const CMessage&)> HandlerFunction;
-
 public:
     /**
      * @brief Actor constructor
      */
-    CIOActor(const std::string& strOwnKeyIn = "");
+    CActor(const std::string& strOwnKeyIn = "");
 
     /**
      * @brief Actor destructor
      */
-    virtual ~CIOActor();
+    virtual ~CActor();
 
 protected:
     /**
@@ -61,61 +59,6 @@ protected:
      * @brief Called after message handler thread stopping.
      */
     virtual void LeaveLoop() override;
-
-    /**
-     * @brief Register message handler for derived.
-     * @tparam Message Concrete message class to be registered.
-     *         Message is equal to or derived from CMessage.
-     * @param handler The function (void handler(const std::shared_ptr<Message>)) which handle message.
-     * @code
-     *     void HandlerDerivedFunction(const std::shared_ptr<DerivedMessage>&);
-     *     RegisterPtrHandler<DerivedMessage>(HandlerDerivedFunction);
-     * 
-     *     void HandlerBaseFunction(const std::shared_ptr<CMessage>&);
-     *     RegisterPtrHandler<DerivedMessage>(HandlerBaseFunction);
-     * @endcode
-     */
-    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    void RegisterPtrHandler(boost::function<void(const std::shared_ptr<Message>&)> handler)
-    {
-        CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
-        CIOActorWorker::RegisterPtrHandler<Message>(handler);
-    }
-
-    /**
-     * @brief Register message handler for derived.
-     * @tparam Message Concrete message class to be registered.
-     *         Message is equal to or derived from CMessage.
-     * @param handler The function (void handler(const Message&)) which handle message.
-     * @code
-     *     void HandlerDerivedFunction(const DerivedMessage&);
-     *     RegisterRefHandler<DerivedMessage>(HandlerDerivedFunction);
-     * 
-     *     void HandlerBaseFunction(const CMessage&);
-     *     RegisterRefHandler<DerivedMessage>(HandlerBaseFunction);
-     * @endcode
-     */
-    template <typename Message, typename = typename std::enable_if<std::is_base_of<CMessage, Message>::value, Message>::type>
-    void RegisterRefHandler(boost::function<void(const Message&)> handler)
-    {
-        CMessageCenter::GetInstance().Subscribe(Message::MessageType(), this);
-        CIOActorWorker::RegisterRefHandler<Message>(handler);
-    }
-
-    /**
-     * @brief Deregister message handler for derived.
-     * @param nType The message type.
-     * @code
-     *     DeregisterHandler(DerivedMessage::MessageType());
-     * @endcode
-     */
-    void DeregisterHandler(const uint32 nType);
-
-private:
-    /// The function of the thread entry contains ioService.run().
-    void HandlerThreadFunc();
-    /// Message handler callback entry.
-    void MessageHandler(std::shared_ptr<CMessage> spMessage);
 };
 
 } // namespace xengine

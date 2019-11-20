@@ -458,16 +458,19 @@ bool CConsensusController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CConsensusController::HandleNewTx, this, _1));
-    RegisterRefHandler<CSyncTxChangeMessage>(boost::bind(&CConsensusController::HandleTxChange, this, _1));
+    RegisterHandler({
+        PTR_HANDLER(CAddedTxMessage, boost::bind(&CConsensusController::HandleNewTx, this, _1), true),
+        PTR_HANDLER(CSyncTxChangeMessage, boost::bind(&CConsensusController::HandleTxChange, this, _1), true),
+        PTR_HANDLER(CAddNewDistributeMessage, boost::bind(&CConsensusController::HandleNewDistribute, this, _1), true),
+        PTR_HANDLER(CAddNewPublishMessage, boost::bind(&CConsensusController::HandleNewPublish, this, _1), true),
+    });
 
     return true;
 }
 
 void CConsensusController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CSyncTxChangeMessage::MessageType());
+    DeregisterHandler();
 
     pConsensus = nullptr;
     pCoreProtocol = nullptr;
@@ -489,71 +492,71 @@ void CConsensusController::HandleHalt()
     StopActor();
 }
 
-void CConsensusController::HandleNewTx(const CAddedTxMessage& msg)
+void CConsensusController::HandleNewTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
-    if (msg.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (spMsg->hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        AddNewTx(msg.tx);
+        AddNewTx(spMsg->tx);
     }
 }
 
-void CConsensusController::HandleTxChange(const CSyncTxChangeMessage& msg)
+void CConsensusController::HandleTxChange(const shared_ptr<CSyncTxChangeMessage>& spMsg)
 {
-    if (msg.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (spMsg->hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        if (!pCoreProtocol->CheckFirstPow(msg.update.nLastBlockHeight))
+        if (!pCoreProtocol->CheckFirstPow(spMsg->update.nLastBlockHeight))
         {
             auto spRoutineMsg = CCDelegateRoutineMessage::Create();
-            spRoutineMsg->nStartHeight = msg.update.nLastBlockHeight - msg.update.vBlockAddNew.size();
-            PrimaryUpdate(msg.update, msg.change, spRoutineMsg->routine);
-            PUBLISH_MESSAGE(spRoutineMsg);
+            spRoutineMsg->nStartHeight = spMsg->update.nLastBlockHeight - spMsg->update.vBlockAddNew.size();
+            PrimaryUpdate(spMsg->update, spMsg->change, spRoutineMsg->routine);
+            PUBLISH(spRoutineMsg);
 
             for (const CTransaction& tx : spRoutineMsg->routine.vEnrollTx)
             {
                 auto spAddTxMsg = CAddTxMessage::Create();
                 spAddTxMsg->spNonce = CNonce::Create();
-                spAddTxMsg->hashFork = msg.hashFork;
+                spAddTxMsg->hashFork = spMsg->hashFork;
                 spAddTxMsg->tx = tx;
-                PUBLISH_MESSAGE(spAddTxMsg);
+                PUBLISH(spAddTxMsg);
             }
         }
     }
 }
 
-void CConsensusController::HandleNewDistribute(const CAddNewDistributeMessage& msg)
+void CConsensusController::HandleNewDistribute(const shared_ptr<CAddNewDistributeMessage>& spMsg)
 {
     auto spAddedMsg = CAddedNewDistributeMessage::Create();
-    spAddedMsg->nNonce = msg.nNonce;
-    spAddedMsg->hashAnchor = msg.hashAnchor;
-    spAddedMsg->dest = msg.dest;
-    spAddedMsg->vchDistribute = msg.vchDistribute;
+    spAddedMsg->nNonce = spMsg->nNonce;
+    spAddedMsg->hashAnchor = spMsg->hashAnchor;
+    spAddedMsg->dest = spMsg->dest;
+    spAddedMsg->vchDistribute = spMsg->vchDistribute;
     spAddedMsg->fResult = false;
 
     uint256 hashFork;
     int nHeight;
-    if (pWorldLine->GetBlockLocation(msg.hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (pWorldLine->GetBlockLocation(spMsg->hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        spAddedMsg->fResult = AddNewDistribute(nHeight, msg.dest, msg.vchDistribute);
+        spAddedMsg->fResult = AddNewDistribute(nHeight, spMsg->dest, spMsg->vchDistribute);
     }
-    PUBLISH_MESSAGE(spAddedMsg);
+    PUBLISH(spAddedMsg);
 }
 
-void CConsensusController::HandleNewPublish(const CAddNewPublishMessage& msg)
+void CConsensusController::HandleNewPublish(const shared_ptr<CAddNewPublishMessage>& spMsg)
 {
     auto spAddedMsg = CAddedNewPublishMessage::Create();
-    spAddedMsg->nNonce = msg.nNonce;
-    spAddedMsg->hashAnchor = msg.hashAnchor;
-    spAddedMsg->dest = msg.dest;
-    spAddedMsg->vchPublish = msg.vchPublish;
+    spAddedMsg->nNonce = spMsg->nNonce;
+    spAddedMsg->hashAnchor = spMsg->hashAnchor;
+    spAddedMsg->dest = spMsg->dest;
+    spAddedMsg->vchPublish = spMsg->vchPublish;
     spAddedMsg->fResult = false;
 
     uint256 hashFork;
     int nHeight;
-    if (pWorldLine->GetBlockLocation(msg.hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
+    if (pWorldLine->GetBlockLocation(spMsg->hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        spAddedMsg->fResult = AddNewPublish(nHeight, msg.dest, msg.vchPublish);
+        spAddedMsg->fResult = AddNewPublish(nHeight, spMsg->dest, spMsg->vchPublish);
     }
-    PUBLISH_MESSAGE(spAddedMsg);
+    PUBLISH(spAddedMsg);
 }
 
 } // namespace bigbang

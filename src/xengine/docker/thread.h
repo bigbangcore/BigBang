@@ -9,10 +9,12 @@
 #include <boost/thread/thread.hpp>
 #include <string>
 
+#include "logger.h"
+
 namespace xengine
 {
 
-class CDock;
+class CDocker;
 
 class CThread
 {
@@ -33,6 +35,34 @@ public:
     bool IsRunning()
     {
         return fRunning;
+    }
+
+    void Run()
+    {
+        if (!pThread)
+        {
+            pThread = new boost::thread([&] {
+                SetThreadName(strThreadName.c_str());
+                LOG_INFO("CThread", "Thread run");
+                try
+                {
+                    fRunning = true;
+                    fnCallback();
+                    fRunning = false;
+                }
+                catch (std::exception& e)
+                {
+                    fRunning = false;
+                    LOG_ERROR("CThread", "Thread error: %s", e.what());
+                }
+                catch (...)
+                {
+                    fRunning = false;
+                    LOG_ERROR("CThread", "Thread error: unknown");
+                }
+                LOG_INFO("CThread", "Thread exit");
+            });
+        }
     }
 
     void Interrupt()

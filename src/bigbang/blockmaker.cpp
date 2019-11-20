@@ -132,14 +132,14 @@ bool CBlockMaker::HandleInitialize()
         }
     }
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CBlockMaker::HandleAddedBlock, this, _1));
+    RegisterHandler(PTR_HANDLER(CAddedBlockMessage, boost::bind(&CBlockMaker::HandleAddedBlock, this, _1), true));
 
     return true;
 }
 
 void CBlockMaker::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 
     pCoreProtocol = nullptr;
     pWorldLineCtrl = nullptr;
@@ -286,7 +286,7 @@ bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
     spAddBlockMsg->spNonce = CNonce::Create();
     spAddBlockMsg->hashFork = hashFork;
     spAddBlockMsg->block = block;
-    PUBLISH_MESSAGE(spAddBlockMsg);
+    PUBLISH(spAddBlockMsg);
 
     const CAddedBlockMessage& addedBlockMsg = futureAdded.get();
     if (addedBlockMsg.nErrno != OK || addedBlockMsg.update.IsNull())
@@ -298,7 +298,7 @@ bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
     if (!block.IsOrigin() && !block.IsVacant())
     {
         auto spBroadcastBlockInvMsg = CBroadcastBlockInvMessage::Create(addedBlockMsg.update.hashFork, block.GetHash());
-        PUBLISH_MESSAGE(spBroadcastBlockInvMsg);
+        PUBLISH(spBroadcastBlockInvMsg);
         // pDataStat->AddP2pSynSendStatData(addedBlockMsg.update.hashFork, 1, block.vtx.size());
     }
 
@@ -779,27 +779,27 @@ void CBlockMaker::ExtendedMakerThreadFunc()
     INFO("Extended block maker exited");
 }
 
-void CBlockMaker::HandleAddedBlock(const CAddedBlockMessage& msg)
+void CBlockMaker::HandleAddedBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
-    if (!msg.block.IsPrimary())
+    if (!spMsg->block.IsPrimary())
     {
         return;
     }
 
     boost::unique_lock<boost::mutex> lock(mutex);
-    if (msg.update.nLastBlockHeight <= nLastBlockHeight)
+    if (spMsg->update.nLastBlockHeight <= nLastBlockHeight)
     {
         return;
     }
-    if (Interrupted() || currentAgreement.IsProofOfWork() || (msg.block.txMint.nType == CTransaction::TX_STAKE))
+    if (Interrupted() || currentAgreement.IsProofOfWork() || (spMsg->block.txMint.nType == CTransaction::TX_STAKE))
     {
         nMakerStatus = MAKER_RESET;
-        hashLastBlock = msg.update.hashLastBlock;
-        nLastBlockTime = msg.update.nLastBlockTime;
-        nLastBlockHeight = msg.update.nLastBlockHeight;
+        hashLastBlock = spMsg->update.hashLastBlock;
+        nLastBlockTime = spMsg->update.nLastBlockTime;
+        nLastBlockHeight = spMsg->update.nLastBlockHeight;
 
         CProofOfSecretShare proof;
-        proof.Load(msg.block.vchProof);
+        proof.Load(spMsg->block.vchProof);
         nLastAgreement = proof.nAgreement;
         nLastWeight = proof.nWeight;
 

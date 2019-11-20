@@ -999,14 +999,16 @@ bool CWorldLineController::HandleInitialize()
         return false;
     }
 
-    RegisterPtrHandler<CAddBlockMessage>(boost::bind(&CWorldLineController::HandleAddBlock, this, _1));
+    RegisterHandler({
+        PTR_HANDLER(CAddBlockMessage, boost::bind(&CWorldLineController::HandleAddBlock, this, _1), true),
+    });
 
     return true;
 }
 
 void CWorldLineController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
+    DeregisterHandler();
 
     pWorldLine = nullptr;
     pForkManager = nullptr;
@@ -1039,7 +1041,7 @@ Errno CWorldLineController::AddNewBlock(const CBlock& block, CWorldLineUpdate& u
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
-    PUBLISH_MESSAGE(spAddedBlockMsg);
+    PUBLISH(spAddedBlockMsg);
 
     return err;
 }
@@ -1054,7 +1056,7 @@ Errno CWorldLineController::AddNewOrigin(const CBlock& block, CWorldLineUpdate& 
     spAddedBlockMsg->hashFork = update.hashFork;
     spAddedBlockMsg->block = block;
     spAddedBlockMsg->update = update;
-    PUBLISH_MESSAGE(spAddedBlockMsg);
+    PUBLISH(spAddedBlockMsg);
 
     return err;
 }
@@ -1227,7 +1229,7 @@ void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
     msg->promiseAdded.set_value(*spAddedBlockMsg);
 
     const CWorldLineUpdate& update = spAddedBlockMsg->update;
-    PUBLISH_MESSAGE(spAddedBlockMsg);
+    PUBLISH(spAddedBlockMsg);
     SyncForkHeight(update.nLastBlockHeight);
     // Create new fork
     vector<CTransaction>
@@ -1263,7 +1265,7 @@ void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
                     spAddedOriginMsg->spNonce = CNonce::Create(0);
                     spAddedOriginMsg->nErrno = OK;
                     spAddedOriginMsg->hashFork = originBlock.GetHash();
-                    PUBLISH_MESSAGE(spAddedOriginMsg);
+                    PUBLISH(spAddedOriginMsg);
                 }
                 else
                 {
@@ -1280,13 +1282,13 @@ void CWorldLineController::HandleAddBlock(std::shared_ptr<CAddBlockMessage> msg)
     for (const uint256 hashFork : vActive)
     {
         auto spSubscribeMsg = CSubscribeForkMessage::Create(hashFork, 0);
-        PUBLISH_MESSAGE(spSubscribeMsg);
+        PUBLISH(spSubscribeMsg);
     }
 
     for (const uint256 hashFork : vDeactive)
     {
         auto spUnsubscribeMsg = CUnsubscribeForkMessage::Create(hashFork);
-        PUBLISH_MESSAGE(spUnsubscribeMsg);
+        PUBLISH(spUnsubscribeMsg);
     }
 }
 
@@ -1320,7 +1322,7 @@ void CWorldLineController::SyncForkHeight(int nPrimaryHeight)
                 spAddBlockMsg->block.nType = CBlock::BLOCK_VACANT;
                 spAddBlockMsg->block.hashPrev = hashPrev;
                 spAddBlockMsg->block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
-                PUBLISH_MESSAGE(spAddBlockMsg);
+                PUBLISH(spAddBlockMsg);
                 if (futureAdded.get().nErrno != OK)
                 {
                     break;

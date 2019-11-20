@@ -104,10 +104,10 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
-    void HandleAddedBlock(const CAddedBlockMessage& msg);
-    void HandleAddedTx(const CAddedTxMessage& msg);
-    void HandlePeerActive(const CPeerActiveMessage& msg);
-    void HandlePeerDeactive(const CPeerDeactiveMessage& msg);
+    void HandleAddedBlock(const std::shared_ptr<CAddedBlockMessage>& spMsg);
+    void HandleAddedTx(const std::shared_ptr<CAddedTxMessage>& spMsg);
+    void HandlePeerActive(const std::shared_ptr<CPeerActiveMessage>& spMsg);
+    void HandlePeerDeactive(const std::shared_ptr<CPeerDeactiveMessage>& spMsg);
 };
 
 } // namespace bigbang

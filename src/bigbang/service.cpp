@@ -97,7 +97,7 @@ int CService::GetPeerCount()
     std::promise<std::size_t> promiseCount;
     std::future<std::size_t> futureCount = promiseCount.get_future();
     auto spGetPeerCountMsg = CPeerNetGetCountMessage::Create(std::move(promiseCount));
-    PUBLISH_MESSAGE(spGetPeerCountMsg);
+    PUBLISH(spGetPeerCountMsg);
 
     return futureCount.get();
 }
@@ -109,7 +109,7 @@ void CService::GetPeers(vector<network::CBbPeerInfo>& vPeerInfo)
     std::promise<boost::ptr_vector<CPeerInfo>> promiseResult;
     auto futureResult = promiseResult.get_future();
     auto spGetPeersMsg = CPeerNetGetPeersMessage::Create(std::move(promiseResult));
-    PUBLISH_MESSAGE(spGetPeersMsg);
+    PUBLISH(spGetPeersMsg);
 
     auto resultValue = futureResult.get();
     vPeerInfo.reserve(resultValue.size());
@@ -126,7 +126,7 @@ bool CService::AddNode(const CNetHost& node)
 
     auto spAddNodeMsg = CPeerNetAddNodeMessage::Create(std::move(promiseRet));
     spAddNodeMsg->host = node;
-    PUBLISH_MESSAGE(spAddNodeMsg);
+    PUBLISH(spAddNodeMsg);
 
     return futureRet.get();
 }
@@ -138,7 +138,7 @@ bool CService::RemoveNode(const CNetHost& node)
 
     auto spRemoveNodeMsg = CPeerNetRemoveNodeMessage::Create(std::move(promiseRet));
     spRemoveNodeMsg->host = node;
-    PUBLISH_MESSAGE(spRemoveNodeMsg);
+    PUBLISH(spRemoveNodeMsg);
 
     return futureRet.get();
 }
@@ -313,7 +313,7 @@ bool CService::SendTransaction(CNoncePtr spNonce, uint256& hashFork, const CTran
     spAddTxMsg->spNonce = spNonce;
     spAddTxMsg->hashFork = hashFork;
     spAddTxMsg->tx = tx;
-    PUBLISH_MESSAGE(spAddTxMsg);
+    PUBLISH(spAddTxMsg);
     return true;
 }
 
@@ -634,7 +634,7 @@ bool CService::SendBlock(CNoncePtr spNonce, const uint256& hashFork, const uint2
     spAddBlockMsg->spNonce = spNonce;
     spAddBlockMsg->hashFork = hashFork;
     spAddBlockMsg->block = block;
-    PUBLISH_MESSAGE(spAddBlockMsg);
+    PUBLISH(spAddBlockMsg);
 
     return true;
 }
@@ -690,20 +690,19 @@ bool CServiceController::HandleInitialize()
         return false;
     }
 
-    RegisterRefHandler<CAddedBlockMessage>(boost::bind(&CServiceController::HandleAddedBlock, this, _1));
-    RegisterRefHandler<CAddedTxMessage>(boost::bind(&CServiceController::HandleAddedTx, this, _1));
-    RegisterRefHandler<CPeerActiveMessage>(boost::bind(&CServiceController::HandlePeerActive, this, _1));
-    RegisterRefHandler<CPeerDeactiveMessage>(boost::bind(&CServiceController::HandlePeerDeactive, this, _1));
+    RegisterHandler({
+        PTR_HANDLER(CAddedBlockMessage, boost::bind(&CServiceController::HandleAddedBlock, this, _1), true),
+        PTR_HANDLER(CAddedTxMessage, boost::bind(&CServiceController::HandleAddedTx, this, _1), true),
+        PTR_HANDLER(CPeerActiveMessage, boost::bind(&CServiceController::HandlePeerActive, this, _1), true),
+        PTR_HANDLER(CPeerDeactiveMessage, boost::bind(&CServiceController::HandlePeerDeactive, this, _1), true),
+    });
 
     return true;
 }
 
 void CServiceController::HandleDeinitialize()
 {
-    DeregisterHandler(CAddedBlockMessage::MessageType());
-    DeregisterHandler(CAddedTxMessage::MessageType());
-    DeregisterHandler(CPeerActiveMessage::MessageType());
-    DeregisterHandler(CPeerDeactiveMessage::MessageType());
+    DeregisterHandler();
 
     pService = nullptr;
 }
@@ -723,41 +722,41 @@ void CServiceController::HandleHalt()
     StopActor();
 }
 
-void CServiceController::HandleAddedBlock(const CAddedBlockMessage& msg)
+void CServiceController::HandleAddedBlock(const shared_ptr<CAddedBlockMessage>& spMsg)
 {
-    if (msg.nErrno == OK)
+    if (spMsg->nErrno == OK)
     {
-        NotifyWorldLineUpdate(msg.update);
+        NotifyWorldLineUpdate(spMsg->update);
     }
 }
 
-void CServiceController::HandleAddedTx(const CAddedTxMessage& msg)
+void CServiceController::HandleAddedTx(const shared_ptr<CAddedTxMessage>& spMsg)
 {
-    if (msg.nErrno == OK)
+    if (spMsg->nErrno == OK)
     {
         CTransactionUpdate updateTransaction;
-        updateTransaction.hashFork = msg.hashFork;
-        updateTransaction.txUpdate = msg.tx;
-        updateTransaction.nChange = msg.tx.GetChange();
+        updateTransaction.hashFork = spMsg->hashFork;
+        updateTransaction.txUpdate = spMsg->tx;
+        updateTransaction.nChange = spMsg->tx.GetChange();
         NotifyTransactionUpdate(updateTransaction);
     }
 }
 
-void CServiceController::HandlePeerActive(const CPeerActiveMessage& msg)
+void CServiceController::HandlePeerActive(const shared_ptr<CPeerActiveMessage>& spMsg)
 {
     CNetworkPeerUpdate update;
-    update.nPeerNonce = msg.nNonce;
+    update.nPeerNonce = spMsg->nNonce;
     update.fActive = true;
-    update.address = msg.address;
+    update.address = spMsg->address;
     NotifyNetworkPeerUpdate(update);
 }
 
-void CServiceController::HandlePeerDeactive(const CPeerDeactiveMessage& msg)
+void CServiceController::HandlePeerDeactive(const shared_ptr<CPeerDeactiveMessage>& spMsg)
 {
     CNetworkPeerUpdate update;
-    update.nPeerNonce = msg.nNonce;
+    update.nPeerNonce = spMsg->nNonce;
     update.fActive = false;
-    update.address = msg.address;
+    update.address = spMsg->address;
     NotifyNetworkPeerUpdate(update);
 }
 

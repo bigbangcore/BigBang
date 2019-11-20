@@ -32,7 +32,7 @@ struct CTimeoutMessage : public CMessage
  */
 struct CSetTimerMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CSetTimerMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CSetTimerMessage);
 
     /// Constructor
     CSetTimerMessage() {}
@@ -47,7 +47,7 @@ struct CSetTimerMessage : public CMessage
 
 struct CCancelTimerMessage : public CMessage
 {
-    GENERATE_MESSAGE_FUNCTION(CCancelTimerMessage);
+    DECLARE_PUBLISHED_MESSAGE_FUNCTION(CCancelTimerMessage);
 
     /// Constructor
     CCancelTimerMessage() {}
@@ -61,7 +61,7 @@ struct CCancelTimerMessage : public CMessage
 /**
  * @brief A timer actor.
  */
-class CTimer : public xengine::CIOActor
+class CTimer : public xengine::CActor
 {
 public:
     /**
@@ -87,9 +87,9 @@ protected:
     void NewTimer(const boost::system_time& expiryAt);
 
     // Handle set timer message
-    virtual void SetTimer(const CSetTimerMessage& message);
+    virtual void SetTimer(const std::shared_ptr<CSetTimerMessage>& spMsg);
     // Handle cancel timer message
-    virtual void CancelTimer(const CCancelTimerMessage& message);
+    virtual void CancelTimer(const std::shared_ptr<CCancelTimerMessage>& spMsg);
 
 protected:
     struct CTagId
