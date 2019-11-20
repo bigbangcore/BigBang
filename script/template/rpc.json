@@ -1586,7 +1586,7 @@
     "importprivkey": {
         "type": "command",
         "name": "ImportPrivKey",
-        "desc": "Adds a private key (as returned by dumpprivkey) to your wallet.",
+        "desc": "Add a private key to your wallet.",
         "request": {
             "type": "object",
             "content": {
@@ -1618,7 +1618,6 @@
         "error": [
             "{\"code\":-6,\"message\":\"Invalid private key\"}",
             "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
-            "{\"code\":-401,\"message\":\"Already have key\"}",
             "{\"code\":-401,\"message\":\"Failed to add key\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]
@@ -1654,7 +1653,6 @@
         "error": [
             "{\"code\":-32602,\"message\":\"Failed to verify serialized key\"}",
             "{\"code\":-32602,\"message\":\"Can't import the key with empty passphrase\"}",
-            "{\"code\":-401,\"message\":\"Already have key\"}",
             "{\"code\":-401,\"message\":\"Failed to add key\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]
@@ -1764,7 +1762,6 @@
         ],
         "error": [
             "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
-            "{\"code\":-401,\"message\":\"Already have this template\"}",
             "{\"code\":-401,\"message\":\"Failed to add template\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]

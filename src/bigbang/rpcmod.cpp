@@ -1139,21 +1139,20 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid private key");
     }
-    if (pService->HaveKey(key.GetPubKey()))
+    if (!pService->HaveKey(key.GetPubKey()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have key");
-    }
-    if (!strPassphrase.empty())
-    {
-        key.Encrypt(strPassphrase);
-    }
-    if (!pService->AddKey(key))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!strPassphrase.empty())
+        {
+            key.Encrypt(strPassphrase);
+        }
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportPrivKeyResultPtr(key.GetPubKey().GetHex());
@@ -1173,18 +1172,16 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMS, "Can't import the key with empty passphrase");
     }
-    if (pService->HaveKey(key.GetPubKey()))
+    if (!pService->HaveKey(key.GetPubKey()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have key");
-    }
-
-    if (!pService->AddKey(key))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportKeyResultPtr(key.GetPubKey().GetHex());
@@ -1218,13 +1215,16 @@ CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
-    if (!pService->AddTemplate(ptr))
+    if (!pService->HaveTemplate(ptr->GetTemplateId()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddTemplate(ptr))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCAddNewTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
@@ -1239,17 +1239,16 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
-    if (pService->HaveTemplate(ptr->GetTemplateId()))
+    if (!pService->HaveTemplate(ptr->GetTemplateId()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have this template");
-    }
-    if (!pService->AddTemplate(ptr))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddTemplate(ptr))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
