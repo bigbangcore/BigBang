@@ -1,39 +1,27 @@
 {
-    "unspentpresent": {
+    "unspentdata": {
         "type": "class",
-        "name": "UnspentPresent",
+        "name": "UnspentData",
         "content": {
             "txid": {
                 "type": "string",
                 "desc": "txid"
             },
-            "vout": {
+            "out": {
                 "type": "uint",
                 "desc": "tx output point"
-            },
-            "to": {
-                "type": "string",
-                "desc": "address to receive tokens"
             },
             "amount": {
                 "type": "double",
                 "desc": "amount"
             },
-            "txtime": {
+            "time": {
                 "type": "uint",
                 "desc": "time transaction made"
             },
             "lockuntil": {
                 "type": "uint",
                 "desc": "lockuntil"
-            },
-            "forkid": {
-                "type": "string",
-                "desc": "forkid"
-            },
-            "accumulate": {
-                "type": "double",
-                "desc": "accumulated amount"
             }
         }
     },
@@ -2803,53 +2791,56 @@
         "request": {
             "type": "object",
             "content": {
-                "forkid": {
+                "address": {
                     "type": "string",
-                    "desc": "in which of forks transaction occurs",
-                    "opt" : "f"
+                    "desc": "address to receive the unspent"
                 },
-                "addr": {
+                "fork": {
                     "type": "string",
-                    "desc": "address to receive the unspent utxo",
-                    "opt" : "a"
-                },
-                "sum": {
-                    "type": "bool",
-                    "desc": "whether to summary amount",
-                    "opt" : "s",
-                    "default": true,
-                    "required": true
+                    "desc": "fork hash",
+                    "opt" : "f",
+                    "required" : false
                 },
                 "max": {
-                    "type": "int",
-                    "desc": "maximum unspents(3 by default)",
+                    "type": "uint",
+                    "desc": "maximum unspents(0 means unlimited)",
                     "opt" : "n",
+                    "default": 3,
                     "required" : false
                 }
             }
         },
         "response": {
-            "type": "array",
-            "name": "unspents",
+            "type": "object",
+            "name": "data",
             "content": {
                 "unspents": {
-                    "type": "unspentpresent",
-                    "desc": "unspent list of address owner"
+                    "type": "array",
+                    "desc": "unspent list of address owner",
+                    "content": {
+                        "unspent": {
+                            "type": "unspentdata",
+                            "desc": "unspent data"
+                        }
+                    }
+                },
+                "sum": {
+                    "type": "double",
+                    "desc": "sum of unspent amount"
                 }
             }
         },
         "example": [
             {
-                "request": "bigbang-cli listunspent -s=true -f=00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069 -a=1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5",
-                "response": "[{\"txid\":\"5dc933e8de7212fe051ee97232ae3d14cb4b5474174b45d1f28b91a8c852853a\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":0.000001,\"txtime\":1573467112,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":0.000001},{\"txid\":\"5dc94645f8842b3aa0281fcf380f49df77189a535ed87196ac3a01e15e877f4a\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":1.000000,\"txtime\":1573471813,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":1.000001},{\"txid\":\"5dc945d730c57f9f36d9a10bf1b8c21b76d25aa92df21e04205d73320d9d14d2\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":0.001000,\"txtime\":1573471703,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":1.001001}]"
+                "request": "bigbang-cli listunspent 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm -f=00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b -n=1",
+                "response": "{\"unspents\":[{\"txid\":\"5dd4bb56b3d0aed9bb0e0a80d01ec1f70d7bd4d1fc200a48df330154b366ca8e\",\"out\":0,\"amount\":1000.000000,\"time\":1574222678,\"lockuntil\":0}],\"sum\":1000.000000}"
             },
             {
-                "request": "curl -d '{\"id\":1,\"method\":\"listunspent\",\"jsonrpc\":\"2.0\",\"params\":{\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"addr\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"max\":3,\"sum\":false}}' http://127.0.0.1:9904",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"txid\":\"5dc933e8de7212fe051ee97232ae3d14cb4b5474174b45d1f28b91a8c852853a\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":0.000001,\"txtime\":1573467112,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":0.000000},{\"txid\":\"5dc94645f8842b3aa0281fcf380f49df77189a535ed87196ac3a01e15e877f4a\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":1.000000,\"txtime\":1573471813,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":0.000000},{\"txid\":\"5dc945d730c57f9f36d9a10bf1b8c21b76d25aa92df21e04205d73320d9d14d2\",\"vout\":0,\"to\":\"1dfh32vsa73hagmafr2hbmktbhat286hd7qp7hm118ksfqnfjfbentdv5\",\"amount\":0.001000,\"txtime\":1573471703,\"lockuntil\":0,\"forkid\":\"00000000dcde418dca150e49f53ab857d5ccd095a800bfb29ea87385267bc069\",\"accumulate\":0.000000}]}"
+                "request": "curl -d '{\"id\":0,\"method\":\"listunspent\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"fork\":\"00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b\",\"max\":1}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":{\"unspents\":[{\"txid\":\"5dd4bb56b3d0aed9bb0e0a80d01ec1f70d7bd4d1fc200a48df330154b366ca8e\",\"out\":0,\"amount\":1000.000000,\"time\":1574222678,\"lockuntil\":0}],\"sum\":1000.000000}}"
             }
         ],
         "error": [
-            "{\"code\":-401,\"message\":\"nMax must be more than or equal to -1.\"}",
             "{\"code\":-401,\"message\":\"Address as an argument should be provided.\"}",
             "{\"code\":-401,\"message\":\"Acquiring unspent list failed.\"}"
         ]

@@ -147,6 +147,7 @@ public:
     bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) override;
     bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) const override;
     bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) override;
+    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     /* Update */
     bool SynchronizeTxSet(const CTxSetChange& change) override;
     bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) override;
@@ -291,6 +292,11 @@ public:
     virtual bool ArrangeInputs(const CDestination& destIn,
                                const uint256& hashFork, int nForkHeight,
                                CTransaction& tx) override
+    {
+        return false;
+    }
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest,
+                                 uint32 nMax, std::vector<CTxUnspent>& vUnspent) override
     {
         return false;
     }

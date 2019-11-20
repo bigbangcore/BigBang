@@ -90,8 +90,8 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, co
         ret.vecVin.push_back(move(vin));
     }
     ret.strSendto = CAddress(tx.sendTo).ToString();
-    ret.fAmount = ValueFromAmount(tx.nAmount);
-    ret.fTxfee = ValueFromAmount(tx.nTxFee);
+    ret.dAmount = ValueFromAmount(tx.nAmount);
+    ret.dTxfee = ValueFromAmount(tx.nTxFee);
 
     std::string str(tx.vchData.begin(), tx.vchData.end());
     if (str.substr(0, 4) == "msg:")
@@ -129,9 +129,20 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
         data.strFrom = CAddress(wtx.destIn).ToString();
     }
     data.strTo = CAddress(wtx.sendTo).ToString();
-    data.fAmount = ValueFromAmount(wtx.nAmount);
-    data.fFee = ValueFromAmount(wtx.nTxFee);
+    data.dAmount = ValueFromAmount(wtx.nAmount);
+    data.dFee = ValueFromAmount(wtx.nTxFee);
     data.nLockuntil = (boost::int64_t)wtx.nLockUntil;
+    return data;
+}
+
+static CUnspentData UnspentToJSON(const CTxUnspent& unspent)
+{
+    CUnspentData data;
+    data.strTxid = unspent.hash.ToString();
+    data.nOut = unspent.n;
+    data.dAmount = ValueFromAmount(unspent.output.nAmount);
+    data.nTime = unspent.output.nTxTime;
+    data.nLockuntil = unspent.output.nLockUntil;
     return data;
 }
 
@@ -1377,9 +1388,9 @@ CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
         {
             CGetBalanceResult::CBalance b;
             b.strAddress = CAddress(dest).ToString();
-            b.fAvail = ValueFromAmount(balance.nAvailable);
-            b.fLocked = ValueFromAmount(balance.nLocked);
-            b.fUnconfirmed = ValueFromAmount(balance.nUnconfirmed);
+            b.dAvail = ValueFromAmount(balance.nAvailable);
+            b.dLocked = ValueFromAmount(balance.nLocked);
+            b.dUnconfirmed = ValueFromAmount(balance.nUnconfirmed);
             spResult->vecBalance.push_back(b);
         }
     }
@@ -1428,12 +1439,12 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
 
     int64 nTxFee = MIN_TX_FEE;
-    if (spParam->fTxfee.IsValid())
+    if (spParam->dTxfee.IsValid())
     {
-        nTxFee = AmountFromValue(spParam->fTxfee);
+        nTxFee = AmountFromValue(spParam->dTxfee);
         if (nTxFee < MIN_TX_FEE)
         {
             nTxFee = MIN_TX_FEE;
@@ -1542,12 +1553,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
 
     int64 nTxFee = MIN_TX_FEE;
-    if (spParam->fTxfee.IsValid())
+    if (spParam->dTxfee.IsValid())
     {
-        nTxFee = AmountFromValue(spParam->fTxfee);
+        nTxFee = AmountFromValue(spParam->dTxfee);
         if (nTxFee < MIN_TX_FEE)
         {
             nTxFee = MIN_TX_FEE;
@@ -1925,8 +1936,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
-    int64 nMintReward = AmountFromValue(spParam->fReward);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
+    int64 nMintReward = AmountFromValue(spParam->dReward);
 
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
@@ -2136,53 +2147,34 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListUnspentParam>(param);
-    uint256 forkid(spParam->strForkid);
-    CAddress addr(spParam->strAddr);
-    bool bAcc = spParam->fSum;
-    int nMax = GetInt(spParam->nMax, 3);
-    if (nMax < -1)
+
+    uint256 fork;
+    if (!GetForkHashOfDef(spParam->strFork, fork))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "nMax must be more than or equal to -1.");
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
-    if (uint256() == forkid)
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Forkid as an argument should be provided.");
-    }
+
+    CAddress addr(spParam->strAddress);
     if (addr.IsNull())
     {
         throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
     }
 
     vector<CTxUnspent> vUnspent;
-    if (!pService->ListForkUnspent(forkid, dynamic_cast<CDestination&>(addr), nMax, vUnspent))
+    if (!pService->ListForkUnspent(fork, dynamic_cast<CDestination&>(addr), spParam->nMax, vUnspent))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
     }
 
     auto spResult = MakeCListUnspentResultPtr();
     double dSum = 0.0f;
-    for (const auto& i : vUnspent)
+    for (const auto& unspent : vUnspent)
     {
-        CUnspentPresent unspent;
-        unspent.strForkid = spParam->strForkid;
-        unspent.strTxid = i.hash.ToString();
-        unspent.nVout = i.n;
-        unspent.strTo = spParam->strAddr;
-        unspent.fAmount = (double)i.output.nAmount / COIN;
-        unspent.nTxtime = i.output.nTxTime;
-        unspent.nLockuntil = i.output.nLockUntil;
-        if (bAcc)
-        {
-            dSum += unspent.fAmount;
-            unspent.fAccumulate = dSum;
-        }
-        else
-        {
-            unspent.fAccumulate = 0.0f;
-        }
-
-        spResult->vecUnspents.push_back(unspent);
+        CUnspentData data = UnspentToJSON(unspent);
+        spResult->vecUnspents.push_back(data);
+        dSum += data.dAmount;
     }
+    spResult->dSum = dSum;
 
     return spResult;
 }

@@ -252,7 +252,7 @@ public:
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
-    bool ListForkUnspent(const uint256& forkId, const CDestination& destOwner, int nMax, std::vector<CTxUnspent>& vUnspent);
+    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
