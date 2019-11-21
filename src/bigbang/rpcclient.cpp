@@ -144,7 +144,7 @@ bool CRPCClient::HandleEvent(CEventHttpGetRsp& event)
         {
             // Error
             cerr << spResp->spError->Serialize(true) << endl;
-            cerr << strHelpTips << endl;
+            cerr << strServerHelpTips << endl;
         }
         else if (spResp->IsSuccessful())
         {
@@ -420,7 +420,7 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
             }
             catch (CRPCException& e)
             {
-                cerr << e.strMessage << strHelpTips << endl;
+                cerr << e.strMessage << strClientHelpTips << endl;
             }
             catch (exception& e)
             {

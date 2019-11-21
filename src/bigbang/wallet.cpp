@@ -264,10 +264,18 @@ void CWallet::GetPubKeys(set<crypto::CPubKey>& setPubKey) const
     }
 }
 
-bool CWallet::Have(const crypto::CPubKey& pubkey) const
+bool CWallet::Have(const crypto::CPubKey& pubkey, const int32 nVersion) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
-    return (!!mapKeyStore.count(pubkey));
+    auto it = mapKeyStore.find(pubkey);
+    if (nVersion < 0)
+    {
+        return it != mapKeyStore.end();
+    }
+    else
+    {
+        return (it != mapKeyStore.end() && it->second.key.GetVersion() == nVersion);
+    }
 }
 
 bool CWallet::Export(const crypto::CPubKey& pubkey, vector<unsigned char>& vchKey) const
@@ -319,7 +327,7 @@ bool CWallet::Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString
     return false;
 }
 
-bool CWallet::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) const
+bool CWallet::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
     map<crypto::CPubKey, CWalletKeyStore>::const_iterator it = mapKeyStore.find(pubkey);
@@ -328,6 +336,7 @@ bool CWallet::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& f
         const CWalletKeyStore& keystore = (*it).second;
         nVersion = keystore.key.GetVersion();
         fLocked = keystore.key.IsLocked();
+        fPublic = keystore.key.IsPubKey();
         nAutoLockTime = (!fLocked && keystore.nAutoLockTime > 0) ? keystore.nAutoLockTime : 0;
         return true;
     }
@@ -349,7 +358,7 @@ bool CWallet::Lock(const crypto::CPubKey& pubkey)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
-    if (it != mapKeyStore.end())
+    if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
     {
         CWalletKeyStore& keystore = (*it).second;
         keystore.key.Lock();
@@ -368,7 +377,7 @@ bool CWallet::Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString&
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
-    if (it != mapKeyStore.end())
+    if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
     {
         CWalletKeyStore& keystore = (*it).second;
         if (!keystore.key.IsLocked() || !keystore.key.Unlock(strPassphrase))
@@ -390,7 +399,7 @@ void CWallet::AutoLock(uint32 nTimerId, const crypto::CPubKey& pubkey)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
-    if (it != mapKeyStore.end())
+    if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
     {
         CWalletKeyStore& keystore = (*it).second;
         if (keystore.nTimerId == nTimerId)
@@ -1005,11 +1014,22 @@ bool CWallet::InsertKey(const crypto::CKey& key)
 {
     if (!key.IsNull())
     {
-        pair<map<crypto::CPubKey, CWalletKeyStore>::iterator, bool> ret;
-        ret = mapKeyStore.insert(make_pair(key.GetPubKey(), CWalletKeyStore(key)));
-        if (ret.second)
+        auto it = mapKeyStore.find(key.GetPubKey());
+        if (it != mapKeyStore.end())
         {
-            (*(ret.first)).second.key.Lock();
+            // privkey update pubkey
+            if (it->second.key.IsPubKey() && key.IsPrivKey())
+            {
+                it->second = CWalletKeyStore(key);
+                it->second.key.Lock();
+                return true;
+            }
+            return false;
+        }
+        else
+        {
+            auto ret = mapKeyStore.insert(make_pair(key.GetPubKey(), CWalletKeyStore(key)));
+            ret.first->second.key.Lock();
             return true;
         }
     }
@@ -1244,7 +1264,12 @@ bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vec
     map<crypto::CPubKey, CWalletKeyStore>::const_iterator it = mapKeyStore.find(pubkey);
     if (it == mapKeyStore.end())
     {
-        StdError("CWallet", "SignPubKey: find pubkey fail, pubkey: %s", pubkey.GetHex().c_str());
+        StdError("CWallet", "SignPubKey: find privkey fail, pubkey: %s", pubkey.GetHex().c_str());
+        return false;
+    }
+    if (!it->second.key.IsPrivKey())
+    {
+        StdError("CWallet", "SignPubKey: can't sign tx by non-privkey, pubkey: %s", pubkey.GetHex().c_str());
         return false;
     }
     if (!(*it).second.key.Sign(hash, vchSig))
@@ -1261,7 +1286,7 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     for (auto& pubkey : setPubKey)
     {
         map<crypto::CPubKey, CWalletKeyStore>::const_iterator it = mapKeyStore.find(pubkey);
-        if (it != mapKeyStore.end())
+        if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
             fSigned |= (*it).second.key.MultiSign(setPubKey, seed, hash, vchSig);
         }

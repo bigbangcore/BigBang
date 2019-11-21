@@ -121,6 +121,12 @@ bool CryptoMultiVerify(const std::set<uint256>& setPubKey, const uint8* pX, cons
 // Encrypt
 struct CCryptoCipher
 {
+    CCryptoCipher()
+      : nonce(0)
+    {
+        memset(encrypted, 0, 48);
+    }
+
     uint8 encrypted[48];
     uint64 nonce;
 };

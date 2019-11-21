@@ -1702,8 +1702,10 @@ namespace rpc
 
         # help tips
         empty_line(w)
-        w.write('// help tips used when error occured or help\n')
-        w.write('static const std::string strHelpTips = "\\nRun \'help COMMAND\' for more information on a command.\\n";\n')
+        w.write('// help tips used when error occured on client\n')
+        w.write('static const std::string strClientHelpTips = "\\nRun \'COMMAND -help\' for more information on a command.\\n";\n')
+        w.write('// help tips used when error occured on server\n')
+        w.write('static const std::string strServerHelpTips = "\\nRun \'help COMMAND\' for more information on a command.\\n";\n')
 
         # file bottom
         w.write('''

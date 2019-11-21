@@ -1385,6 +1385,10 @@
                             "type": "int",
                             "desc": "public key version"
                         },
+                        "public": {
+                            "type": "bool",
+                            "desc": "is only public key or not in wallet"
+                        },
                         "locked": {
                             "type": "bool",
                             "desc": "public key locked"
@@ -1586,7 +1590,7 @@
     "importprivkey": {
         "type": "command",
         "name": "ImportPrivKey",
-        "desc": "Adds a private key (as returned by dumpprivkey) to your wallet.",
+        "desc": "Add a private key to your wallet.",
         "request": {
             "type": "object",
             "content": {
@@ -1618,7 +1622,40 @@
         "error": [
             "{\"code\":-6,\"message\":\"Invalid private key\"}",
             "{\"code\":-6,\"message\":\"Passphrase must be nonempty\"}",
-            "{\"code\":-401,\"message\":\"Already have key\"}",
+            "{\"code\":-401,\"message\":\"Failed to add key\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
+        ]
+    },
+    "importpubkey": {
+        "type": "command",
+        "name": "ImportPubKey",
+        "desc": "Add a public key to your wallet.",
+        "request": {
+            "type": "object",
+            "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "private key"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "address of public key"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importpubkey 73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5",
+                "response": "1tmj9janyr05e0xmyn1b62z0dmj4k18td3hwyq3f5c1dn9p5kydsjpvrm"
+            },
+            {
+                "request": "curl -d '{\"id\":31,\"method\":\"importpubkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5\"}' http://127.0.0.1:9902",
+                "response": "{\"id\":31,\"jsonrpc\":\"2.0\",\"result\":\"73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Template id is not allowed\"}",
             "{\"code\":-401,\"message\":\"Failed to add key\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]
@@ -1654,7 +1691,6 @@
         "error": [
             "{\"code\":-32602,\"message\":\"Failed to verify serialized key\"}",
             "{\"code\":-32602,\"message\":\"Can't import the key with empty passphrase\"}",
-            "{\"code\":-401,\"message\":\"Already have key\"}",
             "{\"code\":-401,\"message\":\"Failed to add key\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]
@@ -1764,7 +1800,6 @@
         ],
         "error": [
             "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
-            "{\"code\":-401,\"message\":\"Already have this template\"}",
             "{\"code\":-401,\"message\":\"Failed to add template\"}",
             "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]

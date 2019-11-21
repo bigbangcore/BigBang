@@ -2,11 +2,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "miner.h"
+
 #include "json/json_spirit_reader_template.h"
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_writer_template.h"
 
-#include "miner.h"
 #include "rpc/rpc.h"
 
 using namespace std;
@@ -151,7 +152,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
             {
                 // Error
                 cerr << spResp->spError->Serialize(true) << endl;
-                cerr << strHelpTips << endl;
+                cerr << strServerHelpTips << endl;
             }
             else if (spResp->IsSuccessful())
             {
@@ -217,7 +218,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
             {
                 // Error
                 cerr << spResp->spError->Serialize(true) << endl;
-                cerr << strHelpTips << endl;
+                cerr << strServerHelpTips << endl;
             }
             else if (spResp->IsSuccessful())
             {

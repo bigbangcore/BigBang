@@ -19,7 +19,6 @@ add_custom_command(OUTPUT ${auto_files}
             "${CMAKE_SOURCE_DIR}/script/template/mode.json"
             "${CMAKE_SOURCE_DIR}/script/generator.py"
             "${CMAKE_SOURCE_DIR}/script/auto_options.py"
-            "${CMAKE_SOURCE_DIR}/script/auto_rpc.py"
             "${CMAKE_SOURCE_DIR}/script/auto_protocol.py"
 )
 

@@ -184,13 +184,13 @@ public:
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
-    virtual bool Have(const crypto::CPubKey& pubkey) const = 0;
+    virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const = 0;
     virtual bool Export(const crypto::CPubKey& pubkey, std::vector<unsigned char>& vchKey) const = 0;
     virtual bool Import(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) = 0;
     virtual bool Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,
                          const crypto::CCryptoString& strCurrentPassphrase)
         = 0;
-    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) const = 0;
+    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) const = 0;
     virtual bool IsLocked(const crypto::CPubKey& pubkey) const = 0;
     virtual bool Lock(const crypto::CPubKey& pubkey) = 0;
     virtual bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) = 0;
@@ -276,9 +276,9 @@ public:
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Wallet */
-    virtual bool HaveKey(const crypto::CPubKey& pubkey) = 0;
+    virtual bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) = 0;
-    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) = 0;
+    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) = 0;
     virtual bool MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey) = 0;
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual bool ImportKey(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) = 0;

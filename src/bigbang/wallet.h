@@ -121,13 +121,13 @@ public:
     bool AddKey(const crypto::CKey& key) override;
     bool LoadKey(const crypto::CKey& key);
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override;
-    bool Have(const crypto::CPubKey& pubkey) const override;
+    bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override;
     bool Export(const crypto::CPubKey& pubkey, std::vector<unsigned char>& vchKey) const override;
     bool Import(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) override;
 
     bool Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,
                  const crypto::CCryptoString& strCurrentPassphrase) override;
-    bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) const override;
+    bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) const override;
     bool IsLocked(const crypto::CPubKey& pubkey) const override;
     bool Lock(const crypto::CPubKey& pubkey) override;
     bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) override;
@@ -211,7 +211,7 @@ public:
         return false;
     }
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override {}
-    virtual bool Have(const crypto::CPubKey& pubkey) const override
+    virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override
     {
         return false;
     }
@@ -232,8 +232,7 @@ public:
         return false;
     }
     virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion,
-                              bool& fLocked,
-                              int64& nAutoLockTime) const override
+                              bool& fLocked, int64& nAutoLockTime, bool& fPublic) const override
     {
         return false;
     }
