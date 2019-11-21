@@ -158,7 +158,7 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
     return true;
 }
 
-void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, vector<uint256>& vInvolvedTx)
+void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx)
 {
     vector<CTxOutPoint> vOutPoint;
     vOutPoint.push_back(out);
@@ -192,8 +192,8 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, vector<uint256>& vInvo
                 {
                     mapSpent.erase(out1);
                 }
+                viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
                 setTxLinkIndex.erase(txidNextTx);
-                vInvolvedTx.push_back(txidNextTx);
             }
         }
     }
@@ -380,14 +380,17 @@ void CTxPool::Pop(const uint256& txid)
         return;
     }
 
-    vector<uint256> vInvalidTx;
     CTxPoolView& txView = mapPoolView[hashFork];
     txView.Remove(txid);
-    txView.InvalidateSpent(CTxOutPoint(txid, 0), vInvalidTx);
-    txView.InvalidateSpent(CTxOutPoint(txid, 1), vInvalidTx);
-    for (const uint256& txidInvalid : vInvalidTx)
+
+    CTxPoolView viewInvolvedTx;
+    txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
+    txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
+
+    const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
+    for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
     {
-        mapTx.erase(txidInvalid);
+        mapTx.erase((*mi).hashTX);
     }
 
     StdTrace("CTxPool", "Pop success, txid: %s", txid.GetHex().c_str());
@@ -521,7 +524,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
-    vector<uint256> vInvalidTx;
+    CTxPoolView viewInvolvedTx;
     CTxPoolView& txView = mapPoolView[update.hashFork];
 
     int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
@@ -548,7 +551,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     for (const CTxIn& txin : tx.vInput)
                     {
-                        txView.InvalidateSpent(txin.prevout, vInvalidTx);
+                        txView.InvalidateSpent(txin.prevout, viewInvolvedTx);
                     }
                     change.vTxAddNew.push_back(CAssembledTx(tx, nHeight, txContxt.destIn, txContxt.GetValueIn()));
                 }
@@ -587,8 +590,8 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 }
                 else
                 {
-                    txView.InvalidateSpent(CTxOutPoint(txid, 0), vInvalidTx);
-                    txView.InvalidateSpent(CTxOutPoint(txid, 1), vInvalidTx);
+                    txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
+                    txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
                     vTxRemove.push_back(make_pair(txid, tx.vInput));
                 }
             }
@@ -597,14 +600,21 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             uint256 txidMint = block.txMint.GetHash();
             CTxOutPoint outMint(txidMint, 0);
-            txView.InvalidateSpent(outMint, vInvalidTx);
+            txView.InvalidateSpent(outMint, viewInvolvedTx);
 
             vTxRemove.push_back(make_pair(txidMint, block.txMint.vInput));
         }
     }
 
-    change.vTxRemove.reserve(vInvalidTx.size() + vTxRemove.size());
-    for (const uint256& txid : boost::adaptors::reverse(vInvalidTx))
+    vector<uint256> vSetInvalidTx;
+    const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
+    for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+    {
+        vSetInvalidTx.push_back((*mi).hashTX);
+    }
+
+    change.vTxRemove.reserve(vSetInvalidTx.size() + vTxRemove.size());
+    for (const uint256& txid : boost::adaptors::reverse(vSetInvalidTx))
     {
         map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
         if (it != mapTx.end())

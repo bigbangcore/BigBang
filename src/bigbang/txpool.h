@@ -190,7 +190,7 @@ public:
         setTxLinkIndex.clear();
         mapSpent.clear();
     }
-    void InvalidateSpent(const CTxOutPoint& out, std::vector<uint256>& vInvolvedTx);
+    void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
 
 public:
