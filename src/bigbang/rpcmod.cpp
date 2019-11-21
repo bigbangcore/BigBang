@@ -212,6 +212,8 @@ CRPCMod::CRPCMod()
         //
         ("importprivkey", &CRPCMod::RPCImportPrivKey)
         //
+        ("importpubkey", &CRPCMod::RPCImportPubKey)
+        //
         ("importkey", &CRPCMod::RPCImportKey)
         //
         ("exportkey", &CRPCMod::RPCExportKey)
@@ -957,13 +959,14 @@ CRPCResultPtr CRPCMod::RPCListKey(CRPCParamPtr param)
     for (const crypto::CPubKey& pubkey : setPubKey)
     {
         int nVersion;
-        bool fLocked;
+        bool fLocked, fPublic;
         int64 nAutoLockTime;
-        if (pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+        if (pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
         {
             CListKeyResult::CPubkey p;
             p.strKey = pubkey.GetHex();
             p.nVersion = nVersion;
+            p.fPublic = fPublic;
             p.fLocked = fLocked;
             if (!fLocked && nAutoLockTime > 0)
             {
@@ -1013,7 +1016,7 @@ CRPCResultPtr CRPCMod::RPCEncryptKey(CRPCParamPtr param)
     }
     crypto::CCryptoString strOldPassphrase = spParam->strOldpassphrase.c_str();
 
-    if (!pService->HaveKey(pubkey))
+    if (!pService->HaveKey(pubkey, crypto::CKey::PRIVATE_KEY))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
     }
@@ -1046,11 +1049,15 @@ CRPCResultPtr CRPCMod::RPCLockKey(CRPCParamPtr param)
     }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't lock public key");
     }
     if (!fLocked && !pService->Lock(pubkey))
     {
@@ -1096,13 +1103,16 @@ CRPCResultPtr CRPCMod::RPCUnlockKey(CRPCParamPtr param)
     }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
     }
-
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't unlock public key");
+    }
     if (!fLocked)
     {
         throw CRPCException(RPC_WALLET_ALREADY_UNLOCKED, "Key is already unlocked");
@@ -1139,7 +1149,7 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid private key");
     }
-    if (!pService->HaveKey(key.GetPubKey()))
+    if (!pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
     {
         if (!strPassphrase.empty())
         {
@@ -1158,6 +1168,45 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
     return MakeCImportPrivKeyResultPtr(key.GetPubKey().GetHex());
 }
 
+CRPCResultPtr CRPCMod::RPCImportPubKey(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CImportPubKeyParam>(param);
+
+    //importpubkey <"pubkey"> or importpubkey <"pubkeyaddress">
+    CAddress address(spParam->strPubkey);
+    if (address.IsTemplate())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Template id is not allowed");
+    }
+
+    crypto::CPubKey pubkey;
+    if (address.IsPubKey())
+    {
+        address.GetPubKey(pubkey);
+    }
+    else if (pubkey.SetHex(spParam->strPubkey) != spParam->strPubkey.size())
+    {
+        pubkey.SetHex(spParam->strPubkey);
+    }
+
+    crypto::CKey key;
+    key.Load(pubkey, crypto::CKey::PUBLIC_KEY, crypto::CCryptoCipher());
+    if (!pService->HaveKey(key.GetPubKey()))
+    {
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
+    }
+
+    CDestination dest(pubkey);
+    return MakeCImportPubKeyResultPtr(CAddress(dest).ToString());
+}
+
 CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportKeyParam>(param);
@@ -1168,11 +1217,12 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMS, "Failed to verify serialized key");
     }
-    if (key.GetVersion() == 0)
+    if (key.GetVersion() == crypto::CKey::INIT)
     {
         throw CRPCException(RPC_INVALID_PARAMS, "Can't import the key with empty passphrase");
     }
-    if (!pService->HaveKey(key.GetPubKey()))
+    if ((key.IsPrivKey() && !pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
+        || (key.IsPubKey() && !pService->HaveKey(key.GetPubKey())))
     {
         if (!pService->AddKey(key))
         {
@@ -1635,11 +1685,15 @@ CRPCResultPtr CRPCMod::RPCSignMessage(CRPCParamPtr param)
     string strMessage = spParam->strMessage;
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign message by public key");
     }
     if (fLocked)
     {
@@ -1871,11 +1925,12 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
             {
                 throw CRPCException(RPC_INVALID_PARAMS, "Failed to verify serialized key");
             }
-            if (key.GetVersion() == 0)
+            if (key.GetVersion() == crypto::CKey::INIT)
             {
                 throw CRPCException(RPC_INVALID_PARAMS, "Can't import the key with empty passphrase");
             }
-            if (pService->HaveKey(key.GetPubKey()))
+            if ((key.IsPrivKey() && pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
+                || (key.IsPubKey() && pService->HaveKey(key.GetPubKey())))
             {
                 continue; //step to next one to continue importing
             }
@@ -1990,11 +2045,15 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign origin block by public key");
     }
     if (fLocked)
     {

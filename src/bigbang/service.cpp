@@ -361,9 +361,9 @@ bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest
     return pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspent);
 }
 
-bool CService::HaveKey(const crypto::CPubKey& pubkey)
+bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
 {
-    return pWallet->Have(pubkey);
+    return pWallet->Have(pubkey, nVersion);
 }
 
 void CService::GetPubKeys(set<crypto::CPubKey>& setPubKey)
@@ -371,9 +371,9 @@ void CService::GetPubKeys(set<crypto::CPubKey>& setPubKey)
     pWallet->GetPubKeys(setPubKey);
 }
 
-bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime)
+bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic)
 {
-    return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime);
+    return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic);
 }
 
 bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)

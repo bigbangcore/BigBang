@@ -99,6 +99,7 @@ private:
     rpc::CRPCResultPtr RPCLockKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCUnlockKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportPrivKey(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportPubKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCExportKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCAddNewTemplate(rpc::CRPCParamPtr param);

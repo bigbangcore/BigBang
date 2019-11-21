@@ -42,7 +42,7 @@ bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& see
 
 CKey::CKey()
 {
-    nVersion = 0;
+    nVersion = INIT;
     pCryptoKey = CryptoAlloc<CCryptoKey>();
     if (!pCryptoKey)
     {
@@ -90,6 +90,16 @@ bool CKey::IsNull() const
 bool CKey::IsLocked() const
 {
     return (pCryptoKey->secret == 0);
+}
+
+bool CKey::IsPrivKey() const
+{
+    return nVersion == PRIVATE_KEY;
+}
+
+bool CKey::IsPubKey() const
+{
+    return nVersion == PUBLIC_KEY;
 }
 
 bool CKey::Renew()
