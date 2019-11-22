@@ -367,6 +367,7 @@ bool CWallet::Lock(const crypto::CPubKey& pubkey)
             CancelTimer(keystore.nTimerId);
             keystore.nTimerId = 0;
             keystore.nAutoLockTime = -1;
+            keystore.nAutoDelayTime = 0;
         }
         return true;
     }
@@ -387,7 +388,8 @@ bool CWallet::Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString&
 
         if (nTimeout > 0)
         {
-            keystore.nAutoLockTime = GetTime() + nTimeout;
+            keystore.nAutoDelayTime = nTimeout;
+            keystore.nAutoLockTime = GetTime() + keystore.nAutoDelayTime;
             keystore.nTimerId = SetTimer(nTimeout * 1000, boost::bind(&CWallet::AutoLock, this, _1, (*it).first));
         }
         return true;
@@ -407,11 +409,12 @@ void CWallet::AutoLock(uint32 nTimerId, const crypto::CPubKey& pubkey)
             keystore.key.Lock();
             keystore.nTimerId = 0;
             keystore.nAutoLockTime = -1;
+            keystore.nAutoDelayTime = 0;
         }
     }
 }
 
-bool CWallet::Sign(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig) const
+bool CWallet::Sign(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
     return SignPubKey(pubkey, hash, vchSig);
@@ -544,7 +547,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
     return true;
 }
 
-bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) const
+bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted)
 {
     vector<uint8> vchSig;
 
@@ -1259,9 +1262,9 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
     return nValueRet;
 }
 
-bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig) const
+bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig)
 {
-    map<crypto::CPubKey, CWalletKeyStore>::const_iterator it = mapKeyStore.find(pubkey);
+    map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
     if (it == mapKeyStore.end())
     {
         StdError("CWallet", "SignPubKey: find privkey fail, pubkey: %s", pubkey.GetHex().c_str());
@@ -1272,29 +1275,33 @@ bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vec
         StdError("CWallet", "SignPubKey: can't sign tx by non-privkey, pubkey: %s", pubkey.GetHex().c_str());
         return false;
     }
-    if (!(*it).second.key.Sign(hash, vchSig))
+    if (!it->second.key.Sign(hash, vchSig))
     {
         StdError("CWallet", "SignPubKey: sign fail, pubkey: %s", pubkey.GetHex().c_str());
         return false;
     }
+
+    // update auto unlock time
+    UpdateAutoLock(it->second);
     return true;
 }
 
-bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& seed, const uint256& hash, vector<uint8>& vchSig) const
+bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& seed, const uint256& hash, vector<uint8>& vchSig)
 {
     bool fSigned = false;
     for (auto& pubkey : setPubKey)
     {
-        map<crypto::CPubKey, CWalletKeyStore>::const_iterator it = mapKeyStore.find(pubkey);
+        map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
-            fSigned |= (*it).second.key.MultiSign(setPubKey, seed, hash, vchSig);
+            fSigned |= it->second.key.MultiSign(setPubKey, seed, hash, vchSig);
+            UpdateAutoLock(it->second);
         }
     }
     return fSigned;
 }
 
-bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, vector<uint8>& vchSig, bool& fCompleted) const
+bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, vector<uint8>& vchSig, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {
@@ -1375,6 +1382,16 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         return false;
     }
     return true;
+}
+
+void CWallet::UpdateAutoLock(CWalletKeyStore& keystore)
+{
+    if (keystore.nAutoDelayTime > 0)
+    {
+        CancelTimer(keystore.nTimerId);
+        keystore.nAutoLockTime = GetTime() + keystore.nAutoDelayTime;
+        keystore.nTimerId = SetTimer(keystore.nAutoDelayTime * 1000, boost::bind(&CWallet::AutoLock, this, _1, keystore.key.GetPubKey()));
+    }
 }
 
 bool CWallet::UpdateFork()
