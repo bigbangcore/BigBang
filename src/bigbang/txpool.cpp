@@ -213,7 +213,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         if ((*it).ptx && (*it).ptx->GetTxTime() <= nBlockTime)
         {
             CTxContxt contxt;
-            for(int i = 0; i < (*it).ptx->vInput.size(); ++i)
+            for (int i = 0; i < (*it).ptx->vInput.size(); ++i)
             {
                 contxt.vin.push_back(CTxInContxt());
             }
