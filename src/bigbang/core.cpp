@@ -269,12 +269,6 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
     }
 
-    size_t nBlockSize = GetSerializeSize(block);
-    if (nBlockSize > MAX_BLOCK_SIZE)
-    {
-        return DEBUG(ERR_BLOCK_OVERSIZE, "size overflow size=%u vtx=%u\n", nBlockSize, block.vtx.size());
-    }
-
     if (block.nType == CBlock::BLOCK_ORIGIN && !block.vtx.empty())
     {
         return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "origin block vtx is not empty\n");
@@ -304,6 +298,16 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     if (!CheckBlockSignature(block))
     {
         return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "\n");
+    }
+    return OK;
+}
+
+Errno CCoreProtocol::CheckBlockSize(const CBlockEx& block)
+{
+    size_t nBlockSize = GetSerializeSize(block);
+    if (nBlockSize > MAX_BLOCK_SIZE)
+    {
+        return DEBUG(ERR_BLOCK_OVERSIZE, "size overflow size=%u vtx=%u\n", nBlockSize, block.vtx.size());
     }
     return OK;
 }

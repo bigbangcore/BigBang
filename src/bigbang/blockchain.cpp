@@ -465,6 +465,14 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nTotalFee += tx.nTxFee;
     }
 
+    //Check block size including context
+    err = pCoreProtocol->CheckBlockSize(blockex);
+    if (err != OK)
+    {
+        Log("AddNewBlock Check Block Size Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
+        return err;
+    }
+
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
         Log("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld ", block.txMint.nAmount, nTotalFee, nReward);

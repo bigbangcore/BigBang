@@ -36,6 +36,7 @@ public:
     virtual void GetGenesisBlock(CBlock& block) = 0;
     virtual Errno ValidateTransaction(const CTransaction& tx) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
+    virtual Errno CheckBlockSize(const CBlockEx& block) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
     virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,

@@ -16,7 +16,7 @@ inline bool MoneyRange(int64 nValue)
     return (nValue >= 0 && nValue <= MAX_MONEY);
 }
 
-static const unsigned int MAX_BLOCK_SIZE = 2000000;
+static const unsigned int MAX_BLOCK_SIZE = 0x2000000;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);
 
 static const unsigned int BLOCK_TARGET_SPACING = 60; // 1-minute block spacing

@@ -206,16 +206,26 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
     CPooledTxLinkSetBySequenceNumber::iterator it = idxTxLinkSeq.begin();
+    vector<CTxContxt> vTxContxt;
+    CBufStream ss;
     for (; it != idxTxLinkSeq.end(); ++it)
     {
         if ((*it).ptx && (*it).ptx->GetTxTime() <= nBlockTime)
         {
-            if (nTotalSize + (*it).ptx->nSerializeSize > nMaxSize)
+            CTxContxt contxt;
+            for(int i = 0; i < (*it).ptx->vInput.size(); ++i)
+            {
+                contxt.vin.push_back(CTxInContxt());
+            }
+            vTxContxt.push_back(contxt);
+            std::size_t nContext = ss.GetSerializeSize(vTxContxt);
+            if (nTotalSize + (*it).ptx->nSerializeSize + nContext > nMaxSize)
             {
                 break;
             }
             vtx.push_back(*static_cast<CTransaction*>((*it).ptx));
             nTotalSize += (*it).ptx->nSerializeSize;
+            nTotalSize += nContext;
             nTotalTxFee += (*it).ptx->nTxFee;
         }
     }

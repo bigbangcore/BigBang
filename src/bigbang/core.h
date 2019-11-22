@@ -19,6 +19,7 @@ public:
     virtual void GetGenesisBlock(CBlock& block) override;
     virtual Errno ValidateTransaction(const CTransaction& tx) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
+    virtual Errno CheckBlockSize(const CBlockEx& block) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
