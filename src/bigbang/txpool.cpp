@@ -354,9 +354,12 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         }
         destIn = pPooledTx->destIn;
         nValueIn = pPooledTx->nValueIn;
+        StdTrace("CTxPool", "Push success, txid: %s", txid.GetHex().c_str());
     }
-
-    StdTrace("CTxPool", "Push success, txid: %s", txid.GetHex().c_str());
+    else
+    {
+        StdTrace("CTxPool", "Push fail, err: [%d] %s, txid: %s", err, ErrorString(err), txid.GetHex().c_str());
+    }
 
     return err;
 }
@@ -606,20 +609,14 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         }
     }
 
-    vector<uint256> vSetInvalidTx;
-    const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
-    for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+    const CPooledTxLinkSetBySequenceNumber& idxInvolvedTx = viewInvolvedTx.setTxLinkIndex.get<1>();
+    change.vTxRemove.reserve(idxInvolvedTx.size() + vTxRemove.size());
+    for (const auto& txseq : boost::adaptors::reverse(idxInvolvedTx))
     {
-        vSetInvalidTx.push_back((*mi).hashTX);
-    }
-
-    change.vTxRemove.reserve(vSetInvalidTx.size() + vTxRemove.size());
-    for (const uint256& txid : boost::adaptors::reverse(vSetInvalidTx))
-    {
-        map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
+        map<uint256, CPooledTx>::iterator it = mapTx.find(txseq.hashTX);
         if (it != mapTx.end())
         {
-            change.vTxRemove.push_back(make_pair(txid, (*it).second.vInput));
+            change.vTxRemove.push_back(make_pair(txseq.hashTX, (*it).second.vInput));
             mapTx.erase(it);
         }
     }
