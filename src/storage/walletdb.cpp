@@ -150,7 +150,7 @@ bool CWalletTxDB::AddNewTx(const CWalletTx& wtx)
     }
 
     if (!Write(make_pair(string("wtx"), wtx.txid), pairWalletTx)
-        || !Write(make_pair(string("seq"), pairWalletTx.first), CWalletTxSeq(wtx))
+        || !Write(make_pair(string("seq"), BSwap64(pairWalletTx.first)), CWalletTxSeq(wtx))
         || !Write(string("txcount"), nTxCount + 1)
         || !Write(string("sequence"), nSequence))
     {
@@ -209,7 +209,7 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
     {
         pair<uint64, CWalletTx>& pairWalletTx = vTxUpdate[i];
         if (!Write(make_pair(string("wtx"), pairWalletTx.second.txid), pairWalletTx)
-            || !Write(make_pair(string("seq"), pairWalletTx.first), CWalletTxSeq(pairWalletTx.second)))
+            || !Write(make_pair(string("seq"), BSwap64(pairWalletTx.first)), CWalletTxSeq(pairWalletTx.second)))
         {
             TxnAbort();
             return false;
@@ -219,7 +219,7 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
     for (int i = 0; i < vTxRemove.size(); i++)
     {
         if (!Erase(make_pair(string("wtx"), vTxRemove[i].second))
-            || !Erase(make_pair(string("seq"), vTxRemove[i].first)))
+            || !Erase(make_pair(string("seq"), BSwap64(vTxRemove[i].first))))
         {
             TxnAbort();
             return false;
@@ -268,13 +268,13 @@ size_t CWalletTxDB::GetTxCount()
 bool CWalletTxDB::WalkThroughTxSeq(CWalletDBTxSeqWalker& walker)
 {
     return WalkThrough(boost::bind(&CWalletTxDB::TxSeqWalker, this, _1, _2, boost::ref(walker)),
-                       make_pair(string("seq"), uint64(0)));
+                       make_pair(string("seq"), BSwap64(uint64(0))));
 }
 
 bool CWalletTxDB::WalkThroughTx(CWalletDBTxWalker& walker)
 {
     return WalkThrough(boost::bind(&CWalletTxDB::TxWalker, this, _1, _2, boost::ref(walker)),
-                       make_pair(string("seq"), uint64(0)));
+                       make_pair(string("seq"), BSwap64(uint64(0))));
 }
 
 bool CWalletTxDB::TxSeqWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBTxSeqWalker& walker)
