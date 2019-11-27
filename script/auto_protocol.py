@@ -35,7 +35,9 @@ def subclass_name(name, named=False):
 def param_name(name, type):
     if type == 'int' or type == 'uint':
         return 'n' + name.title()
-    elif type == 'double' or type == 'bool':
+    elif type == 'double':
+        return 'd' + name.title()
+    elif type == 'bool':
         return 'f' + name.title()
     elif type == 'array':
         return 'vec' + name.title()
@@ -1423,7 +1425,7 @@ class Response:
         self.content = content
 
     def parse(self):
-        prefix = join_prefix(self.cmd, 'request')
+        prefix = join_prefix(self.cmd, 'response')
 
         self.type, self.reference, self.ref_cls = get_type(prefix, self.content)
 
@@ -1700,8 +1702,10 @@ namespace rpc
 
         # help tips
         empty_line(w)
-        w.write('// help tips used when error occured or help\n')
-        w.write('static const std::string strHelpTips = "\\nRun \'help COMMAND\' for more information on a command.\\n";\n')
+        w.write('// help tips used when error occured on client\n')
+        w.write('static const std::string strClientHelpTips = "\\nRun \'COMMAND -help\' for more information on a command.\\n";\n')
+        w.write('// help tips used when error occured on server\n')
+        w.write('static const std::string strServerHelpTips = "\\nRun \'help COMMAND\' for more information on a command.\\n";\n')
 
         # file bottom
         w.write('''

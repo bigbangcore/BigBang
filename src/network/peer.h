@@ -30,14 +30,16 @@ public:
         xengine::CBufStream ssPayload;
         return SendMessage(nChannel, nCommand, ssPayload);
     }
-    uint32 Request(CInv& inv, uint32 nTimerId);
-    uint32 Responded(CInv& inv);
+    uint32 Request(const CInv& inv, uint32 nTimerId);
+    uint32 Responded(const CInv& inv);
     void AskFor(const uint256& hashFork, const std::vector<CInv>& vInv);
     bool FetchAskFor(uint256& hashFork, CInv& inv);
+    bool PingTimer(uint32 nTimerId) override;
 
 protected:
     void SendHello();
     void SendHelloAck();
+    void SendPing();
     bool ParseMessageHeader();
     bool HandshakeReadHeader();
     bool HandshakeReadCompleted();
@@ -51,8 +53,14 @@ public:
     uint64 nNonceFrom;
     int64 nTimeDelta;
     int64 nTimeHello;
+    uint256 hashGenesis;
     std::string strSubVer;
     int nStartingHeight;
+    int nPingPongTimeDelta;
+
+    uint32 nPingTimerId;
+    int64 nPingMillisTime;
+    uint32 nPingSeq;
 
 protected:
     uint32 nMsgMagic;
@@ -70,6 +78,7 @@ public:
     uint64 nService;
     std::string strSubVer;
     int nStartingHeight;
+    int nPingPongTimeDelta;
 };
 
 } // namespace network

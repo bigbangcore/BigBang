@@ -51,7 +51,7 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
 
 void CTemplateDelegate::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const
 {
-    obj.delegate.strDelegate = destInstance.SetPubKey(keyDelegate).ToString();
+    obj.delegate.strDelegate = keyDelegate.ToString();
     obj.delegate.strOwner = (destInstance = destOwner).ToString();
 }
 

@@ -169,7 +169,7 @@ public:
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
-    std::string ToString() const
+    /*std::string ToString() const
     {
         std::ostringstream oss;
 
@@ -191,7 +191,7 @@ public:
         }
         oss << ")";
         return oss.str();
-    }
+    }*/
 
 protected:
     CBlockBase* pBlockBase;
@@ -217,8 +217,8 @@ public:
     bool IsEmpty() const;
     bool Exists(const uint256& hash) const;
     bool ExistsTx(const uint256& txid);
-    bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis);
-    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew);
+    bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
+    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
@@ -234,7 +234,7 @@ public:
     bool RetrieveTx(const uint256& txid, CTransaction& tx);
     bool RetrieveTx(const uint256& hashFork, const uint256& txid, CTransaction& tx);
     bool RetrieveTxLocation(const uint256& txid, uint256& hashFork, int& nHeight);
-    bool RetrieveAvailDelegate(const uint256& hash, const uint256& hashAnchor, const std::vector<uint256>& vBlockRange,
+    bool RetrieveAvailDelegate(const uint256& hash, int height, const std::vector<uint256>& vBlockRange,
                                int64 nDelegateWeightRatio,
                                std::map<CDestination, std::size_t>& mapWeight,
                                std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
@@ -248,17 +248,18 @@ public:
     bool FilterTx(const uint256& hashFork, CTxFilter& filter);
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter);
     bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
-    bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator);
+    bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
+    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
     CBlockIndex* GetOrCreateIndex(const uint256& hash);
     CBlockIndex* GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, std::vector<CBlockIndex*>& vPath);
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
-    CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset);
+    CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
     boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);

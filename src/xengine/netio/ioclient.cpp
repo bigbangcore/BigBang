@@ -63,14 +63,19 @@ void CIOClient::Close()
     {
         CloseSocket();
         epRemote = tcp::endpoint();
-        Release();
     }
+    Release();
 }
 
 void CIOClient::Release()
 {
-    if (!(--nRefCount))
+    if (--nRefCount <= 0)
     {
+        if (IsSocketOpen())
+        {
+            CloseSocket();
+            epRemote = tcp::endpoint();
+        }
         pContainer->ClientClose(this);
     }
 }
@@ -114,11 +119,11 @@ void CIOClient::Write(CBufStream& ssSend, CallBackFunc fnCompleted)
 void CIOClient::HandleCompleted(CallBackFunc fnCompleted,
                                 const boost::system::error_code& err, size_t transferred)
 {
+    Release();
     if (err != boost::asio::error::operation_aborted && IsSocketOpen())
     {
         fnCompleted(!err ? transferred : 0);
     }
-    Release();
 }
 
 void CIOClient::HandleConnCompleted(CallBackConn fnCompleted, const boost::system::error_code& err)

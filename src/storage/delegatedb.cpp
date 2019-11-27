@@ -2,11 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "delegatedb.h"
-
 #include <boost/range/adaptor/reversed.hpp>
 
 #include "leveldbeng.h"
+
+#include "delegatedb.h"
 
 using namespace std;
 using namespace xengine;
@@ -85,7 +85,7 @@ bool CDelegateDB::RetrieveDelegatedVote(const uint256& hashBlock, map<CDestinati
     return true;
 }
 
-bool CDelegateDB::RetrieveEnrollTx(const uint256& hashAnchor, const vector<uint256>& vBlockRange,
+bool CDelegateDB::RetrieveEnrollTx(int height, const vector<uint256>& vBlockRange,
                                    map<CDestination, CDiskPos>& mapEnrollTxPos)
 {
     for (const uint256& hash : boost::adaptors::reverse(vBlockRange))
@@ -96,7 +96,7 @@ bool CDelegateDB::RetrieveEnrollTx(const uint256& hashAnchor, const vector<uint2
             return false;
         }
 
-        map<uint256, map<CDestination, CDiskPos>>::iterator it = ctxtDelegate.mapEnrollTx.find(hashAnchor);
+        map<int, map<CDestination, CDiskPos>>::iterator it = ctxtDelegate.mapEnrollTx.find(height);
         if (it != ctxtDelegate.mapEnrollTx.end())
         {
             mapEnrollTxPos.insert((*it).second.begin(), (*it).second.end());

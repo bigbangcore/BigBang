@@ -23,7 +23,7 @@ class CDelegateContext
 
 public:
     std::map<CDestination, int64> mapVote;
-    std::map<uint256, std::map<CDestination, CDiskPos>> mapEnrollTx;
+    std::map<int, std::map<CDestination, CDiskPos>> mapEnrollTx;
 
 protected:
     template <typename O>
@@ -44,7 +44,7 @@ public:
     bool AddNew(const uint256& hashBlock, const CDelegateContext& ctxtDelegate);
     bool Remove(const uint256& hashBlock);
     bool RetrieveDelegatedVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
-    bool RetrieveEnrollTx(const uint256& hashAnchor, const std::vector<uint256>& vBlockRange,
+    bool RetrieveEnrollTx(int height, const std::vector<uint256>& vBlockRange,
                           std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     void Clear();
 

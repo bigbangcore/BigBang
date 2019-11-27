@@ -13,8 +13,8 @@
 #define VERSION_NAME "Bigbang"
 
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 2
-#define VERSION_REVISION 0
+#define VERSION_MINOR 9
+#define VERSION_REVISION 2
 
 std::string FormatVersion(int nVersion);
 
@@ -25,6 +25,8 @@ static const std::string VERSION_STR = FormatVersion(VERSION);
 
 static const int PROTO_VERSION = 100;
 static const int MIN_PROTO_VERSION = 100;
+
+const char* GetGitVersion();
 
 inline std::string FormatVersion(const int nMajor, const int nMinor, const int nRevision)
 {
@@ -42,7 +44,7 @@ inline std::string FormatSubVersion()
 {
     std::ostringstream ss;
     ss << "/" << VERSION_NAME << ":" << FormatVersion(VERSION);
-    ss << "/Protocol:" << FormatVersion(PROTO_VERSION) << "/";
+    ss << "/Protocol:" << FormatVersion(PROTO_VERSION) << "/" << GetGitVersion();
     return ss.str();
 }
 

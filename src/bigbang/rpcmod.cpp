@@ -24,6 +24,10 @@ using namespace bigbang::rpc;
 using namespace bigbang;
 namespace fs = boost::filesystem;
 
+#define UNLOCKKEY_RELEASE_DEFAULT_TIME 60
+
+const char* GetGitVersion();
+
 ///////////////////////////////
 // static function
 
@@ -50,6 +54,7 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
 {
     CBlockData data;
     data.strHash = hashBlock.GetHex();
+    data.strHashprev = block.hashPrev.GetHex();
     data.nVersion = block.nVersion;
     data.strType = GetBlockTypeStr(block.nType, block.txMint.nType);
     data.nTime = block.GetBlockTime();
@@ -85,10 +90,18 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, co
         ret.vecVin.push_back(move(vin));
     }
     ret.strSendto = CAddress(tx.sendTo).ToString();
-    ret.fAmount = ValueFromAmount(tx.nAmount);
-    ret.fTxfee = ValueFromAmount(tx.nTxFee);
+    ret.dAmount = ValueFromAmount(tx.nAmount);
+    ret.dTxfee = ValueFromAmount(tx.nTxFee);
 
-    ret.strData = xengine::ToHexString(tx.vchData);
+    std::string str(tx.vchData.begin(), tx.vchData.end());
+    if (str.substr(0, 4) == "msg:")
+    {
+        ret.strData = str;
+    }
+    else
+    {
+        ret.strData = xengine::ToHexString(tx.vchData);
+    }
     ret.strSig = xengine::ToHexString(tx.vchSig);
     ret.strFork = hashFork.GetHex();
     if (nDepth >= 0)
@@ -116,9 +129,20 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
         data.strFrom = CAddress(wtx.destIn).ToString();
     }
     data.strTo = CAddress(wtx.sendTo).ToString();
-    data.fAmount = ValueFromAmount(wtx.nAmount);
-    data.fFee = ValueFromAmount(wtx.nTxFee);
+    data.dAmount = ValueFromAmount(wtx.nAmount);
+    data.dFee = ValueFromAmount(wtx.nTxFee);
     data.nLockuntil = (boost::int64_t)wtx.nLockUntil;
+    return data;
+}
+
+static CUnspentData UnspentToJSON(const CTxUnspent& unspent)
+{
+    CUnspentData data;
+    data.strTxid = unspent.hash.ToString();
+    data.nOut = unspent.n;
+    data.dAmount = ValueFromAmount(unspent.output.nAmount);
+    data.nTime = unspent.output.nTxTime;
+    data.nLockuntil = unspent.output.nLockUntil;
     return data;
 }
 
@@ -138,17 +162,109 @@ CRPCMod::CRPCMod()
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
-        ("help", &CRPCMod::RPCHelp)("stop", &CRPCMod::RPCStop)("version", &CRPCMod::RPCVersion)
+        ("help", &CRPCMod::RPCHelp)
+        //
+        ("stop", &CRPCMod::RPCStop)
+        //
+        ("version", &CRPCMod::RPCVersion)
         /* Network */
-        ("getpeercount", &CRPCMod::RPCGetPeerCount)("listpeer", &CRPCMod::RPCListPeer)("addnode", &CRPCMod::RPCAddNode)("removenode", &CRPCMod::RPCRemoveNode)
+        ("getpeercount", &CRPCMod::RPCGetPeerCount)
+        //
+        ("listpeer", &CRPCMod::RPCListPeer)
+        //
+        ("addnode", &CRPCMod::RPCAddNode)
+        //
+        ("removenode", &CRPCMod::RPCRemoveNode)
         /* Blockchain & TxPool */
-        ("getforkcount", &CRPCMod::RPCGetForkCount)("listfork", &CRPCMod::RPCListFork)("getgenealogy", &CRPCMod::RPCGetForkGenealogy)("getblocklocation", &CRPCMod::RPCGetBlockLocation)("getblockcount", &CRPCMod::RPCGetBlockCount)("getblockhash", &CRPCMod::RPCGetBlockHash)("getblock", &CRPCMod::RPCGetBlock)("gettxpool", &CRPCMod::RPCGetTxPool)("gettransaction", &CRPCMod::RPCGetTransaction)("sendtransaction", &CRPCMod::RPCSendTransaction)("getforkheight", &CRPCMod::RPCGetForkHeight)
+        ("getforkcount", &CRPCMod::RPCGetForkCount)
+        //
+        ("listfork", &CRPCMod::RPCListFork)
+        //
+        ("getgenealogy", &CRPCMod::RPCGetForkGenealogy)
+        //
+        ("getblocklocation", &CRPCMod::RPCGetBlockLocation)
+        //
+        ("getblockcount", &CRPCMod::RPCGetBlockCount)
+        //
+        ("getblockhash", &CRPCMod::RPCGetBlockHash)
+        //
+        ("getblock", &CRPCMod::RPCGetBlock)
+        //
+        ("getblockdetail", &CRPCMod::RPCGetBlockDetail)
+        //
+        ("gettxpool", &CRPCMod::RPCGetTxPool)
+        //
+        ("gettransaction", &CRPCMod::RPCGetTransaction)
+        //
+        ("sendtransaction", &CRPCMod::RPCSendTransaction)
+        //
+        ("getforkheight", &CRPCMod::RPCGetForkHeight)
         /* Wallet */
-        ("listkey", &CRPCMod::RPCListKey)("getnewkey", &CRPCMod::RPCGetNewKey)("encryptkey", &CRPCMod::RPCEncryptKey)("lockkey", &CRPCMod::RPCLockKey)("unlockkey", &CRPCMod::RPCUnlockKey)("importprivkey", &CRPCMod::RPCImportPrivKey)("importkey", &CRPCMod::RPCImportKey)("exportkey", &CRPCMod::RPCExportKey)("addnewtemplate", &CRPCMod::RPCAddNewTemplate)("importtemplate", &CRPCMod::RPCImportTemplate)("exporttemplate", &CRPCMod::RPCExportTemplate)("validateaddress", &CRPCMod::RPCValidateAddress)("resyncwallet", &CRPCMod::RPCResyncWallet)("getbalance", &CRPCMod::RPCGetBalance)("listtransaction", &CRPCMod::RPCListTransaction)("sendfrom", &CRPCMod::RPCSendFrom)("createtransaction", &CRPCMod::RPCCreateTransaction)("signtransaction", &CRPCMod::RPCSignTransaction)("signmessage", &CRPCMod::RPCSignMessage)("listaddress", &CRPCMod::RPCListAddress)("exportwallet", &CRPCMod::RPCExportWallet)("importwallet", &CRPCMod::RPCImportWallet)("makeorigin", &CRPCMod::RPCMakeOrigin)
+        ("listkey", &CRPCMod::RPCListKey)
+        //
+        ("getnewkey", &CRPCMod::RPCGetNewKey)
+        //
+        ("encryptkey", &CRPCMod::RPCEncryptKey)
+        //
+        ("lockkey", &CRPCMod::RPCLockKey)
+        //
+        ("unlockkey", &CRPCMod::RPCUnlockKey)
+        //
+        ("importprivkey", &CRPCMod::RPCImportPrivKey)
+        //
+        ("importpubkey", &CRPCMod::RPCImportPubKey)
+        //
+        ("importkey", &CRPCMod::RPCImportKey)
+        //
+        ("exportkey", &CRPCMod::RPCExportKey)
+        //
+        ("addnewtemplate", &CRPCMod::RPCAddNewTemplate)
+        //
+        ("importtemplate", &CRPCMod::RPCImportTemplate)
+        //
+        ("exporttemplate", &CRPCMod::RPCExportTemplate)
+        //
+        ("validateaddress", &CRPCMod::RPCValidateAddress)
+        //
+        ("resyncwallet", &CRPCMod::RPCResyncWallet)
+        //
+        ("getbalance", &CRPCMod::RPCGetBalance)
+        //
+        ("listtransaction", &CRPCMod::RPCListTransaction)
+        //
+        ("sendfrom", &CRPCMod::RPCSendFrom)
+        //
+        ("createtransaction", &CRPCMod::RPCCreateTransaction)
+        //
+        ("signtransaction", &CRPCMod::RPCSignTransaction)
+        //
+        ("signmessage", &CRPCMod::RPCSignMessage)
+        //
+        ("listaddress", &CRPCMod::RPCListAddress)
+        //
+        ("exportwallet", &CRPCMod::RPCExportWallet)
+        //
+        ("importwallet", &CRPCMod::RPCImportWallet)
+        //
+        ("makeorigin", &CRPCMod::RPCMakeOrigin)
         /* Util */
-        ("verifymessage", &CRPCMod::RPCVerifyMessage)("makekeypair", &CRPCMod::RPCMakeKeyPair)("getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress)("gettemplateaddress", &CRPCMod::RPCGetTemplateAddress)("maketemplate", &CRPCMod::RPCMakeTemplate)("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        ("verifymessage", &CRPCMod::RPCVerifyMessage)
+        //
+        ("makekeypair", &CRPCMod::RPCMakeKeyPair)
+        //
+        ("getpubkeyaddress", &CRPCMod::RPCGetPubKeyAddress)
+        //
+        ("gettemplateaddress", &CRPCMod::RPCGetTemplateAddress)
+        //
+        ("maketemplate", &CRPCMod::RPCMakeTemplate)
+        //
+        ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        //
+        ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
-        ("getwork", &CRPCMod::RPCGetWork)("submitwork", &CRPCMod::RPCSubmitWork)
+        ("getwork", &CRPCMod::RPCGetWork)
+        //
+        ("submitwork", &CRPCMod::RPCSubmitWork)
         /* tool */
         ("querystat", &CRPCMod::RPCQueryStat);
     mapRPCFunc = temp_map;
@@ -163,25 +279,25 @@ bool CRPCMod::HandleInitialize()
 {
     if (!GetObject("httpserver", pHttpServer))
     {
-        Error("Failed to request httpserver\n");
+        Error("Failed to request httpserver");
         return false;
     }
 
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("service", pService))
     {
-        Error("Failed to request service\n");
+        Error("Failed to request service");
         return false;
     }
 
     if (!GetObject("datastat", pDataStat))
     {
-        Error("Failed to request datastat\n");
+        Error("Failed to request datastat");
         return false;
     }
 
@@ -243,7 +359,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
                 if (fWriteRPCLog)
                 {
-                    Debug("request : %s\n", lmdMask(spReq->Serialize()).c_str());
+                    Debug("request : %s ", lmdMask(spReq->Serialize()).c_str());
                 }
 
                 spResult = (this->*(*it).second)(spReq->spParam);
@@ -300,7 +416,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
 
     if (fWriteRPCLog)
     {
-        Debug("response : %s\n", lmdMask(strResult).c_str());
+        Debug("response : %s ", lmdMask(strResult).c_str());
     }
 
     // no result means no return
@@ -444,7 +560,7 @@ CRPCResultPtr CRPCMod::RPCStop(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCVersion(CRPCParamPtr param)
 {
-    string strVersion = string("Bigbang server version is v") + VERSION_STR;
+    string strVersion = string("Bigbang server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
     return MakeCVersionResultPtr(strVersion);
 }
 
@@ -464,10 +580,25 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
     {
         CListPeerResult::CPeer peer;
         peer.strAddress = info.strAddress;
-        peer.strServices = UIntToHexString(info.nService);
-        peer.nLastsend = info.nLastSend;
-        peer.nLastrecv = info.nLastRecv;
-        peer.nConntime = info.nActive;
+        if (info.nService & network::NODE_NETWORK)
+        {
+            peer.strServices = "NODE_NETWORK";
+        }
+        if (info.nService & network::NODE_DELEGATED)
+        {
+            if (peer.strServices.empty())
+            {
+                peer.strServices = "NODE_DELEGATED";
+            }
+            else
+            {
+                peer.strServices = peer.strServices + ",NODE_DELEGATED";
+            }
+        }
+        peer.strLastsend = GetTimeString(info.nLastSend);
+        peer.strLastrecv = GetTimeString(info.nLastRecv);
+        peer.strConntime = GetTimeString(info.nActive);
+        peer.nPingtime = info.nPingPongTimeDelta;
         peer.strVersion = FormatVersion(info.nVersion);
         peer.strSubver = info.strSubVer;
         peer.fInbound = info.fInBound;
@@ -651,6 +782,54 @@ CRPCResultPtr CRPCMod::RPCGetBlock(CRPCParamPtr param)
     return MakeCGetBlockResultPtr(BlockToJSON(hashBlock, block, fork, height));
 }
 
+CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CgetblockdetailParam>(param);
+
+    //getblockdetail <"block">
+    uint256 hashBlock;
+    hashBlock.SetHex(spParam->strBlock);
+
+    CBlock block;
+    uint256 fork;
+    int height;
+    if (!pService->GetBlock(hashBlock, block, fork, height))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown block");
+    }
+
+    Cblockdatadetail data;
+
+    data.strHash = hashBlock.GetHex();
+    data.strHashprev = block.hashPrev.GetHex();
+    data.nVersion = block.nVersion;
+    data.strType = GetBlockTypeStr(block.nType, block.txMint.nType);
+    data.nTime = block.GetBlockTime();
+    if (block.hashPrev != 0)
+    {
+        data.strPrev = block.hashPrev.GetHex();
+    }
+    data.strFork = fork.GetHex();
+    data.nHeight = height;
+    int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth);
+    if (block.IsProofOfWork())
+    {
+        CProofOfHashWorkCompact proof;
+        proof.Load(block.vchProof);
+        data.nBits = proof.nBits;
+    }
+    else
+    {
+        data.nBits = 0;
+    }
+    for (const CTransaction& tx : block.vtx)
+    {
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth));
+    }
+    return MakeCgetblockdetailResultPtr(data);
+}
+
 CRPCResultPtr CRPCMod::RPCGetTxPool(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetTxPoolParam>(param);
@@ -780,13 +959,14 @@ CRPCResultPtr CRPCMod::RPCListKey(CRPCParamPtr param)
     for (const crypto::CPubKey& pubkey : setPubKey)
     {
         int nVersion;
-        bool fLocked;
+        bool fLocked, fPublic;
         int64 nAutoLockTime;
-        if (pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+        if (pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
         {
             CListKeyResult::CPubkey p;
             p.strKey = pubkey.GetHex();
             p.nVersion = nVersion;
+            p.fPublic = fPublic;
             p.fLocked = fLocked;
             if (!fLocked && nAutoLockTime > 0)
             {
@@ -836,7 +1016,7 @@ CRPCResultPtr CRPCMod::RPCEncryptKey(CRPCParamPtr param)
     }
     crypto::CCryptoString strOldPassphrase = spParam->strOldpassphrase.c_str();
 
-    if (!pService->HaveKey(pubkey))
+    if (!pService->HaveKey(pubkey, crypto::CKey::PRIVATE_KEY))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
     }
@@ -869,11 +1049,15 @@ CRPCResultPtr CRPCMod::RPCLockKey(CRPCParamPtr param)
     }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't lock public key");
     }
     if (!fLocked && !pService->Lock(pubkey))
     {
@@ -913,15 +1097,22 @@ CRPCResultPtr CRPCMod::RPCUnlockKey(CRPCParamPtr param)
     {
         nTimeout = spParam->nTimeout;
     }
+    else if (!RPCServerConfig()->fDebug)
+    {
+        nTimeout = UNLOCKKEY_RELEASE_DEFAULT_TIME;
+    }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
     }
-
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't unlock public key");
+    }
     if (!fLocked)
     {
         throw CRPCException(RPC_WALLET_ALREADY_UNLOCKED, "Key is already unlocked");
@@ -958,24 +1149,62 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid private key");
     }
-    if (pService->HaveKey(key.GetPubKey()))
+    if (!pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have key");
-    }
-    if (!strPassphrase.empty())
-    {
-        key.Encrypt(strPassphrase);
-    }
-    if (!pService->AddKey(key))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!strPassphrase.empty())
+        {
+            key.Encrypt(strPassphrase);
+        }
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportPrivKeyResultPtr(key.GetPubKey().GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCImportPubKey(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CImportPubKeyParam>(param);
+
+    //importpubkey <"pubkey"> or importpubkey <"pubkeyaddress">
+    CAddress address(spParam->strPubkey);
+    if (address.IsTemplate())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Template id is not allowed");
+    }
+
+    crypto::CPubKey pubkey;
+    if (address.IsPubKey())
+    {
+        address.GetPubKey(pubkey);
+    }
+    else if (pubkey.SetHex(spParam->strPubkey) != spParam->strPubkey.size())
+    {
+        pubkey.SetHex(spParam->strPubkey);
+    }
+
+    crypto::CKey key;
+    key.Load(pubkey, crypto::CKey::PUBLIC_KEY, crypto::CCryptoCipher());
+    if (!pService->HaveKey(key.GetPubKey()))
+    {
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
+    }
+
+    CDestination dest(pubkey);
+    return MakeCImportPubKeyResultPtr(CAddress(dest).ToString());
 }
 
 CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
@@ -988,22 +1217,21 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMS, "Failed to verify serialized key");
     }
-    if (key.GetVersion() == 0)
+    if (key.GetVersion() == crypto::CKey::INIT)
     {
         throw CRPCException(RPC_INVALID_PARAMS, "Can't import the key with empty passphrase");
     }
-    if (pService->HaveKey(key.GetPubKey()))
+    if ((key.IsPrivKey() && !pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
+        || (key.IsPubKey() && !pService->HaveKey(key.GetPubKey())))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have key");
-    }
-
-    if (!pService->AddKey(key))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddKey(key))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportKeyResultPtr(key.GetPubKey().GetHex());
@@ -1037,13 +1265,16 @@ CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
-    if (!pService->AddTemplate(ptr))
+    if (!pService->HaveTemplate(ptr->GetTemplateId()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddTemplate(ptr))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCAddNewTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
@@ -1058,17 +1289,16 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
-    if (pService->HaveTemplate(ptr->GetTemplateId()))
+    if (!pService->HaveTemplate(ptr->GetTemplateId()))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Already have this template");
-    }
-    if (!pService->AddTemplate(ptr))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
-    }
-    if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        if (!pService->AddTemplate(ptr))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
+        }
+        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
     }
 
     return MakeCImportTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
@@ -1207,9 +1437,9 @@ CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
         {
             CGetBalanceResult::CBalance b;
             b.strAddress = CAddress(dest).ToString();
-            b.fAvail = ValueFromAmount(balance.nAvailable);
-            b.fLocked = ValueFromAmount(balance.nLocked);
-            b.fUnconfirmed = ValueFromAmount(balance.nUnconfirmed);
+            b.dAvail = ValueFromAmount(balance.nAvailable);
+            b.dLocked = ValueFromAmount(balance.nLocked);
+            b.dUnconfirmed = ValueFromAmount(balance.nUnconfirmed);
             spResult->vecBalance.push_back(b);
         }
     }
@@ -1258,12 +1488,12 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
 
     int64 nTxFee = MIN_TX_FEE;
-    if (spParam->fTxfee.IsValid())
+    if (spParam->dTxfee.IsValid())
     {
-        nTxFee = AmountFromValue(spParam->fTxfee);
+        nTxFee = AmountFromValue(spParam->dTxfee);
         if (nTxFee < MIN_TX_FEE)
         {
             nTxFee = MIN_TX_FEE;
@@ -1281,9 +1511,18 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
     vector<unsigned char> vchData;
-    if (spParam->strData.IsValid())
+    auto strDataTmp = spParam->strData;
+    if (strDataTmp.IsValid())
     {
-        vchData = ParseHexString(spParam->strData);
+        if (((std::string)strDataTmp).substr(0, 4) == "msg:")
+        {
+            auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
+            vchData = ParseHexString(hex);
+        }
+        else
+        {
+            vchData = ParseHexString(strDataTmp);
+        }
     }
 
     CTransaction txNew;
@@ -1336,7 +1575,13 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
                                                           + ErrorString(err));
     }
-
+    std::stringstream ss;
+    for (auto& obj : txNew.vInput)
+    {
+        ss << (int)obj.prevout.n << ":" << obj.prevout.hash.GetHex().c_str() << ";";
+    }
+    std::cout << ss.str();
+    StdDebug("[SendFrom][DEBUG]", "txNew hash:%s; input:%s", txNew.GetHash().GetHex().c_str(), ss.str().c_str());
     return MakeCSendFromResultPtr(txNew.GetHash().GetHex());
 }
 
@@ -1357,12 +1602,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
 
     int64 nTxFee = MIN_TX_FEE;
-    if (spParam->fTxfee.IsValid())
+    if (spParam->dTxfee.IsValid())
     {
-        nTxFee = AmountFromValue(spParam->fTxfee);
+        nTxFee = AmountFromValue(spParam->dTxfee);
         if (nTxFee < MIN_TX_FEE)
         {
             nTxFee = MIN_TX_FEE;
@@ -1440,11 +1685,15 @@ CRPCResultPtr CRPCMod::RPCSignMessage(CRPCParamPtr param)
     string strMessage = spParam->strMessage;
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign message by public key");
     }
     if (fLocked)
     {
@@ -1676,11 +1925,12 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
             {
                 throw CRPCException(RPC_INVALID_PARAMS, "Failed to verify serialized key");
             }
-            if (key.GetVersion() == 0)
+            if (key.GetVersion() == crypto::CKey::INIT)
             {
                 throw CRPCException(RPC_INVALID_PARAMS, "Can't import the key with empty passphrase");
             }
-            if (pService->HaveKey(key.GetPubKey()))
+            if ((key.IsPrivKey() && pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
+                || (key.IsPubKey() && pService->HaveKey(key.GetPubKey())))
             {
                 continue; //step to next one to continue importing
             }
@@ -1740,8 +1990,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
     }
 
-    int64 nAmount = AmountFromValue(spParam->fAmount);
-    int64 nMintReward = AmountFromValue(spParam->fReward);
+    int64 nAmount = AmountFromValue(spParam->dAmount);
+    int64 nMintReward = AmountFromValue(spParam->dReward);
 
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
@@ -1795,11 +2045,15 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     }
 
     int nVersion;
-    bool fLocked;
+    bool fLocked, fPublic;
     int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime))
+    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
+    }
+    if (fPublic)
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign origin block by public key");
     }
     if (fLocked)
     {
@@ -1946,6 +2200,41 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }
 
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1));
+}
+
+CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListUnspentParam>(param);
+
+    uint256 fork;
+    if (!GetForkHashOfDef(spParam->strFork, fork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+
+    CAddress addr(spParam->strAddress);
+    if (addr.IsNull())
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
+    }
+
+    vector<CTxUnspent> vUnspent;
+    if (!pService->ListForkUnspent(fork, dynamic_cast<CDestination&>(addr), spParam->nMax, vUnspent))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+    }
+
+    auto spResult = MakeCListUnspentResultPtr();
+    double dSum = 0.0f;
+    for (const auto& unspent : vUnspent)
+    {
+        CUnspentData data = UnspentToJSON(unspent);
+        spResult->vecUnspents.push_back(data);
+        dSum += data.dAmount;
+    }
+    spResult->dSum = dSum;
+
+    return spResult;
 }
 
 // /* Mint */

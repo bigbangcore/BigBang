@@ -72,13 +72,13 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
         vector<string> confToken;
         if (TokenizeConfile(pathConfile.string().c_str(), confToken))
         {
-            po::store(po::command_line_parser(confToken).options(defaultDesc).style(defaultCmdStyle).allow_unregistered().extra_parser(CConfig::ExtraParser).run(), vm);
+            po::store(po::command_line_parser(confToken).options(defaultDesc).style(defaultCmdStyle).extra_parser(CConfig::ExtraParser).allow_unregistered().run(), vm);
             po::notify(vm);
         }
     }
     catch (exception& e)
     {
-        StdError(__PRETTY_FUNCTION__, e.what());
+        cerr << e.what() << endl;
         return false;
     }
     return true;
@@ -129,6 +129,10 @@ pair<string, string> CConfig::ExtraParser(const string& s)
         {
             int v = atoi(s.substr(eq + 1).c_str());
             return make_pair(s.substr(3, eq - 3), string(v != 0 ? "0" : "1"));
+        }
+        else
+        {
+            return make_pair(s.substr(1, eq - 1), s.substr(eq + 1));
         }
     }
     return make_pair(string(), string());

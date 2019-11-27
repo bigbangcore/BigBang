@@ -188,19 +188,19 @@ bool CConsensus::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
@@ -214,7 +214,7 @@ bool CConsensus::HandleInitialize()
 
         delegate.AddNewDelegate(ctxt.GetDestination());
 
-        Log("AddNew delegate : %s\n", CAddress(ctxt.GetDestination()).ToString().c_str());
+        Log("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
     }
 
     return true;
@@ -235,19 +235,19 @@ bool CConsensus::HandleInvoke()
 
     if (!delegate.Initialize())
     {
-        Error("Failed to initialize delegate\n");
+        Error("Failed to initialize delegate");
         return false;
     }
 
     if (!LoadDelegateTx())
     {
-        Error("Failed to load delegate tx\n");
+        Error("Failed to load delegate tx");
         return false;
     }
 
     if (!LoadChain())
     {
-        Error("Failed to load chain\n");
+        Error("Failed to load chain");
         return false;
     }
 
@@ -292,10 +292,13 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
-            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
+            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
         }
 
-        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+        int height;
+        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
+        pBlockChain->GetBlockLocation(hash, fork, height);
+        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
 
         nBlockHeight++;
     }
@@ -309,7 +312,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
-            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result);
+            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
 
             int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
             int nPublishTargetHeight = nBlockHeight + 1;
@@ -321,7 +324,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                 if (mi != mapContext.end())
                 {
                     CTransaction tx;
-                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), hash, 0, (*it).second))
+                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), 0, (*it).second))
                     {
                         routine.vEnrollTx.push_back(tx);
                     }
@@ -343,7 +346,10 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             }
             routine.mapPublishData = result.mapPublishData;
         }
-        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+        int height;
+        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
+        pBlockChain->GetBlockLocation(hash, fork, height);
+        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
     }
 }
 
@@ -419,7 +425,7 @@ bool CConsensus::LoadChain()
         if (pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
         {
             delegate::CDelegateEvolveResult result;
-            delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result);
+            delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result, hashBlock);
         }
     }
     return true;

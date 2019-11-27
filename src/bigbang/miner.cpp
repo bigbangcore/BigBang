@@ -33,10 +33,10 @@ CMiner::CMiner(const vector<string>& vArgsIn)
     nNonceSubmitWork = 2;
     nMinerStatus = -1;
     pHttpGet = nullptr;
-    if (vArgsIn.size() >= 3)
+    if (vArgsIn.size() >= 2)
     {
-        strAddrSpent = vArgsIn[1];
-        strMintKey = vArgsIn[2];
+        strAddrSpent = vArgsIn[0];
+        strMintKey = vArgsIn[1];
     }
 }
 
@@ -152,7 +152,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
             {
                 // Error
                 cerr << spResp->spError->Serialize(true) << endl;
-                cerr << strHelpTips << endl;
+                cerr << strServerHelpTips << endl;
             }
             else if (spResp->IsSuccessful())
             {
@@ -218,7 +218,7 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
             {
                 // Error
                 cerr << spResp->spError->Serialize(true) << endl;
-                cerr << strHelpTips << endl;
+                cerr << strServerHelpTips << endl;
             }
             else if (spResp->IsSuccessful())
             {
@@ -339,24 +339,6 @@ void CMiner::CancelRPC()
     }
 }
 
-uint256 CMiner::GetHashTarget(const CMinerWork& work, int64 nTime)
-{
-    int64 nPrevTime = work.nPrevTime;
-    int nBits = work.nBits;
-
-    if (nTime - nPrevTime < BLOCK_TARGET_SPACING)
-    {
-        return (nBits + 1);
-    }
-
-    nBits -= (nTime - nPrevTime - BLOCK_TARGET_SPACING) / PROOF_OF_WORK_DECAY_STEP;
-    if (nBits < 16)
-    {
-        nBits = 16;
-    }
-    return ((~uint256(uint64(0)) >> nBits));
-}
-
 void CMiner::LaunchFetcher()
 {
     while (nMinerStatus != MINER_EXIT)
@@ -404,19 +386,18 @@ void CMiner::LaunchMiner()
         }
 
         uint32& nTime = *((uint32*)&work.vchWorkData[4]);
-        uint256& nNonce = *((uint256*)&work.vchWorkData[work.vchWorkData.size() - 32]);
+        uint64_t& nNonce = *(uint64_t*)&work.vchWorkData[work.vchWorkData.size() - sizeof(uint64_t)];
 
         if (work.nAlgo == CM_CRYPTONIGHT)
         {
             cout << "Get cryptonight work,prev block hash : " << work.hashPrev.GetHex() << "\n";
-            uint256 hashTarget = GetHashTarget(work, nTime);
+            uint256 hashTarget = (~uint256(uint64(0)) >> work.nBits);
             while (nMinerStatus == MINER_RUN)
             {
                 int64 t = GetTime();
                 if (t > nTime)
                 {
                     nTime = t;
-                    hashTarget = GetHashTarget(work, t);
                 }
                 for (int i = 0; i < 100 * 1024; i++, nNonce++)
                 {

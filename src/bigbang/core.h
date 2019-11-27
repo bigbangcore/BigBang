@@ -30,12 +30,11 @@ public:
                                               const CDelegateAgreement& agreement) override;
     virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                    const CDelegateAgreement& agreement) override;
+    virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement()) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
-    virtual int GetProofOfWorkRunTimeBits(int nBits, int64 nTime, int64 nPrevTime) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
                                     const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight) override;
-    virtual bool CheckFirstPow(int nBlockHeight) override;
 
 protected:
     bool HandleInitialize() override;
@@ -45,7 +44,8 @@ protected:
 
 protected:
     uint256 hashGenesisBlock;
-    int nProofOfWorkLimit;
+    int nProofOfWorkLowerLimit;
+    int nProofOfWorkUpperLimit;
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;

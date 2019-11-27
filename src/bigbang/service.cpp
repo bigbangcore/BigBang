@@ -30,43 +30,43 @@ bool CService::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("blockchain", pBlockChain))
     {
-        Error("Failed to request blockchain\n");
+        Error("Failed to request blockchain");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
     if (!GetObject("dispatcher", pDispatcher))
     {
-        Error("Failed to request dispatcher\n");
+        Error("Failed to request dispatcher");
         return false;
     }
 
     if (!GetObject("wallet", pWallet))
     {
-        Error("Failed to request wallet\n");
+        Error("Failed to request wallet");
         return false;
     }
 
     if (!GetObject("peernet", pNetwork))
     {
-        Error("Failed to request network\n");
+        Error("Failed to request network");
         return false;
     }
 
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        Error("Failed to request forkmanager");
         return false;
     }
 
@@ -318,6 +318,7 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
         int nAnchorHeight;
         if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
         {
+            StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
             return false;
         }
         nHeight = -1;
@@ -325,9 +326,15 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     }
     if (!pBlockChain->GetTransaction(txid, tx))
     {
+        StdLog("CService", "GetTransaction: BlockChain GetTransaction fail, txid: %s", txid.GetHex().c_str());
         return false;
     }
-    return pBlockChain->GetTxLocation(txid, hashFork, nHeight);
+    if (!pBlockChain->GetTxLocation(txid, hashFork, nHeight))
+    {
+        StdLog("CService", "GetTransaction: BlockChain GetTxLocation fail, txid: %s", txid.GetHex().c_str());
+        return false;
+    }
+    return true;
 }
 
 Errno CService::SendTransaction(CTransaction& tx)
@@ -345,9 +352,18 @@ bool CService::RemovePendingTx(const uint256& txid)
     return true;
 }
 
-bool CService::HaveKey(const crypto::CPubKey& pubkey)
+bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
-    return pWallet->Have(pubkey);
+    if (pWallet->ListForkUnspent(hashFork, dest, nMax, vUnspent))
+    {
+        return true;
+    }
+    return pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspent);
+}
+
+bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
+{
+    return pWallet->Have(pubkey, nVersion);
 }
 
 void CService::GetPubKeys(set<crypto::CPubKey>& setPubKey)
@@ -355,9 +371,9 @@ void CService::GetPubKeys(set<crypto::CPubKey>& setPubKey)
     pWallet->GetPubKeys(setPubKey);
 }
 
-bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime)
+bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic)
 {
-    return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime);
+    return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic);
 }
 
 bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
@@ -421,22 +437,31 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     int nHeight;
     if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
     {
+        StdError("CService", "SignTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return false;
     }
     vector<CTxOut> vUnspent;
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
+        StdError("CService", "SignTransaction: FetchInputs fail or vUnspent is empty, txid: %s", tx.GetHash().GetHex().c_str());
         return false;
     }
 
     const CDestination& destIn = vUnspent[0].destTo;
     if (!pWallet->SignTransaction(destIn, tx, fCompleted))
     {
+        StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
     }
-    return (!fCompleted
-            || (pCoreProtocol->ValidateTransaction(tx) == OK
-                && pCoreProtocol->VerifyTransaction(tx, vUnspent, nHeight, hashFork) == OK));
+
+    if (!(!fCompleted
+          || (pCoreProtocol->ValidateTransaction(tx) == OK
+              && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK)))
+    {
+        StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool CService::HaveTemplate(const CTemplateId& tid)
@@ -493,10 +518,11 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
         map<uint256, CForkStatus>::iterator it = mapForkStatus.find(hashFork);
         if (it == mapForkStatus.end())
         {
+            StdError("CService", "CreateTransaction: find fork fail, fork: %s", hashFork.GetHex().c_str());
             return false;
         }
         nForkHeight = it->second.nLastBlockHeight;
-        txNew.hashAnchor = it->second.hashLastBlock;
+        txNew.hashAnchor = hashFork;
     }
     txNew.nType = CTransaction::TX_TOKEN;
     txNew.nTimeStamp = GetNetTime();
@@ -535,7 +561,7 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         nPrevTime = (*it).second.nLastBlockTime;
         nPrevBlockHeight = (*it).second.nLastBlockHeight;
         block.hashPrev = hashPrev;
-        block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING - 10;
+        block.nTimeStamp = GetTime();//nPrevTime + BLOCK_TARGET_SPACING - 10;
     }
 
     nAlgo = CM_CRYPTONIGHT;

@@ -4,8 +4,8 @@
 
 #include "blockchain.h"
 
-#include "delegatecomm.h"
-#include "delegateverify.h"
+// #include "delegatecomm.h"
+// #include "delegateverify.h"
 
 using namespace std;
 using namespace xengine;
@@ -34,13 +34,13 @@ bool CBlockChain::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
 
     if (!GetObject("txpool", pTxPool))
     {
-        Error("Failed to request txpool\n");
+        Error("Failed to request txpool");
         return false;
     }
 
@@ -57,19 +57,19 @@ bool CBlockChain::HandleInvoke()
 {
     if (!cntrBlock.Initialize(Config()->pathData, Config()->fDebug))
     {
-        Error("Failed to initialize container\n");
+        Error("Failed to initialize container");
         return false;
     }
 
     if (!CheckContainer())
     {
         cntrBlock.Clear();
-        Log("Block container is invalid,try rebuild from block storage\n");
+        Log("Block container is invalid,try rebuild from block storage");
         // Rebuild ...
         if (!RebuildContainer())
         {
             cntrBlock.Clear();
-            Error("Failed to rebuild Block container,reconstruct all\n");
+            Error("Failed to rebuild Block container,reconstruct all");
         }
     }
 
@@ -79,7 +79,7 @@ bool CBlockChain::HandleInvoke()
         pCoreProtocol->GetGenesisBlock(block);
         if (!InsertGenesisBlock(block))
         {
-            Error("Failed to create genesis block\n");
+            Error("Failed to create genesis block");
             return false;
         }
     }
@@ -160,6 +160,26 @@ bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, 
     }
     hashFork = pIndex->GetOriginHash();
     nHeight = pIndex->GetBlockHeight();
+    return true;
+}
+
+bool CBlockChain::GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    {
+        return false;
+    }
+    hashFork = pIndex->GetOriginHash();
+    nHeight = pIndex->GetBlockHeight();
+    if (pIndex->pNext != nullptr)
+    {
+        hashNext = pIndex->pNext->GetBlockHash();
+    }
+    else
+    {
+        hashNext = 0;
+    }
     return true;
 }
 
@@ -327,7 +347,7 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     }
     catch (...)
     {
-        Error("Invalid orign block found in tx (%s)\n", txid.GetHex().c_str());
+        Error("Invalid orign block found in tx (%s)", txid.GetHex().c_str());
         return ERR_BLOCK_INVALID_FORK;
     }
     uint256 hashFork = block.GetHash();
@@ -335,7 +355,7 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     CForkContext ctxtParent;
     if (!cntrBlock.RetrieveForkContext(profile.hashParent, ctxtParent))
     {
-        Log("AddNewForkContext Retrieve parent context Error: %s \n", profile.hashParent.ToString().c_str());
+        Log("AddNewForkContext Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
         return ERR_MISSING_PREV;
     }
 
@@ -343,14 +363,14 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     Errno err = pCoreProtocol->ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
     if (err != OK)
     {
-        Log("AddNewForkContext Validate Block Error(%s) : %s \n", ErrorString(err), hashFork.ToString().c_str());
+        Log("AddNewForkContext Validate Block Error(%s) : %s ", ErrorString(err), hashFork.ToString().c_str());
         return err;
     }
 
     ctxt = CForkContext(block.GetHash(), block.hashPrev, txid, profile);
     if (!cntrBlock.AddNewForkContext(ctxt))
     {
-        Log("AddNewForkContext Already Exists : %s \n", hashFork.ToString().c_str());
+        Log("AddNewForkContext Already Exists : %s ", hashFork.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
@@ -364,37 +384,37 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     if (cntrBlock.Exists(hash))
     {
-        Log("AddNewBlock Already Exists : %s \n", hash.ToString().c_str());
+        Log("AddNewBlock Already Exists : %s ", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
-        Log("AddNewBlock Validate Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        Log("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
-        Log("AddNewBlock Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
+        Log("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
     int64 nReward;
-
-    err = VerifyBlock(hash, block, pIndexPrev, nReward);
+    CDelegateAgreement agreement;
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement);
     if (err != OK)
     {
-        Log("AddNewBlock Verify Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        Log("AddNewBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     storage::CBlockView view;
     if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
-        Log("AddNewBlock Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+        Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -423,16 +443,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
-        if (tx.nType == CTransaction::TX_CERT && pCoreProtocol->CheckFirstPow(nForkHeight))
-        {
-            Log("AddNewBlock Verify tx Error(first pow) : %s \n", txid.ToString().c_str());
-            return ERR_TRANSACTION_INVALID;
-        }
         CTxContxt txContxt;
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
         {
-            Log("AddNewBlock Get txContxt Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
+            Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
         if (!pTxPool->Exists(txid))
@@ -440,7 +455,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)
             {
-                Log("AddNewBlock Verify BlockTx Error(%s) : %s \n", ErrorString(err), txid.ToString().c_str());
+                Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
                 return err;
             }
         }
@@ -452,42 +467,43 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
-        Log("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld \n", block.txMint.nAmount, nTotalFee, nReward);
+        Log("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld ", block.txMint.nAmount, nTotalFee, nReward);
         return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
+    // Get block trust
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
     {
-        Log("AddNewBlock Storage AddNew Error : %s \n", hash.ToString().c_str());
+        Log("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    Log("AddNew Block : %s\n", pIndexNew->ToString().c_str());
-    if (Config()->fDebug)
-    {
-        Debug("New Block %s tx : %s\n", hash.ToString().c_str(), view.ToString().c_str());
-    }
+    Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
     CBlockIndex* pIndexFork = nullptr;
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
+        Log("AddNew Block : Short chain, Fork chain trust: %s", pIndexFork->nChainTrust.GetHex().c_str());
         return OK;
     }
 
     if (!cntrBlock.CommitBlockView(view, pIndexNew))
     {
-        Log("AddNewBlock Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
+        Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+    Log("AddNew Block : Commit block success, block: %s", hash.GetHex().c_str());
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
     {
-        Log("AddNewBlock Storage GetBlockChanges Error : %s \n", hash.ToString().c_str());
+        Log("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -501,42 +517,42 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     if (cntrBlock.Exists(hash))
     {
-        Log("AddNewOrigin Already Exists : %s \n", hash.ToString().c_str());
+        Log("AddNewOrigin Already Exists : %s ", hash.ToString().c_str());
         return ERR_ALREADY_HAVE;
     }
 
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
-        Log("AddNewOrigin Validate Block Error(%s) : %s \n", ErrorString(err), hash.ToString().c_str());
+        Log("AddNewOrigin Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
-        Log("AddNewOrigin Retrieve Prev Index Error: %s \n", block.hashPrev.ToString().c_str());
+        Log("AddNewOrigin Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
     CProfile parent;
     if (!cntrBlock.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
     {
-        Log("AddNewOrigin Retrieve parent profile Error: %s \n", block.hashPrev.ToString().c_str());
+        Log("AddNewOrigin Retrieve parent profile Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
     CProfile profile;
     err = pCoreProtocol->ValidateOrigin(block, parent, profile);
     if (err != OK)
     {
-        Log("AddNewOrigin Validate Origin Error(%s): %s \n", ErrorString(err), hash.ToString().c_str());
+        Log("AddNewOrigin Validate Origin Error(%s): %s ", ErrorString(err), hash.ToString().c_str());
         return err;
     }
 
     CBlockIndex* pIndexDuplicated;
     if (cntrBlock.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
-        Log("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s\n",
+        Log("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s",
             hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
         return ERR_ALREADY_HAVE;
     }
@@ -547,7 +563,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     {
         if (!cntrBlock.GetBlockView(view))
         {
-            Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+            Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
         }
     }
@@ -555,7 +571,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     {
         if (!cntrBlock.GetBlockView(block.hashPrev, view, false))
         {
-            Log("AddNewOrigin Get Block View Error: %s \n", block.hashPrev.ToString().c_str());
+            Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
         }
     }
@@ -565,21 +581,23 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
+    // Get block trust
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
-
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
     {
-        Log("AddNewOrigin Storage AddNew Error : %s \n", hash.ToString().c_str());
+        Log("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    Log("AddNew Origin Block : %s \n", hash.ToString().c_str());
-    Log("    %s\n", pIndexNew->ToString().c_str());
+    Log("AddNew Origin Block : %s ", hash.ToString().c_str());
+    Log("    %s", pIndexNew->ToString().c_str());
 
     if (!cntrBlock.CommitBlockView(view, pIndexNew))
     {
-        Log("AddNewOrigin Storage Commit BlockView Error : %s \n", hash.ToString().c_str());
+        Log("AddNewOrigin Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
@@ -590,22 +608,40 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
+// uint320 GetBlockTrust() const
+// {
+//     if (IsVacant() && vchProof.empty())
+//     {
+//         return uint320();
+//     }
+//     else if (IsProofOfWork())
+//     {
+//         CProofOfHashWorkCompact proof;
+//         proof.Load(vchProof);
+//         return uint320(0, (~uint256(uint64(0)) << proof.nBits));
+//     }
+//     else
+//     {
+//         return uint320((uint64)vchProof[0], uint256(uint64(0)));
+//     }
+// }
+
 bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
     {
-        Log("GetProofOfWorkTarget : Retrieve Prev Index Error: %s \n", hashPrev.ToString().c_str());
+        Log("GetProofOfWorkTarget : Retrieve Prev Index Error: %s ", hashPrev.ToString().c_str());
         return false;
     }
     if (!pIndexPrev->IsPrimary())
     {
-        Log("GetProofOfWorkTarget : Previous is not primary: %s \n", hashPrev.ToString().c_str());
+        Log("GetProofOfWorkTarget : Previous is not primary: %s ", hashPrev.ToString().c_str());
         return false;
     }
     if (!pCoreProtocol->GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
     {
-        Log("GetProofOfWorkTarget : Unknown proof-of-work algo: %s \n", hashPrev.ToString().c_str());
+        Log("GetProofOfWorkTarget : Unknown proof-of-work algo: %s ", hashPrev.ToString().c_str());
         return false;
     }
     return true;
@@ -616,7 +652,7 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
     {
-        Log("Get block reward: Retrieve Prev Index Error, hashPrev: %s\n", hashPrev.ToString().c_str());
+        Log("Get block reward: Retrieve Prev Index Error, hashPrev: %s", hashPrev.ToString().c_str());
         return false;
     }
 
@@ -629,7 +665,7 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         CProfile profile;
         if (!GetForkProfile(pIndexPrev->GetOriginHash(), profile))
         {
-            Log("Get block reward: Get fork profile fail, hashPrev: %s\n", hashPrev.ToString().c_str());
+            Log("Get block reward: Get fork profile fail, hashPrev: %s", hashPrev.ToString().c_str());
             return false;
         }
         if (profile.nHalveCycle == 0)
@@ -638,15 +674,15 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         }
         else
         {
-            nReward = profile.nMintReward / pow(2, (pIndexPrev->GetBlockHeight() + 1) / profile.nHalveCycle);
+            nReward = profile.nMintReward / pow(2, (pIndexPrev->GetBlockHeight() + 1 - profile.nJointHeight) / profile.nHalveCycle);
         }
     }
     return true;
 }
 
-bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator)
+bool CBlockChain::GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep)
 {
-    return cntrBlock.GetForkBlockLocator(hashFork, locator);
+    return cntrBlock.GetForkBlockLocator(hashFork, locator, hashDepth, nIncStep);
 }
 
 bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, vector<uint256>& vBlockHash, size_t nMaxCount)
@@ -654,100 +690,105 @@ bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& loca
     return cntrBlock.GetForkBlockInv(hashFork, locator, vBlockHash, nMaxCount);
 }
 
-bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
+bool CBlockChain::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
-    enrolled.Clear();
-
-    if (cacheEnrolled.Retrieve(hashBlock, enrolled))
-    {
-        return true;
-    }
-
-    CBlockIndex* pIndex;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
-    {
-        Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
-    int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
-
-    if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
-    {
-        return true;
-    }
-    vector<uint256> vBlockRange;
-    for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
-    {
-        vBlockRange.push_back(pIndex->GetBlockHash());
-        pIndex = pIndex->pPrev;
-    }
-
-    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHash(), vBlockRange, nDelegateWeightRatio,
-                                         enrolled.mapWeight, enrolled.mapEnrollData))
-    {
-        Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
-
-    cacheEnrolled.AddNew(hashBlock, enrolled);
-
-    return true;
+    return cntrBlock.ListForkUnspent(hashFork, dest, nMax, vUnspent);
 }
 
-bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
-{
-    agreement.Clear();
+// bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
+// {
+//     enrolled.Clear();
 
-    if (cacheAgreement.Retrieve(hashBlock, agreement))
-    {
-        return true;
-    }
+//     if (cacheEnrolled.Retrieve(hashBlock, enrolled))
+//     {
+//         return true;
+//     }
 
-    CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
-    {
-        Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
-    CBlockIndex* pIndexRef = pIndex;
+//     CBlockIndex* pIndex;
+//     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+//     {
+//         Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
+//     int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
 
-    if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL)
-    {
-        return true;
-    }
+//     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
+//     {
+//         return true;
+//     }
+//     vector<uint256> vBlockRange;
+//     for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
+//     {
+//         vBlockRange.push_back(pIndex->GetBlockHash());
+//         pIndex = pIndex->pPrev;
+//     }
 
-    CBlock block;
-    if (!cntrBlock.Retrieve(pIndex, block))
-    {
-        Log("GetBlockDelegateAgreement : Retrieve block Error: %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
+//     if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nDelegateWeightRatio,
+//                                          enrolled.mapWeight, enrolled.mapEnrollData))
+//     {
+//         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
 
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL + 1; i++)
-    {
-        pIndex = pIndex->pPrev;
-    }
+//     cacheEnrolled.AddNew(hashBlock, enrolled);
 
-    CDelegateEnrolled enrolled;
-    if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
-    {
-        return false;
-    }
+//     return true;
+// }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
-    map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
-    {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
+// bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
+// {
+//     agreement.Clear();
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexRef->GetBlockHeight());
+//     if (cacheAgreement.Retrieve(hashBlock, agreement))
+//     {
+//         return true;
+//     }
 
-    cacheAgreement.AddNew(hashBlock, agreement);
+//     CBlockIndex* pIndex = nullptr;
+//     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+//     {
+//         Log("GetBlockDelegateAgreement : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
+//     CBlockIndex* pIndexRef = pIndex;
 
-    return true;
-}
+//     if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL)
+//     {
+//         return true;
+//     }
+
+//     CBlock block;
+//     if (!cntrBlock.Retrieve(pIndex, block))
+//     {
+//         Log("GetBlockDelegateAgreement : Retrieve block Error: %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
+
+//     for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL + 1; i++)
+//     {
+//         pIndex = pIndex->pPrev;
+//     }
+
+//     CDelegateEnrolled enrolled;
+//     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
+//     {
+//         return false;
+//     }
+
+//     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+//     map<CDestination, size_t> mapBallot;
+//     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+//     {
+//         Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
+
+//     pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexRef->GetBlockHeight());
+
+//     cacheAgreement.AddNew(hashBlock, agreement);
+
+//     return true;
+// }
 
 bool CBlockChain::CheckContainer()
 {
@@ -769,7 +810,8 @@ bool CBlockChain::RebuildContainer()
 
 bool CBlockChain::InsertGenesisBlock(CBlock& block)
 {
-    return cntrBlock.Initiate(block.GetHash(), block);
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block);
+    return cntrBlock.Initiate(block.GetHash(), block, nChainTrust);
 }
 
 Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
@@ -780,6 +822,7 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
         CTxOut output;
         if (!view.RetrieveUnspent(txin.prevout, output))
         {
+            Log("GetTxContxt: RetrieveUnspent fail, prevout: [%d]:%s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             return ERR_MISSING_PREV;
         }
         if (txContxt.destIn.IsNull())
@@ -788,6 +831,8 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
         }
         else if (txContxt.destIn != output.destTo)
         {
+            Log("GetTxContxt: destIn error, destIn: %s, destTo: %s",
+                txContxt.destIn.ToString().c_str(), output.destTo.ToString().c_str());
             return ERR_TRANSACTION_INVALID;
         }
         txContxt.vin.push_back(CTxInContxt(output));
@@ -825,46 +870,47 @@ bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockInde
     return true;
 }
 
-bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                            CDelegateAgreement& agreement)
-{
-    agreement.Clear();
+// bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
+//                                             CDelegateAgreement& agreement)
+// {
+//     agreement.Clear();
 
-    if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
-    {
-        return true;
-    }
+//     if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
+//     {
+//         return true;
+//     }
 
-    const CBlockIndex* pIndex = pIndexPrev;
+//     const CBlockIndex* pIndex = pIndexPrev;
 
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
-    {
-        pIndex = pIndex->pPrev;
-    }
+//     for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+//     {
+//         pIndex = pIndex->pPrev;
+//     }
 
-    CDelegateEnrolled enrolled;
+//     CDelegateEnrolled enrolled;
 
-    if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
-    {
-        return false;
-    }
+//     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
+//     {
+//         return false;
+//     }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
-    map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
-    {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
-        return false;
-    }
+//     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+//     map<CDestination, size_t> mapBallot;
+//     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+//     {
+//         Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+//         return false;
+//     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight()+1);
+//     pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight() + 1);
 
-    cacheAgreement.AddNew(hashBlock, agreement);
+//     cacheAgreement.AddNew(hashBlock, agreement);
 
-    return true;
-}
+//     return true;
+// }
 
-Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward)
+Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
+                               int64& nReward, CDelegateAgreement& agreement)
 {
     nReward = 0;
     if (block.IsOrigin())
@@ -879,82 +925,87 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_INVALID_FORK;
         }
 
-        CDelegateAgreement agreement;
-        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement))
-        {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-        }
+        // if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement))
+        // {
+        //     return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+        // }
 
         if (!GetBlockMintReward(block.hashPrev, nReward))
         {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            return ERR_BLOCK_COINBASE_INVALID;
         }
 
-        if (agreement.IsProofOfWork())
-        {
-            return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
-        }
-        else
-        {
-            return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
-        }
+        //if (agreement.IsProofOfWork())
+        //{
+        return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+        //}
+        //else
+        //{
+        // return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+        //}
     }
-    else if (!block.IsVacant())
+    else
     {
-        if (pIndexPrev->IsPrimary())
-        {
-            return ERR_BLOCK_INVALID_FORK;
-        }
-
-        CProofOfPiggyback proof;
-        proof.Load(block.vchProof);
-
-        CDelegateAgreement agreement;
-        if (!GetBlockDelegateAgreement(proof.hashRefBlock, agreement))
-        {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-        }
-
-        if (agreement.nAgreement != proof.nAgreement || agreement.nWeight != proof.nWeight
-            || agreement.IsProofOfWork())
-        {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-        }
-
-        CBlockIndex* pIndexRef = nullptr;
-        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
-        {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-        }
-
-        if (block.IsExtended())
-        {
-            CBlock blockPrev;
-            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
-            {
-                return ERR_MISSING_PREV;
-            }
-
-            CProofOfPiggyback proofPrev;
-            proofPrev.Load(blockPrev.vchProof);
-            if (proof.nAgreement != proofPrev.nAgreement || proof.nWeight != proofPrev.nWeight)
-            {
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-            }
-            nReward = 0;
-        }
-        else
-        {
-            if (!GetBlockMintReward(block.hashPrev, nReward))
-            {
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-            }
-        }
-
-        return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, pIndexRef, agreement);
+        return ERR_BLOCK_TYPE_INVALID;
     }
+    // else if (!block.IsVacant())
+    // {
+    //     if (pIndexPrev->IsPrimary())
+    //     {
+    //         return ERR_BLOCK_INVALID_FORK;
+    //     }
 
-    return OK;
+    //     CProofOfPiggyback proof;
+    //     proof.Load(block.vchProof);
+
+    //     CDelegateAgreement agreement;
+    //     if (!GetBlockDelegateAgreement(proof.hashRefBlock, agreement))
+    //     {
+    //         return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+    //     }
+
+    //     if (agreement.nAgreement != proof.nAgreement || agreement.nWeight != proof.nWeight
+    //         || agreement.IsProofOfWork())
+    //     {
+    //         return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+    //     }
+
+    //     CBlockIndex* pIndexRef = nullptr;
+    //     if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
+    //     {
+    //         return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+    //     }
+
+    //     if (block.IsExtended())
+    //     {
+    //         CBlock blockPrev;
+    //         if (!cntrBlock.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
+    //         {
+    //             return ERR_MISSING_PREV;
+    //         }
+
+    //         CProofOfPiggyback proofPrev;
+    //         proofPrev.Load(blockPrev.vchProof);
+    //         if (proof.nAgreement != proofPrev.nAgreement || proof.nWeight != proofPrev.nWeight)
+    //         {
+    //             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+    //         }
+    //         nReward = 0;
+    //     }
+    //     else
+    //     {
+    //         if (!GetBlockMintReward(block.hashPrev, nReward))
+    //         {
+    //             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+    //         }
+    //     }
+
+    //     return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, pIndexRef, agreement);
+    // }
+    // else
+    // {
+    //     return OK;
+    // }
 }
 
 } // namespace bigbang

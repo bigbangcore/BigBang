@@ -18,8 +18,8 @@ namespace xengine
 ///////////////////////////////
 // CIOTimer
 
-CIOTimer::CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, int64 nExpiryAtIn)
-  : nTimerId(nTimerIdIn), nNonce(nNonceIn), nExpiryAt(nExpiryAtIn)
+CIOTimer::CIOTimer(uint32 nTimerIdIn, uint64 nNonceIn, const std::string& strFunctionIn, int64 nExpiryAtIn)
+  : nTimerId(nTimerIdIn), nNonce(nNonceIn), strFunction(strFunctionIn), nExpiryAt(nExpiryAtIn)
 {
 }
 
@@ -119,7 +119,7 @@ bool CIOProc::HandleInvoke()
 {
     if (!ioOutBound.Invoke(GetMaxOutBoundCount()))
     {
-        Error("Failed to invoke IOOutBound\n");
+        Error("Failed to invoke IOOutBoun");
         return false;
     }
 
@@ -127,7 +127,7 @@ bool CIOProc::HandleInvoke()
 
     if (!ThreadDelayStart(thrIOProc))
     {
-        Error("Failed to start iothread\n");
+        Error("Failed to start iothread");
         return false;
     }
 
@@ -154,7 +154,7 @@ void CIOProc::HandleHalt()
     mapService.clear();
 }
 
-uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)
+uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse, const std::string& strFunctionIn)
 {
     static uint32 nTimerId = 0;
     while (nTimerId == 0 || mapTimerById.count(nTimerId))
@@ -162,7 +162,7 @@ uint32 CIOProc::SetTimer(uint64 nNonce, int64 nElapse)
         nTimerId++;
     }
     map<uint32, CIOTimer>::iterator it;
-    it = mapTimerById.insert(make_pair(nTimerId, CIOTimer(nTimerId, nNonce, GetTime() + nElapse))).first;
+    it = mapTimerById.insert(make_pair(nTimerId, CIOTimer(nTimerId, nNonce, strFunctionIn, GetTime() + nElapse))).first;
     CIOTimer* pTimer = &(*it).second;
     mapTimerByExpiry.insert(make_pair(pTimer->nExpiryAt, nTimerId));
 
@@ -273,7 +273,7 @@ void CIOProc::HeartBeat()
 {
 }
 
-void CIOProc::Timeout(uint64 nNonce, uint32 nTimerId)
+void CIOProc::Timeout(uint64 nNonce, uint32 nTimerId, const std::string& strFunctionIn)
 {
 }
 
@@ -282,7 +282,7 @@ size_t CIOProc::GetMaxOutBoundCount()
     return DEFAULT_MAX_OUTBOUND;
 }
 
-bool CIOProc::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient)
+bool CIOProc::ClientAccepted(const tcp::endpoint& epService, CIOClient* pClient, std::string& strFailCause)
 {
     return false;
 }
@@ -358,6 +358,7 @@ void CIOProc::IOProcPollTimer()
         if (it != mapTimerById.end())
         {
             uint64 nNonce = (*it).second.nNonce;
+            std::string strFuncTemp = (*it).second.strFunction;
             mapTimerById.erase(it);
             if (nNonce == 0)
             {
@@ -366,7 +367,7 @@ void CIOProc::IOProcPollTimer()
             }
             else
             {
-                Timeout(nNonce, nTimerId);
+                Timeout(nNonce, nTimerId, strFuncTemp);
             }
         }
     }

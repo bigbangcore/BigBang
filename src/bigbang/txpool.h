@@ -14,21 +14,22 @@ namespace bigbang
 class CPooledTx : public CAssembledTx
 {
 public:
-    std::size_t nSequenceNumber;
+    uint64 nSequenceNumber;
     std::size_t nSerializeSize;
+    uint64 nNextSequenceNumber;
 
 public:
     CPooledTx()
     {
         SetNull();
     }
-    CPooledTx(const CAssembledTx& tx, std::size_t nSequenceNumberIn)
-      : CAssembledTx(tx), nSequenceNumber(nSequenceNumberIn)
+    CPooledTx(const CAssembledTx& tx, uint64 nSequenceNumberIn)
+      : CAssembledTx(tx), nSequenceNumber(nSequenceNumberIn), nNextSequenceNumber(0)
     {
         nSerializeSize = xengine::GetSerializeSize(static_cast<const CTransaction&>(tx));
     }
-    CPooledTx(const CTransaction& tx, int nBlockHeightIn, std::size_t nSequenceNumberIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
-      : CAssembledTx(tx, nBlockHeightIn, destInIn, nValueInIn), nSequenceNumber(nSequenceNumberIn)
+    CPooledTx(const CTransaction& tx, int nBlockHeightIn, uint64 nSequenceNumberIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
+      : CAssembledTx(tx, nBlockHeightIn, destInIn, nValueInIn), nSequenceNumber(nSequenceNumberIn), nNextSequenceNumber(0)
     {
         nSerializeSize = xengine::GetSerializeSize(tx);
     }
@@ -37,6 +38,7 @@ public:
         CAssembledTx::SetNull();
         nSequenceNumber = 0;
         nSerializeSize = 0;
+        nNextSequenceNumber = 0;
     }
 };
 
@@ -54,7 +56,7 @@ public:
 
 public:
     uint256 hashTX;
-    std::size_t nSequenceNumber;
+    uint64 nSequenceNumber;
     CPooledTx* ptx;
 };
 
@@ -62,7 +64,7 @@ typedef boost::multi_index_container<
     CPooledTxLink,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, std::size_t, &CPooledTxLink::nSequenceNumber>>>>
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
@@ -115,6 +117,16 @@ public:
         }
         return (*mi).ptx;
     }
+    CPooledTx* Get(uint64 nSeq)
+    {
+        CPooledTxLinkSetBySequenceNumber& idxTx = setTxLinkIndex.get<1>();
+        CPooledTxLinkSetBySequenceNumber::iterator mi = idxTx.find(nSeq);
+        if (mi == idxTx.end())
+        {
+            return nullptr;
+        }
+        return (*mi).ptx;
+    }
     bool IsSpent(const CTxOutPoint& out) const
     {
         std::map<CTxOutPoint, CSpent>::const_iterator it = mapSpent.find(out);
@@ -160,31 +172,7 @@ public:
     {
         mapSpent[out].SetSpent(txidNextTxIn);
     }
-    void AddNew(const uint256& txid, CPooledTx& tx)
-    {
-        CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
-        CPooledTxLinkSetByTxHash::iterator mi = idxTx.find(txid);
-        if (mi != idxTx.end())
-        {
-            setTxLinkIndex.erase(txid);
-        }
-        setTxLinkIndex.insert(CPooledTxLink(&tx));
-        for (std::size_t i = 0; i < tx.vInput.size(); i++)
-        {
-            mapSpent[tx.vInput[i].prevout].SetSpent(txid);
-        }
-        CTxOut output;
-        output = tx.GetOutput(0);
-        if (!output.IsNull())
-        {
-            mapSpent[CTxOutPoint(txid, 0)].SetUnspent(output);
-        }
-        output = tx.GetOutput(1);
-        if (!output.IsNull())
-        {
-            mapSpent[CTxOutPoint(txid, 1)].SetUnspent(output);
-        }
-    }
+    bool AddNew(const uint256& txid, CPooledTx& tx);
     void Remove(const uint256& txid)
     {
         CPooledTx* pTx = Get(txid);
@@ -202,7 +190,7 @@ public:
         setTxLinkIndex.clear();
         mapSpent.clear();
     }
-    void InvalidateSpent(const CTxOutPoint& out, std::vector<uint256>& vInvolvedTx);
+    void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
 
 public:
@@ -223,7 +211,6 @@ public:
     bool Get(const uint256& txid, CTransaction& tx) const override;
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
-    void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
@@ -238,13 +225,13 @@ protected:
     bool LoadData();
     bool SaveData();
     Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight);
-    std::size_t GetSequenceNumber()
+    uint64 GetSequenceNumber()
     {
         if (mapTx.empty())
         {
             nLastSequenceNumber = 0;
         }
-        return ++nLastSequenceNumber;
+        return ((++nLastSequenceNumber) << 24);
     }
 
 protected:
@@ -254,7 +241,7 @@ protected:
     IBlockChain* pBlockChain;
     std::map<uint256, CTxPoolView> mapPoolView;
     std::map<uint256, CPooledTx> mapTx;
-    std::size_t nLastSequenceNumber;
+    uint64 nLastSequenceNumber;
 };
 
 } // namespace bigbang

@@ -33,7 +33,7 @@ public:
     IDelegatedChannel()
       : IIOModule("delegatedchannel") {}
     virtual void PrimaryUpdate(int nStartHeight,
-                               const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
+                               const std::vector<std::pair<int, std::map<CDestination, size_t>>>& vEnrolledWeight,
                                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
                                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData)
         = 0;
@@ -45,10 +45,12 @@ public:
     CBbPeerNet();
     ~CBbPeerNet();
     virtual void BuildHello(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload);
+    virtual uint32 BuildPing(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload);
     void HandlePeerWriten(xengine::CPeer* pPeer) override;
     virtual bool HandlePeerHandshaked(xengine::CPeer* pPeer, uint32 nTimerId);
     virtual bool HandlePeerRecvMessage(xengine::CPeer* pPeer, int nChannel, int nCommand,
                                        xengine::CBufStream& ssPayload);
+    uint32 SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse);
 
 protected:
     bool HandleInitialize() override;
@@ -60,6 +62,8 @@ protected:
     bool HandleEvent(CEventPeerGetBlocks& eventGetBlocks) override;
     bool HandleEvent(CEventPeerTx& eventTx) override;
     bool HandleEvent(CEventPeerBlock& eventBlock) override;
+    bool HandleEvent(CEventPeerGetFail& eventGetFail) override;
+    bool HandleEvent(CEventPeerMsgRsp& eventMsgRsp) override;
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
@@ -70,27 +74,32 @@ protected:
     CAddress GetGateWayAddress(const CNetHost& gateWayAddr);
     bool SendDataMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
     bool SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
-    void SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
+    bool SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
     virtual void ProcessAskFor(xengine::CPeer* pPeer);
-    void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn, bool fEnclosedIn)
+    void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn,
+                   const std::string& subVersionIn, bool fEnclosedIn, const uint256& hashGenesisIn)
     {
         nMagicNum = nMagicNumIn;
         nVersion = nVersionIn;
         nService = nServiceIn;
         subVersion = subVersionIn;
         fEnclosed = fEnclosedIn;
+        hashGenesis = hashGenesisIn;
     }
     virtual bool CheckPeerVersion(uint32 nVersionIn, uint64 nServiceIn, const std::string& subVersionIn) = 0;
+    uint32 CreateSeq(uint64 nNonce);
 
 protected:
     INetChannel* pNetChannel;
-    IDelegatedChannel* pDelegatedChannel;
+    // IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;
     bool fEnclosed;
     std::string subVersion;
+    uint256 hashGenesis;
     std::set<boost::asio::ip::tcp::endpoint> setDNSeed;
+    uint64 nSeqCreate;
 };
 
 } // namespace network

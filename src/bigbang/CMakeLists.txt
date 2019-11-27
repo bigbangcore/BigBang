@@ -19,7 +19,6 @@ add_custom_command(OUTPUT ${auto_files}
             "${CMAKE_SOURCE_DIR}/script/template/mode.json"
             "${CMAKE_SOURCE_DIR}/script/generator.py"
             "${CMAKE_SOURCE_DIR}/script/auto_options.py"
-            "${CMAKE_SOURCE_DIR}/script/auto_rpc.py"
             "${CMAKE_SOURCE_DIR}/script/auto_protocol.py"
 )
 
@@ -34,11 +33,11 @@ set(src
     error.cpp           error.h
     miner.cpp           miner.h
     netchn.cpp          netchn.h
-    delegatedchn.cpp    delegatedchn.h
+    # delegatedchn.cpp    delegatedchn.h
     network.cpp         network.h
     rpcclient.cpp       rpcclient.h
     rpcmod.cpp          rpcmod.h
-    consensus.cpp       consensus.h
+    # consensus.cpp       consensus.h
     blockmaker.cpp      blockmaker.h
     rpcclient.cpp       rpcclient.h
     miner.cpp           miner.h
@@ -100,7 +99,7 @@ target_link_libraries(bigbang
     crypto    
     storage    
     network
-    delegate    
+    # delegate    
     jsonrpc
     common
 )

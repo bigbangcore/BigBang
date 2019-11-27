@@ -15,11 +15,17 @@ namespace bigbang
 namespace storage
 {
 
+//////////////////////////////
+// CForkUnspentDBWalker
+
 class CForkUnspentDBWalker
 {
 public:
     virtual bool Walk(const CTxOutPoint& txout, const CTxOut& output) = 0;
 };
+
+//////////////////////////////
+// CForkUnspentCheckWalker
 
 class CForkUnspentCheckWalker : public CForkUnspentDBWalker
 {
@@ -49,6 +55,36 @@ public:
     uint64 nAll;
     uint64 nRanged;
     const std::map<CTxOutPoint, CTxUnspent>& mapUnspentUTXO;
+};
+
+//////////////////////////////
+// CListUnspentWalker
+
+class CListUnspentWalker : public CForkUnspentDBWalker
+{
+public:
+    CListUnspentWalker(const uint256& forkidIn, const CDestination& destOwnerIn, uint32 maxIn)
+      : forkId(forkidIn), destOwner(destOwnerIn), nMax(maxIn), nCounter(0) {}
+    bool Walk(const CTxOutPoint& txout, const CTxOut& output) override
+    {
+        if (nMax != 0 && nCounter >= nMax)
+        {
+            return false; //exit walk through processing
+        }
+        if (destOwner == output.destTo)
+        {
+            vUnspent.push_back(CTxUnspent(txout, output));
+            ++nCounter;
+        }
+        return true; //continue walk through processing
+    }
+
+public:
+    const uint256& forkId;
+    const CDestination& destOwner;
+    uint32 nMax;
+    uint32 nCounter;
+    std::vector<CTxUnspent> vUnspent;
 };
 
 class CForkUnspentDB : public xengine::CKVDB

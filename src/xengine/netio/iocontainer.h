@@ -42,6 +42,7 @@ public:
     virtual ~CIOCachedContainer();
     void ClientClose(CIOClient* pClient) override;
     std::size_t GetIdleCount() override;
+    virtual void IOInAccept() {}
 
 protected:
     CIOClient* ClientAlloc();
@@ -63,6 +64,7 @@ public:
                 const std::vector<std::string>& vAllowMask = std::vector<std::string>());
     void Halt();
     const boost::asio::ip::tcp::endpoint GetServiceEndpoint() override;
+    void IOInAccept() override;
 
 protected:
     bool BuildWhiteList(const std::vector<std::string>& vAllowMask);
@@ -73,6 +75,7 @@ protected:
     boost::asio::ip::tcp::acceptor acceptorService;
     boost::asio::ip::tcp::endpoint epService;
     std::vector<boost::regex> vWhiteList;
+    int nAcceptCount;
 };
 
 class CIOOutBound : public CIOCachedContainer

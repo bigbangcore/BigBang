@@ -37,7 +37,7 @@
 
 namespace json_spirit
 {
-const spirit_namespace::int_parser<boost::int64_t> int64_p = spirit_namespace::int_parser<boost::int64_t>();
+const spirit_namespace::int_parser<boost::int32_t> int64_p = spirit_namespace::int_parser<boost::int32_t>();
 const spirit_namespace::uint_parser<boost::uint64_t> uint64_p = spirit_namespace::uint_parser<boost::uint64_t>();
 
 template <class Iter_type>
@@ -225,8 +225,8 @@ public:
     typedef typename Config_type::Array_type Array_type;
     typedef typename String_type::value_type Char_type;
 
-    Semantic_actions(Value_type& value)
-      : value_(value), current_p_(0)
+    Semantic_actions(Value_type& value, boost::int32_t depth)
+      : value_(value), current_p_(0), depth_(depth)
     {
     }
 
@@ -328,6 +328,11 @@ private:
         }
         else
         {
+            if (depth_ >= 0 && stack_.size() >= depth_)
+            {
+                throw std::runtime_error("stack overflow");
+            }
+
             stack_.push_back(current_p_);
 
             Array_or_obj new_array_or_obj; // avoid copy by building new array or object in place
@@ -368,6 +373,7 @@ private:
     Value_type* current_p_; // the child object or array that is currently being constructed
 
     std::vector<Value_type*> stack_; // previous child objects and arrays
+    boost::int32_t depth_;
 
     String_type name_; // of current name/value pair
 };
@@ -522,14 +528,14 @@ private:
 };
 
 template <class Iter_type, class Value_type>
-void add_posn_iter_and_read_range_or_throw(Iter_type begin, Iter_type end, Value_type& value)
+void add_posn_iter_and_read_range_or_throw(Iter_type begin, Iter_type end, Value_type& value, boost::int32_t depth = -1)
 {
     typedef spirit_namespace::position_iterator<Iter_type> Posn_iter_t;
 
     const Posn_iter_t posn_begin(begin, end);
     const Posn_iter_t posn_end(end, end);
 
-    read_range_or_throw(posn_begin, posn_end, value);
+    read_range_or_throw(posn_begin, posn_end, value, depth);
 }
 
 template <class Istream_type>
@@ -560,9 +566,9 @@ struct Multi_pass_iters
 // last one read.
 //
 template <class Iter_type, class Value_type>
-Iter_type read_range_or_throw(Iter_type begin, Iter_type end, Value_type& value)
+Iter_type read_range_or_throw(Iter_type begin, Iter_type end, Value_type& value, boost::int32_t depth = -1)
 {
-    Semantic_actions<Value_type, Iter_type> semantic_actions(value);
+    Semantic_actions<Value_type, Iter_type> semantic_actions(value, depth);
 
     const spirit_namespace::parse_info<Iter_type> info = spirit_namespace::parse(begin, end,
                                                                                  Json_grammer<Value_type, Iter_type>(semantic_actions),
@@ -586,11 +592,11 @@ Iter_type read_range_or_throw(Iter_type begin, Iter_type end, Value_type& value)
 // last one read.
 //
 template <class Iter_type, class Value_type>
-bool read_range(Iter_type& begin, Iter_type end, Value_type& value)
+bool read_range(Iter_type& begin, Iter_type end, Value_type& value, boost::int32_t depth = -1)
 {
     try
     {
-        begin = read_range_or_throw(begin, end, value);
+        begin = read_range_or_throw(begin, end, value, depth);
 
         return true;
     }
@@ -605,11 +611,11 @@ bool read_range(Iter_type& begin, Iter_type end, Value_type& value)
 // const bool success = read_string( str, value );
 //
 template <class String_type, class Value_type>
-bool read_string(const String_type& s, Value_type& value)
+bool read_string(const String_type& s, Value_type& value, boost::int32_t depth = -1)
 {
     typename String_type::const_iterator begin = s.begin();
 
-    return read_range(begin, s.end(), value);
+    return read_range(begin, s.end(), value, depth);
 }
 
 // reads a JSON Value from a string throwing an exception on invalid input, e.g.
@@ -617,9 +623,9 @@ bool read_string(const String_type& s, Value_type& value)
 // read_string_or_throw( is, value );
 //
 template <class String_type, class Value_type>
-void read_string_or_throw(const String_type& s, Value_type& value)
+void read_string_or_throw(const String_type& s, Value_type& value, boost::int32_t depth = -1)
 {
-    add_posn_iter_and_read_range_or_throw(s.begin(), s.end(), value);
+    add_posn_iter_and_read_range_or_throw(s.begin(), s.end(), value, depth);
 }
 
 // reads a JSON Value from a stream, e.g.
@@ -627,11 +633,11 @@ void read_string_or_throw(const String_type& s, Value_type& value)
 // const bool success = read_stream( is, value );
 //
 template <class Istream_type, class Value_type>
-bool read_stream(Istream_type& is, Value_type& value)
+bool read_stream(Istream_type& is, Value_type& value, boost::int32_t depth = -1)
 {
     Multi_pass_iters<Istream_type> mp_iters(is);
 
-    return read_range(mp_iters.begin_, mp_iters.end_, value);
+    return read_range(mp_iters.begin_, mp_iters.end_, value, depth);
 }
 
 // reads a JSON Value from a stream throwing an exception on invalid input, e.g.
@@ -639,11 +645,11 @@ bool read_stream(Istream_type& is, Value_type& value)
 // read_stream_or_throw( is, value );
 //
 template <class Istream_type, class Value_type>
-void read_stream_or_throw(Istream_type& is, Value_type& value)
+void read_stream_or_throw(Istream_type& is, Value_type& value, boost::int32_t depth = -1)
 {
     const Multi_pass_iters<Istream_type> mp_iters(is);
 
-    add_posn_iter_and_read_range_or_throw(mp_iters.begin_, mp_iters.end_, value);
+    add_posn_iter_and_read_range_or_throw(mp_iters.begin_, mp_iters.end_, value, depth);
 }
 } // namespace json_spirit
 

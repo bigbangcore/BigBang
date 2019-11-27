@@ -63,6 +63,7 @@ protected:
     void UpdateNetTime(const boost::asio::ip::address& address, int64 nTimeDelta);
     const CConfig* Config();
     const std::string GetWarnings();
+    const std::string GetEpString(const boost::asio::ip::tcp::endpoint& ep);
 
 private:
     std::string ownKey;

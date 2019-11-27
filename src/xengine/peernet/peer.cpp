@@ -67,6 +67,11 @@ void CPeer::Activate()
     nTimeSend = 0;
 }
 
+bool CPeer::PingTimer(uint32 nTimerId)
+{
+    return false;
+}
+
 CBufStream& CPeer::ReadStream()
 {
     return ssRecv;

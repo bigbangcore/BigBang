@@ -25,6 +25,14 @@ public:
 class CKey
 {
 public:
+    enum
+    {
+        INIT,
+        PRIVATE_KEY,
+        PUBLIC_KEY,
+    };
+
+public:
     CKey();
     CKey(const CKey& key);
     CKey& operator=(const CKey& key);
@@ -32,6 +40,8 @@ public:
     uint32 GetVersion() const;
     bool IsNull() const;
     bool IsLocked() const;
+    bool IsPrivKey() const;
+    bool IsPubKey() const;
     bool Renew();
     void Load(const CPubKey& pubkeyIn, const uint32 nVersionIn, const CCryptoCipher& cipherIn);
     bool Load(const std::vector<unsigned char>& vchKey);
@@ -50,7 +60,7 @@ public:
     bool Unlock(const CCryptoString& strPassphrase = "");
 
 protected:
-    bool UpdateCipher(uint32 nVersionIn = 0, const CCryptoString& strPassphrase = "");
+    bool UpdateCipher(uint32 nVersionIn = INIT, const CCryptoString& strPassphrase = "");
 
 protected:
     uint32 nVersion;

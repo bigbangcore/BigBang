@@ -42,7 +42,7 @@ bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& see
 
 CKey::CKey()
 {
-    nVersion = 0;
+    nVersion = INIT;
     pCryptoKey = CryptoAlloc<CCryptoKey>();
     if (!pCryptoKey)
     {
@@ -90,6 +90,16 @@ bool CKey::IsNull() const
 bool CKey::IsLocked() const
 {
     return (pCryptoKey->secret == 0);
+}
+
+bool CKey::IsPrivKey() const
+{
+    return nVersion == PRIVATE_KEY;
+}
+
+bool CKey::IsPubKey() const
+{
+    return nVersion == PUBLIC_KEY;
 }
 
 bool CKey::Renew()
@@ -183,12 +193,18 @@ const CCryptoCipher& CKey::GetCipher() const
 
 bool CKey::Sign(const uint256& hash, std::vector<uint8>& vchSig) const
 {
-    if (!IsNull() && !IsLocked())
+    if (IsNull())
     {
-        CryptoSign(*pCryptoKey, &hash, sizeof(hash), vchSig);
-        return true;
+        StdError("CKey", "Sign: pubkey is null");
+        return false;
     }
-    return false;
+    if (IsLocked())
+    {
+        StdError("CKey", "Sign: pubkey is locked");
+        return false;
+    }
+    CryptoSign(*pCryptoKey, &hash, sizeof(hash), vchSig);
+    return true;
 }
 
 bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& seed,

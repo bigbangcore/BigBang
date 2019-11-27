@@ -219,12 +219,12 @@ bool CDataStat::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
-        Error("Failed to request coreprotocol\n");
+        Error("Failed to request coreprotocol");
         return false;
     }
     if (!Initialize())
     {
-        Error("Data stat initialize fail.\n");
+        Error("Data stat initialize fail.");
         return false;
     }
     fStatWork = RPCServerConfig()->fStatDataEnable;
@@ -411,7 +411,7 @@ bool CDataStat::GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime
 {
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
-        StdDebug("STAT", (string("GetBlockMakerStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".\n")).c_str());
+        StdDebug("STAT", (string("GetBlockMakerStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".")).c_str());
         return false;
     }
     if (fStatWork)
@@ -466,7 +466,7 @@ bool CDataStat::GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, ui
 {
     if (nBeginTime >= STAT_MAX_ITEM_COUNT || nGetCount == 0 || nGetCount > STAT_MAX_ITEM_COUNT)
     {
-        StdDebug("STAT", (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".\n")).c_str());
+        StdDebug("STAT", (string("GetP2pSynStatData fail: nBeginTime: ") + to_string(nBeginTime) + string(", nGetCount: ") + to_string(nGetCount) + string(".")).c_str());
         return false;
     }
     if (fStatWork)

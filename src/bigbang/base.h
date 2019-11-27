@@ -47,13 +47,12 @@ public:
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) = 0;
     virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork) = 0;
     virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork) = 0;
+    virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement()) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
-    virtual int GetProofOfWorkRunTimeBits(int nBits, int64 nTime, int64 nPrevTime) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
                                     const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight)
         = 0;
-    virtual bool CheckFirstPow(int nBlockHeight) = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -67,6 +66,7 @@ public:
     virtual bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) = 0;
     virtual int GetBlockCount(const uint256& hashFork) = 0;
     virtual bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext) = 0;
     virtual bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) = 0;
     virtual bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) = 0;
     virtual bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime) = 0;
@@ -89,10 +89,11 @@ public:
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
-    virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) = 0;
+    virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
-    virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
-    virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
+    // virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
+    // virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
     const CBasicConfig* Config()
     {
         return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
@@ -116,7 +117,6 @@ public:
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
-    virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vTxPool) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)
@@ -184,17 +184,17 @@ public:
     /* Key store */
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const = 0;
-    virtual bool Have(const crypto::CPubKey& pubkey) const = 0;
+    virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const = 0;
     virtual bool Export(const crypto::CPubKey& pubkey, std::vector<unsigned char>& vchKey) const = 0;
     virtual bool Import(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) = 0;
     virtual bool Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,
                          const crypto::CCryptoString& strCurrentPassphrase)
         = 0;
-    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) const = 0;
+    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) const = 0;
     virtual bool IsLocked(const crypto::CPubKey& pubkey) const = 0;
     virtual bool Lock(const crypto::CPubKey& pubkey) = 0;
     virtual bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) = 0;
-    virtual bool Sign(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig) const = 0;
+    virtual bool Sign(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig) = 0;
     /* Template */
     virtual void GetTemplateIds(std::set<CTemplateId>& setTemplateId) const = 0;
     virtual bool Have(const CTemplateId& tid) const = 0;
@@ -204,8 +204,9 @@ public:
     virtual std::size_t GetTxCount() = 0;
     virtual bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
-    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) const = 0;
+    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Update */
     virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
     virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
@@ -231,10 +232,10 @@ public:
       : IBase("dispatcher") {}
     virtual Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) = 0;
     virtual Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) = 0;
-    virtual bool AddNewDistribute(const uint256& hashAnchor, const CDestination& dest,
+    virtual bool AddNewDistribute(const int& hashAnchor, const CDestination& dest,
                                   const std::vector<unsigned char>& vchDistribute)
         = 0;
-    virtual bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
+    virtual bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
                                const std::vector<unsigned char>& vchPublish)
         = 0;
 };
@@ -273,10 +274,11 @@ public:
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
     virtual Errno SendTransaction(CTransaction& tx) = 0;
     virtual bool RemovePendingTx(const uint256& txid) = 0;
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Wallet */
-    virtual bool HaveKey(const crypto::CPubKey& pubkey) = 0;
+    virtual bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) = 0;
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) = 0;
-    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime) = 0;
+    virtual bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) = 0;
     virtual bool MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey) = 0;
     virtual bool AddKey(const crypto::CKey& key) = 0;
     virtual bool ImportKey(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) = 0;

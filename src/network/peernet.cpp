@@ -9,11 +9,11 @@
 
 #include "peer.h"
 
-#define HANDSHAKE_TIMEOUT (5)
-#define RESPONSE_TX_TIMEOUT (15)
-#define RESPONSE_BLOCK_TIMEOUT (120)
-#define RESPONSE_DISTRIBUTE_TIMEOUT (5)
-#define RESPONSE_PUBLISH_TIMEOUT (10)
+#define HANDSHAKE_TIMEOUT (30)            //(5)
+#define RESPONSE_TX_TIMEOUT (120)         //(15)
+#define RESPONSE_BLOCK_TIMEOUT (600)      //(120)
+#define RESPONSE_DISTRIBUTE_TIMEOUT (120) //(5)
+#define RESPONSE_PUBLISH_TIMEOUT (120)    //(10)
 #define NODE_ACTIVE_TIME (3 * 60 * 60)
 
 #define NODE_DEFAULT_GATEWAY "0.0.0.0"
@@ -38,7 +38,8 @@ CBbPeerNet::CBbPeerNet()
     nService = 0;
     fEnclosed = false;
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    // pDelegatedChannel = nullptr;
+    nSeqCreate = (GetTimeMillis() << 32) | (GetTime() & 0xFFFFFFFF);
 }
 
 CBbPeerNet::~CBbPeerNet()
@@ -53,11 +54,11 @@ bool CBbPeerNet::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("delegatedchannel", pDelegatedChannel))
-    {
-        Error("Failed to request delegated datachannel\n");
-        return false;
-    }
+    // if (!GetObject("delegatedchannel", pDelegatedChannel))
+    // {
+    //     Error("Failed to request delegated datachannel\n");
+    //     return false;
+    // }
 
     return true;
 }
@@ -66,7 +67,7 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    // pDelegatedChannel = nullptr;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)
@@ -94,13 +95,17 @@ bool CBbPeerNet::HandleEvent(CEventPeerGetData& eventGetData)
 {
     CBufStream ssPayload;
     ssPayload << eventGetData;
-    if (!SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
+    if (SendDataMessage(eventGetData.nNonce, PROTO_CMD_GETDATA, ssPayload))
     {
-        return false;
+        if (SetInvTimer(eventGetData.nNonce, eventGetData.data))
+        {
+            return true;
+        }
     }
-
-    SetInvTimer(eventGetData.nNonce, eventGetData.data);
-    return true;
+    CEventPeerGetFail* pEvent = new CEventPeerGetFail(eventGetData.nNonce, eventGetData.hashFork);
+    pEvent->data.assign(eventGetData.data.begin(), eventGetData.data.end());
+    pNetChannel->PostEvent(pEvent);
+    return false;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerGetBlocks& eventGetBlocks)
@@ -122,6 +127,20 @@ bool CBbPeerNet::HandleEvent(CEventPeerBlock& eventBlock)
     CBufStream ssPayload;
     ssPayload << eventBlock;
     return SendDataMessage(eventBlock.nNonce, PROTO_CMD_BLOCK, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerGetFail& eventGetFail)
+{
+    CBufStream ssPayload;
+    ssPayload << eventGetFail;
+    return SendDataMessage(eventGetFail.nNonce, PROTO_CMD_GETFAIL, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerMsgRsp& eventMsgRsp)
+{
+    CBufStream ssPayload;
+    ssPayload << eventMsgRsp;
+    return SendDataMessage(eventMsgRsp.nNonce, PROTO_CMD_MSGRSP, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)
@@ -167,7 +186,7 @@ bool CBbPeerNet::HandleEvent(CEventPeerPublish& eventPublish)
 
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 {
-    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT);
+    uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT, "Handshake Timer");
     CBbPeer* pPeer = new CBbPeer(this, pClient, nNonce, fInBound, nMagicNum, nTimerId);
     if (pPeer == nullptr)
     {
@@ -186,14 +205,14 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
         {
             pEventDeactive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
-            CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
+            // CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
 
             pNetChannel->PostEvent(pEventDeactive);
 
-            if (pEventDeactiveDelegated != nullptr)
-            {
-                pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
-            }
+            // if (pEventDeactiveDelegated != nullptr)
+            // {
+            //     pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
+            // }
         }
     }
     CPeerNet::DestroyPeer(pPeer);
@@ -211,6 +230,7 @@ CPeerInfo* CBbPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)
         pBbInfo->nService = pBbPeer->nService;
         pBbInfo->strSubVer = pBbPeer->strSubVer;
         pBbInfo->nStartingHeight = pBbPeer->nStartingHeight;
+        pBbInfo->nPingPongTimeDelta = pBbPeer->nPingPongTimeDelta;
     }
     return pInfo;
 }
@@ -252,7 +272,7 @@ bool CBbPeerNet::SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBuf
     return pBbPeer->SendMessage(PROTO_CHN_DELEGATE, nCommand, ssPayload);
 }
 
-void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
+bool CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
 {
     const int64 nTimeout[] = { 0, RESPONSE_TX_TIMEOUT, RESPONSE_BLOCK_TIMEOUT,
                                RESPONSE_DISTRIBUTE_TIMEOUT, RESPONSE_PUBLISH_TIMEOUT };
@@ -260,16 +280,22 @@ void CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
     if (pBbPeer != nullptr)
     {
         int64 nElapse = 0;
-        for (CInv& inv : vInv)
+        for (const CInv& inv : vInv)
         {
             if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_PUBLISH)
             {
                 nElapse += nTimeout[inv.nType];
-                uint32 nTimerId = SetTimer(nNonce, nElapse);
+                string strFunc = string("InvTimer: nNonce: ") + to_string(nNonce) + ", Inv: [" + to_string(inv.nType) + "] " + inv.nHash.GetHex();
+                uint32 nTimerId = SetTimer(nNonce, nElapse, strFunc);
                 CancelTimer(pBbPeer->Request(inv, nTimerId));
             }
         }
     }
+    else
+    {
+        return false;
+    }
+    return true;
 }
 
 void CBbPeerNet::ProcessAskFor(CPeer* pPeer)
@@ -293,7 +319,16 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
     uint64 nNonce = pPeer->GetNonce();
     int64 nTime = GetNetTime();
     int nHeight = pNetChannel->GetPrimaryChainHeight();
-    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight;
+    ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight << hashGenesis;
+}
+
+uint32 CBbPeerNet::BuildPing(xengine::CPeer* pPeer, xengine::CBufStream& ssPayload)
+{
+    uint32 nSeq = CreateSeq(pPeer->GetNonce());
+    int64 nTime = GetNetTime();
+    int nHeight = pNetChannel->GetPrimaryChainHeight();
+    ssPayload << nSeq << nTime << nHeight;
+    return nSeq;
 }
 
 void CBbPeerNet::HandlePeerWriten(CPeer* pPeer)
@@ -306,6 +341,10 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
+    {
+        return false;
+    }
+    if (pBbPeer->hashGenesis != hashGenesis)
     {
         return false;
     }
@@ -329,19 +368,24 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 
     UpdateNetTime(pBbPeer->GetRemote().address(), pBbPeer->nTimeDelta);
 
-    CEventPeerActive* pEventActive = new CEventPeerActive(pBbPeer->GetNonce());
-    if (pEventActive == nullptr)
+    if (setDNSeed.count(pBbPeer->GetRemote()) == 0)
     {
-        return false;
-    }
+        CEventPeerActive* pEventActive = new CEventPeerActive(pBbPeer->GetNonce());
+        if (pEventActive == nullptr)
+        {
+            return false;
+        }
 
-    pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-    CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
+        pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
+        // CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
 
-    pNetChannel->PostEvent(pEventActive);
-    if (pEventActiveDelegated != nullptr)
-    {
-        pDelegatedChannel->PostEvent(pEventActiveDelegated);
+        pNetChannel->PostEvent(pEventActive);
+        // if (pEventActiveDelegated != nullptr)
+        // {
+        //     pDelegatedChannel->PostEvent(pEventActiveDelegated);
+        // }
+
+        pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     }
 
     if (!fEnclosed)
@@ -380,7 +424,6 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             ss << vAddr;
             return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_ADDRESS, ss);
         }
-        break;
         case PROTO_CMD_ADDRESS:
             if (!fEnclosed)
             {
@@ -417,19 +460,41 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                     }
                 }
 
-                if (!pBbPeer->IsInBound() && setDNSeed.count(pBbPeer->GetRemote()))
+                /*if (!pBbPeer->IsInBound() && setDNSeed.count(pBbPeer->GetRemote()))
                 {
                     RemoveNode(pBbPeer->GetRemote());
-                }
+                }*/
                 return true;
             }
             break;
         case PROTO_CMD_PING:
-            return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_PONG, ssPayload);
-            break;
+        {
+            uint32 nSeq;
+            int64 nTime;
+            int nHeight;
+            CBufStream ssRespPayload;
+            ssPayload >> nSeq >> nTime >> pBbPeer->nStartingHeight;
+            nTime = GetNetTime();
+            nHeight = pNetChannel->GetPrimaryChainHeight();
+            ssRespPayload << nSeq << nTime << nHeight;
+            return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_PONG, ssRespPayload);
+        }
         case PROTO_CMD_PONG:
+        {
+            uint32 nSeq;
+            int64 nTime;
+            ssPayload >> nSeq >> nTime >> pBbPeer->nStartingHeight;
+            if (pBbPeer->nPingSeq != 0 && nSeq == pBbPeer->nPingSeq)
+            {
+                if (pBbPeer->nPingMillisTime != 0)
+                {
+                    pBbPeer->nPingPongTimeDelta = (int)(GetTimeMillis() - pBbPeer->nPingMillisTime);
+                    pBbPeer->nPingMillisTime = 0;
+                }
+                pBbPeer->nPingSeq = 0;
+            }
             return true;
-            break;
+        }
         default:
             break;
         }
@@ -519,71 +584,28 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             }
         }
         break;
-        default:
-            break;
-        }
-    }
-    else if (nChannel == PROTO_CHN_DELEGATE)
-    {
-        uint256 hashAnchor;
-        ssPayload >> hashAnchor;
-        switch (nCommand)
+        case PROTO_CMD_GETFAIL:
         {
-        case PROTO_CMD_BULLETIN:
-        {
-            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
+            CEventPeerGetFail* pEvent = new CEventPeerGetFail(pBbPeer->GetNonce(), hashFork);
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
+                for (const CInv& inv : pEvent->data)
+                {
+                    CancelTimer(pBbPeer->Responded(inv));
+                }
+                pNetChannel->PostEvent(pEvent);
                 return true;
             }
         }
         break;
-        case PROTO_CMD_GETDELEGATED:
+        case PROTO_CMD_MSGRSP:
         {
-            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
+            CEventPeerMsgRsp* pEvent = new CEventPeerMsgRsp(pBbPeer->GetNonce(), hashFork);
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_DISTRIBUTE:
-        {
-            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_DISTRIBUTE, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                pDelegatedChannel->PostEvent(pEvent);
-
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_PUBLISH:
-        {
-            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_PUBLISH, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                pDelegatedChannel->PostEvent(pEvent);
+                pNetChannel->PostEvent(pEvent);
                 return true;
             }
         }
@@ -592,7 +614,93 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             break;
         }
     }
+    // else if (nChannel == PROTO_CHN_DELEGATE)
+    // {
+    //     int hashAnchor;
+    //     ssPayload >> hashAnchor;
+    //     switch (nCommand)
+    //     {
+    //     case PROTO_CMD_BULLETIN:
+    //     {
+    //         CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
+    //         if (pEvent != nullptr)
+    //         {
+    //             ssPayload >> pEvent->data;
+    //             pDelegatedChannel->PostEvent(pEvent);
+    //             return true;
+    //         }
+    //     }
+    //     break;
+    //     case PROTO_CMD_GETDELEGATED:
+    //     {
+    //         CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
+    //         if (pEvent != nullptr)
+    //         {
+    //             ssPayload >> pEvent->data;
+    //             pDelegatedChannel->PostEvent(pEvent);
+    //             return true;
+    //         }
+    //     }
+    //     break;
+    //     case PROTO_CMD_DISTRIBUTE:
+    //     {
+    //         CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
+    //         if (pEvent != nullptr)
+    //         {
+    //             ssPayload >> pEvent->data;
+
+    //             CBufStream ss;
+    //             ss << hashAnchor << (pEvent->data.destDelegate);
+    //             uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+    //             CInv inv(CInv::MSG_DISTRIBUTE, hash);
+    //             CancelTimer(pBbPeer->Responded(inv));
+
+    //             pDelegatedChannel->PostEvent(pEvent);
+
+    //             return true;
+    //         }
+    //     }
+    //     break;
+    //     case PROTO_CMD_PUBLISH:
+    //     {
+    //         CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
+    //         if (pEvent != nullptr)
+    //         {
+    //             ssPayload >> pEvent->data;
+
+    //             CBufStream ss;
+    //             ss << hashAnchor << (pEvent->data.destDelegate);
+    //             uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+    //             CInv inv(CInv::MSG_PUBLISH, hash);
+    //             CancelTimer(pBbPeer->Responded(inv));
+
+    //             pDelegatedChannel->PostEvent(pEvent);
+    //             return true;
+    //         }
+    //     }
+    //     break;
+    //     default:
+    //         break;
+    //     }
+    // }
     return false;
+}
+
+uint32 CBbPeerNet::SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse)
+{
+    if (nOldTimerId != 0)
+    {
+        CancelTimer(nOldTimerId);
+    }
+    return SetTimer(nNonce, nElapse, "PingTimer");
+}
+
+uint32 CBbPeerNet::CreateSeq(uint64 nNonce)
+{
+    CBufStream ss;
+    int64 nTime = GetTimeMillis();
+    ss << nTime << nSeqCreate++ << nNonce;
+    return bigbang::crypto::crc24q((const unsigned char*)ss.GetData(), ss.GetSize());
 }
 
 } // namespace network

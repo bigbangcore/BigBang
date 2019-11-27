@@ -2,9 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <map>
-
 #include "util.h"
+
+#include <map>
 #if defined(__linux__)
 #include <sys/prctl.h>
 #elif defined(__APPLE__)
@@ -22,6 +22,8 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <cstdarg>
+#include <thread>
 
 namespace logging = boost::log;
 namespace attrs = boost::log::attributes;
@@ -50,7 +52,12 @@ std::string GetThreadName()
 #elif defined(__APPLE__)
     pthread_getname_np(pthread_self(), name, 16);
 #endif
-    return name;
+    std::ostringstream oss;
+#ifndef NDEBUG
+    oss << std::hex << std::this_thread::get_id() << ":";
+#endif
+    oss << name;
+    return oss.str();
 }
 
 #define DUMP_STACK_DEPTH_MAX 64
@@ -145,22 +152,23 @@ public:
     {
     }
 
-    void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon)
+    void Init(const boost::filesystem::path& pathData, bool debug_, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn)
     {
-        sink = boost::shared_ptr<sink_t>(new sink_t(
-            keywords::file_name = "%Y-%m-%d_%N.log",
-            keywords::rotation_size = 10 * 1024 * 1024,
-            keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0),
-            keywords::auto_flush = true));
+        sink = boost::make_shared<sink_t>(
+            keywords::open_mode = std::ios::app,
+            keywords::file_name = pathData / "logs" / "%Y-%m-%d_%N.log",
+            keywords::rotation_size = (int64)1024 * 1024 * nLogFileSizeIn,
+            keywords::auto_flush = true);
 
         sink->locked_backend()->set_file_collector(sinks::file::make_collector(
-            keywords::target = pathData / "logs",
-            keywords::max_size = 50 * 1024 * 1024,
+            keywords::target = pathData / "logs-collector",
+            keywords::max_size = (int64)1024 * 1024 * nLogHistorySizeIn,
             keywords::auto_flush = true));
+
         sink->locked_backend()->scan_for_files();
         sink->set_formatter(
             expr::format("%1% : [%2%] <%3%> {%4%} - %5%")
-            % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f")
+            % expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
             % channel
             % severity
             % expr::attr<std::string>("ThreadName")
@@ -202,66 +210,100 @@ public:
 static CBoostLog g_log;
 static bool volatile g_log_init = false;
 
-void StdDebug(const char* pszName, const char* pszErr)
+void StdTrace(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-void StdLog(const char* pszName, const char* pszErr)
+void StdDebug(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
+    }
+}
+
+void StdLog(const char* pszName, const char* pszFormat, ...)
+{
+    if (g_log_init)
+    {
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
     }
 }
 
-void StdWarn(const char* pszName, const char* pszErr)
+void StdWarn(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-void StdError(const char* pszName, const char* pszErr)
+void StdError(const char* pszName, const char* pszFormat, ...)
 {
     if (g_log_init)
     {
-        std::string str(pszErr);
-        if (str[str.length() - 1] == '\n')
-        {
-            str.resize(str.length() - 1);
-        }
+        std::stringstream ss;
+        char arg_buffer[512] = { 0 };
+        va_list ap;
+        va_start(ap, pszFormat);
+        vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
+        va_end(ap);
+        ss << arg_buffer;
+        std::string str = ss.str();
+
         BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
-        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << pszErr;
+        BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
 
-bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon)
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn)
 {
     g_log_init = true;
-    g_log.Init(pathData, debug, daemon);
+    g_log.Init(pathData, debug, daemon, nLogFileSizeIn, nLogHistorySizeIn);
     return true;
 }
 

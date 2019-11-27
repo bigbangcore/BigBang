@@ -73,7 +73,7 @@ bool CConsole::HandleInvoke()
 {
     if (!InstallReadline(strPrompt))
     {
-        Error("Failed to setup readline\n");
+        Error("Failed to setup readline");
         return false;
     }
 
@@ -81,7 +81,7 @@ bool CConsole::HandleInvoke()
 
     if (!ThreadDelayStart(thrConsole))
     {
-        Error("Failed to start console thread\n");
+        Error("Failed to start console thread");
         return false;
     }
     return true;

@@ -10,6 +10,7 @@
 #include <iostream>
 #include <numeric>
 
+#include "git_version.h"
 #include "rpc/rpc_error.h"
 #include "util.h"
 
@@ -17,6 +18,11 @@ using namespace xengine;
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
+
+const char* GetGitVersion()
+{
+    return GIT_VERSION;
+}
 
 namespace bigbang
 {
@@ -52,7 +58,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     {
         emMode = EModeType::SERVER;
     }
-    else if (exec == "bigbang-miner" || cmd == "miner")
+    else if (exec == "bigbang-miner")
     {
         emMode = EModeType::MINER;
     }
@@ -118,12 +124,12 @@ bool CConfig::PostLoad()
         }
         catch (rpc::CRPCException& e)
         {
-            StdError(__PRETTY_FUNCTION__, (e.strMessage + rpc::strHelpTips).c_str());
+            std::cerr << e.strMessage << rpc::strClientHelpTips << std::endl;
             return false;
         }
         catch (std::exception& e)
         {
-            StdError(__PRETTY_FUNCTION__, e.what());
+            std::cerr << e.what() << std::endl;
             return false;
         }
     }

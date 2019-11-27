@@ -9,10 +9,10 @@
 
 #include "blockchain.h"
 #include "blockmaker.h"
-#include "consensus.h"
+// #include "consensus.h"
 #include "core.h"
 #include "datastat.h"
-#include "delegatedchn.h"
+// #include "delegatedchn.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
@@ -43,6 +43,8 @@
 using namespace std;
 using namespace xengine;
 using namespace boost::filesystem;
+
+const char* GetGitVersion();
 
 namespace bigbang
 {
@@ -83,7 +85,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     // version
     if (config.GetConfig()->fVersion)
     {
-        cout << "Bigbang version is v" << VERSION_STR << endl;
+        cout << "Bigbang version is v" << VERSION_STR << ", git commit id is " << GetGitVersion() << endl;
         return false;
     }
 
@@ -98,6 +100,18 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetConfig()->fDebug)
     {
         config.ListConfig();
+    }
+
+    // check log size
+    if (config.GetConfig()->nLogFileSize < 1 || config.GetConfig()->nLogFileSize > 2048)
+    {
+        cerr << "Log file size beyond range(range: 1 ~ 2048), value: " << config.GetConfig()->nLogFileSize << "\n";
+        return false;
+    }
+    if (config.GetConfig()->nLogHistorySize < 2 || config.GetConfig()->nLogHistorySize > 0x7FFFFFFF)
+    {
+        cerr << "Log history size beyond range(range: 2 ~ 2147483647), value: " << config.GetConfig()->nLogHistorySize << "\n";
+        return false;
     }
 
     // path
@@ -135,9 +149,9 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER) 
-    && log.SetLogFilePath((pathData / "bigbang.log").string())
-    && !InitLog(pathData,config.GetConfig()->fDebug, config.GetConfig()->fDaemon))
+    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER)
+        && log.SetLogFilePath((pathData / "bigbang.log").string())
+        && !InitLog(pathData, config.GetConfig()->fDebug, config.GetConfig()->fDaemon, config.GetConfig()->nLogFileSize, config.GetConfig()->nLogHistorySize))
     {
         cerr << "Failed to open log file : " << (pathData / "bigbang.log") << "\n";
         return false;
@@ -149,7 +163,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         cerr << "Failed to initialize docker\n";
         return false;
     }
-
+    StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
     // modules
     return InitializeModules(config.GetModeType());
 }
@@ -239,14 +253,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        case EModuleType::DELEGATEDCHANNEL:
-        {
-            if (!AttachModule(new CDelegatedChannel()))
-            {
-                return false;
-            }
-            break;
-        }
+        // case EModuleType::DELEGATEDCHANNEL:
+        // {
+        //     if (!AttachModule(new CDelegatedChannel()))
+        //     {
+        //         return false;
+        //     }
+        //     break;
+        // }
         case EModuleType::NETWORK:
         {
             if (!AttachModule(new CNetwork()))
@@ -328,14 +342,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        case EModuleType::CONSENSUS:
-        {
-            if (!AttachModule(new CConsensus()))
-            {
-                return false;
-            }
-            break;
-        }
+        // case EModuleType::CONSENSUS:
+        // {
+        //     if (!AttachModule(new CConsensus()))
+        //     {
+        //         return false;
+        //     }
+        //     break;
+        // }
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))

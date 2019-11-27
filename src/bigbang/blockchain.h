@@ -24,6 +24,7 @@ public:
     bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) override;
     int GetBlockCount(const uint256& hashFork) override;
     bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight) override;
+    bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) override;
     bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime) override;
@@ -45,10 +46,11 @@ public:
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
-    bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator) override;
+    bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) override;
     bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) override;
-    bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
-    bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
+    // bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
+    // bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
+    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
 
 protected:
     bool HandleInitialize() override;
@@ -61,9 +63,10 @@ protected:
     Errno GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt);
     bool GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                          std::vector<CBlockEx>& vBlockAddNew, std::vector<CBlockEx>& vBlockRemove);
-    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                   CDelegateAgreement& agreement);
-    Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, int64& nReward);
+    // bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
+    //    CDelegateAgreement& agreement);
+    Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
+                      int64& nReward, CDelegateAgreement& agreement);
 
 protected:
     boost::shared_mutex rwAccess;

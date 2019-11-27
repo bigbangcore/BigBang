@@ -86,6 +86,7 @@ private:
     rpc::CRPCResultPtr RPCGetBlockCount(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetBlockHash(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetBlock(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetBlockDetail(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTxPool(rpc::CRPCParamPtr param);
     // CRPCResultPtr RPCRemovePendingTx(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTransaction(rpc::CRPCParamPtr param);
@@ -98,6 +99,7 @@ private:
     rpc::CRPCResultPtr RPCLockKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCUnlockKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportPrivKey(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCImportPubKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCExportKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCAddNewTemplate(rpc::CRPCParamPtr param);
@@ -122,6 +124,7 @@ private:
     rpc::CRPCResultPtr RPCGetTemplateAddress(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListUnspent(rpc::CRPCParamPtr param);
     /* Mint */
     rpc::CRPCResultPtr RPCGetWork(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSubmitWork(rpc::CRPCParamPtr param);

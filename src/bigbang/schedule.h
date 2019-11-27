@@ -11,6 +11,9 @@
 #include "proto.h"
 #include "struct.h"
 #include "transaction.h"
+#include "util.h"
+
+using namespace xengine;
 
 namespace bigbang
 {
@@ -20,11 +23,22 @@ class CInvPeer
     class CInvPeerState
     {
     public:
+        CInvPeerState()
+          : nNextGetBlocksTime(0) {}
+
         CUInt256List listKnown;
         std::set<uint256> setAssigned;
+        int64 nNextGetBlocksTime;
     };
 
 public:
+    CInvPeer()
+      : nInvHeight(0)
+    {
+    }
+    ~CInvPeer()
+    {
+    }
     bool Empty(uint32 type)
     {
         return GetKnownList(type).empty();
@@ -66,6 +80,16 @@ public:
         idxByValue.erase(inv.nHash);
         GetAssigned(inv.nType).erase(inv.nHash);
     }
+    bool KnownInvExists(const network::CInv& inv)
+    {
+        CUInt256List& listKnown = GetKnownList(inv.nType);
+        CUInt256ByValue& idxByValue = listKnown.get<1>();
+        if (idxByValue.find(inv.nHash) != idxByValue.end())
+        {
+            return true;
+        }
+        return false;
+    }
     void Assign(const network::CInv& inv)
     {
         GetAssigned(inv.nType).insert(inv.nHash);
@@ -78,9 +102,58 @@ public:
     {
         return (!invKnown[0].setAssigned.empty() || !invKnown[1].setAssigned.empty());
     }
+    void GetBlockLocatorDepth(uint256& hashDepth)
+    {
+        hashDepth = hashGetBlockLocatorDepth;
+    }
+    void SetBlockLocatorDepth(const uint256& hashDepth)
+    {
+        hashGetBlockLocatorDepth = hashDepth;
+    }
+    int GetLocatorInvBlockHash(uint256& hashBlock)
+    {
+        if (nInvHeight <= 0 || hashInvBlock == 0)
+        {
+            return -1;
+        }
+        hashBlock = hashInvBlock;
+        return nInvHeight;
+    }
+    void SetLocatorInvBlockHash(int nHeight, const uint256& hashBlock, const uint256& hashNext)
+    {
+        if (nHeight >= nInvHeight)
+        {
+            nInvHeight = nHeight;
+            hashInvBlock = hashBlock;
+        }
+        else
+        {
+            if (hashNext == 0 && hashInvBlock == 0)
+            {
+                nInvHeight = nHeight;
+                hashInvBlock = hashBlock;
+            }
+            else
+            {
+                nInvHeight--;
+                hashInvBlock = 0;
+            }
+        }
+    }
+    void SetNextGetBlocksTime(int nWaitTime)
+    {
+        invKnown[network::CInv::MSG_BLOCK - network::CInv::MSG_TX].nNextGetBlocksTime = GetTime() + nWaitTime;
+    }
+    bool CheckNextGetBlocksTime()
+    {
+        return (GetTime() >= invKnown[network::CInv::MSG_BLOCK - network::CInv::MSG_TX].nNextGetBlocksTime);
+    }
 
 public:
     CInvPeerState invKnown[2];
+    uint256 hashGetBlockLocatorDepth;
+    int nInvHeight;
+    uint256 hashInvBlock;
 };
 
 class COrphan
@@ -105,7 +178,7 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -115,14 +188,30 @@ class CSchedule
         uint64 nAssigned;
         CInvObject objReceived;
         std::set<uint64> setKnownPeer;
+        int64 nRecvInvTime;
+        int64 nRecvObjTime;
+        int nGetDataCount;
+    };
+
+public:
+    enum
+    {
+        MAX_INV_COUNT = 1024 * 256,
+        MAX_PEER_BLOCK_INV_COUNT = 1024,
+        MAX_PEER_TX_INV_COUNT = 1024 * 256,
+        MAX_REGETDATA_COUNT = 10,
+        MAX_INV_WAIT_TIME = 3600,
+        MAX_OBJ_WAIT_TIME = 7200
     };
 
 public:
     bool Exists(const network::CInv& inv);
+    bool CheckPrevTxInv(const network::CInv& inv);
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
-    void AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
-    void RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
+    bool CheckAddInvIdleLocation(uint64 nPeerNonce, uint32 nInvType);
+    bool AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
+    bool RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     bool ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, std::set<uint64>& setSchedPeer);
     bool ReceiveTx(uint64 nPeerNonce, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer);
     CBlock* GetBlock(const uint256& hash, uint64& nNonceSender);
@@ -134,7 +223,13 @@ public:
     void InvalidateBlock(const uint256& hash, std::set<uint64>& setMisbehavePeer);
     void InvalidateTx(const uint256& txid, std::set<uint64>& setMisbehavePeer);
     bool ScheduleBlockInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fMissingPrev, bool& fEmpty);
-    bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount);
+    bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fReceivedAll);
+    bool CancelAssignedInv(uint64 nPeerNonce, const network::CInv& inv);
+    bool GetLocatorDepthHash(uint64 nPeerNonce, uint256& hashDepth);
+    void SetLocatorDepthHash(uint64 nPeerNonce, const uint256& hashDepth);
+    int GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock);
+    void SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock, const uint256& hashNext);
+    void SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);
@@ -142,16 +237,11 @@ protected:
                           std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fReceivedAll);
 
 protected:
-    enum
-    {
-        MAX_INV_COUNT = 1024 * 256,
-        MAX_PEER_BLOCK_INV_COUNT = 1024,
-        MAX_PEER_TX_INV_COUNT = 1024 * 256
-    };
     COrphan orphanBlock;
     COrphan orphanTx;
     std::map<uint64, CInvPeer> mapPeer;
     std::map<network::CInv, CInvState> mapState;
+    std::set<network::CInv> setMissPrevTxInv;
 };
 
 } // namespace bigbang

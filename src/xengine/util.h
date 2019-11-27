@@ -7,8 +7,8 @@
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/date_time.hpp>
-#include <boost/log/common.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/log/common.hpp>
 
 #include "type.h"
 
@@ -63,6 +63,16 @@ inline std::string GetUniversalTime()
     return ss.str();
 }
 
+inline std::string GetTimeString(int64 nTime)
+{
+    using namespace boost::posix_time;
+    time_facet* facet = new time_facet("%Y-%m-%d %H:%M:%S");
+    std::stringstream ss;
+    ss.imbue(std::locale(std::locale("C"), facet));
+    ss << from_time_t(nTime);
+    return ss.str();
+}
+
 class CTicks
 {
 public:
@@ -91,31 +101,32 @@ enum severity_level
 
 namespace src = boost::log::sources;
 
-typedef src::severity_channel_logger_mt< severity_level, std::string > sclmt_type;
+typedef src::severity_channel_logger_mt<severity_level, std::string> sclmt_type;
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, sclmt_type)
 
-void StdDebug(const char* pszName, const char* pszErr);
-void StdLog(const char* pszName, const char* pszErr);
-void StdWarn(const char* pszName, const char* pszErr);
-void StdError(const char* pszName, const char* pszErr);
+void StdTrace(const char* pszName, const char* pszFormat, ...);
+void StdDebug(const char* pszName, const char* pszFormat, ...);
+void StdLog(const char* pszName, const char* pszFormat, ...);
+void StdWarn(const char* pszName, const char* pszFormat, ...);
+void StdError(const char* pszName, const char* pszFormat, ...);
 
-bool InitLog(const boost::filesystem::path &pathData,bool debug, bool daemon);
+bool InitLog(const boost::filesystem::path& pathData, bool debug, bool daemon, int nLogFileSizeIn, int nLogHistorySizeIn);
 
-inline std::string PulsFileLine(const char *file,int line,const char *info)
+inline std::string PulsFileLine(const char* file, int line, const char* info)
 {
     std::stringstream ss;
-    ss  << file << "(" << line << ") " << info;
+    ss << file << "(" << line << ") " << info;
     return ss.str();
 }
 
-#define STD_DEBUG(Mod,Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_DEBUG(Mod, Info) xengine::StdDebug(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_LOG(Mod,Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_LOG(Mod, Info) xengine::StdLog(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_WARN(Mod,Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
+#define STD_WARN(Mod, Info) xengine::StdWarn(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
 
-#define STD_Eerror(Mod,Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__,__LINE__,Info).c_str())
- 
+#define STD_Eerror(Mod, Info) xengine::StdError(Mod, xengine::PulsFileLine(__FILE__, __LINE__, Info).c_str())
+
 inline bool IsRoutable(const boost::asio::ip::address& address)
 {
     if (address.is_loopback() || address.is_unspecified())
@@ -281,6 +292,13 @@ inline const char* TypeName(const std::type_info& info)
     return info.name();
 }
 #endif
+
+inline uint64 BSwap64(uint64 n)
+{
+    n = ((n & 0xff00ff00ff00ff00ULL) >> 8) | ((n & 0x00ff00ff00ff00ffULL) << 8);
+    n = ((n & 0xffff0000ffff0000ULL) >> 16) | ((n & 0x0000ffff0000ffffULL) << 16);
+    return (n >> 32) | (n << 32);
+}
 
 } // namespace xengine
 

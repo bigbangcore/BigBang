@@ -31,6 +31,30 @@
             "default": false,
             "format": "-purge",
             "desc": "Purge database and blockfile"
+        },
+        {
+            "name": "strBlocknotify",
+            "type": "string",
+            "opt": "blocknotify",
+            "default": "",
+            "format": "-blocknotify",
+            "desc": "Execute command when the best block changes (%s in cmd is replaced by block hash)"
+        },
+        {
+            "name": "nLogFileSize",
+            "type": "int",
+            "opt": "logfilesize",
+            "default": 10,
+            "format": "-logfilesize=<size>",
+            "desc": "Log file size(M) (default: 10M)"
+        },
+        {
+            "name": "nLogHistorySize",
+            "type": "int",
+            "opt": "loghistorysize",
+            "default": 2048,
+            "format": "-loghistorysize=<size>",
+            "desc": "Log history size(M) (default: 2048M)"
         }
     ],
     "CForkConfigOption": [
