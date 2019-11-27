@@ -486,6 +486,7 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
                         StdLog("Schedule", "ScheduleKnownInv: inv timeout, peer nonce: %ld, inv: [%d] %s, getcount: %d, waittime: %ld",
                                nPeerNonce, inv.nType, inv.nHash.GetHex().c_str(), state.nGetDataCount, nCurTime - state.nRecvInvTime);
                         setRemoveInv.insert(inv);
+                        mt++;
                         continue;
                     }
                     state.nAssigned = nPeerNonce;
