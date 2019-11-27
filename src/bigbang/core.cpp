@@ -160,7 +160,8 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
-    if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_CERT && tx.nType != CTransaction::TX_GENESIS
+    // Don't allow CTransaction::TX_CERT type in v1.0.0
+    if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
         && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
@@ -245,6 +246,11 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context
+    // Only allow CBlock::BLOCK_PRIMARY type in v1.0.0
+    if (block.nType != CBlock::BLOCK_PRIMARY)
+    {
+        return DEBUG(ERR_BLOCK_TYPE_INVALID, "Block type error\n");
+    }
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
