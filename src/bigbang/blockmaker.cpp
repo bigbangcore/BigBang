@@ -550,11 +550,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
 bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo)
 {
-    block.nTimeStamp -= 25;
-    if (GetNetTime() > block.nTimeStamp)
-    {
-        block.nTimeStamp = GetNetTime();
-    }
+    block.nTimeStamp = GetNetTime();
 
     CProofOfHashWorkCompact proof;
     proof.Load(block.vchProof);
