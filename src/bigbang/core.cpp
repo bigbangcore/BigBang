@@ -19,7 +19,8 @@ static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-static const int PROOF_OF_WORK_BITS_INIT = 10;
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
@@ -83,7 +84,7 @@ CCoreProtocol::CCoreProtocol()
 {
     nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
     nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
-    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT;
+    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
 }
@@ -736,6 +737,7 @@ Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
 
 CTestNetCoreProtocol::CTestNetCoreProtocol()
 {
+    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
 }
 
 /*
