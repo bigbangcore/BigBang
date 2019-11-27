@@ -63,6 +63,7 @@ protected:
     bool HandleEvent(CEventPeerTx& eventTx) override;
     bool HandleEvent(CEventPeerBlock& eventBlock) override;
     bool HandleEvent(CEventPeerGetFail& eventGetFail) override;
+    bool HandleEvent(CEventPeerMsgRsp& eventMsgRsp) override;
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;

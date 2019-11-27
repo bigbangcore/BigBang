@@ -80,6 +80,16 @@ public:
         idxByValue.erase(inv.nHash);
         GetAssigned(inv.nType).erase(inv.nHash);
     }
+    bool KnownInvExists(const network::CInv& inv)
+    {
+        CUInt256List& listKnown = GetKnownList(inv.nType);
+        CUInt256ByValue& idxByValue = listKnown.get<1>();
+        if (idxByValue.find(inv.nHash) != idxByValue.end())
+        {
+            return true;
+        }
+        return false;
+    }
     void Assign(const network::CInv& inv)
     {
         GetAssigned(inv.nType).insert(inv.nHash);
@@ -196,6 +206,7 @@ public:
 
 public:
     bool Exists(const network::CInv& inv);
+    bool CheckPrevTxInv(const network::CInv& inv);
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     void RemovePeer(uint64 nPeerNonce, std::set<uint64>& setSchedPeer);
     bool CheckAddInvIdleLocation(uint64 nPeerNonce, uint32 nInvType);
@@ -212,7 +223,7 @@ public:
     void InvalidateBlock(const uint256& hash, std::set<uint64>& setMisbehavePeer);
     void InvalidateTx(const uint256& txid, std::set<uint64>& setMisbehavePeer);
     bool ScheduleBlockInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fMissingPrev, bool& fEmpty);
-    bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount);
+    bool ScheduleTxInv(uint64 nPeerNonce, std::vector<network::CInv>& vInv, std::size_t nMaxCount, bool& fReceivedAll);
     bool CancelAssignedInv(uint64 nPeerNonce, const network::CInv& inv);
     bool GetLocatorDepthHash(uint64 nPeerNonce, uint256& hashDepth);
     void SetLocatorDepthHash(uint64 nPeerNonce, const uint256& hashDepth);
@@ -230,6 +241,7 @@ protected:
     COrphan orphanTx;
     std::map<uint64, CInvPeer> mapPeer;
     std::map<network::CInv, CInvState> mapState;
+    std::set<network::CInv> setMissPrevTxInv;
 };
 
 } // namespace bigbang

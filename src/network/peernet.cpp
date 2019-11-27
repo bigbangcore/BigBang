@@ -9,11 +9,11 @@
 
 #include "peer.h"
 
-#define HANDSHAKE_TIMEOUT (30)           //(5)
-#define RESPONSE_TX_TIMEOUT (60)         //(15)
-#define RESPONSE_BLOCK_TIMEOUT (300)     //(120)
-#define RESPONSE_DISTRIBUTE_TIMEOUT (60) //(5)
-#define RESPONSE_PUBLISH_TIMEOUT (60)    //(10)
+#define HANDSHAKE_TIMEOUT (30)            //(5)
+#define RESPONSE_TX_TIMEOUT (120)         //(15)
+#define RESPONSE_BLOCK_TIMEOUT (600)      //(120)
+#define RESPONSE_DISTRIBUTE_TIMEOUT (120) //(5)
+#define RESPONSE_PUBLISH_TIMEOUT (120)    //(10)
 #define NODE_ACTIVE_TIME (3 * 60 * 60)
 
 #define NODE_DEFAULT_GATEWAY "0.0.0.0"
@@ -134,6 +134,13 @@ bool CBbPeerNet::HandleEvent(CEventPeerGetFail& eventGetFail)
     CBufStream ssPayload;
     ssPayload << eventGetFail;
     return SendDataMessage(eventGetFail.nNonce, PROTO_CMD_GETFAIL, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerMsgRsp& eventMsgRsp)
+{
+    CBufStream ssPayload;
+    ssPayload << eventMsgRsp;
+    return SendDataMessage(eventMsgRsp.nNonce, PROTO_CMD_MSGRSP, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)
@@ -587,6 +594,17 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 {
                     CancelTimer(pBbPeer->Responded(inv));
                 }
+                pNetChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_MSGRSP:
+        {
+            CEventPeerMsgRsp* pEvent = new CEventPeerMsgRsp(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
                 pNetChannel->PostEvent(pEvent);
                 return true;
             }

@@ -49,6 +49,7 @@ enum
     PROTO_CMD_TX = 6,
     PROTO_CMD_BLOCK = 7,
     PROTO_CMD_GETFAIL = 8,
+    PROTO_CMD_MSGRSP = 9,
 };
 
 enum
@@ -129,6 +130,32 @@ protected:
     }
 };
 
+class CMsgRsp
+{
+    friend class xengine::CStream;
+
+public:
+    CMsgRsp()
+      : nReqMsgType(0), nRspResult(0), nReqMsgSubType(0) {}
+    CMsgRsp(uint32 nType, uint32 nSubType, uint64 nResult)
+      : nReqMsgType(nType), nReqMsgSubType(nSubType), nRspResult(nResult) {}
+    virtual ~CMsgRsp() {}
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nReqMsgType, opt);
+        s.Serialize(nReqMsgSubType, opt);
+        s.Serialize(nRspResult, opt);
+    }
+
+public:
+    uint32 nReqMsgType;
+    uint32 nReqMsgSubType;
+    uint64 nRspResult;
+};
+
 class CInv
 {
     friend class xengine::CStream;
@@ -144,7 +171,8 @@ public:
     };
     enum
     {
-        MAX_INV_COUNT = 1024 * 8
+        MAX_INV_COUNT = 1024 * 8,
+        MIN_INV_COUNT = 1024
     };
     CInv() {}
     CInv(uint32 nTypeIn, const uint256& nHashIn)
