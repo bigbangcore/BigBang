@@ -469,7 +469,8 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
     vInv.clear();
     if (type == network::CInv::MSG_TX && !setMissPrevTxInv.empty())
     {
-        for (std::set<network::CInv>::iterator mt = setMissPrevTxInv.begin(); mt != setMissPrevTxInv.end(); mt++)
+        std::set<network::CInv>::iterator mt = setMissPrevTxInv.begin();
+        while (mt != setMissPrevTxInv.end())
         {
             const network::CInv& inv = *mt;
             map<network::CInv, CInvState>::iterator it = mapState.find(inv);
@@ -496,6 +497,7 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
                         break;
                     }
                 }
+                mt++;
             }
             else
             {

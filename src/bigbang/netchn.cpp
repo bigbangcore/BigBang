@@ -139,6 +139,7 @@ CNetChannel::CNetChannel()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    fStartIdlePushTxTimer = false;
 }
 
 CNetChannel::~CNetChannel()
