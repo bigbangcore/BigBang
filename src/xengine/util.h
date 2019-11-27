@@ -293,6 +293,13 @@ inline const char* TypeName(const std::type_info& info)
 }
 #endif
 
+inline uint64 BSwap64(uint64 n)
+{
+    n = ((n & 0xff00ff00ff00ff00ULL) >> 8) | ((n & 0x00ff00ff00ff00ffULL) << 8);
+    n = ((n & 0xffff0000ffff0000ULL) >> 16) | ((n & 0x0000ffff0000ffffULL) << 16);
+    return (n >> 32) | (n << 32);
+}
+
 } // namespace xengine
 
 #endif //XENGINE_UTIL_H
