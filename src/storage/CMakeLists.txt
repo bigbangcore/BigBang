@@ -17,7 +17,7 @@ set(sources
     delegatedb.cpp      delegatedb.h
     forkdb.cpp          forkdb.h
     purger.cpp          purger.h
-  #  leveldbeng.cpp      leveldbeng.h
+    leveldbeng.cpp      leveldbeng.h
     rocksdbeng.cpp      rocksdbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
@@ -45,6 +45,6 @@ target_link_libraries(storage
     xengine
     crypto
     common
-    #leveldb    
+    leveldb    
     snappy
 )
