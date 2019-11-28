@@ -730,37 +730,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         if (pBlockChain->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
             && hashForkAnchor == hashFork)
         {
-            set<uint256> setMissingPrevTx;
-            if (!GetMissingPrevTx(tx, setMissingPrevTx))
-            {
-                AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
-            }
-            else
-            {
-                StdTrace("NetChannel", "CEventPeerTx: missing prev tx, peer: %s, txid: %s",
-                         GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
-                for (const uint256& prev : setMissingPrevTx)
-                {
-                    sched.AddOrphanTxPrev(txid, prev);
-                    network::CInv inv(network::CInv::MSG_TX, prev);
-                    if (!sched.CheckPrevTxInv(inv))
-                    {
-                        for (const uint64 nNonceSched : setSchedPeer)
-                        {
-                            if (sched.AddNewInv(inv, nNonceSched))
-                            {
-                                StdTrace("NetChannel", "CEventPeerTx: missing prev tx, add tx inv success, peer: %s, prev: %s, next: %s",
-                                         GetPeerAddressInfo(nNonceSched).c_str(), prev.GetHex().c_str(), txid.GetHex().c_str());
-                            }
-                            else
-                            {
-                                StdTrace("NetChannel", "CEventPeerTx: missing prev tx, add tx inv fail, peer: %s, prev: %s, next: %s",
-                                         GetPeerAddressInfo(nNonceSched).c_str(), prev.GetHex().c_str(), txid.GetHex().c_str());
-                            }
-                        }
-                    }
-                }
-            }
+            AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
         }
         else
         {
@@ -1107,7 +1077,7 @@ void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSched
     }
 }
 
-bool CNetChannel::GetMissingPrevTx(CTransaction& tx, set<uint256>& setMissingPrevTx)
+bool CNetChannel::GetMissingPrevTx(const CTransaction& tx, set<uint256>& setMissingPrevTx)
 {
     setMissingPrevTx.clear();
     for (const CTxIn& txin : tx.vInput)
@@ -1122,6 +1092,41 @@ bool CNetChannel::GetMissingPrevTx(CTransaction& tx, set<uint256>& setMissingPre
         }
     }
     return (!setMissingPrevTx.empty());
+}
+
+bool CNetChannel::CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const set<uint64>& setSchedPeer)
+{
+    set<uint256> setMissingPrevTx;
+    if (GetMissingPrevTx(tx, setMissingPrevTx))
+    {
+        const uint256& txid = tx.GetHash();
+
+        StdTrace("NetChannel", "CheckPrevTx: missing prev tx, peer: %s, txid: %s",
+                 GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
+        for (const uint256& prev : setMissingPrevTx)
+        {
+            sched.AddOrphanTxPrev(txid, prev);
+            network::CInv inv(network::CInv::MSG_TX, prev);
+            if (!sched.CheckPrevTxInv(inv))
+            {
+                for (const uint64 nNonceSched : setSchedPeer)
+                {
+                    if (sched.AddNewInv(inv, nNonceSched))
+                    {
+                        StdTrace("NetChannel", "CheckPrevTx: missing prev tx, add tx inv success, peer: %s, prev: %s, next: %s",
+                                 GetPeerAddressInfo(nNonceSched).c_str(), prev.GetHex().c_str(), txid.GetHex().c_str());
+                    }
+                    else
+                    {
+                        StdTrace("NetChannel", "CheckPrevTx: missing prev tx, add tx inv fail, peer: %s, prev: %s, next: %s",
+                                 GetPeerAddressInfo(nNonceSched).c_str(), prev.GetHex().c_str(), txid.GetHex().c_str());
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    return true;
 }
 
 void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
@@ -1239,6 +1244,11 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
         CTransaction* pTx = sched.GetTransaction(hashTx, nNonceSender);
         if (pTx != nullptr)
         {
+            if (!CheckPrevTx(*pTx, nNonceSender, hashFork, sched, setSchedPeer))
+            {
+                continue;
+            }
+
             if (pTxPool->Exists(hashTx) || pBlockChain->ExistsTx(hashTx))
             {
                 StdDebug("NetChannel", "NetChannel AddNewTx: tx at blockchain or txpool exists, peer: %s, txid: %s",

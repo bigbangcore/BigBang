@@ -283,7 +283,8 @@ protected:
     void DispatchAwardEvent(uint64 nNonce, xengine::CEndpointManager::Bonus bonus);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
     void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched);
-    bool GetMissingPrevTx(CTransaction& tx, std::set<uint256>& setMissingPrevTx);
+    bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
+    bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
                      std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
