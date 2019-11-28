@@ -37,9 +37,7 @@ target_link_libraries(storage
     ${Boost_TIMER_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${RocksDB_LIBRARIES}
-    ${BZIP2_LIBRARIES}
-    ${ZLIB_LIBRARIES}
+    ${RocksDB_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
     xengine

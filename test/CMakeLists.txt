@@ -39,6 +39,7 @@ target_link_libraries(test_big
     ${Boost_REGEX_LIBRARY}
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
+    ${RocksDB_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
     mpvss
