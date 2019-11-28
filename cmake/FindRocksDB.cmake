@@ -119,7 +119,7 @@ if (UNIX)
     else()
         find_package(BZip2 1.0.6 REQUIRED)
         find_package(ZLIB 1.2.0 REQUIRED)
-        set(RocksDB_LIBRARY ${RocksDB_LIBRARY} ${BZip2_LIBRARIES} ${ZLIB_LIBRARIES})
+        set(RocksDB_LIBRARY ${RocksDB_LIBRARY} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES})
     endif()
 endif()
 
