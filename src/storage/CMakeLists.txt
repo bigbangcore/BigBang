@@ -17,7 +17,8 @@ set(sources
     delegatedb.cpp      delegatedb.h
     forkdb.cpp          forkdb.h
     purger.cpp          purger.h
-    leveldbeng.cpp      leveldbeng.h
+  #  leveldbeng.cpp      leveldbeng.h
+    rocksdbeng.cpp      rocksdbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
 )
@@ -36,11 +37,14 @@ target_link_libraries(storage
     ${Boost_TIMER_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_REGEX_LIBRARY}
+    ${RocksDB_LIBRARIES}
+    ${BZ2_LIBRARY}
+    ${ZLIB_LIBRARIES}
     OpenSSL::SSL
     OpenSSL::Crypto
     xengine
     crypto
     common
-    leveldb    
+    #leveldb    
     snappy
 )

@@ -4,7 +4,7 @@
 
 #include "blockindexdb.h"
 
-#include "leveldbeng.h"
+#include "rocksdbeng.h"
 
 using namespace std;
 using namespace xengine;
@@ -19,10 +19,10 @@ namespace storage
 
 bool CBlockIndexDB::Initialize(const boost::filesystem::path& pathData)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = (pathData / "blockindex").string();
     args.syncwrite = false;
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!Open(engine))
     {

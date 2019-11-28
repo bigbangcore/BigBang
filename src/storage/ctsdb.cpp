@@ -6,7 +6,7 @@
 
 #include <boost/bind.hpp>
 
-#include "leveldbeng.h"
+#include "rocksdbeng.h"
 
 using namespace std;
 using namespace xengine;
@@ -29,10 +29,10 @@ CCTSIndex::~CCTSIndex()
 
 bool CCTSIndex::Initialize(const boost::filesystem::path& pathCTSDB)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = (pathCTSDB / "index").string();
     args.syncwrite = false;
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!Open(engine))
     {

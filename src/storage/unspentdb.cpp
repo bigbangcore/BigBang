@@ -6,7 +6,7 @@
 
 #include <boost/bind.hpp>
 
-#include "leveldbeng.h"
+#include "rocksdbeng.h"
 
 using namespace std;
 using namespace xengine;
@@ -23,10 +23,10 @@ namespace storage
 
 CForkUnspentDB::CForkUnspentDB(const boost::filesystem::path& pathDB)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = pathDB.string();
     args.syncwrite = false;
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!CKVDB::Open(engine))
     {

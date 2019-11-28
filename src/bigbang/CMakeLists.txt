@@ -102,6 +102,9 @@ target_link_libraries(libbigbang
     OpenSSL::Crypto
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
+    ${RocksDB_LIBRARIES}
+    ${BZ2_LIBRARY}
+    ${ZLIB_LIBRARIES}
     xengine
     crypto    
     storage

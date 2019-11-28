@@ -6,7 +6,7 @@
 
 #include <boost/bind.hpp>
 
-#include "leveldbeng.h"
+#include "rocksdbeng.h"
 
 using namespace std;
 using namespace xengine;
@@ -21,13 +21,13 @@ namespace storage
 
 bool CForkDB::Initialize(const boost::filesystem::path& pathData)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = (pathData / "fork").string();
     args.syncwrite = false;
     args.files = 16;
     args.cache = 2 << 20;
 
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!Open(engine))
     {

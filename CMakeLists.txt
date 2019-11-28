@@ -60,6 +60,7 @@ if(UNIX AND NOT CYGWIN)
     set(Readline_USE_STATIC_LIBS ON)
     set(Boost_USE_MULTITHREADED ON)
     set(Protobuf_USE_STATIC_LIBS ON)
+    set(RocksDB_USE_STATIC_LIBS ON)
 endif()
 
 set(Boost_USE_MULTITHREADED ON)
@@ -80,6 +81,9 @@ find_package(OpenSSL 1.0.0 REQUIRED)
 find_package(sodium 1.0.8 REQUIRED)
 find_package(Readline 5.0 REQUIRED)
 find_package(Protobuf 3.0.0 REQUIRED)
+find_package(RocksDB 5.8.0 REQUIRED)
+find_package(bz2 2.0.0 REQUIRED)
+find_package(ZLIB 1.2.0 REQUIRED)
 
 if(OPENSSL_VERSION VERSION_EQUAL 1.1.0 OR 
     (OPENSSL_VERSION VERSION_GREATER 1.1.0 AND OPENSSL_VERSION VERSION_LESS 1.2.0))

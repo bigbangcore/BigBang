@@ -6,7 +6,7 @@
 
 #include <boost/bind.hpp>
 
-#include "leveldbeng.h"
+#include "rocksdbeng.h"
 
 using namespace std;
 using namespace xengine;
@@ -21,13 +21,13 @@ namespace storage
 
 bool CWalletAddrDB::Initialize(const boost::filesystem::path& pathWallet)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = (pathWallet / "addr").string();
     args.syncwrite = true;
     args.files = 8;
     args.cache = 1 << 20;
 
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!Open(engine))
     {
@@ -102,10 +102,10 @@ bool CWalletAddrDB::AddressDBWalker(CBufStream& ssKey, CBufStream& ssValue, CWal
 
 bool CWalletTxDB::Initialize(const boost::filesystem::path& pathWallet)
 {
-    CLevelDBArguments args;
+    CRocksDBArguments args;
     args.path = (pathWallet / "wtx").string();
 
-    CLevelDBEngine* engine = new CLevelDBEngine(args);
+    CRocksDBEngine* engine = new CRocksDBEngine(args);
 
     if (!Open(engine))
     {
