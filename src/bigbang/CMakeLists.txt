@@ -103,7 +103,7 @@ target_link_libraries(libbigbang
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
     ${RocksDB_LIBRARIES}
-    ${BZ2_LIBRARY}
+    ${BZIP2_LIBRARIES}
     ${ZLIB_LIBRARIES}
     xengine
     crypto    

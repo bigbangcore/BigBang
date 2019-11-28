@@ -82,7 +82,7 @@ find_package(sodium 1.0.8 REQUIRED)
 find_package(Readline 5.0 REQUIRED)
 find_package(Protobuf 3.0.0 REQUIRED)
 find_package(RocksDB 5.8.0 REQUIRED)
-find_package(bz2 2.0.0 REQUIRED)
+find_package(BZip2 1.0.6 REQUIRED)
 find_package(ZLIB 1.2.0 REQUIRED)
 
 if(OPENSSL_VERSION VERSION_EQUAL 1.1.0 OR 

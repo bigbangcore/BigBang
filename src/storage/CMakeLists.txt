@@ -38,7 +38,7 @@ target_link_libraries(storage
     ${Boost_CHRONO_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     ${RocksDB_LIBRARIES}
-    ${BZ2_LIBRARY}
+    ${BZIP2_LIBRARIES}
     ${ZLIB_LIBRARIES}
     OpenSSL::SSL
     OpenSSL::Crypto
