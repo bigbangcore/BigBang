@@ -212,7 +212,7 @@ static bool volatile g_log_init = false;
 
 void StdTrace(const char* pszName, const char* pszFormat, ...)
 {
-    if (g_log_init)
+    if (g_log_init && STD_DEBUG)
     {
         std::stringstream ss;
         char arg_buffer[512] = { 0 };
@@ -230,7 +230,7 @@ void StdTrace(const char* pszName, const char* pszFormat, ...)
 
 void StdDebug(const char* pszName, const char* pszFormat, ...)
 {
-    if (g_log_init)
+    if (g_log_init && STD_DEBUG)
     {
         std::stringstream ss;
         char arg_buffer[512] = { 0 };
