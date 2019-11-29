@@ -12,9 +12,9 @@
 
 #define VERSION_NAME "Bigbang"
 
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 9
-#define VERSION_REVISION 2
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
+#define VERSION_REVISION 0
 
 std::string FormatVersion(int nVersion);
 
@@ -23,8 +23,8 @@ static const int VERSION = 10000 * VERSION_MAJOR
                            + 1 * VERSION_REVISION;
 static const std::string VERSION_STR = FormatVersion(VERSION);
 
-static const int PROTO_VERSION = 100;
-static const int MIN_PROTO_VERSION = 100;
+static const int PROTO_VERSION = 10000;
+static const int MIN_PROTO_VERSION = 10000;
 
 const char* GetGitVersion();
 

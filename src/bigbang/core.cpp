@@ -136,7 +136,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1515745156;
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -146,11 +146,11 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBang Network";
-    profile.strSymbol = "BIG";
+    profile.strName = "BigBang Core";
+    profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 20 * COIN;
+    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -759,7 +759,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = (ptime(date(2019, 11, 19), time_duration(14 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -769,11 +769,11 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBang Test Network";
-    profile.strSymbol = "BigTest";
+    profile.strName = "BigBang Core Test";
+    profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 20 * COIN;
+    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
