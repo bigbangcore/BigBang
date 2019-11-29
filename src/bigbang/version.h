@@ -23,8 +23,8 @@ static const int VERSION = 10000 * VERSION_MAJOR
                            + 1 * VERSION_REVISION;
 static const std::string VERSION_STR = FormatVersion(VERSION);
 
-static const int PROTO_VERSION = 100;
-static const int MIN_PROTO_VERSION = 100;
+static const int PROTO_VERSION = 10000;
+static const int MIN_PROTO_VERSION = 10000;
 
 const char* GetGitVersion();
 

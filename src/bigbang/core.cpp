@@ -146,7 +146,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBangCore Network";
+    profile.strName = "BigBang Core";
     profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
@@ -769,7 +769,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBangCore Test Network";
+    profile.strName = "BigBang Core Test";
     profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
