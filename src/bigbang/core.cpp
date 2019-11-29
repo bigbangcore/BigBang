@@ -136,7 +136,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1515745156;
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -147,10 +147,10 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     CProfile profile;
     profile.strName = "BigBang Network";
-    profile.strSymbol = "BIG";
+    profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 20 * COIN;
+    profile.nMintReward = 1153 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -759,7 +759,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = (ptime(date(2019, 11, 19), time_duration(14 - 8, 0, 0)) - ptime(date(1970, 1, 1))).total_seconds();
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -770,10 +770,10 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     CProfile profile;
     profile.strName = "BigBang Test Network";
-    profile.strSymbol = "BigTest";
+    profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 20 * COIN;
+    profile.nMintReward = 1153 * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
