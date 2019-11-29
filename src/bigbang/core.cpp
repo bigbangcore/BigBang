@@ -19,7 +19,7 @@ static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10; //32;
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
@@ -136,7 +136,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575043200;
+    block.nTimeStamp = 1575017982; //1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -146,11 +146,11 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBang Network";
+    profile.strName = "BigBangCore Network";
     profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 1153 * COIN;
+    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -759,7 +759,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575043200;
+    block.nTimeStamp = 1575017982; //1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -769,11 +769,11 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBang Test Network";
+    profile.strName = "BigBangCore Test Network";
     profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = 1153 * COIN;
+    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
