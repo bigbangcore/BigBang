@@ -47,6 +47,10 @@ CRocksDBEngine::CRocksDBEngine(CRocksDBArguments& arguments)
     table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10));
     options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(table_options));
 
+    // Optimize RocksDB. This is the easiest way to get RocksDB to perform well
+    options.IncreaseParallelism();
+    options.OptimizeLevelStyleCompaction();
+
     pdb = nullptr;
     piter = nullptr;
     pbatch = nullptr;
