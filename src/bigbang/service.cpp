@@ -561,7 +561,7 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         nPrevTime = (*it).second.nLastBlockTime;
         nPrevBlockHeight = (*it).second.nLastBlockHeight;
         block.hashPrev = hashPrev;
-        block.nTimeStamp = GetTime();//nPrevTime + BLOCK_TARGET_SPACING - 10;
+        block.nTimeStamp = max((*it).second.nLastBlockTime, GetTime());
     }
 
     nAlgo = CM_CRYPTONIGHT;
