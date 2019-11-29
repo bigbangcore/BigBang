@@ -19,7 +19,7 @@ static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10; //32;
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
@@ -136,7 +136,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575017982; //1575043200;
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -759,7 +759,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575017982; //1575043200;
+    block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
