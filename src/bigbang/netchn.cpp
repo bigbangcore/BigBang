@@ -725,6 +725,14 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         StdTrace("NetChannel", "CEventPeerTx: receive tx success, peer: %s, txid: %s",
                  GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
 
+        if (tx.IsMintTx())
+        {
+            StdDebug("NetChannel", "CEventPeerTx: tx is mint, peer: %s, txid: %s",
+                     GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
+            sched.RemoveInv(network::CInv(network::CInv::MSG_TX, txid), setSchedPeer);
+            return true;
+        }
+
         uint256 hashForkAnchor;
         int nHeightAnchor;
         if (pBlockChain->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
@@ -1166,6 +1174,30 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             {
                 StdDebug("NetChannel", "NetChannel AddNewBlock success, peer: %s, block: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str());
+
+                {
+                    const CTransaction& tx = pBlock->txMint;
+                    uint256 txid = tx.GetHash();
+                    {
+                        set<uint256> setTx;
+                        vector<uint256> vtx;
+                        sched.GetNextTx(txid, vtx, setTx);
+                        if (!vtx.empty())
+                        {
+                            set<uint64> setPrevSchedPeer;
+                            set<uint64> setPrevMisbehavePeer;
+                            for (const uint256& hash : vtx)
+                            {
+                                AddNewTx(hashFork, hash, sched, setPrevSchedPeer, setPrevMisbehavePeer);
+                            }
+                        }
+                    }
+                    if (sched.RemoveInv(network::CInv(network::CInv::MSG_TX, txid), setSchedPeer))
+                    {
+                        StdDebug("NetChannel", "NetChannel AddNewBlock: remove mint tx inv success, peer: %s, txid: %s",
+                                 GetPeerAddressInfo(nNonceSender).c_str(), txid.GetHex().c_str());
+                    }
+                }
 
                 for (const CTransaction& tx : pBlock->vtx)
                 {
