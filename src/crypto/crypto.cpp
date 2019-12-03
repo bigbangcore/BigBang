@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <sodium.h>
+#include <sys/mman.h>
 
 #include "curve25519/curve25519.h"
 #include "util.h"
@@ -46,12 +47,20 @@ static CCryptoSodiumInitializer _CCryptoSodiumInitializer;
 // Secure memory
 void* CryptoAlloc(const size_t size)
 {
-    return sodium_malloc(size);
+    void* p = malloc(size);
+    memset(p, 0xfd, size);
+
+    mlock(p, 4 * 1024);
+    mprotect((unsigned char*)(p) + 4 * 1024, 12 * 1024, PROT_NONE);
+
+    return p;
 }
 
 void CryptoFree(void* ptr)
 {
-    sodium_free(ptr);
+    mprotect(ptr, 16 * 1024, PROT_READ | PROT_WRITE);
+    munlock(ptr, 4 * 1024);
+    free(ptr);
 }
 
 //////////////////////////////
