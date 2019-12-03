@@ -986,10 +986,12 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Passphrase must be nonempty");
     }
+
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
     if (!pService->MakeNewKey(strPassphrase, pubkey))
     {
+
         throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
     }
 
