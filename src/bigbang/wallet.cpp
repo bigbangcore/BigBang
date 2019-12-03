@@ -1015,10 +1015,6 @@ bool CWallet::ClearTx()
 
 bool CWallet::InsertKey(const crypto::CKey& key)
 {
-    static int count = 0;
-    printf("current times is : %d\n", count);
-    count++;
-
     if (!key.IsNull())
     {
         auto it = mapKeyStore.find(key.GetPubKey());

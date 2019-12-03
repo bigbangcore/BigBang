@@ -986,17 +986,13 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Passphrase must be nonempty");
     }
-    crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
 
+    crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    for (int i = 0; i < 30000; ++i)
+    if (!pService->MakeNewKey(strPassphrase, pubkey))
     {
-        StdDebug("RpcMod", "current %d times\n", i);
-        if (!pService->MakeNewKey(strPassphrase, pubkey))
-        {
-            StdError("RpcMod", "%d times error\n", i);
-            throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
-        }
+
+        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
