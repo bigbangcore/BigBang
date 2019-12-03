@@ -119,7 +119,7 @@ public:
     ~CWallet();
     bool IsMine(const CDestination& dest);
     /* Key store */
-    bool AddKey(const crypto::CKey& key) override;
+    int AddKey(const crypto::CKey& key) override;
     bool LoadKey(const crypto::CKey& key);
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override;
     bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override;
@@ -170,7 +170,7 @@ protected:
     bool LoadDB();
     void Clear();
     bool ClearTx();
-    bool InsertKey(const crypto::CKey& key);
+    int InsertKey(const crypto::CKey& key);
     int64 SelectCoins(const CDestination& dest, const uint256& hashFork, int nForkHeight, int64 nTxTime,
                       int64 nTargetValue, std::size_t nMaxInput, std::vector<CTxOutPoint>& vCoins);
 
@@ -208,9 +208,9 @@ public:
     CDummyWallet() {}
     ~CDummyWallet() {}
     /* Key store */
-    virtual bool AddKey(const crypto::CKey& key) override
+    virtual int AddKey(const crypto::CKey& key) override
     {
-        return false;
+        return -1;
     }
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override {}
     virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override

@@ -376,18 +376,18 @@ bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& 
     return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic);
 }
 
-bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
+int CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
 {
     crypto::CKey key;
     if (!key.Renew())
     {
-        return false;
+        return -1;
     }
     if (!strPassphrase.empty())
     {
         if (!key.Encrypt(strPassphrase))
         {
-            return false;
+            return -2;
         }
         key.Lock();
     }

@@ -226,30 +226,48 @@ bool CWallet::IsMine(const CDestination& dest)
     return false;
 }
 
-bool CWallet::AddKey(const crypto::CKey& key)
+int CWallet::AddKey(const crypto::CKey& key)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
-    if (!InsertKey(key))
+
+    int err = InsertKey(key);
+    if (err != 0)
     {
-        Warn("AddKey : invalid or duplicated key");
-        return false;
+        if (err != -3)
+        {
+            Warn("AddKey : invalid or duplicated key");
+            return -1;
+        }
+        else
+        {
+            Warn("AddKey : Max key number is 10000");
+            return -3;
+        }
     }
 
     if (!dbWallet.UpdateKey(key.GetPubKey(), key.GetVersion(), key.GetCipher()))
     {
         mapKeyStore.erase(key.GetPubKey());
         Warn("AddKey : failed to save key");
-        return false;
+        return -2;
     }
-    return true;
+    return 0;
 }
 
 bool CWallet::LoadKey(const crypto::CKey& key)
 {
-    if (!InsertKey(key))
+    int err = InsertKey(key);
+    if (err != 0)
     {
-        Error("LoadKey : invalid or duplicated key");
-        return false;
+        if (err != -3)
+        {
+            Error("LoadKey : invalid or duplicated key");
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
     return true;
 }
@@ -1014,11 +1032,11 @@ bool CWallet::ClearTx()
     return dbWallet.ClearTx();
 }
 
-bool CWallet::InsertKey(const crypto::CKey& key)
+int CWallet::InsertKey(const crypto::CKey& key)
 {
     if (key.IsNull())
     {
-        return false;
+        return -1;
     }
 
     if (mapKeyStore.size() <= MAX_KEY_NUM)
@@ -1031,19 +1049,23 @@ bool CWallet::InsertKey(const crypto::CKey& key)
             {
                 it->second = CWalletKeyStore(key);
                 it->second.key.Lock();
-                return true;
+                return 0;
             }
-            return false;
+            return -2;
         }
         else
         {
             auto ret = mapKeyStore.insert(make_pair(key.GetPubKey(), CWalletKeyStore(key)));
             ret.first->second.key.Lock();
-            return true;
+            return 0;
         }
     }
+    else
+    {
+        return -3;
+    }
 
-    return true;
+    return 0;
 }
 
 bool CWallet::SynchronizeTxSet(const CTxSetChange& change)

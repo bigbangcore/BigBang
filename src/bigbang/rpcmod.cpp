@@ -988,9 +988,16 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
     }
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    if (!pService->MakeNewKey(strPassphrase, pubkey))
+
+    int err = pService->MakeNewKey(strPassphrase, pubkey);
+    if (err != 0 && err != -3)
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
+    }
+
+    if (err == -3)
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Max Key number is over 10000");
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
