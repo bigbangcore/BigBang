@@ -13,6 +13,7 @@ namespace bigbang
 
 #define MAX_TXIN_SELECTIONS 128
 #define MAX_SIGNATURE_SIZE 2048
+#define MAX_KEY_NUM 10000
 
 //////////////////////////////
 // CDBAddressWalker
@@ -1015,7 +1016,12 @@ bool CWallet::ClearTx()
 
 bool CWallet::InsertKey(const crypto::CKey& key)
 {
-    if (!key.IsNull())
+    if (key.IsNull())
+    {
+        return false;
+    }
+
+    if (mapKeyStore.size() <= MAX_KEY_NUM)
     {
         auto it = mapKeyStore.find(key.GetPubKey());
         if (it != mapKeyStore.end())
@@ -1036,7 +1042,8 @@ bool CWallet::InsertKey(const crypto::CKey& key)
             return true;
         }
     }
-    return false;
+
+    return true;
 }
 
 bool CWallet::SynchronizeTxSet(const CTxSetChange& change)
