@@ -35,7 +35,7 @@ void CryptoFree(void* ptr);
 template <typename T>
 T* CryptoAlloc()
 {
-    return static_cast<T*>(CryptoAlloc(16 * 1024));
+    return static_cast<T*>(CryptoAlloc(sizeof(T)));
 }
 
 template <typename T>
