@@ -24,9 +24,15 @@ CPeer::CPeer(CPeerNet* pPeerNetIn, CIOClient* pClientIn, uint64 nNonceIn, bool f
 
 CPeer::~CPeer()
 {
+    Close();
+}
+
+void CPeer::Close()
+{
     if (pClient)
     {
         pClient->Close();
+        pClient = nullptr;
     }
 }
 

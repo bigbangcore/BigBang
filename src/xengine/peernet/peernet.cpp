@@ -23,12 +23,17 @@ namespace xengine
 // CPeerNet
 
 CPeerNet::CPeerNet(const string& ownKeyIn)
-  : CIOProc(ownKeyIn), confNetwork{}
+  : CIOProc(ownKeyIn), confNetwork{}, pGarbagePeer(nullptr)
 {
 }
 
 CPeerNet::~CPeerNet()
 {
+    if (pGarbagePeer)
+    {
+        delete pGarbagePeer;
+        pGarbagePeer = nullptr;
+    }
 }
 
 void CPeerNet::ConfigNetwork(CPeerNetConfig& config)
@@ -383,7 +388,12 @@ CPeer* CPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 
 void CPeerNet::DestroyPeer(CPeer* pPeer)
 {
-    delete pPeer;
+    pPeer->Close();
+    if (pGarbagePeer)
+    {
+        delete pGarbagePeer;
+    }
+    pGarbagePeer = pPeer;
 }
 
 CPeerInfo* CPeerNet::GetPeerInfo(CPeer* pPeer, CPeerInfo* pInfo)

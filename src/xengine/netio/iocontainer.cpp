@@ -399,7 +399,7 @@ bool CIOSSLOption::SetupSSLContext(boost::asio::ssl::context& ctx) const
 // CIOSSLOutBound
 
 CIOSSLOutBound::CIOSSLOutBound(CIOProc* pIOProcIn)
-  : CIOContainer(pIOProcIn)
+  : CIOContainer(pIOProcIn), pGarbageClient(nullptr)
 {
     nMaxConn = 0;
 }
@@ -407,6 +407,12 @@ CIOSSLOutBound::CIOSSLOutBound(CIOProc* pIOProcIn)
 CIOSSLOutBound::~CIOSSLOutBound()
 {
     Halt();
+
+    if (pGarbageClient)
+    {
+        delete pGarbageClient;
+        pGarbageClient = nullptr;
+    }
 }
 
 size_t CIOSSLOutBound::GetIdleCount()
@@ -463,7 +469,11 @@ void CIOSSLOutBound::ClientClose(CIOClient* pClient)
     if (mi != setInuseClient.end())
     {
         setInuseClient.erase(mi);
-        delete pClient;
+        if (pGarbageClient)
+        {
+            delete pGarbageClient;
+        }
+        pGarbageClient = pClient;
     }
 }
 

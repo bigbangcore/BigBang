@@ -144,6 +144,7 @@ protected:
     size_t nMaxConn;
     std::map<uint32, CIOClient*> mapPending;
     std::set<CIOClient*> setInuseClient;
+    CIOClient* pGarbageClient;
 };
 
 } // namespace xengine
