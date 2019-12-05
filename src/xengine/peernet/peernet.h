@@ -107,6 +107,7 @@ protected:
 private:
     CEndpointManager epMngr;
     std::map<uint64, CPeer*> mapPeer;
+    CPeer* pGarbagePeer;
 };
 
 } // namespace xengine

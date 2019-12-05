@@ -25,6 +25,7 @@ public:
 
     CPeer(CPeerNet* pPeerNetIn, CIOClient* pClientIn, uint64 nNonceIn, bool fInBoundIn);
     virtual ~CPeer();
+    void Close();
     uint64 GetNonce();
     bool IsInBound();
     bool IsWriteable();
