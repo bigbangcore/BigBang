@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 
 #include "curve25519/curve25519.h"
+#include "slimguard.h"
 #include "util.h"
 #ifdef __cplusplus
 extern "C"
@@ -48,12 +49,12 @@ static CCryptoSodiumInitializer _CCryptoSodiumInitializer;
 // Secure memory
 void* CryptoAlloc(const size_t size)
 {
-    return malloc(size);
+    return slimguard_malloc(size);
 }
 
 void CryptoFree(void* ptr)
 {
-    free(ptr);
+    slimguard_free(ptr);
 }
 
 //////////////////////////////

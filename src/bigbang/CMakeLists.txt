@@ -102,6 +102,7 @@ target_link_libraries(bigbang
     # delegate    
     jsonrpc
     common
+    SlimGuard
 )
 
 # create symbol link
