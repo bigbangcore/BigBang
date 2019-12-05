@@ -47,20 +47,12 @@ static CCryptoSodiumInitializer _CCryptoSodiumInitializer;
 // Secure memory
 void* CryptoAlloc(const size_t size)
 {
-    void* p = malloc(size);
-    memset(p, 0xfd, size);
-
-    mlock(p, 4 * 1024);
-    mprotect((unsigned char*)(p) + 4 * 1024, 12 * 1024, PROT_NONE);
-
-    return p;
+    return sodium_malloc(size);
 }
 
 void CryptoFree(void* ptr)
 {
-    mprotect(ptr, 16 * 1024, PROT_READ | PROT_WRITE);
-    munlock(ptr, 4 * 1024);
-    free(ptr);
+    sodium_free(ptr);
 }
 
 //////////////////////////////
