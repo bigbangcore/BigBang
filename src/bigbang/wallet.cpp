@@ -662,6 +662,7 @@ bool CWallet::UpdateTx(const uint256& hashFork, const CAssembledTx& tx)
     bool fFromMe = IsMine(tx.destIn);
     if (fFromMe || fIsMine)
     {
+        StdTrace("CWallet", "UpdateTx: txid: %s", tx.GetHash().GetHex().c_str());
         uint256 txid = tx.GetHash();
         std::shared_ptr<CWalletTx> spWalletTx = InsertWalletTx(txid, tx, hashFork, fIsMine, fFromMe);
         if (spWalletTx != nullptr)
@@ -685,6 +686,7 @@ bool CWallet::UpdateTx(const uint256& hashFork, const CAssembledTx& tx)
 
 bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
 {
+    StdTrace("CWallet", "LoadTxUnspent: txid: %s", wtx.txid.GetHex().c_str());
     std::shared_ptr<CWalletTx> spWalletTx(new CWalletTx(wtx));
     mapWalletTx.insert(make_pair(wtx.txid, spWalletTx));
 
@@ -710,6 +712,7 @@ bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
 
 bool CWallet::LoadTxSpent(const CWalletTx& wtx)
 {
+    StdTrace("CWallet", "LoadTxSpent: txid: %s", wtx.txid.GetHex().c_str());
     vector<uint256> vFork;
     GetWalletTxFork(wtx.hashFork, wtx.nBlockHeight, vFork);
     if (wtx.IsFromMe())
@@ -1041,6 +1044,7 @@ bool CWallet::InsertKey(const crypto::CKey& key)
 
 bool CWallet::SynchronizeTxSet(const CTxSetChange& change)
 {
+    StdTrace("CWallet", "SynchronizeTxSet: add: %ld, remove: %ld, udpate: %ld", change.vTxAddNew.size(), change.vTxRemove.size(), change.mapTxUpdate.size());
     boost::unique_lock<boost::shared_mutex> wlock(rwWalletTx);
 
     vector<CWalletTx> vWalletTx;
@@ -1116,6 +1120,7 @@ bool CWallet::AddNewTx(const uint256& hashFork, const CAssembledTx& tx)
     bool fFromMe = IsMine(tx.destIn);
     if (fFromMe || fIsMine)
     {
+        StdTrace("CWallet", "AddNewTx: txid: %s", tx.GetHash().GetHex().c_str());
         uint256 txid = tx.GetHash();
         std::shared_ptr<CWalletTx> spWalletTx = InsertWalletTx(txid, tx, hashFork, fIsMine, fFromMe);
         if (spWalletTx != nullptr)
@@ -1461,6 +1466,7 @@ void CWallet::GetWalletTxFork(const uint256& hashFork, int nHeight, vector<uint2
 
 void CWallet::AddNewWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, vector<uint256>& vFork)
 {
+    StdTrace("CWallet", "AddNewWalletTx: txid: %s", spWalletTx->txid.GetHex().c_str());
     if (spWalletTx->IsFromMe())
     {
         for (const CTxIn& txin : spWalletTx->vInput)
@@ -1496,6 +1502,7 @@ void CWallet::AddNewWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, vector<uint
 
 void CWallet::RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint256& hashFork)
 {
+    StdTrace("CWallet", "RemoveWalletTx: txid: %s", spWalletTx->txid.GetHex().c_str());
     if (spWalletTx->IsFromMe())
     {
         for (const CTxIn& txin : spWalletTx->vInput)

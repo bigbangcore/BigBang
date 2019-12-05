@@ -8,11 +8,14 @@
 #include <boost/thread/thread.hpp>
 
 #include "base.h"
+#include "util.h"
 #include "walletdb.h"
 #include "wallettx.h"
 
 namespace bigbang
 {
+
+using namespace xengine;
 
 class CWalletCoins
 {
@@ -21,18 +24,46 @@ public:
       : nTotalValue(0) {}
     void Push(const CWalletTxOut& out)
     {
-        if (!out.IsNull() && setCoins.insert(out).second)
+        if (!out.IsNull())
         {
-            nTotalValue += out.GetAmount();
-            out.AddRef();
+            if (setCoins.insert(out).second)
+            {
+                nTotalValue += out.GetAmount();
+                out.AddRef();
+                StdTrace("CWalletCoins", "Push: insert success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
+                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
+            }
+            else
+            {
+                StdTrace("CWalletCoins", "Push: insert fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
+                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
+            }
+        }
+        else
+        {
+            StdTrace("CWalletCoins", "Push: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
     void Pop(const CWalletTxOut& out)
     {
-        if (!out.IsNull() && setCoins.erase(out))
+        if (!out.IsNull())
         {
-            nTotalValue -= out.GetAmount();
-            out.Release();
+            if (setCoins.erase(out))
+            {
+                nTotalValue -= out.GetAmount();
+                out.Release();
+                StdTrace("CWalletCoins", "Pop: erase success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
+                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
+            }
+            else
+            {
+                StdTrace("CWalletCoins", "Pop: erase fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
+                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
+            }
+        }
+        else
+        {
+            StdTrace("CWalletCoins", "Pop: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
 
