@@ -989,10 +989,15 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
 
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    if (!pService->MakeNewKey(strPassphrase, pubkey))
-    {
 
-        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
+    for (int i = 0; i < 10; ++i)
+    {
+        StdDebug("RPCMOD", "current %d times\n", i);
+        if (!pService->MakeNewKey(strPassphrase, pubkey))
+        {
+            StdError("RPCMOD", " %d times ERROR\n", i);
+            throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
+        }
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
