@@ -5,6 +5,7 @@
 #include "blockbase.h"
 
 #include <boost/timer/timer.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <cstdio>
 
 #include "template/template.h"
@@ -15,6 +16,8 @@ using namespace boost::filesystem;
 using namespace xengine;
 
 #define BLOCKFILE_PREFIX "block"
+#define ROLLBACKFILE_PREFIX "block"
+#define ROLLBACKFILE_SUFFIX ".rollback"
 #define LOGFILE_NAME "storage.log"
 
 namespace bigbang
@@ -238,6 +241,7 @@ CBlockBase::~CBlockBase()
 {
     dbBlock.Deinitialize();
     tsBlock.Deinitialize();
+    tsRollback.Deinitialize();
 }
 
 bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
@@ -262,6 +266,13 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         return false;
     }
 
+    if (!tsRollback.Initialize(pathDataLocation / "block", ROLLBACKFILE_PREFIX, ROLLBACKFILE_SUFFIX))
+    {
+        dbBlock.Deinitialize();
+        Error("B", "Failed to initialize block rollback tsfile");
+        return false;
+    }
+
     if (fRenewDB)
     {
         Clear();
@@ -275,6 +286,7 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
 
             ClearCache();
         }
+        tsRollback.Deinitialize();
         Error("B", "Failed to load block db");
         return false;
     }
@@ -291,6 +303,7 @@ void CBlockBase::Deinitialize()
 
         ClearCache();
     }
+    tsRollback.Deinitialize();
     Log("B", "Deinitialized");
 }
 
@@ -1620,6 +1633,22 @@ bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& de
     dbBlock.WalkThroughUnspent(hashFork, walker);
     vUnspent = walker.vUnspent;
     return true;
+}
+
+bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
+{
+    vector<CBlockChange> vChange;
+    vChange.reserve(vBlockRemove.size() + vBlockAddNew.size());
+    for (const CBlockEx& removed : vBlockRemove)
+    {
+        vChange.push_back(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE));
+    }
+    for (const CBlockEx& added : boost::adaptors::reverse(vBlockAddNew))
+    {
+        vChange.push_back(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD));
+    }
+    vector<CDiskPos> vPos;
+    return tsRollback.WriteBatch(vChange, vPos);
 }
 
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const

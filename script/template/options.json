@@ -55,6 +55,14 @@
             "default": 2048,
             "format": "-loghistorysize=<size>",
             "desc": "Log history size(M) (default: 2048M)"
+        },
+        {
+            "name": "fRecordRollback",
+            "type": "bool",
+            "opt": "rollback",
+            "default": false,
+            "format": "-rollback",
+            "desc": "Output roll back block content if set."
         }
     ],
     "CForkConfigOption": [

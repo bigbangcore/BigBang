@@ -507,6 +507,19 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
+    // record rollback
+    if (!update.vBlockRemove.empty() && Config()->fRecordRollback)
+    {
+        if (!cntrBlock.RecordRollback(update.vBlockAddNew, update.vBlockRemove))
+        {
+            Error("Write rollback block failed, removed from %s to %s, added from %s to %s", 
+                update.vBlockRemove.front().GetHash().ToString().c_str(),
+                update.vBlockRemove.back().GetHash().ToString().c_str(),
+                update.vBlockAddNew.back().GetHash().ToString().c_str(),
+                update.vBlockAddNew.front().GetHash().ToString().c_str());
+        } 
+    }
+
     return OK;
 }
 

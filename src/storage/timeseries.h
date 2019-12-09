@@ -65,7 +65,7 @@ class CTimeSeriesBase
 public:
     CTimeSeriesBase();
     ~CTimeSeriesBase();
-    virtual bool Initialize(const boost::filesystem::path& pathLocationIn, const std::string& strPrefixIn);
+    virtual bool Initialize(const boost::filesystem::path& pathLocationIn, const std::string& strPrefixIn, const std::string& strSuffixIn = "");
     virtual void Deinitialize();
 
 protected:
@@ -82,6 +82,7 @@ protected:
     };
     boost::filesystem::path pathLocation;
     std::string strPrefix;
+    std::string strSuffix;
     uint32 nLastFile;
 };
 

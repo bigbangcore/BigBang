@@ -13,6 +13,8 @@ namespace bigbang
 namespace storage
 {
 
+#define DEFAULT_TIMESERIES_SUFFIX ".dat"
+
 //////////////////////////////
 // CTimeSeriesBase
 
@@ -25,7 +27,7 @@ CTimeSeriesBase::~CTimeSeriesBase()
 {
 }
 
-bool CTimeSeriesBase::Initialize(const path& pathLocationIn, const string& strPrefixIn)
+bool CTimeSeriesBase::Initialize(const path& pathLocationIn, const string& strPrefixIn, const std::string& strSuffixIn)
 {
     if (!exists(pathLocationIn))
     {
@@ -39,6 +41,7 @@ bool CTimeSeriesBase::Initialize(const path& pathLocationIn, const string& strPr
 
     pathLocation = pathLocationIn;
     strPrefix = strPrefixIn;
+    strSuffix = strSuffixIn.empty() ? DEFAULT_TIMESERIES_SUFFIX : strSuffixIn;
     nLastFile = 1;
 
     return CheckDiskSpace();
@@ -57,7 +60,7 @@ bool CTimeSeriesBase::CheckDiskSpace()
 const std::string CTimeSeriesBase::FileName(uint32 nFile)
 {
     ostringstream oss;
-    oss << strPrefix << "_" << setfill('0') << setw(6) << nFile << ".dat";
+    oss << strPrefix << "_" << setfill('0') << setw(6) << nFile << strSuffix;
     return oss.str();
 }
 
