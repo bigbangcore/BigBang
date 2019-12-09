@@ -813,17 +813,21 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
+            StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: height[%d] block hash[%s] time[%d] supply[%d] algo[%d] bits[%d] trust[%s]", p->nHeight, *(p->phashBlock)->ToString().c_str(), p->nTimeStamp, p->nMoneySupply, p->nProofAlgo, p->nProofBits, p->nChainTrust.ToString().c_str());
             CBlockEx block;
             if (!tsBlock.Read(block, p->nFile, p->nOffset))
             {
+                StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: Failed to read block[%s] from file", *(p->phashBlock)->ToString().c_str());
                 return false;
             }
             for (int j = block.vtx.size() - 1; j >= 0; j--)
             {
+                StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: remove tx[%s]", block.vtx[j].GetHash().ToString().c_str());
                 view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
             }
             if (!block.txMint.IsNull())
             {
+                StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: remove mint tx[%s]", block.txMint.GetHash().ToString().c_str());
                 view.RemoveTx(block.txMint.GetHash(), block.txMint);
             }
         }
@@ -831,14 +835,17 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
+            StdTrace("[BlockBase][TRACE]", "Chain rollback[add]: height[%d] block hash[%s] time[%d] supply[%d] algo[%d] bits[%d] trust[%s]", vPath[i]->nHeight, *(vPath[i]->phashBlock)->ToString().c_str(), vPath[i]->nTimeStamp, vPath[i]->nMoneySupply, vPath[i]->nProofAlgo, vPath[i]->nProofBits, vPath[i]->nChainTrust.ToString().c_str());
             CBlockEx block;
             if (!tsBlock.Read(block, vPath[i]->nFile, vPath[i]->nOffset))
             {
+                StdTrace("[BlockBase][TRACE]", "Chain rollback[add]: Failed to read block[%s] from file", *(vPath[i])->ToString().c_str());
                 return false;
             }
             view.AddTx(block.txMint.GetHash(), block.txMint);
             for (int j = 0; j < block.vtx.size(); j++)
             {
+                StdTrace("[BlockBase][TRACE]", "Chain rollback[add]: add tx[%s]", block.vtx[j].GetHash().ToString().c_str());
                 const CTxContxt& txContxt = block.vTxContxt[j];
                 view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
             }
