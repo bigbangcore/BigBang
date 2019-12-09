@@ -810,10 +810,12 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         vector<CBlockIndex*> vPath;
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
 
+        unsigned int nRemoved = 0;
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
             StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: height[%d] block hash[%s] time[%d] supply[%d] algo[%d] bits[%d] trust[%s]", p->nHeight, *(p->phashBlock)->ToString().c_str(), p->nTimeStamp, p->nMoneySupply, p->nProofAlgo, p->nProofBits, p->nChainTrust.ToString().c_str());
+            ++nRemoved;
             CBlockEx block;
             if (!tsBlock.Read(block, p->nFile, p->nOffset))
             {
@@ -830,6 +832,10 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: remove mint tx[%s]", block.txMint.GetHash().ToString().c_str());
                 view.RemoveTx(block.txMint.GetHash(), block.txMint);
             }
+        }
+        if (nRemoved > 0)
+        {
+            StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: remove block amount[%d]", nRemoved);
         }
 
         for (int i = vPath.size() - 1; i >= 0; i--)
@@ -849,6 +855,10 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 const CTxContxt& txContxt = block.vTxContxt[j];
                 view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
             }
+        }
+        if (vPath.size() > 0)
+        {
+            StdTrace("[BlockBase][TRACE]", "Chain rollback[add]: added block amount[%d]", vPath.size());
         }
     }
     return true;
