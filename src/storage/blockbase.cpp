@@ -4,8 +4,8 @@
 
 #include "blockbase.h"
 
-#include <boost/timer/timer.hpp>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/timer/timer.hpp>
 #include <cstdio>
 
 #include "template/template.h"
@@ -1635,17 +1635,17 @@ bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& de
     return true;
 }
 
-bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
+bool CBlockBase::RecordRollback(const uint256& hashFork, const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
 {
     vector<CBlockChange> vChange;
     vChange.reserve(vBlockRemove.size() + vBlockAddNew.size());
     for (const CBlockEx& removed : vBlockRemove)
     {
-        vChange.push_back(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE));
+        vChange.push_back(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE, hashFork));
     }
     for (const CBlockEx& added : boost::adaptors::reverse(vBlockAddNew))
     {
-        vChange.push_back(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD));
+        vChange.push_back(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD, hashFork));
     }
     vector<CDiskPos> vPos;
     return tsRollback.WriteBatch(vChange, vPos);
