@@ -846,7 +846,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
-            StdTrace("[BlockBase][TRACE]", "Chain rollback[remove]: height:%u: block hash`%s` time:%u: supply:%u: algo:%u: bits:%u: trust`%s`"
+            StdTrace("[BlockBase][TRACE]", "Chain rollback[add]: height:%u: block hash`%s` time:%u: supply:%u: algo:%u: bits:%u: trust`%s`"
                 , vPath[i]->nHeight, vPath[i]->GetBlockHash().ToString().c_str()
                 , vPath[i]->nTimeStamp, vPath[i]->nMoneySupply, vPath[i]->nProofAlgo
                 , vPath[i]->nProofBits, vPath[i]->nChainTrust.ToString().c_str());
