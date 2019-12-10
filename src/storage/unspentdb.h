@@ -166,6 +166,7 @@ public:
     bool Retrieve(const uint256& hashFork, const CTxOutPoint& txout, CTxOut& output);
     bool Copy(const uint256& srcFork, const uint256& destFork);
     bool WalkThrough(const uint256& hashFork, CForkUnspentDBWalker& walker);
+    void Flush(const uint256& hashFork);
 
 protected:
     void FlushProc();
