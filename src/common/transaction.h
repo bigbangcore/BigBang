@@ -435,6 +435,9 @@ protected:
 
 class CTxIndex
 {
+
+    friend class xengine::CStream;
+
 public:
     int nBlockHeight;
     uint32 nFile;
@@ -460,7 +463,16 @@ public:
     bool IsNull() const
     {
         return (nFile == 0);
-    };
+    }
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nBlockHeight, opt);
+        s.Serialize(nFile, opt);
+        s.Serialize(nOffset, opt);
+    }
 };
 
 class CTxFilter
