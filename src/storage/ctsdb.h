@@ -27,7 +27,40 @@ public:
     void Deinitialize();
     bool Update(const std::vector<int64>& vTime, const std::vector<CDiskPos>& vPos,
                 const std::vector<int64>& vDel);
-    bool Retrieve(const int64, CDiskPos& pos);
+    template <typename K, typename V>
+    bool UpdateChunck(const std::vector<int64>& vTime, const std::map<int64, std::map<K, V>>& mapChunck, const std::vector<int64>& vDel)
+    {
+        if (!TxnBegin())
+        {
+            return false;
+        }
+
+        (void)vTime;
+
+        for (const auto& kv : mapChunck)
+        {
+            Write(kv.first, kv.second);
+        }
+
+        for (int i = 0; i < vDel.size(); i++)
+        {
+            Erase(vDel[i]);
+        }
+
+        if (!TxnCommit())
+        {
+            return false;
+        }
+
+        return true;
+    }
+    bool Retrieve(int64 nTime, CDiskPos& pos);
+
+    template <typename K, typename V>
+    bool RetrieveChunck(const int64 nTime, std::map<K, V>& mapChunk)
+    {
+        return Read(nTime, mapChunk);
+    }
 };
 
 template <typename K, typename V>
@@ -252,10 +285,24 @@ public:
             rwLower.ReadUnlock();
         }
 
-        C chunk;
-        if (LoadFromFile(nTime, chunk))
+        // C chunk;
+        // if (LoadFromFile(nTime, chunk))
+        // {
+        //     return chunk.Find(key, value);
+        // }
+
+        std::map<K, V> mapChunk;
+        if (LoadFromDB(nTime, mapChunk))
         {
-            return chunk.Find(key, value);
+            if (mapChunk.find(key) != mapChunk.end())
+            {
+                value = mapChunk[key];
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         return false;
@@ -282,17 +329,18 @@ public:
             }
         }
 
-        std::vector<CDiskPos> vPos;
-        if (!vChunk.empty())
+        // std::vector<CDiskPos> vPos;
+        // if (!vChunk.empty())
+        // {
+        //     if (!tsChunk.WriteBatch(vChunk, vPos))
+        //     {
+        //         return false;
+        //     }
+        // }
+
+        if (!vChunk.empty() || !vDel.empty())
         {
-            if (!tsChunk.WriteBatch(vChunk, vPos))
-            {
-                return false;
-            }
-        }
-        if (!vPos.empty() || !vDel.empty())
-        {
-            if (!dbIndex.Update(vTime, vPos, vDel))
+            if (!dbIndex.UpdateChunck<K, V>(vTime, mapFlush, vDel))
             {
                 return false;
             }
@@ -332,10 +380,16 @@ protected:
             rwLower.ReadUnlock();
         }
 
-        C chunk;
-        if (LoadFromFile(nTime, chunk))
+        // C chunk;
+        // if (LoadFromFile(nTime, chunk))
+        // {
+        //     mapUpdate[nTime].insert(chunk.begin(), chunk.end());
+        // }
+
+        std::map<K, V> mapChunk;
+        if (LoadFromDB(nTime, mapChunk))
         {
-            mapUpdate[nTime].insert(chunk.begin(), chunk.end());
+            mapUpdate[nTime].insert(mapChunk.begin(), mapChunk.end());
         }
         return mapUpdate[nTime];
     }
@@ -345,6 +399,15 @@ protected:
         if (dbIndex.Retrieve(nTime, pos))
         {
             return tsChunk.Read(chunk, pos);
+        }
+        return false;
+    }
+
+    bool LoadFromDB(const int64 nTime, std::map<K, V>& mapChunk)
+    {
+        if (dbIndex.RetrieveChunck(nTime, mapChunk))
+        {
+            return true;
         }
         return false;
     }
