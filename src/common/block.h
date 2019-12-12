@@ -466,7 +466,6 @@ class CBlockChange : public CBlockEx
 
 public:
     uint8 nOperator;
-    uint256 fork;
     enum
     {
         BLOCK_CHANGE_REMOVE = 0x00,
@@ -475,8 +474,12 @@ public:
 
 public:
     CBlockChange() {}
-    CBlockChange(const CBlockEx& block, const uint8 nOperatorIn, const uint256& forkIn)
-      : CBlockEx(block), nOperator(nOperatorIn), fork(forkIn)
+    CBlockChange(const CBlockEx& block, const uint8 nOperatorIn)
+      : CBlockEx(block), nOperator(nOperatorIn)
+    {
+    }
+    CBlockChange(const CBlock& block, const uint8 nOperatorIn)
+      : CBlockEx(block), nOperator(nOperatorIn)
     {
     }
 
@@ -484,9 +487,8 @@ protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
-        s.Serialize(nOperator, opt);
-        s.Serialize(fork, opt);
         CBlockEx::Serialize(s, opt);
+        s.Serialize(nOperator, opt);
     }
 };
 

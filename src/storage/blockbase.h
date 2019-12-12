@@ -253,7 +253,7 @@ public:
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
-    bool RecordRollback(const uint256& hashFork, const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
+    bool RecordRollback(const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -311,7 +311,6 @@ protected:
     CTimeSeriesCached tsBlock;
     std::map<uint256, CBlockIndex*> mapIndex;
     std::map<uint256, boost::shared_ptr<CBlockFork>> mapFork;
-    CTimeSeriesChunk tsRollback;
 };
 
 } // namespace storage

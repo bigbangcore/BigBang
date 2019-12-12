@@ -16,8 +16,6 @@ using namespace boost::filesystem;
 using namespace xengine;
 
 #define BLOCKFILE_PREFIX "block"
-#define ROLLBACKFILE_PREFIX "block"
-#define ROLLBACKFILE_SUFFIX ".rollback"
 #define LOGFILE_NAME "storage.log"
 
 namespace bigbang
@@ -241,7 +239,6 @@ CBlockBase::~CBlockBase()
 {
     dbBlock.Deinitialize();
     tsBlock.Deinitialize();
-    tsRollback.Deinitialize();
 }
 
 bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
@@ -266,13 +263,6 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         return false;
     }
 
-    if (!tsRollback.Initialize(pathDataLocation / "block", ROLLBACKFILE_PREFIX, ROLLBACKFILE_SUFFIX))
-    {
-        dbBlock.Deinitialize();
-        Error("B", "Failed to initialize block rollback tsfile");
-        return false;
-    }
-
     if (fRenewDB)
     {
         Clear();
@@ -286,7 +276,6 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
 
             ClearCache();
         }
-        tsRollback.Deinitialize();
         Error("B", "Failed to load block db");
         return false;
     }
@@ -303,7 +292,6 @@ void CBlockBase::Deinitialize()
 
         ClearCache();
     }
-    tsRollback.Deinitialize();
     Log("B", "Deinitialized");
 }
 
@@ -344,7 +332,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
         return false;
     }
     uint32 nFile, nOffset;
-    if (!tsBlock.Write(CBlockEx(blockGenesis), nFile, nOffset))
+    if (!tsBlock.Write(CBlockChange(blockGenesis, CBlockChange::BLOCK_CHANGE_ADD), nFile, nOffset))
     {
         StdTrace("[BlockBase][TRACE]", "Write genesis %s block failed", hashGenesis.ToString().c_str());
         return false;
@@ -433,7 +421,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     }
 
     uint32 nFile, nOffset;
-    if (!tsBlock.Write(block, nFile, nOffset))
+    if (!tsBlock.Write(CBlockChange(block, CBlockChange::BLOCK_CHANGE_ADD), nFile, nOffset))
     {
         StdTrace("[BlockBase][TRACE]", "Write block %s failed", hash.ToString().c_str());
         return false;
@@ -1635,20 +1623,26 @@ bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& de
     return true;
 }
 
-bool CBlockBase::RecordRollback(const uint256& hashFork, const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
+bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
 {
-    vector<CBlockChange> vChange;
-    vChange.reserve(vBlockRemove.size() + vBlockAddNew.size());
+    CDiskPos pos;
     for (const CBlockEx& removed : vBlockRemove)
     {
-        vChange.push_back(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE, hashFork));
+        if (!tsBlock.Write(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
+        {
+            StdError("[BlockBase][ERROR]", "Write removed %s block failed", removed.GetHash().ToString().c_str());
+            return false;
+        }
     }
     for (const CBlockEx& added : boost::adaptors::reverse(vBlockAddNew))
     {
-        vChange.push_back(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD, hashFork));
+        if (!tsBlock.Write(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD), pos))
+        {
+            StdError("[BlockBase][ERROR]", "Write added %s block failed", added.GetHash().ToString().c_str());
+            return false;
+        }
     }
-    vector<CDiskPos> vPos;
-    return tsRollback.WriteBatch(vChange, vPos);
+    return true;
 }
 
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
