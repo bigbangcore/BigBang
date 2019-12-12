@@ -75,11 +75,15 @@ public:
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
+    bool GetTxSender(const uint256& txid, CAddress& sender);
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
+
+private:
+    CAddress GetBackSender(const uint256& txid);
 
 protected:
     ICoreProtocol* pCoreProtocol;

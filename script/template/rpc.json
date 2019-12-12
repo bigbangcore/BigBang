@@ -345,6 +345,10 @@
                     }
                 }
             },
+            "sendfrom": {
+                "type": "string",
+                "desc": "send from address"
+            },
             "sendto": {
                 "type": "string",
                 "desc": "send to address"
