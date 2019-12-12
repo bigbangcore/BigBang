@@ -26,6 +26,7 @@ public:
         const uint256& fork_m_,
         const uint256& fork_s_);
 
+    // TODO: should remove this because of no way to catch exception by xengine::CIDataStream::operator>>() in constructor
     CTemplateExchange(const std::vector<unsigned char>& vchDataIn);
     CTemplateExchange(const CDestination& destSpend_m_ = CDestination(),
                       const CDestination& destSpend_s_ = CDestination(),

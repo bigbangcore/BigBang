@@ -177,7 +177,16 @@ bool CTemplateExchange::GetSignDestination(const CTransaction& tx, const std::ve
     uint256 hashFork;
     int height;
     xengine::CIDataStream ds(vchSig);
-    ds >> vsm >> vss >> hashFork >> height;
+    try
+    {
+        ds >> vsm >> vss >> hashFork >> height;
+    }
+    catch(const std::exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+
     setSubDest.clear();
     if (!destSpend_m.IsPubKey() || !destSpend_s.IsPubKey())
     {
@@ -222,7 +231,15 @@ bool CTemplateExchange::BuildTxSignature(const uint256& hash,
     uint256 hashFork;
     int height;
     xengine::CIDataStream ds(vchSig);
-    ds >> vsm >> vss >> hashFork >> height;
+    try
+    {
+        ds >> vsm >> vss >> hashFork >> height;
+    }
+    catch(const std::exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
 
     vchSig = vchData;
     std::vector<uint8_t> temp;
@@ -240,7 +257,16 @@ bool CTemplateExchange::VerifySignature(const uint256& hash, const std::vector<u
     std::vector<unsigned char> sign_m;
     std::vector<unsigned char> sign_s;
     std::vector<unsigned char> vchSig_;
-    is >> sign_m >> sign_s >> vchSig_;
+    try
+    {
+        is >> sign_m >> sign_s >> vchSig_;
+    }
+    catch(const std::exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+
     if (fork == fork_m)
     {
         if (height > height_m)
