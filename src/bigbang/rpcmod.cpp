@@ -814,7 +814,13 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     data.strFork = fork.GetHex();
     data.nHeight = height;
     int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
-    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth);
+    CAddress fromMint;
+    if(!pService->GetTxSender(block.txMint.GetHash(), fromMint))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR,
+            "No information available about the previous one of this block's mint transaction");
+    }
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
     {
         CProofOfHashWorkCompact proof;
@@ -827,7 +833,13 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     }
     for (const CTransaction& tx : block.vtx)
     {
-        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth));
+        CAddress from;
+        if(!pService->GetTxSender(tx.GetHash(), from))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR,
+                                "No information available about the previous ones of this block's transactions");
+        }
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth, from.ToString()));
     }
     return MakeCgetblockdetailResultPtr(data);
 }
@@ -2208,7 +2220,13 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown anchor block");
     }
 
-    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1));
+    CAddress from;
+    if(!pService->GetTxSender(rawTx.GetHash(), from))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR,
+            "No information available about the previous one of this transaction");
+    }
+    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1, from.ToString()));
 }
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
