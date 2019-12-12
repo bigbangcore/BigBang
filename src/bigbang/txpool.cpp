@@ -456,6 +456,7 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
         {
             if (!filter.FoundTx(hashFork, *static_cast<CAssembledTx*>((*mi).ptx)))
             {
+                StdLog("CTxPool", "FilterTx: FoundTx fail, txid: %s", (*mi).ptx->GetHash().GetHex().c_str());
                 return false;
             }
         }

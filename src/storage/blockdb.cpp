@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "blockdb.h"
+
 #include "stream/datastream.h"
 
 using namespace std;
@@ -156,11 +157,13 @@ bool CBlockDB::UpdateFork(const uint256& hash, const uint256& hashRefBlock, cons
     {
         return false;
     }
+    dbTxIndex.Flush(hash);
 
     if (!dbUnspent.Update(hash, vAddNew, vRemove))
     {
         return false;
     }
+    dbUnspent.Flush(hash);
 
     return true;
 }

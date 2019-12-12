@@ -176,6 +176,21 @@ void CTxIndexDB::Clear()
     mapTxDB.clear();
 }
 
+void CTxIndexDB::Flush(const uint256& hashFork)
+{
+    boost::unique_lock<boost::mutex> lock(mtxFlush);
+    CReadLock rlock(rwAccess);
+
+    map<uint256, std::shared_ptr<CForkTxDB>>::iterator it = mapTxDB.find(hashFork);
+    if (it == mapTxDB.end())
+    {
+        return;
+    }
+
+    std::shared_ptr<CForkTxDB> spTxDB = (*it).second;
+    spTxDB->Flush();
+}
+
 void CTxIndexDB::FlushProc()
 {
     SetThreadName("TxIndexDB");

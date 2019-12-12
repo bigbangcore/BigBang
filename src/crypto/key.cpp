@@ -128,9 +128,17 @@ bool CKey::Load(const std::vector<unsigned char>& vchKey)
     uint32 check;
 
     xengine::CIDataStream is(vchKey);
-    is >> pubkey >> version;
-    is.Pop(cipherNew.encrypted, 48);
-    is >> cipherNew.nonce >> check;
+    try
+    {
+        is >> pubkey >> version;
+        is.Pop(cipherNew.encrypted, 48);
+        is >> cipherNew.nonce >> check;
+    }
+    catch(const std::exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
 
     if (CryptoHash(&vchKey[0], vchKey.size() - 4).Get32() != check)
     {
