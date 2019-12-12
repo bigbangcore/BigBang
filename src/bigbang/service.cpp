@@ -670,21 +670,32 @@ CAddress CService::GetBackSender(const uint256& txid)
         throw std::runtime_error("get tx failed.");
     }
 
+    while (tx.nType != CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/
+           && (tx.vInput.size() > 0 ? 0 != tx.vInput[0].prevout.n : false))
+    {
+        uint256 txHash = tx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tx, fork, height))
+        {
+            throw std::runtime_error("get prev tx failed.");
+        }
+    }
+
     if (tx.nType == CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/)
     {
         return CAddress(CDestination());
     }
 
-    if (0 == tx.vInput[0].prevout.n)
+    if (tx.vInput.size() > 0 && 0 == tx.vInput[0].prevout.n)
     {
-        if (!GetTransaction(tx.vInput[0].prevout.hash, tx, fork, height))
+        uint256 txHash = tx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tx, fork, height))
         {
             throw std::runtime_error("get prev tx failed.");
         }
         return tx.sendTo;
     }
 
-    return GetBackSender(tx.vInput[0].prevout.hash);
+    throw std::runtime_error("get back sender failed.");
 }
 
 } // namespace bigbang
