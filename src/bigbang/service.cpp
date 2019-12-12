@@ -665,19 +665,19 @@ CAddress CService::GetBackSender(const uint256& txid)
     CTransaction tx;
     static uint256 fork;
     int height;
-    if(!GetTransaction(txid, tx, fork, height))
+    if (!GetTransaction(txid, tx, fork, height))
     {
         throw std::runtime_error("get tx failed.");
     }
 
-    if(tx.nType == CTransaction::TX_WORK/* || tx.nType == CTransaction::TX_STAKE*/)
+    if (tx.nType == CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/)
     {
         return CAddress(CDestination());
     }
 
-    if(0 == tx.vInput[0].prevout.n)
+    if (0 == tx.vInput[0].prevout.n)
     {
-        if(!GetTransaction(tx.vInput[0].prevout.hash, tx, fork, height))
+        if (!GetTransaction(tx.vInput[0].prevout.hash, tx, fork, height))
         {
             throw std::runtime_error("get prev tx failed.");
         }

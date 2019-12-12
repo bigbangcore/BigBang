@@ -7,6 +7,7 @@
 
 #include <xengine.h>
 
+#include "address.h"
 #include "block.h"
 #include "blockbase.h"
 #include "config.h"
@@ -23,7 +24,6 @@
 #include "transaction.h"
 #include "uint256.h"
 #include "wallettx.h"
-#include "address.h"
 
 namespace bigbang
 {

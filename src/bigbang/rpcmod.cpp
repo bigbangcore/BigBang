@@ -74,7 +74,7 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
 }
 
 static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
-    const uint256& hashFork, int nDepth, const string& fromAddr = string())
+                                 const uint256& hashFork, int nDepth, const string& fromAddr = string())
 {
     CTransactionData ret;
     ret.strTxid = txid.GetHex();
@@ -815,10 +815,10 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     data.nHeight = height;
     int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
     CAddress fromMint;
-    if(!pService->GetTxSender(block.txMint.GetHash(), fromMint))
+    if (!pService->GetTxSender(block.txMint.GetHash(), fromMint))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
-            "No information available about the previous one of this block's mint transaction");
+                            "No information available about the previous one of this block's mint transaction");
     }
     data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
@@ -834,7 +834,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     for (const CTransaction& tx : block.vtx)
     {
         CAddress from;
-        if(!pService->GetTxSender(tx.GetHash(), from))
+        if (!pService->GetTxSender(tx.GetHash(), from))
         {
             throw CRPCException(RPC_INTERNAL_ERROR,
                                 "No information available about the previous ones of this block's transactions");
@@ -913,7 +913,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
 
     int nDepth = nHeight < 0 ? 0 : pService->GetBlockCount(hashFork) - nHeight;
     CAddress from;
-    if(!pService->GetTxSender(txid, from))
+    if (!pService->GetTxSender(txid, from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the previous one of this transaction");
     }
@@ -2221,10 +2221,10 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }
 
     CAddress from;
-    if(!pService->GetTxSender(rawTx.GetHash(), from))
+    if (!pService->GetTxSender(rawTx.GetHash(), from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
-            "No information available about the previous one of this transaction");
+                            "No information available about the previous one of this transaction");
     }
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1, from.ToString()));
 }
