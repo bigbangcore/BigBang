@@ -31,6 +31,7 @@ public:
     bool Retrieve(const uint256& txid, CTxIndex& txIndex, uint256& hashFork);
 
     void Clear();
+    void Flush(const uint256& hashFork);
 
 protected:
     void FlushProc();

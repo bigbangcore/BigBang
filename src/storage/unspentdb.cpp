@@ -432,6 +432,18 @@ bool CUnspentDB::WalkThrough(const uint256& hashFork, CForkUnspentDBWalker& walk
     return false;
 }
 
+void CUnspentDB::Flush(const uint256& hashFork)
+{
+    boost::unique_lock<boost::mutex> lock(mtxFlush);
+    CReadLock rlock(rwAccess);
+
+    map<uint256, std::shared_ptr<CForkUnspentDB>>::iterator it = mapUnspentDB.find(hashFork);
+    if (it != mapUnspentDB.end())
+    {
+        (*it).second->Flush();
+    }
+}
+
 void CUnspentDB::FlushProc()
 {
     SetThreadName("UnspentDB");
