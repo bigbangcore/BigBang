@@ -73,7 +73,8 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
     return data;
 }
 
-static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nDepth)
+static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
+                                 const uint256& hashFork, int nDepth, const string& fromAddr = string())
 {
     CTransactionData ret;
     ret.strTxid = txid.GetHex();
@@ -89,6 +90,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, co
         vin.strTxid = txin.prevout.hash.GetHex();
         ret.vecVin.push_back(move(vin));
     }
+    ret.strSendfrom = fromAddr;
     ret.strSendto = CAddress(tx.sendTo).ToString();
     ret.dAmount = ValueFromAmount(tx.nAmount);
     ret.dTxfee = ValueFromAmount(tx.nTxFee);
@@ -812,7 +814,13 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     data.strFork = fork.GetHex();
     data.nHeight = height;
     int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
-    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth);
+    CAddress fromMint;
+    if (!pService->GetTxSender(block.txMint.GetHash(), fromMint))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR,
+                            "No information available about the previous one of this block's mint transaction");
+    }
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
     {
         CProofOfHashWorkCompact proof;
@@ -825,7 +833,13 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     }
     for (const CTransaction& tx : block.vtx)
     {
-        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth));
+        CAddress from;
+        if (!pService->GetTxSender(tx.GetHash(), from))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR,
+                                "No information available about the previous ones of this block's transactions");
+        }
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth, from.ToString()));
     }
     return MakeCgetblockdetailResultPtr(data);
 }
@@ -898,7 +912,12 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     }
 
     int nDepth = nHeight < 0 ? 0 : pService->GetBlockCount(hashFork) - nHeight;
-    spResult->transaction = TxToJSON(txid, tx, hashFork, nDepth);
+    CAddress from;
+    if (!pService->GetTxSender(txid, from))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the previous one of this transaction");
+    }
+    spResult->transaction = TxToJSON(txid, tx, hashFork, nDepth, from.ToString());
     return spResult;
 }
 
@@ -2201,7 +2220,13 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown anchor block");
     }
 
-    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1));
+    CAddress from;
+    if (!pService->GetTxSender(rawTx.GetHash(), from))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR,
+                            "No information available about the previous one of this transaction");
+    }
+    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1, from.ToString()));
 }
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)

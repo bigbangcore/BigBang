@@ -202,6 +202,7 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
 
     if (!TxnBegin())
     {
+        StdLog("CWalletTxDB", "UpdateTx: TxnBegin fail.");
         return false;
     }
 
@@ -211,6 +212,7 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
         if (!Write(make_pair(string("wtx"), pairWalletTx.second.txid), pairWalletTx)
             || !Write(make_pair(string("seq"), BSwap64(pairWalletTx.first)), CWalletTxSeq(pairWalletTx.second)))
         {
+            StdLog("CWalletTxDB", "UpdateTx: Write wtx or seq fail.");
             TxnAbort();
             return false;
         }
@@ -221,6 +223,7 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
         if (!Erase(make_pair(string("wtx"), vTxRemove[i].second))
             || !Erase(make_pair(string("seq"), BSwap64(vTxRemove[i].first))))
         {
+            StdLog("CWalletTxDB", "UpdateTx: Erase fail.");
             TxnAbort();
             return false;
         }
@@ -229,12 +232,14 @@ bool CWalletTxDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint
     if (!Write(string("txcount"), nTxCount + nTxAddNew - vTxRemove.size())
         || !Write(string("sequence"), nSequence))
     {
+        StdLog("CWalletTxDB", "UpdateTx: Write txcount or sequence fail.");
         TxnAbort();
         return false;
     }
 
     if (!TxnCommit())
     {
+        StdLog("CWalletTxDB", "UpdateTx: TxnCommit fail.");
         return false;
     }
 
@@ -286,6 +291,7 @@ bool CWalletTxDB::TxSeqWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBT
     ssKey >> strPrefix;
     if (strPrefix != "seq")
     {
+        StdLog("CWalletTxDB", "TxSeqWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
         return false;
     }
 
@@ -304,6 +310,7 @@ bool CWalletTxDB::TxWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBTxWa
     ssKey >> strPrefix;
     if (strPrefix != "seq")
     {
+        StdLog("CWalletTxDB", "TxWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
         return false;
     }
 
@@ -313,6 +320,7 @@ bool CWalletTxDB::TxWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBTxWa
     CWalletTx wtx;
     if (!RetrieveTx(txSeq.txid, wtx))
     {
+        StdLog("CWalletTxDB", "TxWalker: RetrieveTx fail, txid: %s", txSeq.txid.GetHex().c_str());
         return false;
     }
     return walker.Walk(wtx);
@@ -481,11 +489,11 @@ bool CWalletDB::WalkThroughAddress(CWalletDBAddrWalker& walker)
 
 bool CWalletDB::AddNewTx(const CWalletTx& wtx)
 {
-    if (wtx.nBlockHeight < 0)
+    /*if (wtx.nBlockHeight < 0)
     {
         txCache.AddNew(wtx);
         return true;
-    }
+    }*/
 
     return dbWtx.AddNewTx(wtx);
 }
@@ -494,6 +502,7 @@ bool CWalletDB::UpdateTx(const vector<CWalletTx>& vWalletTx, const vector<uint25
 {
     if (!dbWtx.UpdateTx(vWalletTx, vRemove))
     {
+        StdLog("CWalletDB", "UpdateTx fail.");
         return false;
     }
     for (const CWalletTx& wtx : vWalletTx)

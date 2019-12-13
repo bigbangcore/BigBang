@@ -10,6 +10,7 @@
 #include "destination.h"
 #include "key.h"
 #include "uint256.h"
+#include "util.h"
 
 class CProofOfSecretShare
 {
@@ -30,7 +31,15 @@ public:
             return false;
         }
         xengine::CIDataStream is(vchProof);
-        FromStream(is);
+        try
+        {
+            FromStream(is);
+        }
+        catch(const std::exception& e)
+        {
+            xengine::StdError(__PRETTY_FUNCTION__, e.what());
+            return false;
+        }
         return true;
     }
     size_t size()

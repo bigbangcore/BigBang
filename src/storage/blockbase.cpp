@@ -327,13 +327,13 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
 {
     if (!IsEmpty())
     {
-        StdTrace("[BlockBase][TRACE]", "Is not empty");
+        StdTrace("BlockBase", "Is not empty");
         return false;
     }
     uint32 nFile, nOffset;
     if (!tsBlock.Write(CBlockEx(blockGenesis), nFile, nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "Write genesis %s block failed", hashGenesis.ToString().c_str());
+        StdTrace("BlockBase", "Write genesis %s block failed", hashGenesis.ToString().c_str());
         return false;
     }
 
@@ -351,40 +351,40 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
         CBlockIndex* pIndexNew = AddNewIndex(hashGenesis, blockGenesis, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
-            StdTrace("[BlockBase][TRACE]", "Add New Index %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Index %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
-            StdTrace("[BlockBase][TRACE]", "Add New genesis Block %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New genesis Block %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 
         CDelegateContext ctxtDelegate;
         if (!dbBlock.UpdateDelegateContext(hashGenesis, ctxtDelegate))
         {
-            StdTrace("[BlockBase][TRACE]", "Update Delegate Contetxt %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Update Delegate Contetxt %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 
         CProfile profile;
         if (!profile.Load(blockGenesis.vchProof))
         {
-            StdTrace("[BlockBase][TRACE]", "Load genesis %s block Proof failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Load genesis %s block Proof failed", hashGenesis.ToString().c_str());
             return false;
         }
 
         CForkContext ctxt(hashGenesis, uint64(0), uint64(0), profile);
         if (!dbBlock.AddNewForkContext(ctxt))
         {
-            StdTrace("[BlockBase][TRACE]", "Add New Fork COntext %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Fork COntext %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 
         if (!dbBlock.AddNewFork(hashGenesis))
         {
-            StdTrace("[BlockBase][TRACE]", "Add New Fork %s  failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Fork %s  failed", hashGenesis.ToString().c_str());
             return false;
         }
 
@@ -395,14 +395,14 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
 
             if (!dbBlock.UpdateFork(hashGenesis, hashGenesis, uint64(0), vTxNew, vector<uint256>(), vAddNew, vector<CTxOutPoint>()))
             {
-                StdTrace("[BlockBase][TRACE]", "Update Fork %s failed", hashGenesis.ToString().c_str());
+                StdTrace("BlockBase", "Update Fork %s failed", hashGenesis.ToString().c_str());
                 return false;
             }
             spFork->UpdateLast(pIndexNew);
         }
         else
         {
-            StdTrace("[BlockBase][TRACE]", "Add New Fork profile  %s  failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Fork profile  %s  failed", hashGenesis.ToString().c_str());
             return false;
         }
 
@@ -415,14 +415,14 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
 {
     if (Exists(hash))
     {
-        StdTrace("[BlockBase][TRACE]", "Exist Block: %s", hash.ToString().c_str());
+        StdTrace("BlockBase", "Exist Block: %s", hash.ToString().c_str());
         return false;
     }
 
     uint32 nFile, nOffset;
     if (!tsBlock.Write(block, nFile, nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "Write block %s failed", hash.ToString().c_str());
+        StdTrace("BlockBase", "Write block %s failed", hash.ToString().c_str());
         return false;
     }
     {
@@ -431,13 +431,13 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
-            StdTrace("[BlockBase][TRACE]", "AddNewIndex faild: %s", hash.ToString().c_str());
+            StdTrace("BlockBase", "AddNewIndex faild: %s", hash.ToString().c_str());
             return false;
         }
 
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
-            StdTrace("[BlockBase][TRACE]", "AddNewBlock failed: %s", hash.ToString().c_str());
+            StdTrace("BlockBase", "AddNewBlock failed: %s", hash.ToString().c_str());
             mapIndex.erase(hash);
             delete pIndexNew;
             return false;
@@ -447,7 +447,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         {
             if (!UpdateDelegate(hash, block, CDiskPos(nFile, nOffset)))
             {
-                StdTrace("[BlockBase][TRACE]", "UpdateDElegate failed: %s", hash.ToString().c_str());
+                StdTrace("BlockBase", "UpdateDElegate failed: %s", hash.ToString().c_str());
                 dbBlock.RemoveBlock(hash);
                 mapIndex.erase(hash);
                 delete pIndexNew;
@@ -483,13 +483,13 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
 
         if (!(pIndex = GetIndex(hash)))
         {
-            StdTrace("[BlockBase][TRACE]", "Retrieve::GetIndex %s block failed", hash.ToString().c_str());
+            StdTrace("BlockBase", "Retrieve::GetIndex %s block failed", hash.ToString().c_str());
             return false;
         }
     }
     if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false))
     {
-        StdTrace("[BlockBase][TRACE]", "Retrieve::Read %s block failed", hash.ToString().c_str());
+        StdTrace("BlockBase", "Retrieve::Read %s block failed", hash.ToString().c_str());
         return false;
     }
     return true;
@@ -501,7 +501,7 @@ bool CBlockBase::Retrieve(const CBlockIndex* pIndex, CBlock& block)
 
     if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveFromIndex::Read %s block failed", pIndex->GetBlockHash().ToString().c_str());
+        StdTrace("BlockBase", "RetrieveFromIndex::Read %s block failed", pIndex->GetBlockHash().ToString().c_str());
         return false;
     }
     return true;
@@ -517,13 +517,13 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlockEx& block)
 
         if (!(pIndex = GetIndex(hash)))
         {
-            StdTrace("[BlockBase][TRACE]", "RetrieveBlockEx::GetIndex %s block failed", hash.ToString().c_str());
+            StdTrace("BlockBase", "RetrieveBlockEx::GetIndex %s block failed", hash.ToString().c_str());
             return false;
         }
     }
     if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveBlockEx::Read %s block failed", hash.ToString().c_str());
+        StdTrace("BlockBase", "RetrieveBlockEx::Read %s block failed", hash.ToString().c_str());
 
         return false;
     }
@@ -536,7 +536,7 @@ bool CBlockBase::Retrieve(const CBlockIndex* pIndex, CBlockEx& block)
 
     if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveFromIndex::GetIndex %s block failed", pIndex->GetBlockHash().ToString().c_str());
+        StdTrace("BlockBase", "RetrieveFromIndex::GetIndex %s block failed", pIndex->GetBlockHash().ToString().c_str());
 
         return false;
     }
@@ -610,7 +610,7 @@ bool CBlockBase::RetrieveAncestry(const uint256& hash, vector<pair<uint256, uint
     CForkContext ctxt;
     if (!dbBlock.RetrieveForkContext(hash, ctxt))
     {
-        StdTrace("[BlockBase][TRACE]", "Ancestry Retrieve hashFork %s failed", hash.ToString().c_str());
+        StdTrace("BlockBase", "Ancestry Retrieve hashFork %s failed", hash.ToString().c_str());
         return false;
     }
 
@@ -634,14 +634,14 @@ bool CBlockBase::RetrieveOrigin(const uint256& hash, CBlock& block)
     CForkContext ctxt;
     if (!dbBlock.RetrieveForkContext(hash, ctxt))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveOrigin::RetrieveForkContext %s block failed", hash.ToString().c_str());
+        StdTrace("BlockBase", "RetrieveOrigin::RetrieveForkContext %s block failed", hash.ToString().c_str());
         return false;
     }
 
     CTransaction tx;
     if (!RetrieveTx(ctxt.txidEmbedded, tx))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveOrigin::RetrieveTx %s tx failed", ctxt.txidEmbedded.ToString().c_str());
+        StdTrace("BlockBase", "RetrieveOrigin::RetrieveTx %s tx failed", ctxt.txidEmbedded.ToString().c_str());
         return false;
     }
 
@@ -666,13 +666,13 @@ bool CBlockBase::RetrieveTx(const uint256& txid, CTransaction& tx)
     CTxIndex txIndex;
     if (!dbBlock.RetrieveTxIndex(txid, txIndex, hashFork))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveTx::RetrieveTxIndex %s tx failed", txid.ToString().c_str());
+        StdTrace("BlockBase", "RetrieveTx::RetrieveTxIndex %s tx failed", txid.ToString().c_str());
         return false;
     }
 
     if (!tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveTx::Read %s tx failed", txid.ToString().c_str());
+        StdTrace("BlockBase", "RetrieveTx::Read %s tx failed", txid.ToString().c_str());
         return false;
     }
     return true;
@@ -685,14 +685,14 @@ bool CBlockBase::RetrieveTx(const uint256& hashFork, const uint256& txid, CTrans
     CTxIndex txIndex;
     if (!dbBlock.RetrieveTxIndex(hashFork, txid, txIndex))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveTxFromFork::RetrieveTxIndex fork:%s txid: %s tx failed",
+        StdTrace("BlockBase", "RetrieveTxFromFork::RetrieveTxIndex fork:%s txid: %s tx failed",
                  hashFork.ToString().c_str(), txid.ToString().c_str());
         return false;
     }
 
     if (!tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveTxFromFork::Read %s tx failed",
+        StdTrace("BlockBase", "RetrieveTxFromFork::Read %s tx failed",
                  txid.ToString().c_str());
         return false;
     }
@@ -704,7 +704,7 @@ bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int&
     CTxIndex txIndex;
     if (!dbBlock.RetrieveTxIndex(txid, txIndex, hashFork))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveTxLocation::RetrieveTxIndex %s tx failed",
+        StdTrace("BlockBase", "RetrieveTxLocation::RetrieveTxIndex %s tx failed",
                  txid.ToString().c_str());
         return false;
     }
@@ -721,7 +721,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     map<CDestination, int64> mapVote;
     if (!dbBlock.RetrieveDelegate(hash, mapVote))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveAvailDelegate::RetrieveDelegate %s block failed",
+        StdTrace("BlockBase", "RetrieveAvailDelegate::RetrieveDelegate %s block failed",
                  hash.ToString().c_str());
         return false;
     }
@@ -729,7 +729,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     map<CDestination, CDiskPos> mapEnrollTxPos;
     if (!dbBlock.RetrieveEnroll(height, vBlockRange, mapEnrollTxPos))
     {
-        StdTrace("[BlockBase][TRACE]", "RetrieveAvailDelegate::RetrieveEnroll block %s height %d failed",
+        StdTrace("BlockBase", "RetrieveAvailDelegate::RetrieveEnroll block %s height %d failed",
                  hash.ToString().c_str(), height);
         return false;
     }
@@ -745,7 +745,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 CTransaction tx;
                 if (!tsBlock.Read(tx, (*mi).second))
                 {
-                    StdTrace("[BlockBase][TRACE]", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
+                    StdTrace("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
                 mapWeight.insert(make_pair(dest, size_t((*it).second / nDelegateWeightRatio)));
@@ -788,7 +788,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         pIndex = GetIndex(hash);
         if (pIndex == nullptr)
         {
-            StdTrace("[BlockBase][TRACE]", "GetBlockView::GetIndex %s block failed", hash.ToString().c_str());
+            StdTrace("BlockBase", "GetBlockView::GetIndex %s block failed", hash.ToString().c_str());
             return false;
         }
 
@@ -796,7 +796,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         spFork = GetFork(hashOrigin);
         if (spFork == nullptr)
         {
-            StdTrace("[BlockBase][TRACE]", "GetBlockView::GetFork %s  failed", hashOrigin.ToString().c_str());
+            StdTrace("BlockBase", "GetBlockView::GetFork %s  failed", hashOrigin.ToString().c_str());
             return false;
         }
     }
@@ -810,38 +810,76 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         vector<CBlockIndex*> vPath;
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
 
+        unsigned int nRemoved = 0;
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
+            StdTrace("BlockBase",
+                     "Chain rollback[remove]: height:%u: block hash`%s` time:%u: supply:%u: algo:%u: bits:%u: trust`%s`",
+                     p->nHeight, p->GetBlockHash().ToString().c_str(), p->nTimeStamp,
+                     p->nMoneySupply, p->nProofAlgo, p->nProofBits, p->nChainTrust.ToString().c_str());
+            ++nRemoved;
             CBlockEx block;
             if (!tsBlock.Read(block, p->nFile, p->nOffset))
             {
+                StdTrace("BlockBase",
+                         "Chain rollback[remove]: Failed to read block`%s` from file",
+                         p->GetBlockHash().ToString().c_str());
                 return false;
             }
             for (int j = block.vtx.size() - 1; j >= 0; j--)
             {
+                StdTrace("BlockBase",
+                         "Chain rollback[remove]: remove tx`%s`",
+                         block.vtx[j].GetHash().ToString().c_str());
                 view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
             }
             if (!block.txMint.IsNull())
             {
+                StdTrace("BlockBase",
+                         "Chain rollback[remove]: remove mint tx`%s`",
+                         block.txMint.GetHash().ToString().c_str());
                 view.RemoveTx(block.txMint.GetHash(), block.txMint);
             }
+        }
+        if (nRemoved > 0)
+        {
+            StdTrace("BlockBase",
+                     "Chain rollback[remove]: remove block amount:%u:",
+                     nRemoved);
         }
 
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
+            StdTrace("BlockBase",
+                     "Chain rollback[add]: height:%u: block hash`%s` time:%u: supply:%u: algo:%u: bits:%u: trust`%s`",
+                     vPath[i]->nHeight, vPath[i]->GetBlockHash().ToString().c_str(),
+                     vPath[i]->nTimeStamp, vPath[i]->nMoneySupply, vPath[i]->nProofAlgo,
+                     vPath[i]->nProofBits, vPath[i]->nChainTrust.ToString().c_str());
             CBlockEx block;
             if (!tsBlock.Read(block, vPath[i]->nFile, vPath[i]->nOffset))
             {
+                StdTrace("BlockBase",
+                         "Chain rollback[add]: Failed to read block`%s` from file",
+                         vPath[i]->GetBlockHash().ToString().c_str());
                 return false;
             }
             view.AddTx(block.txMint.GetHash(), block.txMint);
             for (int j = 0; j < block.vtx.size(); j++)
             {
+                StdTrace("BlockBase",
+                         "Chain rollback[add]: add tx`%s`",
+                         block.vtx[j].GetHash().ToString().c_str());
                 const CTxContxt& txContxt = block.vTxContxt[j];
                 view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
             }
+        }
+        if (vPath.size() > 0)
+        {
+            StdTrace("BlockBase",
+                     "Chain rollback[add]: added block amount:%u:",
+                     vPath.size());
         }
     }
     return true;
@@ -868,7 +906,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     {
         if (!view.IsCommittable())
         {
-            StdTrace("[BlockBase][TRACE]", "CommitBlockView Is not COmmitable");
+            StdTrace("BlockBase", "CommitBlockView Is not COmmitable");
             return false;
         }
         spFork = view.GetFork();
@@ -878,12 +916,12 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
         CProfile profile;
         if (!LoadForkProfile(pIndexNew->pOrigin, profile))
         {
-            StdTrace("[BlockBase][TRACE]", "CommitBlockView::LoadForkProfile %s block failed", pIndexNew->pOrigin->GetBlockHash().ToString().c_str());
+            StdTrace("BlockBase", "CommitBlockView::LoadForkProfile %s block failed", pIndexNew->pOrigin->GetBlockHash().ToString().c_str());
             return false;
         }
         if (!dbBlock.AddNewFork(hashFork))
         {
-            StdTrace("[BlockBase][TRACE]", "CommitBlockView::AddNewFork %s  failed", hashFork.ToString().c_str());
+            StdTrace("BlockBase", "CommitBlockView::AddNewFork %s  failed", hashFork.ToString().c_str());
             return false;
         }
         spFork = AddNewFork(profile, pIndexNew);
@@ -892,7 +930,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     vector<pair<uint256, CTxIndex>> vTxNew;
     if (!GetTxNewIndex(view, pIndexNew, vTxNew))
     {
-        StdTrace("[BlockBase][TRACE]", "CommitBlockView::GetTxNewIndex view failed");
+        StdTrace("BlockBase", "CommitBlockView::GetTxNewIndex view failed");
         return false;
     }
 
@@ -910,7 +948,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
 
     if (!dbBlock.UpdateFork(hashFork, pIndexNew->GetBlockHash(), view.GetForkHash(), vTxNew, vTxDel, vAddNew, vRemove))
     {
-        StdTrace("[BlockBase][TRACE]", "CommitBlockView::UpdateFork %s  failed", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "CommitBlockView::UpdateFork %s  failed", hashFork.ToString().c_str());
         return false;
     }
     spFork->UpdateLast(pIndexNew);
@@ -963,7 +1001,7 @@ bool CBlockBase::LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint
     tx.SetNull();
     if (!tsBlock.Read(tx, nTxFile, nTxOffset))
     {
-        StdTrace("[BlockBase][TRACE]", "LoadTx::Read %s block failed", tx.GetHash().ToString().c_str());
+        StdTrace("BlockBase", "LoadTx::Read %s block failed", tx.GetHash().ToString().c_str());
         return false;
     }
     CBlockIndex* pIndex = (tx.hashAnchor != 0 ? GetIndex(tx.hashAnchor) : GetOriginIndex(tx.GetHash()));
@@ -982,7 +1020,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
     if (spFork == nullptr)
     {
-        StdTrace("[BlockBase][TRACE]", "FilterTx::GetFork %s  failed", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "FilterTx::GetFork %s  failed", hashFork.ToString().c_str());
         return false;
     }
 
@@ -993,6 +1031,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
         {
+            StdLog("BlockBase", "FilterTx: Block read fail, nFile: %d, nOffset: %d.", pIndex->nFile, pIndex->nOffset);
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
@@ -1000,6 +1039,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
+                StdLog("BlockBase", "FilterTx: FoundTx mint tx fail, txid: %s.", block.txMint.GetHash().GetHex().c_str());
                 return false;
             }
         }
@@ -1012,6 +1052,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
             {
                 if (!filter.FoundTx(hashFork, CAssembledTx(tx, nBlockHeight, ctxt.destIn, ctxt.GetValueIn())))
                 {
+                    StdLog("BlockBase", "FilterTx: FoundTx tx fail, txid: %s.", tx.GetHash().GetHex().c_str());
                     return false;
                 }
             }
@@ -1027,7 +1068,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
     if (spFork == nullptr)
     {
-        StdTrace("[BlockBase][TRACE]", "FilterTx::GetFork %s  failed", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "FilterTx2::GetFork %s  failed", hashFork.ToString().c_str());
         return false;
     }
 
@@ -1039,6 +1080,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
         {
+            StdLog("BlockBase", "FilterTx2: Block read fail, nFile: %d, nOffset: %d.", pIndex->nFile, pIndex->nOffset);
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
@@ -1046,6 +1088,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
+                StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, txid: %s.", block.txMint.GetHash().GetHex().c_str());
                 return false;
             }
         }
@@ -1058,6 +1101,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
             {
                 if (!filter.FoundTx(hashFork, CAssembledTx(tx, nBlockHeight, ctxt.destIn, ctxt.GetValueIn())))
                 {
+                    StdLog("BlockBase", "FilterTx2: FoundTx tx fail, txid: %s.", tx.GetHash().GetHex().c_str());
                     return false;
                 }
             }
@@ -1149,7 +1193,7 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
     if (spFork == nullptr)
     {
-        StdTrace("[BlockBase][TRACE]", "GetForkBlockInv::GetFork %s failed", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "GetForkBlockInv::GetFork %s failed", hashFork.ToString().c_str());
         return false;
     }
 

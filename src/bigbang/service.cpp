@@ -645,4 +645,57 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMi
     return pDispatcher->AddNewBlock(block);
 }
 
+bool CService::GetTxSender(const uint256& txid, CAddress& sender)
+{
+    try
+    {
+        sender = GetBackSender(txid);
+    }
+    catch (exception& e)
+    {
+        StdError("CService::GetTxSender", "get tx sender failed.");
+        return false;
+    }
+
+    return true;
+}
+
+CAddress CService::GetBackSender(const uint256& txid)
+{
+    CTransaction tx;
+    static uint256 fork;
+    int height;
+    if (!GetTransaction(txid, tx, fork, height))
+    {
+        throw std::runtime_error("get tx failed.");
+    }
+
+    while (tx.nType != CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/
+           && (tx.vInput.size() > 0 ? 0 != tx.vInput[0].prevout.n : false))
+    {
+        uint256 txHash = tx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tx, fork, height))
+        {
+            throw std::runtime_error("get prev tx failed.");
+        }
+    }
+
+    if (tx.nType == CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/)
+    {
+        return CAddress(CDestination());
+    }
+
+    if (tx.vInput.size() > 0 && 0 == tx.vInput[0].prevout.n)
+    {
+        uint256 txHash = tx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tx, fork, height))
+        {
+            throw std::runtime_error("get prev tx failed.");
+        }
+        return tx.sendTo;
+    }
+
+    throw std::runtime_error("get back sender failed.");
+}
+
 } // namespace bigbang

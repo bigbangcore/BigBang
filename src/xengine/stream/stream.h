@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <list>
 
 #include "../type.h"
 #include "stream/circular.h"
@@ -55,6 +56,10 @@ public:
     CStream& Read(char* s, std::size_t n)
     {
         ios.read(s, n);
+        if (ios.gcount() != n)
+        {
+            throw std::runtime_error((std::string("stream read error. To be reading ") + std::to_string(n) + " but " + std::to_string(ios.gcount())).c_str());
+        }
         return (*this);
     }
 
@@ -463,18 +468,26 @@ inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, LoadType&)
 {
     CVarInt var;
     *this >> var;
-    t.resize(var.nValue);
-    if (boost::is_fundamental<T>::value)
+
+    // prevent huge & bad length
+    std::list<T> l;
+    for (uint64 i = 0; i < var.nValue; i++)
     {
-        Read((char*)&t[0], sizeof(T) * t.size());
-    }
-    else
-    {
-        for (uint64 i = 0; i < var.nValue; i++)
+        T data;
+        if (boost::is_fundamental<T>::value)
         {
-            *this >> t[i];
+            Read((char*)&data, sizeof(T));
         }
+        else
+        {
+            *this >> data;
+        }
+        l.push_back(std::move(data));
     }
+
+    t.clear();
+    t.reserve(var.nValue);
+    t.insert(t.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
     return (*this);
 }
 

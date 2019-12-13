@@ -4,6 +4,8 @@
 
 #include "wallet.h"
 
+#include "address.h"
+
 // #include "../common/template/exchange.h"
 using namespace std;
 using namespace xengine;
@@ -825,6 +827,7 @@ bool CWallet::SyncWalletTx(CTxFilter& txFilter)
         map<uint256, CWalletFork>::iterator it = mapFork.find(hashFork);
         if (it == mapFork.end())
         {
+            StdLog("CWallet", "SyncWalletTx: Find fork fail, fork: %s.", hashFork.GetHex().c_str());
             return false;
         }
 
@@ -834,8 +837,14 @@ bool CWallet::SyncWalletTx(CTxFilter& txFilter)
             vFork.push_back((*mi).second);
         }
 
-        if (!pBlockChain->FilterTx(hashFork, txFilter) || !pTxPool->FilterTx(hashFork, txFilter))
+        if (!pBlockChain->FilterTx(hashFork, txFilter))
         {
+            StdLog("CWallet", "SyncWalletTx: BlockChain filter fail, fork: %s.", hashFork.GetHex().c_str());
+            return false;
+        }
+        if (!pTxPool->FilterTx(hashFork, txFilter))
+        {
+            StdLog("CWallet", "SyncWalletTx: TxPool filter fail, fork: %s.", hashFork.GetHex().c_str());
             return false;
         }
     }
@@ -855,6 +864,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         }
         else
         {
+            StdLog("CWallet", "InspectWalletTx: Address is empty, But tx is greater than 0.");
             return false;
         }
     }
@@ -880,6 +890,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         {
             if (!pTxPool->FilterTx(it, filterPool)) //condition: fork/dest's
             {
+                StdLog("CWallet", "InspectWalletTx: Filter txpool fail.");
                 return false;
             }
         }
@@ -890,14 +901,16 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         {
             if (!pBlockChain->FilterTx(it, nDepth, filterTx)) //condition: fork/depth/dest's
             {
+                StdLog("CWallet", "InspectWalletTx: Filter blockchain fail.");
                 return false;
             }
         }
     }
 
     CInspectDBTxWalker walker(this, setAddr);
-    if (!dbWallet.WalkThroughTx(walker) && !walker.fRes)
+    if (!dbWallet.WalkThroughTx(walker) || !walker.fRes)
     {
+        StdLog("CWallet", "InspectWalletTx: Inspect db tx fail.");
         return false;
     }
 
@@ -909,6 +922,7 @@ bool CWallet::CompareWithTxOrPool(const CAssembledTx& tx)
     CWalletTx wtx;
     if (!dbWallet.RetrieveTx(tx.GetHash(), wtx))
     {
+        StdLog("CWallet", "CompareWithTxOrPool: Retrieve tx fail, txid: %s.", tx.GetHash().GetHex().c_str());
         return false;
     }
 
@@ -918,6 +932,92 @@ bool CWallet::CompareWithTxOrPool(const CAssembledTx& tx)
         || tx.nAmount != wtx.nAmount || tx.nTxFee != wtx.nTxFee
         || tx.nBlockHeight != wtx.nBlockHeight)
     {
+        std::string strFailCause;
+        if (tx.nTimeStamp != wtx.nTimeStamp)
+        {
+            strFailCause += std::string("nTimeStamp error, tx.nTimeStamp=") + std::to_string(tx.nTimeStamp) + std::string(",wtx.nTimeStamp=") + std::to_string(wtx.nTimeStamp);
+        }
+        if (tx.nVersion != wtx.nVersion)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nVersion error, tx.nVersion=") + std::to_string(tx.nVersion) + std::string(",wtx.nVersion=") + std::to_string(wtx.nVersion);
+        }
+        if (tx.nType != wtx.nType)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nType error, tx.nType=") + std::to_string(tx.nType) + std::string(",wtx.nType=") + std::to_string(wtx.nType);
+        }
+        if (tx.nLockUntil != wtx.nLockUntil)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nLockUntil error, tx.nLockUntil=") + std::to_string(tx.nLockUntil) + std::string(",wtx.nLockUntil=") + std::to_string(wtx.nLockUntil);
+        }
+        if (tx.vInput != wtx.vInput)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            if (tx.vInput.size() != wtx.vInput.size())
+            {
+                strFailCause += std::string("vInput size error, tx.vInput.size()=") + std::to_string(tx.vInput.size()) + std::string(",wtx.vInput.size()=") + std::to_string(wtx.vInput.size());
+            }
+            else
+            {
+                strFailCause += std::string("vInput data error");
+            }
+            StdLog("CWallet", "vInput error:");
+            for (int i = 0; i < tx.vInput.size(); i++)
+            {
+                StdLog("CWallet", "tx.vInput[%d]: [%d] %s", i, tx.vInput[i].prevout.n, tx.vInput[i].prevout.hash.GetHex().c_str());
+            }
+            for (int i = 0; i < wtx.vInput.size(); i++)
+            {
+                StdLog("CWallet", "wtx.vInput[%d]: [%d] %s", i, wtx.vInput[i].prevout.n, wtx.vInput[i].prevout.hash.GetHex().c_str());
+            }
+        }
+        if (tx.sendTo != wtx.sendTo)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("sendTo error, tx.sendTo=") + CAddress(tx.sendTo).ToString() + std::string(",wtx.sendTo=") + CAddress(wtx.sendTo).ToString();
+        }
+        if (tx.nAmount != wtx.nAmount)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nAmount error, tx.nAmount=") + std::to_string(tx.nAmount) + std::string(",wtx.nAmount=") + std::to_string(wtx.nAmount);
+        }
+        if (tx.nTxFee != wtx.nTxFee)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nTxFee error, tx.nTxFee=") + std::to_string(tx.nTxFee) + std::string(",wtx.nTxFee=") + std::to_string(wtx.nTxFee);
+        }
+        if (tx.nBlockHeight != wtx.nBlockHeight)
+        {
+            if (!strFailCause.empty())
+            {
+                strFailCause += std::string(",");
+            }
+            strFailCause += std::string("nBlockHeight error, tx.nBlockHeight=") + std::to_string(tx.nBlockHeight) + std::string(",wtx.nBlockHeight=") + std::to_string(wtx.nBlockHeight);
+        }
+        StdLog("CWallet", "CompareWithTxOrPool: Check fail, txid: %s, cause: %s.", tx.GetHash().GetHex().c_str(), strFailCause.c_str());
         return false;
     }
 
@@ -927,8 +1027,10 @@ bool CWallet::CompareWithTxOrPool(const CAssembledTx& tx)
 bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestination>& setAddr)
 {
     //wallet transactions must be only owned by addresses in the wallet of the node
-    if (!setAddr.count(wtx.destIn) || !setAddr.count(wtx.sendTo))
+    if (!setAddr.count(wtx.destIn) && !setAddr.count(wtx.sendTo))
     {
+        StdLog("CWallet", "CompareWithPoolOrTx: Address error, wtx.destIn: %s, wtx.sendTo: %s.",
+               CAddress(wtx.destIn).ToString().c_str(), CAddress(wtx.sendTo).ToString().c_str());
         return false;
     }
 
@@ -937,6 +1039,8 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
         CTransaction tx;
         if (!pTxPool->Get(wtx.txid, tx))
         {
+            StdLog("CWallet", "CompareWithPoolOrTx: TxPool get fail, wtx.txid: %s.",
+                   wtx.txid.GetHex().c_str());
             return false;
         }
         if (tx.nTimeStamp != wtx.nTimeStamp || tx.nVersion != wtx.nVersion
@@ -944,6 +1048,8 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
             || tx.vInput != wtx.vInput || tx.sendTo != wtx.sendTo
             || tx.nAmount != wtx.nAmount || tx.nTxFee != wtx.nTxFee)
         {
+            StdLog("CWallet", "CompareWithPoolOrTx: TxPool check fail, wtx.txid: %s.",
+                   wtx.txid.GetHex().c_str());
             return false;
         }
     }
@@ -952,6 +1058,8 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
         CTransaction tx;
         if (!pBlockChain->GetTransaction(wtx.txid, tx))
         {
+            StdLog("CWallet", "CompareWithPoolOrTx: BlockChain GetTransaction fail, wtx.txid: %s.",
+                   wtx.txid.GetHex().c_str());
             return false;
         }
         if (tx.nTimeStamp != wtx.nTimeStamp || tx.nVersion != wtx.nVersion
@@ -959,6 +1067,8 @@ bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestinat
             || tx.vInput != wtx.vInput || tx.sendTo != wtx.sendTo
             || tx.nAmount != wtx.nAmount || tx.nTxFee != wtx.nTxFee)
         {
+            StdLog("CWallet", "CompareWithPoolOrTx: BlockChain check fail, wtx.txid: %s.",
+                   wtx.txid.GetHex().c_str());
             return false;
         }
     }
@@ -974,6 +1084,7 @@ bool CWallet::LoadDB()
         CDBAddrWalker walker(this);
         if (!dbWallet.WalkThroughAddress(walker))
         {
+            StdLog("CWallet", "LoadDB: WalkThroughAddress fail.");
             return false;
         }
     }
@@ -982,12 +1093,14 @@ bool CWallet::LoadDB()
         boost::unique_lock<boost::shared_mutex> wlock(rwWalletTx);
         if (!UpdateFork())
         {
+            StdLog("CWallet", "LoadDB: UpdateFork fail.");
             return false;
         }
 
         CDBTxWalker walker(this);
         if (!dbWallet.WalkThroughTx(walker))
         {
+            StdLog("CWallet", "LoadDB: WalkThroughTx fail.");
             return false;
         }
         walker.LoadSpentTx();
@@ -1186,12 +1299,15 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
     auto it = mapWalletUnspent.find(dest);
     if (it == mapWalletUnspent.end())
     {
+        StdLog("CWallet", "SelectCoins: Find dest fail, dest: %s.", CAddress(dest).ToString().c_str());
         return 0;
     }
 
     CWalletCoins& walletCoins = it->second.GetCoins(hashFork);
     if (walletCoins.nTotalValue < nTargetValue)
     {
+        StdLog("CWallet", "SelectCoins: Coins not enough, dest: %s, nTotalValue: %ld, nTargetValue: %ld.",
+               CAddress(dest).ToString().c_str(), walletCoins.nTotalValue, nTargetValue);
         return 0;
     }
 
