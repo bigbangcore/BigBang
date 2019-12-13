@@ -908,7 +908,7 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
     }
 
     CInspectDBTxWalker walker(this, setAddr);
-    if (!dbWallet.WalkThroughTx(walker) && !walker.fRes)
+    if (!dbWallet.WalkThroughTx(walker) || !walker.fRes)
     {
         StdLog("CWallet", "InspectWalletTx: Inspect db tx fail.");
         return false;
@@ -1027,7 +1027,7 @@ bool CWallet::CompareWithTxOrPool(const CAssembledTx& tx)
 bool CWallet::CompareWithPoolOrTx(const CWalletTx& wtx, const std::set<CDestination>& setAddr)
 {
     //wallet transactions must be only owned by addresses in the wallet of the node
-    if (!setAddr.count(wtx.destIn) || !setAddr.count(wtx.sendTo))
+    if (!setAddr.count(wtx.destIn) && !setAddr.count(wtx.sendTo))
     {
         StdLog("CWallet", "CompareWithPoolOrTx: Address error, wtx.destIn: %s, wtx.sendTo: %s.",
                CAddress(wtx.destIn).ToString().c_str(), CAddress(wtx.sendTo).ToString().c_str());
