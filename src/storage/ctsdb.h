@@ -293,15 +293,13 @@ public:
         // {
         //     return chunk.Find(key, value);
         // }
-        std::cout << "Retrieve tx timestamp " << nTime << std::endl;
+
         C chunk;
         if (LoadFromDB(nTime, chunk))
         {
-            std::cout << "Retrieve::LoadFromDB true" << std::endl;
             return chunk.Find(key, value);
         }
 
-        std::cout << "Retrieve::LoadFromDB false" << std::endl;
         return false;
     }
 
@@ -341,12 +339,6 @@ public:
             {
                 return false;
             }
-            std::cout << "vChunck size: " << vChunk.size() << std::endl;
-            for (const auto& value : vTime)
-            {
-                std::cout << "timestamp: " << value << std::endl;
-            }
-            std::cout << "Updated Chunck" << std::endl;
         }
 
         ulock.Upgrade();
@@ -388,16 +380,11 @@ protected:
         // {
         //     mapUpdate[nTime].insert(chunk.begin(), chunk.end());
         // }
-        std::cout << "GetUpperMap Tx timestamp " << nTime << std::endl;
+
         C chunk;
         if (LoadFromDB(nTime, chunk))
         {
-            std::cout << "GetUpperMap::LoadFromDB true " << std::endl;
             mapUpdate[nTime].insert(chunk.begin(), chunk.end());
-        }
-        else
-        {
-            std::cout << "GetUpperMap::LoadFromDB false" << std::endl;
         }
 
         return mapUpdate[nTime];
