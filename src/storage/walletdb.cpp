@@ -398,8 +398,12 @@ public:
 //////////////////////////////
 // CWalletDB
 
+#define WALLET_FLUSH_INTERVAL (600)
+
 CWalletDB::CWalletDB()
 {
+    pThreadFlush = nullptr;
+    fStopFlush = true;
 }
 
 CWalletDB::~CWalletDB()
@@ -429,19 +433,32 @@ bool CWalletDB::Initialize(const boost::filesystem::path& pathWallet)
         return false;
     }
 
+    fStopFlush = false;
+    pThreadFlush = new boost::thread(boost::bind(&CWalletDB::FlushProc, this));
+    if (pThreadFlush == nullptr)
+    {
+        fStopFlush = true;
+        return false;
+    }
+
     return true;
 }
 
 void CWalletDB::Deinitialize()
 {
-    vector<CWalletTx> vWalletTx;
-    txCache.ListTx(0, -1, vWalletTx);
-    if (!vWalletTx.empty())
-    {
-        UpdateTx(vWalletTx);
-    }
+    FlushTx();
 
-    txCache.Clear();
+    if (pThreadFlush)
+    {
+        {
+            boost::unique_lock<boost::mutex> lock(mtxFlush);
+            fStopFlush = true;
+        }
+        condFlush.notify_all();
+        pThreadFlush->join();
+        delete pThreadFlush;
+        pThreadFlush = nullptr;
+    }
 
     dbWtx.Deinitialize();
     dbAddr.Deinitialize();
@@ -578,6 +595,43 @@ bool CWalletDB::ClearTx()
 {
     txCache.Clear();
     return dbWtx.Clear();
+}
+
+void CWalletDB::FlushTx()
+{
+    vector<CWalletTx> vWalletTx;
+    txCache.ListTx(0, -1, vWalletTx);
+    if (!vWalletTx.empty())
+    {
+        UpdateTx(vWalletTx);
+    }
+
+    txCache.Clear();
+}
+
+void CWalletDB::FlushProc()
+{
+    SetThreadName("WalletDB");
+    boost::system_time timeout = boost::get_system_time();
+
+    boost::unique_lock<boost::mutex> lock(mtxFlush);
+    while (!fStopFlush)
+    {
+        timeout += boost::posix_time::seconds(WALLET_FLUSH_INTERVAL);
+
+        while (!fStopFlush)
+        {
+            if (!condFlush.timed_wait(lock, timeout))
+            {
+                break;
+            }
+        }
+
+        if (!fStopFlush)
+        {
+            FlushTx();
+        }
+    }
 }
 
 } // namespace storage

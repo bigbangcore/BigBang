@@ -440,7 +440,7 @@ void CUnspentDB::Flush(const uint256& hashFork)
     map<uint256, std::shared_ptr<CForkUnspentDB>>::iterator it = mapUnspentDB.find(hashFork);
     if (it != mapUnspentDB.end())
     {
-        (*it).second->Flush();
+        it->second->Flush();
     }
 }
 

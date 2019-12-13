@@ -182,13 +182,10 @@ void CTxIndexDB::Flush(const uint256& hashFork)
     CReadLock rlock(rwAccess);
 
     map<uint256, std::shared_ptr<CForkTxDB>>::iterator it = mapTxDB.find(hashFork);
-    if (it == mapTxDB.end())
+    if (it != mapTxDB.end())
     {
-        return;
+        it->second->Flush();
     }
-
-    std::shared_ptr<CForkTxDB> spTxDB = (*it).second;
-    spTxDB->Flush();
 }
 
 void CTxIndexDB::FlushProc()
