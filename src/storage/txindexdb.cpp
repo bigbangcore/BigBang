@@ -114,6 +114,7 @@ bool CTxIndexDB::Update(const uint256& hashFork, const vector<pair<uint256, CTxI
     for (int i = 0; i < vTxNew.size(); i++)
     {
         CTxId txid(vTxNew[i].first);
+        std::cout << "Updating tx: " << txid.GetTxHash().ToString() << " Tx TimeStamp: " << txid.GetTxTime() << std::endl;
         spTxDB->Update(txid.GetTxTime(), txid.GetTxHash(), vTxNew[i].second);
     }
 

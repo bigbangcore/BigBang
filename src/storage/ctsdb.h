@@ -27,19 +27,22 @@ public:
     void Deinitialize();
     bool Update(const std::vector<int64>& vTime, const std::vector<CDiskPos>& vPos,
                 const std::vector<int64>& vDel);
-    template <typename K, typename V>
-    bool UpdateChunck(const std::vector<int64>& vTime, const std::map<int64, std::map<K, V>>& mapChunck, const std::vector<int64>& vDel)
+    template <typename C>
+    bool UpdateChunck(const std::vector<int64>& vTime, const std::vector<C>& vChunk, const std::vector<int64>& vDel)
     {
+        if (vTime.size() != vChunk.size())
+        {
+            return false;
+        }
+
         if (!TxnBegin())
         {
             return false;
         }
 
-        (void)vTime;
-
-        for (const auto& kv : mapChunck)
+        for (int i = 0; i < vTime.size(); i++)
         {
-            Write(kv.first, kv.second);
+            Write(vTime[i], vChunk[i]);
         }
 
         for (int i = 0; i < vDel.size(); i++)
@@ -56,10 +59,10 @@ public:
     }
     bool Retrieve(int64 nTime, CDiskPos& pos);
 
-    template <typename K, typename V>
-    bool RetrieveChunck(const int64 nTime, std::map<K, V>& mapChunk)
+    template <typename C>
+    bool RetrieveChunck(const int64 nTime, C& chunk)
     {
-        return Read(nTime, mapChunk);
+        return Read(nTime, chunk);
     }
 };
 
@@ -290,21 +293,15 @@ public:
         // {
         //     return chunk.Find(key, value);
         // }
-
-        std::map<K, V> mapChunk;
-        if (LoadFromDB(nTime, mapChunk))
+        std::cout << "Retrieve tx timestamp " << nTime << std::endl;
+        C chunk;
+        if (LoadFromDB(nTime, chunk))
         {
-            if (mapChunk.find(key) != mapChunk.end())
-            {
-                value = mapChunk[key];
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            std::cout << "Retrieve::LoadFromDB true" << std::endl;
+            return chunk.Find(key, value);
         }
 
+        std::cout << "Retrieve::LoadFromDB false" << std::endl;
         return false;
     }
 
@@ -340,10 +337,16 @@ public:
 
         if (!vChunk.empty() || !vDel.empty())
         {
-            if (!dbIndex.UpdateChunck<K, V>(vTime, mapFlush, vDel))
+            if (!dbIndex.UpdateChunck<C>(vTime, vChunk, vDel))
             {
                 return false;
             }
+            std::cout << "vChunck size: " << vChunk.size() << std::endl;
+            for (const auto& value : vTime)
+            {
+                std::cout << "timestamp: " << value << std::endl;
+            }
+            std::cout << "Updated Chunck" << std::endl;
         }
 
         ulock.Upgrade();
@@ -385,12 +388,18 @@ protected:
         // {
         //     mapUpdate[nTime].insert(chunk.begin(), chunk.end());
         // }
-
-        std::map<K, V> mapChunk;
-        if (LoadFromDB(nTime, mapChunk))
+        std::cout << "GetUpperMap Tx timestamp " << nTime << std::endl;
+        C chunk;
+        if (LoadFromDB(nTime, chunk))
         {
-            mapUpdate[nTime].insert(mapChunk.begin(), mapChunk.end());
+            std::cout << "GetUpperMap::LoadFromDB true " << std::endl;
+            mapUpdate[nTime].insert(chunk.begin(), chunk.end());
         }
+        else
+        {
+            std::cout << "GetUpperMap::LoadFromDB false" << std::endl;
+        }
+
         return mapUpdate[nTime];
     }
     bool LoadFromFile(const int64 nTime, C& chunk)
@@ -403,12 +412,14 @@ protected:
         return false;
     }
 
-    bool LoadFromDB(const int64 nTime, std::map<K, V>& mapChunk)
+    bool LoadFromDB(const int64 nTime, C& chunk)
     {
-        if (dbIndex.RetrieveChunck(nTime, mapChunk))
+        if (dbIndex.RetrieveChunck<C>(nTime, chunk))
         {
+
             return true;
         }
+
         return false;
     }
 
