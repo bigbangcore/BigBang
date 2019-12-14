@@ -10,7 +10,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/thread/thread.hpp>
 #include <xengine.h>
 
 #include "key.h"
@@ -225,11 +224,6 @@ protected:
     CWalletAddrDB dbAddr;
     CWalletTxDB dbWtx;
     CWalletTxCache txCache;
-
-    boost::mutex mtxFlush;
-    boost::condition_variable condFlush;
-    boost::thread* pThreadFlush;
-    bool fStopFlush;
 };
 
 } // namespace storage

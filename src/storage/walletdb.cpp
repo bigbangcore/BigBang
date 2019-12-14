@@ -406,12 +406,8 @@ public:
 //////////////////////////////
 // CWalletDB
 
-#define WALLET_FLUSH_INTERVAL (600)
-
 CWalletDB::CWalletDB()
 {
-    pThreadFlush = nullptr;
-    fStopFlush = true;
 }
 
 CWalletDB::~CWalletDB()
@@ -441,32 +437,12 @@ bool CWalletDB::Initialize(const boost::filesystem::path& pathWallet)
         return false;
     }
 
-    fStopFlush = false;
-    pThreadFlush = new boost::thread(boost::bind(&CWalletDB::FlushProc, this));
-    if (pThreadFlush == nullptr)
-    {
-        fStopFlush = true;
-        return false;
-    }
-
     return true;
 }
 
 void CWalletDB::Deinitialize()
 {
     FlushTx();
-
-    if (pThreadFlush)
-    {
-        {
-            boost::unique_lock<boost::mutex> lock(mtxFlush);
-            fStopFlush = true;
-        }
-        condFlush.notify_all();
-        pThreadFlush->join();
-        delete pThreadFlush;
-        pThreadFlush = nullptr;
-    }
 
     dbWtx.Deinitialize();
     dbAddr.Deinitialize();
@@ -616,31 +592,6 @@ void CWalletDB::FlushTx()
     }
 
     txCache.Clear();
-}
-
-void CWalletDB::FlushProc()
-{
-    SetThreadName("WalletDB");
-    boost::system_time timeout = boost::get_system_time();
-
-    boost::unique_lock<boost::mutex> lock(mtxFlush);
-    while (!fStopFlush)
-    {
-        timeout += boost::posix_time::seconds(WALLET_FLUSH_INTERVAL);
-
-        while (!fStopFlush)
-        {
-            if (!condFlush.timed_wait(lock, timeout))
-            {
-                break;
-            }
-        }
-
-        if (!fStopFlush)
-        {
-            FlushTx();
-        }
-    }
 }
 
 } // namespace storage
