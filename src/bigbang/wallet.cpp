@@ -126,7 +126,7 @@ class CInspectDBTxWalker : public storage::CWalletDBTxWalker
 {
 public:
     CInspectDBTxWalker(CWallet* pWalletIn, const set<CDestination>& setDestIn)
-      : fRes(false), pWallet(pWalletIn), setDest(setDestIn) {}
+      : fRes(true), pWallet(pWalletIn), setDest(setDestIn) {}
     bool Walk(const CWalletTx& wtx) override
     {
         fRes = pWallet->CompareWithPoolOrTx(wtx, setDest);
