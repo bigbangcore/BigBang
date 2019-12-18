@@ -489,6 +489,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
         Log("AddNew Block : Short chain, Fork chain trust: %s", pIndexFork->nChainTrust.GetHex().c_str());
+        // record short chain
+        if (!cntrBlock.RecordRemove(blockex))
+        {
+            Error("Record removed block failed, removed %s", blockex.GetHash().ToString().c_str());
+        } 
         return OK;
     }
 

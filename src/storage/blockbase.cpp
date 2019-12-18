@@ -493,6 +493,7 @@ bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
         StdTrace("BlockBase", "Retrieve::Read %s block failed", hash.ToString().c_str());
         return false;
     }
+    StdTrace("BlockBase", "Retrieve::Read %s block, file %u, offset %u", hash.ToString().c_str(), pIndex->nFile, pIndex->nOffset);
     return true;
 }
 
@@ -1685,6 +1686,17 @@ bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vect
             StdError("[BlockBase][ERROR]", "Write added %s block failed", added.GetHash().ToString().c_str());
             return false;
         }
+    }
+    return true;
+}
+
+bool CBlockBase::RecordRemove(const CBlockEx& block)
+{
+    CDiskPos pos;
+    if (!tsBlock.Write(CBlockChange(block, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
+    {
+        StdError("[BlockBase][ERROR]", "Record removed %s block failed", block.GetHash().ToString().c_str());
+        return false;
     }
     return true;
 }

@@ -254,6 +254,7 @@ public:
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool RecordRollback(const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
+    bool RecordRemove(const CBlockEx& block);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
