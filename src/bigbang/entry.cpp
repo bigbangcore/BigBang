@@ -25,6 +25,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "recovery.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -353,6 +354,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::RECOVERY:
+        {
+            if (!AttachModule(new CRecovery()))
             {
                 return false;
             }

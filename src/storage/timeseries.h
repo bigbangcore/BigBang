@@ -246,13 +246,13 @@ public:
         while (GetFilePath(nFile, pathFile) && fRet)
         {
             nLastFileRet = nFile;
+            xengine::CFileStream fs(pathFile.c_str());
             try
             {
-                xengine::CFileStream fs(pathFile.c_str());
                 fs.Seek(0);
                 nOffset = 0;
 
-                while (!fs.IsEOF() && fRet)
+                while (!fs.IsEOF() && (fs.GetSize() > 0) && fRet)
                 {
                     uint32 nMagic, nSize;
                     T t;

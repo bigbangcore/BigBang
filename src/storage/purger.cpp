@@ -67,7 +67,13 @@ bool CPurger::RemoveBlockFile(const path& pathDataLocation) const
         path pathBlock = pathDataLocation / "block";
         if (exists(pathBlock))
         {
-            remove_all(pathBlock);
+            // delete all files except the block directory
+            directory_iterator end;
+            directory_iterator it(pathBlock);
+            for (; it != end; it++)
+            {
+                remove_all(it->path());
+            }
         }
     }
     catch (exception& e)
