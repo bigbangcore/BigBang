@@ -479,6 +479,11 @@ bool CService::AddTemplate(CTemplatePtr& ptr)
     return pWallet->AddTemplate(ptr);
 }
 
+bool CService::AddTemplate(const CTemplateId& tid)
+{
+    return pWallet->AddTemplate(tid);
+}
+
 CTemplatePtr CService::GetTemplate(const CTemplateId& tid)
 {
     return pWallet->GetTemplate(tid);

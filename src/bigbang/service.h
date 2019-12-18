@@ -63,6 +63,7 @@ public:
     bool HaveTemplate(const CTemplateId& tid) override;
     void GetTemplateIds(std::set<CTemplateId>& setTid) override;
     bool AddTemplate(CTemplatePtr& ptr) override;
+    bool AddTemplate(const CTemplateId& tid) override;
     CTemplatePtr GetTemplate(const CTemplateId& tid) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) override;
     bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;

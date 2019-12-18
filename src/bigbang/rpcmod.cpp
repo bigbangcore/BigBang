@@ -226,6 +226,8 @@ CRPCMod::CRPCMod()
         //
         ("exporttemplate", &CRPCMod::RPCExportTemplate)
         //
+        ("importtemplateaddress", &CRPCMod::RPCImportTemplateAddress)
+        //
         ("validateaddress", &CRPCMod::RPCValidateAddress)
         //
         ("resyncwallet", &CRPCMod::RPCResyncWallet)
@@ -1310,7 +1312,7 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
-    if (!pService->HaveTemplate(ptr->GetTemplateId()))
+    if (pService->GetTemplate(ptr->GetTemplateId()) != nullptr)
     {
         if (!pService->AddTemplate(ptr))
         {
@@ -1348,6 +1350,30 @@ CRPCResultPtr CRPCMod::RPCExportTemplate(CRPCParamPtr param)
 
     vector<unsigned char> vchTemplate = ptr->Export();
     return MakeCExportTemplateResultPtr(ToHexString(vchTemplate));
+}
+
+CRPCResultPtr CRPCMod::RPCImportTemplateAddress(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CImportTemplateAddressParam>(param);
+    CAddress address(spParam->strAddr);
+    if (!address.IsTemplate())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Is not a template");
+    }
+
+    if (!pService->HaveTemplate(address.GetTemplateId()))
+    {
+        if (!pService->AddTemplate(address.GetTemplateId()))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
+        }
+        if (!pService->SynchronizeWalletTx(address))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
+        }
+    }
+
+    return MakeCImportTemplateAddressResultPtr(address.ToString());
 }
 
 CRPCResultPtr CRPCMod::RPCValidateAddress(CRPCParamPtr param)
@@ -1773,11 +1799,18 @@ CRPCResultPtr CRPCMod::RPCListAddress(CRPCParamPtr param)
             uint16 nType = tid.GetType();
             CTemplatePtr ptr = pService->GetTemplate(tid);
             addressData.strTemplate = CTemplate::GetTypeName(nType);
-
             auto& templateData = addressData.templatedata;
-            templateData.strHex = ToHexString(ptr->Export());
-            templateData.strType = ptr->GetName();
-            ptr->GetTemplateData(templateData, CAddress());
+            if (ptr == nullptr)
+            {
+                templateData.strHex = "";
+                templateData.strType = CTemplate::GetTypeName(nType);
+            }
+            else
+            {
+                templateData.strHex = ToHexString(ptr->Export());
+                templateData.strType = ptr->GetName();
+                ptr->GetTemplateData(templateData, CAddress());
+            }
         }
         else
         {
