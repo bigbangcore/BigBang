@@ -44,6 +44,8 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
+    InitCheckPoints();
+
     return true;
 }
 
@@ -1006,6 +1008,49 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     // {
     //     return OK;
     // }
+}
+
+void CBlockChain::InitCheckPoints()
+{
+    vecCheckPoints.assign(
+        { { 0, uint256("") },
+          { 5000, uint256("") },
+          { 10000, uint256("") } });
+
+    for (const auto& point : vecCheckPoints)
+    {
+        mapCheckPoints.insert(std::make_pair(point.nHeight, point));
+    }
+}
+
+bool CBlockChain::HasCheckPoints() const
+{
+    return mapCheckPoints.size() > 0;
+}
+
+CCheckPoint CBlockChain::GetCheckPointByHeight(int nHeight)
+{
+    return CCheckPoint();
+}
+
+std::vector<CCheckPoint> CBlockChain::CheckPoints() const
+{
+    return vecCheckPoints;
+}
+
+CCheckPoint CBlockChain::LatestCheckPoint() const
+{
+    return vecCheckPoints.back();
+}
+
+bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
+{
+    return false;
+}
+
+bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
+{
+    return false;
 }
 
 } // namespace bigbang

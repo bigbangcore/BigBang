@@ -13,6 +13,25 @@
 namespace bigbang
 {
 
+class CCheckPoint
+{
+public:
+    CCheckPoint()
+      : nHeight(-1)
+    {
+    }
+    CCheckPoint(int nHeightIn, const uint256& nBlockHashIn)
+      : nHeight(nHeightIn), nBlockHash(nBlockHashIn)
+    {
+    }
+    CCheckPoint(const CCheckPoint& point)
+      : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
+    {
+    }
+    int nHeight;
+    uint256 nBlockHash;
+};
+
 class CBlockChain : public IBlockChain
 {
 public:
@@ -52,6 +71,14 @@ public:
     // bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
 
+    /////////////    CheckPoints    /////////////////////
+    bool HasCheckPoints() const;
+    CCheckPoint GetCheckPointByHeight(int nHeight);
+    std::vector<CCheckPoint> CheckPoints() const;
+    CCheckPoint LatestCheckPoint() const;
+    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash);
+    bool FindPreviousCheckPointBlock(CBlock& block);
+
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -68,6 +95,8 @@ protected:
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
                       int64& nReward, CDelegateAgreement& agreement);
 
+    void InitCheckPoints();
+
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
@@ -75,6 +104,10 @@ protected:
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
+
+    std::map<int, CCheckPoint> mapCheckPoints;
+    std::vector<CCheckPoint> vecCheckPoints;
+    const int nCheckpointConfirmations{ 2016 };
 };
 
 } // namespace bigbang
