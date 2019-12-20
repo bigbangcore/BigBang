@@ -1086,6 +1086,19 @@ bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
         return false;
     }
 
+    const auto& points = CheckPoints();
+    int numCheckpoints = points.size();
+    for (int i = numCheckpoints - 1; i >= 0; i--)
+    {
+        const CCheckPoint& point = points[i];
+        if (!GetBlock(point.nBlockHash, block))
+        {
+            continue;
+        }
+
+        return true;
+    }
+
     return false;
 }
 
