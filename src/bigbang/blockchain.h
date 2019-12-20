@@ -6,10 +6,10 @@
 #define BIGBANG_BLOCKCHAIN_H
 
 #include <map>
+#include <uint256.h>
 
 #include "base.h"
 #include "blockbase.h"
-
 namespace bigbang
 {
 
@@ -73,7 +73,7 @@ public:
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const;
-    CCheckPoint GetCheckPointByHeight(int nHeight);
+    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point);
     std::vector<CCheckPoint> CheckPoints() const;
     CCheckPoint LatestCheckPoint() const;
     bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash);

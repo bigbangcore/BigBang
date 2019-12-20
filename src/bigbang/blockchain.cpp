@@ -1028,9 +1028,17 @@ bool CBlockChain::HasCheckPoints() const
     return mapCheckPoints.size() > 0;
 }
 
-CCheckPoint CBlockChain::GetCheckPointByHeight(int nHeight)
+bool CBlockChain::GetCheckPointByHeight(int nHeight, CCheckPoint& point)
 {
-    return CCheckPoint();
+    if (mapCheckPoints.count(nHeight) == 0)
+    {
+        return false;
+    }
+    else
+    {
+        point = mapCheckPoints[nHeight];
+        return true;
+    }
 }
 
 std::vector<CCheckPoint> CBlockChain::CheckPoints() const
@@ -1040,16 +1048,44 @@ std::vector<CCheckPoint> CBlockChain::CheckPoints() const
 
 CCheckPoint CBlockChain::LatestCheckPoint() const
 {
+    if (!HasCheckPoints())
+    {
+        return CCheckPoint();
+    }
+
     return vecCheckPoints.back();
 }
 
 bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
 {
-    return false;
+    if (!HasCheckPoints())
+    {
+        return true;
+    }
+
+    CCheckPoint point;
+    if (!GetCheckPointByHeight(nHeight, point))
+    {
+        return true;
+    }
+
+    if (nBlockHash != point.nBlockHash)
+    {
+        return false;
+    }
+
+    Log("Verified checkpoint at height %d/block %s", point.nHeight, point.nBlockHash);
+
+    return true;
 }
 
 bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
 {
+    if (!HasCheckPoints())
+    {
+        return false;
+    }
+
     return false;
 }
 
