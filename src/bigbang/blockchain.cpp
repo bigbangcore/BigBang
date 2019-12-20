@@ -1074,7 +1074,7 @@ bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
         return false;
     }
 
-    Log("Verified checkpoint at height %d/block %s", point.nHeight, point.nBlockHash);
+    Log("Verified checkpoint at height %d/block %s", point.nHeight, point.nBlockHash.ToString().c_str());
 
     return true;
 }

@@ -28,6 +28,8 @@ public:
       : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
     {
     }
+
+public:
     int nHeight;
     uint256 nBlockHash;
 };
