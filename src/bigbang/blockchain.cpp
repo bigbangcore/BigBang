@@ -1012,10 +1012,10 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
 void CBlockChain::InitCheckPoints()
 {
-    vecCheckPoints.assign(
-        { { 0, uint256("") },
-          { 5000, uint256("") },
-          { 10000, uint256("") } });
+    // vecCheckPoints.assign(
+    //     { { 0, uint256("") },
+    //       { 5000, uint256("") },
+    //       { 10000, uint256("") } });
 
     for (const auto& point : vecCheckPoints)
     {
