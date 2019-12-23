@@ -54,9 +54,9 @@ public:
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const;
-    bool GetCheckPointByHeight(int nHeight, IBlockChain::CCheckPoint& point);
-    std::vector<IBlockChain::CCheckPoint> CheckPoints() const;
-    IBlockChain::CCheckPoint LatestCheckPoint() const;
+    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point);
+    std::vector<CCheckPoint> CheckPoints() const;
+    CCheckPoint LatestCheckPoint() const;
     bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash);
     bool FindPreviousCheckPointBlock(CBlock& block);
 

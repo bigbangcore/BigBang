@@ -1050,7 +1050,7 @@ IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint() const
 {
     if (!HasCheckPoints())
     {
-        return IBlockChain::CCheckPoint();
+        return CCheckPoint();
     }
 
     return vecCheckPoints.back();
@@ -1063,7 +1063,7 @@ bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
         return true;
     }
 
-    IBlockChain::CCheckPoint point;
+    CCheckPoint point;
     if (!GetCheckPointByHeight(nHeight, point))
     {
         return true;
