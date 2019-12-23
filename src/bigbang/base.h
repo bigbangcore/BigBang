@@ -59,6 +59,28 @@ public:
 class IBlockChain : public xengine::IBase
 {
 public:
+    class CCheckPoint
+    {
+    public:
+        CCheckPoint()
+          : nHeight(-1)
+        {
+        }
+        CCheckPoint(int nHeightIn, const uint256& nBlockHashIn)
+          : nHeight(nHeightIn), nBlockHash(nBlockHashIn)
+        {
+        }
+        CCheckPoint(const CCheckPoint& point)
+          : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
+        {
+        }
+
+    public:
+        int nHeight;
+        uint256 nBlockHash;
+    };
+
+public:
     IBlockChain()
       : IBase("blockchain") {}
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
@@ -95,6 +117,15 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     // virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     // virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
+
+    /////////////    CheckPoints    /////////////////////
+    virtual bool HasCheckPoints() const = 0;
+    virtual bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) = 0;
+    virtual std::vector<CCheckPoint> CheckPoints() const = 0;
+    virtual CCheckPoint LatestCheckPoint() const = 0;
+    virtual bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) = 0;
+    virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
+
     const CBasicConfig* Config()
     {
         return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());

@@ -761,10 +761,16 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     uint256& hashFork = eventBlock.hashFork;
     CBlock& block = eventBlock.data;
     uint256 hash = block.GetHash();
-
+    uint32 nBlockHeight = block.GetBlockHeight();
     try
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+
+        if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
+        {
+            StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
+            throw std::runtime_error("block doest not match checkpoint hash");
+        }
 
         set<uint64> setSchedPeer, setMisbehavePeer;
         CSchedule& sched = GetSchedule(hashFork);

@@ -13,27 +13,6 @@
 namespace bigbang
 {
 
-class CCheckPoint
-{
-public:
-    CCheckPoint()
-      : nHeight(-1)
-    {
-    }
-    CCheckPoint(int nHeightIn, const uint256& nBlockHashIn)
-      : nHeight(nHeightIn), nBlockHash(nBlockHashIn)
-    {
-    }
-    CCheckPoint(const CCheckPoint& point)
-      : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
-    {
-    }
-
-public:
-    int nHeight;
-    uint256 nBlockHash;
-};
-
 class CBlockChain : public IBlockChain
 {
 public:
@@ -75,9 +54,9 @@ public:
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const;
-    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point);
-    std::vector<CCheckPoint> CheckPoints() const;
-    CCheckPoint LatestCheckPoint() const;
+    bool GetCheckPointByHeight(int nHeight, IBlockChain::CCheckPoint& point);
+    std::vector<IBlockChain::CCheckPoint> CheckPoints() const;
+    IBlockChain::CCheckPoint LatestCheckPoint() const;
     bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash);
     bool FindPreviousCheckPointBlock(CBlock& block);
 

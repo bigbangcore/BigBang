@@ -1041,16 +1041,16 @@ bool CBlockChain::GetCheckPointByHeight(int nHeight, CCheckPoint& point)
     }
 }
 
-std::vector<CCheckPoint> CBlockChain::CheckPoints() const
+std::vector<IBlockChain::CCheckPoint> CBlockChain::CheckPoints() const
 {
     return vecCheckPoints;
 }
 
-CCheckPoint CBlockChain::LatestCheckPoint() const
+IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint() const
 {
     if (!HasCheckPoints())
     {
-        return CCheckPoint();
+        return IBlockChain::CCheckPoint();
     }
 
     return vecCheckPoints.back();
@@ -1063,7 +1063,7 @@ bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
         return true;
     }
 
-    CCheckPoint point;
+    IBlockChain::CCheckPoint point;
     if (!GetCheckPointByHeight(nHeight, point))
     {
         return true;
