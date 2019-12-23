@@ -1083,7 +1083,7 @@ bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
 {
     if (!HasCheckPoints())
     {
-        return false;
+        return true;
     }
 
     const auto& points = CheckPoints();
