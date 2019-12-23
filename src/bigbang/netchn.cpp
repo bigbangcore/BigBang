@@ -772,6 +772,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             throw std::runtime_error("block doest not match checkpoint hash");
         }
 
+        CBlock checkPointBlock;
+        if (!pBlockChain->FindPreviousCheckPointBlock(checkPointBlock))
+        {
+            StdError("NetChannel", "Cannot Find any CheckPoint Block in local");
+            return true;
+        }
+
         set<uint64> setSchedPeer, setMisbehavePeer;
         CSchedule& sched = GetSchedule(hashFork);
 

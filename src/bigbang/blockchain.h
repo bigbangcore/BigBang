@@ -53,12 +53,12 @@ public:
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
 
     /////////////    CheckPoints    /////////////////////
-    bool HasCheckPoints() const;
-    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point);
-    std::vector<CCheckPoint> CheckPoints() const;
-    CCheckPoint LatestCheckPoint() const;
-    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash);
-    bool FindPreviousCheckPointBlock(CBlock& block);
+    bool HasCheckPoints() const override;
+    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) override;
+    std::vector<CCheckPoint> CheckPoints() const override;
+    CCheckPoint LatestCheckPoint() const override;
+    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
+    bool FindPreviousCheckPointBlock(CBlock& block) override;
 
 protected:
     bool HandleInitialize() override;
