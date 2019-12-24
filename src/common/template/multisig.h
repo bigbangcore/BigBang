@@ -10,7 +10,7 @@
 class CTemplateMultiSig : virtual public CTemplateWeighted
 {
 public:
-    CTemplateMultiSig(const uint8 nRequiredIn = 0, const WeightedMap& mapPubKeyWeightIn = WeightedMap());
+    CTemplateMultiSig(const uint8 nRequiredIn = 0, const std::map<bigbang::crypto::CPubKey, uint8>& mapPubKeyWeightIn = std::map<bigbang::crypto::CPubKey, uint8>());
     virtual CTemplateMultiSig* clone() const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
 

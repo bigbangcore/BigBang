@@ -15,12 +15,11 @@ using namespace xengine;
 using namespace bigbang::crypto;
 
 static const int MAX_KEY_NUMBER = 16;
-static const int MAX_REQUIRED = 255;
 
 //////////////////////////////
 // CTemplateWeighted
 
-CTemplateWeighted::CTemplateWeighted(const uint8 nRequiredIn, const WeightedMap& mapPubKeyWeightIn)
+CTemplateWeighted::CTemplateWeighted(const uint8 nRequiredIn, const std::map<bigbang::crypto::CPubKey, uint8>& mapPubKeyWeightIn)
   : CTemplate(TEMPLATE_WEIGHTED), nRequired(nRequiredIn), mapPubKeyWeight(mapPubKeyWeightIn)
 {
 }
@@ -61,7 +60,7 @@ void CTemplateWeighted::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
 
 bool CTemplateWeighted::ValidateParam() const
 {
-    if (nRequired == 0)
+    if (nRequired < 1)
     {
         return false;
     }
@@ -74,7 +73,7 @@ bool CTemplateWeighted::ValidateParam() const
     int nWeight = 0;
     for (const auto& keyweight : mapPubKeyWeight)
     {
-        if (keyweight.second == 0)
+        if (keyweight.second < 1)
         {
             return false;
         }
@@ -112,11 +111,11 @@ bool CTemplateWeighted::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         return false;
     }
 
-    if (obj.weighted.nRequired < 1 || obj.weighted.nRequired > MAX_REQUIRED)
+    nRequired = obj.weighted.nRequired;
+    if (nRequired != obj.weighted.nRequired)
     {
         return false;
     }
-    nRequired = obj.weighted.nRequired;
 
     for (auto& keyweight : obj.weighted.vecPubkeys)
     {
@@ -124,16 +123,7 @@ bool CTemplateWeighted::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         {
             return false;
         }
-        if (keyweight.nWeight < 1 || keyweight.nWeight > MAX_REQUIRED)
-        {
-            return false;
-        }
         mapPubKeyWeight.insert(make_pair(destInstance.GetPubKey(), keyweight.nWeight));
-    }
-
-    if (mapPubKeyWeight.size() != obj.weighted.vecPubkeys.size())
-    {
-        return false;
     }
 
     return true;
@@ -165,7 +155,7 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     int nWeight = 0;
     for (const uint256& key : setPartKey)
     {
-        WeightedMap::const_iterator it = mapPubKeyWeight.find(CPubKey(key));
+        auto it = mapPubKeyWeight.find(CPubKey(key));
         if (it != mapPubKeyWeight.end())
         {
             nWeight += it->second;

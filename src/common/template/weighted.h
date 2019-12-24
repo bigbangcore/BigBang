@@ -8,23 +8,10 @@
 #include "key.h"
 #include "template.h"
 
-template <class T>
-class Uint8Allocator : public std::allocator<T>
-{
-public:
-    typedef uint8_t size_type;
-};
-typedef std::map<
-    bigbang::crypto::CPubKey,
-    uint8,
-    std::less<bigbang::crypto::CPubKey>,
-    Uint8Allocator<std::pair<const bigbang::crypto::CPubKey, uint8>>>
-    WeightedMap;
-
 class CTemplateWeighted : virtual public CTemplate, virtual public CSpendableTemplate
 {
 public:
-    CTemplateWeighted(const uint8 nRequiredIn = 0, const WeightedMap& mapPubKeyWeightIn = WeightedMap());
+    CTemplateWeighted(const uint8 nRequiredIn = 0, const std::map<bigbang::crypto::CPubKey, uint8>& mapPubKeyWeightIn = std::map<bigbang::crypto::CPubKey, uint8>());
     virtual CTemplateWeighted* clone() const;
     virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
@@ -40,7 +27,7 @@ protected:
 
 protected:
     uint8 nRequired;
-    WeightedMap mapPubKeyWeight;
+    std::map<bigbang::crypto::CPubKey, uint8> mapPubKeyWeight;
 };
 
 #endif // COMMON_TEMPLATE_WEIGHTED_H
