@@ -42,6 +42,10 @@ bool CTemplateMultiSig::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
 
     nRequired = obj.multisig.nRequired;
+    if (nRequired != obj.weighted.nRequired)
+    {
+        return false;
+    }
 
     for (const string& key : obj.multisig.vecPubkeys)
     {

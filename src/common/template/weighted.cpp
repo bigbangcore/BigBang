@@ -15,7 +15,6 @@ using namespace xengine;
 using namespace bigbang::crypto;
 
 static const int MAX_KEY_NUMBER = 16;
-static const int MAX_REQUIRED = 255;
 
 //////////////////////////////
 // CTemplateWeighted
@@ -61,7 +60,7 @@ void CTemplateWeighted::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
 
 bool CTemplateWeighted::ValidateParam() const
 {
-    if (nRequired < 1 || nRequired > MAX_REQUIRED)
+    if (nRequired < 1)
     {
         return false;
     }
@@ -74,7 +73,7 @@ bool CTemplateWeighted::ValidateParam() const
     int nWeight = 0;
     for (const auto& keyweight : mapPubKeyWeight)
     {
-        if (keyweight.second < 1 || keyweight.second > MAX_REQUIRED)
+        if (keyweight.second < 1)
         {
             return false;
         }
@@ -113,6 +112,10 @@ bool CTemplateWeighted::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
 
     nRequired = obj.weighted.nRequired;
+    if (nRequired != obj.weighted.nRequired)
+    {
+        return false;
+    }
 
     for (auto& keyweight : obj.weighted.vecPubkeys)
     {
