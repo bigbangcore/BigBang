@@ -86,6 +86,17 @@ bool CBlockChain::HandleInvoke()
         }
     }
 
+    // Check local block compared to checkpoint
+    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+    {
+        CBlock block;
+        if (!FindPreviousCheckPointBlock(block))
+        {
+            StdError("BlockChain", "Find CheckPoint Error when the node starting, you should purge data(bigbang -purge) to resync blockchain");
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -1101,21 +1112,24 @@ bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
     for (int i = numCheckpoints - 1; i >= 0; i--)
     {
         const CCheckPoint& point = points[i];
-        if (!GetBlock(point.nBlockHash, block))
+
+        uint256 hashBlock;
+        if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), point.nHeight, hashBlock))
         {
             StdTrace("BlockChain", "CheckPoint(%d, %s) doest not exists and continuely try to get previous checkpoint",
                      point.nHeight, point.nBlockHash.ToString().c_str());
+
             continue;
         }
 
-        if (block.GetBlockHeight() != point.nHeight)
+        if (hashBlock != point.nBlockHash)
         {
-            StdError("BlockChain", "CheckPoint height %d does not match block height %d",
-                     point.nHeight, (int)block.GetBlockHeight());
+            StdError("BlockChain", "CheckPoint(%d, %s)  does not match block hash %s",
+                     point.nHeight, point.nBlockHash.ToString().c_str(), hashBlock.ToString().c_str());
             return false;
         }
 
-        return true;
+        return GetBlock(hashBlock, block);
     }
 
     return true;
