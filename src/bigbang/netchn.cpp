@@ -766,23 +766,26 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
 
-        if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
+        if (block.IsPrimary())
         {
-            StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
-            throw std::runtime_error("block doest not match checkpoint hash");
-        }
+            if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
+            {
+                StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
+                throw std::runtime_error("block doest not match checkpoint hash");
+            }
 
-        CBlock checkPointBlock;
-        if (!pBlockChain->FindPreviousCheckPointBlock(checkPointBlock))
-        {
-            StdError("NetChannel", "Cannot Find any CheckPoint Block in local");
-            throw std::runtime_error("Cannot Find any CheckPoint Block in local");
-        }
+            CBlock checkPointBlock;
+            if (!pBlockChain->FindPreviousCheckPointBlock(checkPointBlock))
+            {
+                StdError("NetChannel", "Cannot Find any CheckPoint Block in local");
+                throw std::runtime_error("Cannot Find any CheckPoint Block in local");
+            }
 
-        if (checkPointBlock.nTimeStamp > block.nTimeStamp)
-        {
-            StdError("NetChannel", "Current recv block timestamp is before checkpoint block timestamp");
-            throw std::runtime_error("Current recv block timestamp is before checkpoint block timestamp");
+            if (checkPointBlock.nTimeStamp > block.nTimeStamp)
+            {
+                StdError("NetChannel", "Current recv block timestamp is before checkpoint block timestamp");
+                throw std::runtime_error("Current recv block timestamp is before checkpoint block timestamp");
+            }
         }
 
         set<uint64> setSchedPeer, setMisbehavePeer;
