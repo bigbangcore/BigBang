@@ -15,7 +15,7 @@ using namespace bigbang;
 //////////////////////////////
 // CTemplateMultiSig
 
-CTemplateMultiSig::CTemplateMultiSig(const uint8 nRequiredIn, const WeightedMap& mapPubKeyWeightIn)
+CTemplateMultiSig::CTemplateMultiSig(const uint8 nRequiredIn, const std::map<bigbang::crypto::CPubKey, uint8>& mapPubKeyWeightIn)
   : CTemplate(TEMPLATE_MULTISIG), CTemplateWeighted(nRequiredIn, mapPubKeyWeightIn)
 {
 }
@@ -41,10 +41,6 @@ bool CTemplateMultiSig::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         return false;
     }
 
-    if (obj.multisig.nRequired < 1 || obj.multisig.nRequired > 255)
-    {
-        return false;
-    }
     nRequired = obj.multisig.nRequired;
 
     for (const string& key : obj.multisig.vecPubkeys)
@@ -54,11 +50,6 @@ bool CTemplateMultiSig::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
             return false;
         }
         mapPubKeyWeight.insert(make_pair(destInstance.GetPubKey(), 1));
-    }
-
-    if (mapPubKeyWeight.size() != obj.multisig.vecPubkeys.size())
-    {
-        return false;
     }
 
     return true;
