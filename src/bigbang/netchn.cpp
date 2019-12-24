@@ -776,7 +776,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         if (!pBlockChain->FindPreviousCheckPointBlock(checkPointBlock))
         {
             StdError("NetChannel", "Cannot Find any CheckPoint Block in local");
-            return true;
+            throw std::runtime_error("Cannot Find any CheckPoint Block in local");
+        }
+
+        if (checkPointBlock.nTimeStamp > block.nTimeStamp)
+        {
+            StdError("NetChannel", "Current recv block timestamp is before checkpoint block timestamp");
+            throw std::runtime_error("Current recv block timestamp is before checkpoint block timestamp");
         }
 
         set<uint64> setSchedPeer, setMisbehavePeer;

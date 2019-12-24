@@ -1014,6 +1014,8 @@ void CBlockChain::InitCheckPoints()
 {
     vecCheckPoints.assign(
         { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
+          { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
+          { 1000, uint256("000003e86cc97e8b16aaa92216a66c2797c977a239bbd1a12476bad68580be73") },
           { 2000, uint256("000007d07acd442c737152d0cd9d8e99b6f0177781323ccbe20407664e01da8f") },
           { 5000, uint256("00001388dbb69842b373352462b869126b9fe912b4d86becbb3ad2bf1d897840") },
           { 10000, uint256("00002710c3f3cd6c931f568169c645e97744943e02b0135aae4fcb3139c0fa6f") },
@@ -1097,7 +1099,16 @@ bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
         const CCheckPoint& point = points[i];
         if (!GetBlock(point.nBlockHash, block))
         {
+            StdTrace("BlockChain", "CheckPoint(%d, %s) doest not exists and continuely try to get previous checkpoint",
+                     point.nHeight, point.nBlockHash.ToString().c_str());
             continue;
+        }
+
+        if (block.GetBlockHeight() != point.nHeight)
+        {
+            StdError("BlockChain", "CheckPoint height %d does not match block height %d",
+                     point.nHeight, (int)block.GetBlockHeight());
+            return false;
         }
 
         return true;
