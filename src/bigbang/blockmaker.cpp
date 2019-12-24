@@ -583,8 +583,10 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
                 proof.nNonce = nNonce;
                 proof.Save(block.vchProof);
 
-                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, GetTime() - nHashComputeBeginTime, nBits,
+                int64 nDuration = GetTime() - nHashComputeBeginTime;
+                int nCompHashRate = ((nDuration <= 0) ? 0 : (nHashComputeCount / nDuration));
+                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds, hashrate:%ld), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
+                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, nDuration, nCompHashRate, nBits,
                     hash.GetHex().c_str(), hashTarget.GetHex().c_str());
                 return true;
             }
