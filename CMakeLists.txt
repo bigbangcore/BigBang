@@ -79,6 +79,7 @@ if(UNIX AND NOT CYGWIN)
     set(Protobuf_USE_STATIC_LIBS ON)
 endif()
 
+set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.58.0 REQUIRED COMPONENTS
     program_options
