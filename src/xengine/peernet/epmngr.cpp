@@ -77,11 +77,14 @@ bool CAddressStatus::InBoundAttempt(int64 ts, std::string& strFailCause)
     return true;
 }
 
-bool CAddressStatus::AddConnection(bool fInBound)
+bool CAddressStatus::AddConnection(bool fInBound, bool fLimitConnect)
 {
-    if (nConnections >= (fInBound ? CONNECTION_LIMIT : 1))
+    if (fLimitConnect)
     {
-        return false;
+        if (nConnections >= (fInBound ? CONNECTION_LIMIT : 1))
+        {
+            return false;
+        }
     }
     nConnections++;
     return true;
@@ -219,7 +222,7 @@ bool CEndpointManager::FetchOutBound(tcp::endpoint& ep)
     while (mngrNode.Employ(ep))
     {
         CAddressStatus& status = mapAddressStatus[ep.address()];
-        if (status.AddConnection(false))
+        if (status.AddConnection(false, !(mngrNode.GetName(ep) == "dnseed")))
         {
             return true;
         }
@@ -232,11 +235,14 @@ bool CEndpointManager::AcceptInBound(const tcp::endpoint& ep, std::string& strFa
 {
     int64 now = GetTime();
     CAddressStatus& status = mapAddressStatus[ep.address()];
-    if (!status.InBoundAttempt(now, strFailCause))
+    if (!mngrNode.IsDnseedAddress(ep.address()))
     {
-        return false;
+        if (!status.InBoundAttempt(now, strFailCause))
+        {
+            return false;
+        }
     }
-    if (!status.AddConnection(true))
+    if (!status.AddConnection(true, true))
     {
         strFailCause = "Connection number exceeding maximum limit";
         return false;
@@ -268,7 +274,10 @@ void CEndpointManager::CloseEndpoint(const tcp::endpoint& ep, CloseReason reason
         index = 0;
     }
     CAddressStatus& status = mapAddressStatus[ep.address()];
-    status.Penalize(lost[index], now);
+    if (!mngrNode.IsDnseedAddress(ep.address()))
+    {
+        status.Penalize(lost[index], now);
+    }
     mngrNode.Dismiss(ep, (reason == NETWORK_ERROR), false);
     status.RemoveConnection();
 
@@ -289,6 +298,10 @@ void CEndpointManager::RetrieveGoodNode(vector<CNodeAvail>& vGoodNode,
     multimap<int, CNodeAvail> mapScore;
     for (const CNode& node : vNode)
     {
+        if (node.strName == "connect" || node.strName == "dnseed")
+        {
+            continue;
+        }
         const boost::asio::ip::address addr = node.ep.address();
         map<boost::asio::ip::address, CAddressStatus>::iterator it = mapAddressStatus.find(addr);
         if (it != mapAddressStatus.end()

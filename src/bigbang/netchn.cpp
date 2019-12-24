@@ -580,7 +580,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                 eventMsgRsp.data.nRspResult = MSGRSP_RESULT_TXINV_RECEIVED;
                 pPeerNet->DispatchEvent(&eventMsgRsp);
             }
-            if (nBlockInvCount > 0 && nBlockInvCount == eventInv.data.size())
+            if (nBlockInvCount == MAX_GETBLOCKS_COUNT)
             {
                 StdTrace("NetChannel", "CEventPeerInv: peer: %s, recv block inv count: %ld", GetPeerAddressInfo(nNonce).c_str(), nBlockInvCount);
                 sched.SetNextGetBlocksTime(nNonce, 0);
