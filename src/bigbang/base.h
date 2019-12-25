@@ -74,6 +74,12 @@ public:
           : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
         {
         }
+        CCheckPoint& operator=(const CCheckPoint& point)
+        {
+            nHeight = point.nHeight;
+            nBlockHash = point.nBlockHash;
+            return *this;
+        }
 
     public:
         int nHeight;
