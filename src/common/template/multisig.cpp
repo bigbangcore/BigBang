@@ -42,7 +42,7 @@ bool CTemplateMultiSig::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
 
     nRequired = obj.multisig.nRequired;
-    if (nRequired != obj.weighted.nRequired)
+    if (nRequired != obj.multisig.nRequired)
     {
         return false;
     }
