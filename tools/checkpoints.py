@@ -8,11 +8,18 @@
 import subprocess
 import json
 
-CheckpointConfirmations = 128
+# btcd confirmations is 2016, but we could reduce from 2016 to 1000 confirms,
+# cause we cannot compared with BTC' Hash Rate in the main network
+
+
+def Constant_CheckPointConfirmations():
+    return 1000
+
 
 end_height = int(subprocess.check_output(['bigbang', 'getforkheight']))
 
-height_list = [i for i in range(end_height - CheckpointConfirmations)]
+height_list = [i for i in range(
+    end_height - Constant_CheckPointConfirmations())]
 # gensis block timestamp
 prev_block_timestamp = 1575043200
 
