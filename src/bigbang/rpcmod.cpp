@@ -2284,22 +2284,27 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         throw CRPCException(RPC_WALLET_ERROR, "Address as argument should be provided.");
     }
 
+    std::map<CDestination, std::vector<CTxUnspent>> mapDest;
+    for (const auto& i : vAddr)
+    {
+        mapDest.emplace(std::make_pair(static_cast<CDestination>(i), std::vector<CTxUnspent>()));
+    }
+    if (!pService->ListForkUnspent(fork, spParam->nMax, mapDest))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+    }
+
     auto spResult = MakeCListUnspentResultPtr();
     double dTotal = 0.0f;
-    for (auto& iAddr : vAddr)
+    for (auto& iAddr : mapDest)
     {
-
-        vector<CTxUnspent> vUnspent;
-        if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(iAddr), spParam->nMax, vUnspent))
-        {
-            throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
-        }
+        CAddress a1(iAddr.first);
 
         typename CListUnspentResult::CAddresses a;
-        a.strAddress = iAddr.ToString();
+        a.strAddress = a1.ToString();
 
         double dSum = 0.0f;
-        for (const auto& unspent : vUnspent)
+        for (const auto& unspent : iAddr.second)
         {
             CUnspentData data = UnspentToJSON(unspent);
             a.vecUnspents.push_back(data);

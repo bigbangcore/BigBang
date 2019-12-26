@@ -45,7 +45,8 @@ public:
     bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
     Errno SendTransaction(CTransaction& tx) override;
     bool RemovePendingTx(const uint256& txid) override;
-    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
+//    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
+    bool ListForkUnspent(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
     /* Wallet */
     bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) override;
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) override;

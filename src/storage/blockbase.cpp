@@ -1669,12 +1669,15 @@ bool CBlockBase::CheckInputSingleAddressForTxWithChange(const uint256& txid)
     }
 }
 
-bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
+//bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
+bool CBlockBase::ListForkUnspent(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
 {
-    vUnspent.clear();
+/*    vUnspent.clear();
     CListUnspentWalker walker(hashFork, dest, nMax);
     dbBlock.WalkThroughUnspent(hashFork, walker);
-    vUnspent = walker.vUnspent;
+    vUnspent = walker.vUnspent;*/
+    CListUnspentWalker walker(hashFork, mapUnspent, nMax);
+    dbBlock.WalkThroughUnspent(hashFork, walker);
     return true;
 }
 
