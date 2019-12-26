@@ -16,12 +16,12 @@ def Constant_CheckPointConfirmations():
     return 1000
 
 
-# Get last height from best primary chain
-end_height = int(subprocess.check_output(['bigbang', 'getforkheight']))
+# Get (last height - confirms) from best primary chain
+end_height = int(subprocess.check_output(
+    ['bigbang', 'getforkheight'])) - Constant_CheckPointConfirmations()
 
 # block at least have 1000 confirms
-height_list = [i for i in range(
-    end_height - Constant_CheckPointConfirmations())]
+height_list = [i for i in range(end_height)]
 # gensis block timestamp
 prev_block_timestamp = 1575043200
 
