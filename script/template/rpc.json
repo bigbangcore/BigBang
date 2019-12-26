@@ -2826,7 +2826,7 @@
     "listunspent": {
         "type": "command",
         "name": "ListUnspent",
-        "desc": "Return a JSON object listing unspent utxo by user specifying arguments forkid and address",
+        "desc": "Return a JSON object listing unspent utxo by user specifying arguments address, fork(optional, main fork by default, maximum unspents(optional, 3 by default) and input file containing list of multiple addresses(optional))",
         "request": {
             "type": "object",
             "content": {
@@ -2846,6 +2846,12 @@
                     "opt" : "n",
                     "default": 3,
                     "required" : false
+                },
+                "file": {
+                    "type": "string",
+                    "desc": "input file containing list of multiple addresses",
+                    "opt" : "if",
+                    "required" : false
                 }
             }
         },
@@ -2853,19 +2859,37 @@
             "type": "object",
             "name": "data",
             "content": {
-                "unspents": {
+                "addresses": {
                     "type": "array",
-                    "desc": "unspent list of address owner",
                     "content": {
-                        "unspent": {
-                            "type": "unspentdata",
-                            "desc": "unspent data"
+                        "addr": {
+                            "type": "object",
+                            "content": {
+                                "address": {
+                                    "type": "string",
+                                    "desc": "address to list unspent"
+                                },
+                                "unspents": {
+                                    "type": "array",
+                                    "desc": "unspent list of address owner",
+                                    "content": {
+                                        "unspent": {
+                                            "type": "unspentdata",
+                                            "desc": "unspent data"
+                                        }
+                                    }
+                                },
+                                "sum": {
+                                    "type": "double",
+                                    "desc": "sum of unspent amount"
+                                }
+                            }
                         }
                     }
                 },
-                "sum": {
+                "total": {
                     "type": "double",
-                    "desc": "sum of unspent amount"
+                    "desc": "total of unspent amount for list of addresses"
                 }
             }
         },

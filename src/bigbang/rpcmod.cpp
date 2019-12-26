@@ -2251,27 +2251,69 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
 
-    CAddress addr(spParam->strAddress);
-    if (addr.IsNull())
+    vector<CAddress> vAddr;
+    ifstream inFile(spParam->strFile);
+    if (inFile)
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
+        // iterate addresses from input file
+        const uint32 MAX_LISTUNSPENT_INPUT = 10000;
+        uint32 nCount = 0;
+        string strAddr;
+        while (getline(inFile, strAddr))
+        {
+            CAddress addr(strAddr);
+            if (!addr.IsNull() && ++nCount < MAX_LISTUNSPENT_INPUT)
+            {
+                vAddr.emplace_back(addr);
+            }
+            if (nCount > MAX_LISTUNSPENT_INPUT)
+            {
+                break;
+            }
+        }
     }
 
-    vector<CTxUnspent> vUnspent;
-    if (!pService->ListForkUnspent(fork, dynamic_cast<CDestination&>(addr), spParam->nMax, vUnspent))
+    CAddress addr(spParam->strAddress);
+    if (!addr.IsNull())
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        vAddr.emplace_back(addr);
+    }
+
+    if (vAddr.empty())
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Address as argument should be provided.");
     }
 
     auto spResult = MakeCListUnspentResultPtr();
-    double dSum = 0.0f;
-    for (const auto& unspent : vUnspent)
+    double dTotal = 0.0f;
+    for (auto& iAddr : vAddr)
     {
-        CUnspentData data = UnspentToJSON(unspent);
-        spResult->vecUnspents.push_back(data);
-        dSum += data.dAmount;
+
+        vector<CTxUnspent> vUnspent;
+        if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(iAddr), spParam->nMax, vUnspent))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        }
+
+        typename CListUnspentResult::CAddresses a;
+        a.strAddress = iAddr.ToString();
+
+        double dSum = 0.0f;
+        for (const auto& unspent : vUnspent)
+        {
+            CUnspentData data = UnspentToJSON(unspent);
+            a.vecUnspents.push_back(data);
+            dSum += data.dAmount;
+        }
+
+        a.dSum = dSum;
+
+        spResult->vecAddresses.push_back(a);
+
+        dTotal += dSum;
     }
-    spResult->dSum = dSum;
+
+    spResult->dTotal = dTotal;
 
     return spResult;
 }

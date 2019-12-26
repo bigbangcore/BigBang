@@ -642,7 +642,11 @@ bool CWallet::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     vUnspent.clear();
     if (nMax > 0)
     {
-        vUnspent.reserve(min((size_t)nMax, setCoins.size()));
+        vUnspent.reserve(min(static_cast<size_t>(nMax), setCoins.size()));
+    }
+    else
+    {
+        vUnspent.reserve(max(static_cast<size_t>(nMax), setCoins.size()));
     }
     uint32 nCounter = 0;
     for (auto& out : setCoins)
