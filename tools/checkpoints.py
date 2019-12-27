@@ -80,7 +80,7 @@ def main():
             if block_height != height or block_height == 0:
                 continue
             current_block_timestamp = get_block_timestamp(block_dict)
-            if(current_block_timestamp > prev_block_timestamp):
+            if current_block_timestamp > prev_block_timestamp:
                 checkpoint = (block_height, block_hash)
                 print checkpoint
                 prev_block_timestamp = current_block_timestamp
