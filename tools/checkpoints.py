@@ -32,6 +32,10 @@ def get_block(block_hash):
     return json.loads(json_str)
 
 
+def get_primary_fork_height():
+    return int(subprocess.check_output(['bigbang', 'getforkheight']))
+
+
 def get_block_type(block_dict):
     return block_dict['type']
 
@@ -54,8 +58,7 @@ def is_primary_block(block_type):
 def main():
 
     # Get (last height - confirms) from best primary chain
-    end_height = int(subprocess.check_output(
-        ['bigbang', 'getforkheight'])) - Constant_CheckPointConfirmations()
+    end_height = get_primary_fork_height() - Constant_CheckPointConfirmations()
 
     # block at least have 1000 confirms
     height_list = [i for i in range(end_height)]
