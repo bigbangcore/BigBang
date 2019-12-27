@@ -74,9 +74,7 @@ def main():
         block_type = get_block_type(block_dict)
         if is_primary_block(block_type):
             block_height = get_block_height(block_dict)
-            if block_height != height:
-                continue
-            if block_height == 0:
+            if block_height != height or block_height == 0:
                 continue
             current_block_timestamp = get_block_timestamp(block_dict)
             if(current_block_timestamp > prev_block_timestamp):
