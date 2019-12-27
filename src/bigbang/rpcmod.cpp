@@ -9,7 +9,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <regex>
+//#include <algorithm>
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
@@ -2243,6 +2245,37 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 {
+    auto lmdImport = [](const string& pathFile, vector<CAddress>& addresses)->bool {
+        ifstream inFile(pathFile);
+
+        if (!inFile)
+        {
+          return false;
+        }
+
+        // iterate addresses from input file
+        const uint32 MAX_LISTUNSPENT_INPUT = 10000;
+        uint32 nCount = 0;
+        string strAddr;
+        while (getline(inFile, strAddr) && ++nCount < MAX_LISTUNSPENT_INPUT)
+        {
+          boost::trim(strAddr);
+          if (strAddr.size() != CAddress::ADDRESS_LEN)
+          {
+              continue;
+          }
+
+          CAddress addr(strAddr);
+          if (!addr.IsNull())
+          {
+              addresses.emplace_back(addr);
+          }
+        }
+        unique(addresses.begin(), addresses.end());
+
+        return true;
+    };
+
     auto spParam = CastParamPtr<CListUnspentParam>(param);
 
     uint256 fork;
@@ -2252,26 +2285,6 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     }
 
     vector<CAddress> vAddr;
-    ifstream inFile(spParam->strFile);
-    if (inFile)
-    {
-        // iterate addresses from input file
-        const uint32 MAX_LISTUNSPENT_INPUT = 10000;
-        uint32 nCount = 0;
-        string strAddr;
-        while (getline(inFile, strAddr))
-        {
-            CAddress addr(strAddr);
-            if (!addr.IsNull() && ++nCount < MAX_LISTUNSPENT_INPUT)
-            {
-                vAddr.emplace_back(addr);
-            }
-            if (nCount > MAX_LISTUNSPENT_INPUT)
-            {
-                break;
-            }
-        }
-    }
 
     CAddress addr(spParam->strAddress);
     if (!addr.IsNull())
@@ -2279,9 +2292,14 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         vAddr.emplace_back(addr);
     }
 
+    if (spParam->strFile.IsValid() && !lmdImport(spParam->strFile, vAddr))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid import file");
+    }
+
     if (vAddr.empty())
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Address as argument should be provided.");
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Available address as argument should be provided.");
     }
 
     std::map<CDestination, std::vector<CTxUnspent>> mapDest;
@@ -2294,7 +2312,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     {
         if (!pService->ListForkUnspentBatch(fork, spParam->nMax, mapDest))
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Acquiring batch unspent list failed.");
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring batch unspent list failed.");
         }
     }
     else if (1 == vAddr.size())
@@ -2302,7 +2320,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(vAddr[0]),
                                        spParam->nMax, mapDest[static_cast<CDestination>(vAddr[0])]))
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring unspent list failed.");
         }
     }
 
