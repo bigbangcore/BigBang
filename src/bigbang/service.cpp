@@ -352,15 +352,18 @@ bool CService::RemovePendingTx(const uint256& txid)
     return true;
 }
 
-//bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
-bool CService::ListForkUnspent(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
-/*    if (pWallet->ListForkUnspent(hashFork, dest, nMax, vUnspent))
+    if (pWallet->ListForkUnspent(hashFork, dest, nMax, vUnspent))
     {
         return true;
     }
-    return pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspent);*/
-    return pBlockChain->ListForkUnspent(hashFork, nMax, mapUnspent);
+    return pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspent);
+}
+
+bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+{
+    return pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspent);
 }
 
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)

@@ -59,7 +59,7 @@ public:
 
 //////////////////////////////
 // CListUnspentWalker
-/*
+
 class CListUnspentWalker : public CForkUnspentDBWalker
 {
 public:
@@ -86,11 +86,14 @@ public:
     uint32 nCounter;
     std::vector<CTxUnspent> vUnspent;
 };
-*/
-class CListUnspentWalker : public CForkUnspentDBWalker
+
+//////////////////////////////
+// CListUnspentBatchWalker
+
+class CListUnspentBatchWalker : public CForkUnspentDBWalker
 {
 public:
-    CListUnspentWalker(const uint256& forkidIn, std::map<CDestination, std::vector<CTxUnspent>>& mapOwnersIn, uint32 maxIn)
+    CListUnspentBatchWalker(const uint256& forkidIn, std::map<CDestination, std::vector<CTxUnspent>>& mapOwnersIn, uint32 maxIn)
             : forkId(forkidIn), mapUnspent(mapOwnersIn), nMax(maxIn)
             {
                 for (const auto& i : mapUnspent)

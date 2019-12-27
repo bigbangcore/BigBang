@@ -2289,19 +2289,31 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     {
         mapDest.emplace(std::make_pair(static_cast<CDestination>(i), std::vector<CTxUnspent>()));
     }
-    if (!pService->ListForkUnspent(fork, spParam->nMax, mapDest))
+
+    if (vAddr.size() > 1)
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        if (!pService->ListForkUnspentBatch(fork, spParam->nMax, mapDest))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Acquiring batch unspent list failed.");
+        }
+    }
+    else if (1 == vAddr.size())
+    {
+        if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(vAddr[0]),
+                                       spParam->nMax, mapDest[static_cast<CDestination>(vAddr[0])]))
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        }
     }
 
     auto spResult = MakeCListUnspentResultPtr();
     double dTotal = 0.0f;
     for (auto& iAddr : mapDest)
     {
-        CAddress a1(iAddr.first);
+        CAddress dest(iAddr.first);
 
         typename CListUnspentResult::CAddresses a;
-        a.strAddress = a1.ToString();
+        a.strAddress = dest.ToString();
 
         double dSum = 0.0f;
         for (const auto& unspent : iAddr.second)
