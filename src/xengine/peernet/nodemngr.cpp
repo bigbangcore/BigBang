@@ -27,6 +27,10 @@ void CNodeManager::AddNew(const tcp::endpoint& ep, const string& strName, const 
     {
         StdLog("CNodeManager", "AddNew: Add idle node by AddNew, peer: %s, interval time: 0 s", GetEpString(ep).c_str());
         AddIdleNode(0, ep);
+        if (strName == "dnseed")
+        {
+            setDnseedAddress.insert(ep.address());
+        }
     }
 }
 
@@ -185,6 +189,15 @@ void CNodeManager::Retrieve(vector<CNode>& vNode)
     {
         vNode.push_back((*it).second);
     }
+}
+
+bool CNodeManager::IsDnseedAddress(const boost::asio::ip::address& address)
+{
+    if (setDnseedAddress.find(address) != setDnseedAddress.end())
+    {
+        return true;
+    }
+    return false;
 }
 
 void CNodeManager::AddIdleNode(int64 nIntervalTime, const boost::asio::ip::tcp::endpoint& ep)

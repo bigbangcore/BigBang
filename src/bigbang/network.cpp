@@ -54,7 +54,7 @@ bool CNetwork::HandleInitialize()
     config.nPortDefault = (NetworkConfig()->fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);
     for (const string& conn : NetworkConfig()->vConnectTo)
     {
-        config.vecNode.push_back(CNetHost(conn, config.nPortDefault, conn,
+        config.vecNode.push_back(CNetHost(conn, config.nPortDefault, "connect",
                                           boost::any(uint64(network::NODE_NETWORK))));
     }
     if (config.vecNode.empty())

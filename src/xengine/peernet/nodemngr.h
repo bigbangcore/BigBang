@@ -8,6 +8,7 @@
 #include <boost/any.hpp>
 #include <boost/asio.hpp>
 #include <map>
+#include <set>
 #include <string>
 
 #include "type.h"
@@ -45,6 +46,7 @@ public:
     bool Employ(boost::asio::ip::tcp::endpoint& ep);
     void Dismiss(const boost::asio::ip::tcp::endpoint& ep, bool fForceRetry, bool fReset);
     void Retrieve(std::vector<CNode>& vNode);
+    bool IsDnseedAddress(const boost::asio::ip::address& address);
     int GetCandidateNodeCount()
     {
         return mapNode.size();
@@ -69,6 +71,7 @@ protected:
     };
     std::map<boost::asio::ip::tcp::endpoint, CNode> mapNode;
     std::multimap<int64, boost::asio::ip::tcp::endpoint> mapIdle;
+    std::set<boost::asio::ip::address> setDnseedAddress;
 };
 
 } // namespace xengine

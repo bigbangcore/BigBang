@@ -46,6 +46,10 @@ public:
 CBlockView::CBlockView()
   : pBlockBase(nullptr), hashFork(uint64(0)), fCommittable(false)
 {
+    nRemoveBlockCount = 0;
+    nRemoveTxCount = 0;
+    nAddBlockCount = 0;
+    nAddTxCount = 0;
 }
 
 CBlockView::~CBlockView()
@@ -812,7 +816,8 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         vector<CBlockIndex*> vPath;
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
 
-        unsigned int nRemoved = 0;
+        view.nRemoveBlockCount = 0;
+        view.nRemoveTxCount = 0;
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
@@ -820,7 +825,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                      "Chain rollback[remove]: height:%u: block hash`%s` time:%u: supply:%u: algo:%u: bits:%u: trust`%s`",
                      p->nHeight, p->GetBlockHash().ToString().c_str(), p->nTimeStamp,
                      p->nMoneySupply, p->nProofAlgo, p->nProofBits, p->nChainTrust.ToString().c_str());
-            ++nRemoved;
+            view.nRemoveBlockCount++;
             CBlockEx block;
             if (!tsBlock.Read(block, p->nFile, p->nOffset))
             {
@@ -835,6 +840,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          "Chain rollback[remove]: remove tx`%s`",
                          block.vtx[j].GetHash().ToString().c_str());
                 view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
+                view.nRemoveTxCount++;
             }
             if (!block.txMint.IsNull())
             {
@@ -842,15 +848,18 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          "Chain rollback[remove]: remove mint tx`%s`",
                          block.txMint.GetHash().ToString().c_str());
                 view.RemoveTx(block.txMint.GetHash(), block.txMint);
+                view.nRemoveTxCount++;
             }
         }
-        if (nRemoved > 0)
+        if (view.nRemoveTxCount > 0)
         {
             StdTrace("BlockBase",
                      "Chain rollback[remove]: remove block amount:%u:",
-                     nRemoved);
+                     view.nRemoveTxCount);
         }
 
+        view.nAddBlockCount = 0;
+        view.nAddTxCount = 0;
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
@@ -868,6 +877,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 return false;
             }
             view.AddTx(block.txMint.GetHash(), block.txMint);
+            view.nAddTxCount++;
             for (int j = 0; j < block.vtx.size(); j++)
             {
                 StdTrace("BlockBase",
@@ -875,7 +885,9 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          block.vtx[j].GetHash().ToString().c_str());
                 const CTxContxt& txContxt = block.vTxContxt[j];
                 view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
+                view.nAddTxCount++;
             }
+            view.nAddBlockCount++;
         }
         if (vPath.size() > 0)
         {

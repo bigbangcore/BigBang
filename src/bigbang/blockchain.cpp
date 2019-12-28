@@ -502,7 +502,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-    Log("AddNew Block : Commit block success, block: %s", hash.GetHex().c_str());
+    Log("AddNew Block : Commit block success, block: %s, remove: block=%d, tx=%d, add: block=%d, tx=%d",
+        hash.GetHex().c_str(), view.nRemoveBlockCount, view.nRemoveTxCount, view.nAddBlockCount, view.nAddTxCount);
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
