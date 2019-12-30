@@ -94,13 +94,13 @@ class CListUnspentBatchWalker : public CForkUnspentDBWalker
 {
 public:
     CListUnspentBatchWalker(const uint256& forkidIn, std::map<CDestination, std::vector<CTxUnspent>>& mapOwnersIn, uint32 maxIn)
-            : forkId(forkidIn), mapUnspent(mapOwnersIn), nMax(maxIn)
-            {
-                for (const auto& i : mapUnspent)
-                {
-                    mapCount.insert(std::make_pair(i.first, 0));
-                }
-            }
+      : forkId(forkidIn), mapUnspent(mapOwnersIn), nMax(maxIn)
+    {
+        for (const auto& i : mapUnspent)
+        {
+            mapCount.insert(std::make_pair(i.first, 0));
+        }
+    }
     bool Walk(const CTxOutPoint& txout, const CTxOut& output) override
     {
         if (nMax != 0 && AllFill())

@@ -5,11 +5,11 @@
 #include "rpcmod.h"
 
 #include "json/json_spirit_reader_template.h"
+#include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/regex.hpp>
-#include <boost/algorithm/string.hpp>
 #include <regex>
 //#include <algorithm>
 
@@ -2245,12 +2245,12 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 {
-    auto lmdImport = [](const string& pathFile, vector<CAddress>& addresses)->bool {
+    auto lmdImport = [](const string& pathFile, vector<CAddress>& addresses) -> bool {
         ifstream inFile(pathFile);
 
         if (!inFile)
         {
-          return false;
+            return false;
         }
 
         // iterate addresses from input file
@@ -2259,18 +2259,18 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         string strAddr;
         while (getline(inFile, strAddr) && nCount <= MAX_LISTUNSPENT_INPUT)
         {
-          boost::trim(strAddr);
-          if (strAddr.size() != CAddress::ADDRESS_LEN)
-          {
-              continue;
-          }
+            boost::trim(strAddr);
+            if (strAddr.size() != CAddress::ADDRESS_LEN)
+            {
+                continue;
+            }
 
-          CAddress addr(strAddr);
-          if (!addr.IsNull())
-          {
-              addresses.emplace_back(addr);
-              ++nCount;
-          }
+            CAddress addr(strAddr);
+            if (!addr.IsNull())
+            {
+                addresses.emplace_back(addr);
+                ++nCount;
+            }
         }
 
         unique(addresses.begin(), addresses.end());
