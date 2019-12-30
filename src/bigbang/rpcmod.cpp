@@ -2255,9 +2255,9 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 
         // iterate addresses from input file
         const uint32 MAX_LISTUNSPENT_INPUT = 10000;
-        uint32 nCount = 0;
+        uint32 nCount = 1;
         string strAddr;
-        while (getline(inFile, strAddr) && ++nCount < MAX_LISTUNSPENT_INPUT)
+        while (getline(inFile, strAddr) && nCount <= MAX_LISTUNSPENT_INPUT)
         {
           boost::trim(strAddr);
           if (strAddr.size() != CAddress::ADDRESS_LEN)
@@ -2269,8 +2269,10 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
           if (!addr.IsNull())
           {
               addresses.emplace_back(addr);
+              ++nCount;
           }
         }
+
         unique(addresses.begin(), addresses.end());
 
         return true;
