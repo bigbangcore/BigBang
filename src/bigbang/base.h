@@ -5,6 +5,7 @@
 #ifndef BIGBANG_BASE_H
 #define BIGBANG_BASE_H
 
+#include <boost/optional.hpp>
 #include <xengine.h>
 
 #include "address.h"
@@ -297,9 +298,9 @@ public:
     virtual CTemplatePtr GetTemplate(const CTemplateId& tid) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) = 0;
     virtual bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
-    virtual bool CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                   const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
-                                   const std::vector<unsigned char>& vchData, CTransaction& txNew)
+    virtual boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
+                                                           const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                           const std::vector<unsigned char>& vchData, CTransaction& txNew)
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;

@@ -66,9 +66,9 @@ public:
     CTemplatePtr GetTemplate(const CTemplateId& tid) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) override;
     bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
-    bool CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                           const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
-                           const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
+    boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
+                                                   const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                   const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;
     /* Mint */

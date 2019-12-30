@@ -507,9 +507,9 @@ bool CService::ListWalletTx(int nOffset, int nCount, vector<CWalletTx>& vWalletT
     return pWallet->ListTx(nOffset, nCount, vWalletTx);
 }
 
-bool CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                 const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
-                                 const vector<unsigned char>& vchData, CTransaction& txNew)
+boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
+                                                         const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                         const vector<unsigned char>& vchData, CTransaction& txNew)
 {
     int nForkHeight = 0;
     txNew.SetNull();
@@ -519,7 +519,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
         if (it == mapForkStatus.end())
         {
             StdError("CService", "CreateTransaction: find fork fail, fork: %s", hashFork.GetHex().c_str());
-            return false;
+            return std::string("CreateTransaction: find fork fail, fork: ") + hashFork.GetHex();
         }
         nForkHeight = it->second.nLastBlockHeight;
         txNew.hashAnchor = hashFork;
@@ -532,7 +532,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
     txNew.nTxFee = nTxFee;
     txNew.vchData = vchData;
 
-    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew);
+    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew) ? boost::optional<std::string>{} : std::string("CWallet::ArrangeInputs failed.");
 }
 
 bool CService::SynchronizeWalletTx(const CDestination& destNew)
