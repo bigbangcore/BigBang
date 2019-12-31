@@ -114,6 +114,11 @@ public:
     };
     void Save(std::vector<unsigned char>& vchProof)
     {
+        if (vchProof.size() < PROOFHASHWORK_SIZE)
+        {
+            return;
+        }
+
         unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         *p++ = nAlgo;
         *p++ = nBits;
@@ -124,6 +129,11 @@ public:
     }
     void Load(const std::vector<unsigned char>& vchProof)
     {
+        if (vchProof.size() < PROOFHASHWORK_SIZE)
+        {
+            return;
+        }
+
         const unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         nAlgo = *p++;
         nBits = *p++;
