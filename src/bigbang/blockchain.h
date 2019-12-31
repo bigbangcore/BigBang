@@ -88,9 +88,6 @@ protected:
 
     std::map<int, CCheckPoint> mapCheckPoints;
     std::vector<CCheckPoint> vecCheckPoints;
-    const int nCheckpointConfirmations{ 2016 };
-    CBlock checkPointBlock;
-    CCheckPoint nextCheckPoint;
 };
 
 } // namespace bigbang
