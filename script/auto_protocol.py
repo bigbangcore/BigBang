@@ -801,7 +801,7 @@ def PostLoad_cpp(name, params, sub_params, w, scope):
             # read json string
             container_val = 'valOrigin' + p.key.title()
             w.write(indent + 'Value ' + container_val + ';\n')
-            w.write(indent + 'if (!read_string(' + container_str + ', ' + container_val + '))\n')
+            w.write(indent + 'if (!read_string(' + container_str + ', ' + container_val + ', RPC_MAX_DEPTH))\n')
             indent = brace_begin(w, indent)
             w.write(indent + 'throw CRPCException(RPC_PARSE_ERROR, "parse json error");\n')
             indent = brace_end(w, indent)

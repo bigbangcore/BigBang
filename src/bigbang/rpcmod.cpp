@@ -1918,7 +1918,7 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
             throw runtime_error("read error");
         }
 
-        read_stream(ifs, vWallet);
+        read_stream(ifs, vWallet, RPC_MAX_DEPTH);
         ifs.close();
     }
     catch (...)
