@@ -296,6 +296,11 @@ protected:
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
 
+    const CBasicConfig* Config()
+    {
+        return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
+    }
+
 protected:
     network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;

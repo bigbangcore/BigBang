@@ -766,7 +766,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
 
-        if (block.IsPrimary())
+        if (Config()->nMagicNum == MAINNET_MAGICNUM && block.IsPrimary())
         {
             if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
             {
