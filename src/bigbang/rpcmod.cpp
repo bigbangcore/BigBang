@@ -1559,10 +1559,10 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    boost::optional<std::string> errStr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
-    if (errStr)
+    boost::optional<std::string> strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, *errStr);
+        throw CRPCException(RPC_WALLET_ERROR, *strErr);
     }
 
     bool fCompleted = false;
@@ -1614,7 +1614,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         ss << (int)obj.prevout.n << ":" << obj.prevout.hash.GetHex().c_str() << ";";
     }
-    std::cout << ss.str();
+
     StdDebug("[SendFrom][DEBUG]", "txNew hash:%s; input:%s", txNew.GetHash().GetHex().c_str(), ss.str().c_str());
     return MakeCSendFromResultPtr(txNew.GetHash().GetHex());
 }
@@ -1665,10 +1665,10 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
     CTransaction txNew;
-    boost::optional<std::string> errStr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
-    if (errStr)
+    boost::optional<std::string> strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, *errStr);
+        throw CRPCException(RPC_WALLET_ERROR, *strErr);
     }
 
     CBufStream ss;
