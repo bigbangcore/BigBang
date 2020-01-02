@@ -227,22 +227,22 @@ bool CWallet::IsMine(const CDestination& dest)
     return false;
 }
 
-bool CWallet::AddKey(const crypto::CKey& key)
+boost::optional<std::string> CWallet::AddKey(const crypto::CKey& key)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     if (!InsertKey(key))
     {
         Warn("AddKey : invalid or duplicated key");
-        return false;
+        return std::string("AddKey : invalid or duplicated key");
     }
 
     if (!dbWallet.UpdateKey(key.GetPubKey(), key.GetVersion(), key.GetCipher()))
     {
         mapKeyStore.erase(key.GetPubKey());
         Warn("AddKey : failed to save key");
-        return false;
+        return std::string("AddKey : failed to save key");
     }
-    return true;
+    return boost::optional<std::string>{};
 }
 
 bool CWallet::LoadKey(const crypto::CKey& key)
@@ -300,7 +300,7 @@ bool CWallet::Import(const vector<unsigned char>& vchKey, crypto::CPubKey& pubke
         return false;
     }
     pubkey = key.GetPubKey();
-    return AddKey(key);
+    return AddKey(key) ? false : true;
 }
 
 bool CWallet::Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,

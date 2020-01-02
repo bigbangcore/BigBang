@@ -1020,7 +1020,7 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
 
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    boost::optional<std::string> strErr = pService->MakeNewKey(strPassphrase, pubkey);
+    auto strErr = pService->MakeNewKey(strPassphrase, pubkey);
     if (strErr)
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed add new key: " + *strErr);
@@ -1188,9 +1188,10 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
         {
             key.Encrypt(strPassphrase);
         }
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1226,9 +1227,10 @@ CRPCResultPtr CRPCMod::RPCImportPubKey(CRPCParamPtr param)
     key.Load(pubkey, crypto::CKey::PUBLIC_KEY, crypto::CCryptoCipher());
     if (!pService->HaveKey(key.GetPubKey()))
     {
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1257,9 +1259,10 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     if ((key.IsPrivKey() && !pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
         || (key.IsPubKey() && !pService->HaveKey(key.GetPubKey())))
     {
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1559,7 +1562,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    boost::optional<std::string> strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         throw CRPCException(RPC_WALLET_ERROR, *strErr);
@@ -1665,7 +1668,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
     CTransaction txNew;
-    boost::optional<std::string> strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         throw CRPCException(RPC_WALLET_ERROR, *strErr);
@@ -1969,9 +1972,10 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
             {
                 continue; //step to next one to continue importing
             }
-            if (!pService->AddKey(key))
+            auto strErr = pService->AddKey(key);
+            if (strErr)
             {
-                throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+                throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
             }
             if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
             {

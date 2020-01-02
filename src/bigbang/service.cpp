@@ -392,10 +392,10 @@ boost::optional<std::string> CService::MakeNewKey(const crypto::CCryptoString& s
         key.Lock();
     }
     pubkey = key.GetPubKey();
-    return pWallet->AddKey(key) ? boost::optional<std::string>{} : std::string("Wallect::AddKey Failed");
+    return pWallet->AddKey(key);
 }
 
-bool CService::AddKey(const crypto::CKey& key)
+boost::optional<std::string> CService::AddKey(const crypto::CKey& key)
 {
     return pWallet->AddKey(key);
 }
