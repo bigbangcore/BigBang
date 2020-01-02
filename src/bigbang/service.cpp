@@ -376,23 +376,23 @@ bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& 
     return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic);
 }
 
-bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
+boost::optional<std::string> CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
 {
     crypto::CKey key;
     if (!key.Renew())
     {
-        return false;
+        return std::string("Renew Key Failed");
     }
     if (!strPassphrase.empty())
     {
         if (!key.Encrypt(strPassphrase))
         {
-            return false;
+            return std::string("Encrypt Key failed");
         }
         key.Lock();
     }
     pubkey = key.GetPubKey();
-    return pWallet->AddKey(key);
+    return pWallet->AddKey(key) ? boost::optional<std::string>{} : std::string("Wallect::AddKey Failed");
 }
 
 bool CService::AddKey(const crypto::CKey& key)

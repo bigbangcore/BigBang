@@ -1020,10 +1020,10 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
 
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    if (!pService->MakeNewKey(strPassphrase, pubkey))
+    boost::optional<std::string> strErr = pService->MakeNewKey(strPassphrase, pubkey);
+    if (strErr)
     {
-
-        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
+        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key: " + *strErr);
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
