@@ -1943,6 +1943,10 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
             if (txContxt.destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
             {
                 mapDelegate[txContxt.destIn] -= tx.nAmount + tx.nTxFee;
+                if (mapDelegate[txContxt.destIn] == 0)
+                {
+                    mapDelegate.erase(txContxt.destIn);
+                }
             }
         }
 
