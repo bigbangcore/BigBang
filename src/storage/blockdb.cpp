@@ -221,6 +221,16 @@ bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,
     return dbDelegate.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos);
 }
 
+int CBlockDB::GetDelegateDBVersion()
+{
+    return dbDelegate.GetVersion();
+}
+
+void CBlockDB::SetDelegateDBVersion(const int nVersion)
+{
+    dbDelegate.SetVersion(nVersion);
+}
+
 bool CBlockDB::LoadFork()
 {
     vector<pair<uint256, uint256>> vFork;

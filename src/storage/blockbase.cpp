@@ -17,6 +17,8 @@ using namespace xengine;
 #define BLOCKFILE_PREFIX "block"
 #define LOGFILE_NAME "storage.log"
 
+static const int DELEGATEDB_VERSION = 10100;
+
 namespace bigbang
 {
 namespace storage
@@ -1911,7 +1913,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
     CDelegateContext ctxtDelegate;
 
     map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
-    map<int, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
+    map<uint256, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
 
     if (!dbBlock.RetrieveDelegate(block.hashPrev, mapDelegate))
     {
@@ -1946,7 +1948,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
 
         if (tx.nType == CTransaction::TX_CERT)
         {
-            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
+            mapEnrollTx[tx.hashAnchor].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
         }
         nOffset += ss.GetSerializeSize(tx);
     }
@@ -2053,12 +2055,30 @@ bool CBlockBase::LoadDB()
         }
     }
 
+    // check & rebuild delegate DB
+    if (dbBlock.GetDelegateDBVersion() < DELEGATEDB_VERSION && !mapIndex.empty())
+    {
+        // genesis block index is the begin of mapIndex
+        CBlockIndex* pIndex = mapIndex.begin()->second;
+        while (pIndex != nullptr)
+        {
+            CBlockEx block;
+            if (!Retrieve(pIndex, block))
+            {
+                return false;
+            }
+            UpdateDelegate(pIndex->GetBlockHash(), block, CDiskPos(pIndex->nFile, pIndex->nOffset));
+            pIndex = pIndex->pNext;
+        }
+
+        dbBlock.SetDelegateDBVersion(DELEGATEDB_VERSION);
+    }
+
     return true;
 }
 
 bool CBlockBase::SetupLog(const path& pathLocation, bool fDebug)
 {
-
     if (!log.SetLogFilePath((pathLocation / LOGFILE_NAME).string()))
     {
         return false;

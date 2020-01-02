@@ -2,11 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "delegatedb.h"
+
 #include <boost/range/adaptor/reversed.hpp>
 
 #include "leveldbeng.h"
-
-#include "delegatedb.h"
 
 using namespace std;
 using namespace xengine;
@@ -96,7 +96,7 @@ bool CDelegateDB::RetrieveEnrollTx(int height, const vector<uint256>& vBlockRang
             return false;
         }
 
-        map<int, map<CDestination, CDiskPos>>::iterator it = ctxtDelegate.mapEnrollTx.find(height);
+        auto it = ctxtDelegate.mapEnrollTx.find(hashAnchor);
         if (it != ctxtDelegate.mapEnrollTx.end())
         {
             mapEnrollTxPos.insert((*it).second.begin(), (*it).second.end());
@@ -109,6 +109,18 @@ void CDelegateDB::Clear()
 {
     cacheDelegate.Clear();
     RemoveAll();
+}
+
+int CDelegateDB::GetVersion()
+{
+    int nVersion = 0;
+    Read(string("version"), nVersion);
+    return nVersion;
+}
+
+void CDelegateDB::SetVersion(const int nVersion)
+{
+    Write(string("version"), nVersion);
 }
 
 } // namespace storage

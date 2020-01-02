@@ -47,6 +47,8 @@ public:
     bool RetrieveDelegate(const uint256& hash, std::map<CDestination, int64>& mapDelegate);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
+    int GetDelegateDBVersion();
+    void SetDelegateDBVersion(const int nVersion);
 
 protected:
     bool LoadFork();
