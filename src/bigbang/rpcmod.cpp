@@ -1023,7 +1023,7 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
     auto strErr = pService->MakeNewKey(strPassphrase, pubkey);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key: " + *strErr);
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed add new key: ") + *strErr);
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
