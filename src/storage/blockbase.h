@@ -202,12 +202,6 @@ protected:
     std::map<CTxOutPoint, CUnspent> mapUnspent;
     std::vector<uint256> vTxRemove;
     std::vector<uint256> vTxAddNew;
-
-public:
-    uint32 nRemoveBlockCount;
-    uint32 nRemoveTxCount;
-    uint32 nAddBlockCount;
-    uint32 nAddTxCount;
 };
 
 class CBlockBase
