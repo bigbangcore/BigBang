@@ -1805,7 +1805,18 @@ CRPCResultPtr CRPCMod::RPCExportWallet(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CExportWalletParam>(param);
 
-    fs::path pSave(string(spParam->strPath));
+#ifdef BOOST_CYGWIN_FS_PATH
+    std::string strCygWinPathPrefix = "/cygdrive";
+    std::size_t found = spParam->strPath.find(strCygWinPathPrefix);
+    if (found != std::string::npos)
+    {
+        strCygWinPathPrefix = "";
+    }
+#else
+    std::string strCygWinPathPrefix;
+#endif
+
+    fs::path pSave(string(strCygWinPathPrefix + spParam->strPath));
     //check if the file name given is available
     if (!pSave.is_absolute())
     {
