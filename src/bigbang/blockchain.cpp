@@ -497,8 +497,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-    Log("AddNew Block : Commit block success, block: %s, remove: block=%d, tx=%d, add: block=%d, tx=%d",
-        hash.GetHex().c_str(), view.nRemoveBlockCount, view.nRemoveTxCount, view.nAddBlockCount, view.nAddTxCount);
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
@@ -506,6 +504,40 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     {
         Log("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
+    }
+
+    if (!update.vBlockAddNew.empty() || !update.vBlockRemove.empty())
+    {
+        uint32 nTxAdd = 0;
+        for (const auto& b : update.vBlockAddNew)
+        {
+            Log("Chain rollback occur[added block]: height: %u hash: %s time: %u",
+                b.GetBlockHeight(), b.GetHash().ToString().c_str(), b.nTimeStamp);
+            Log("Chain rollback occur[added mint tx]: %s", b.txMint.GetHash().ToString().c_str());
+            ++nTxAdd;
+            for (const auto& t : b.vtx)
+            {
+                Log("Chain rollback occur[added tx]: %s", t.GetHash().ToString().c_str());
+                ++nTxAdd;
+            }
+        }
+        uint32 nTxDel = 0;
+        for (const auto& b : update.vBlockRemove)
+        {
+            Log("Chain rollback occur[removed block]: height: %u hash: %s time: %u",
+                b.GetBlockHeight(), b.GetHash().ToString().c_str(), b.nTimeStamp);
+            Log("Chain rollback occur[removed mint tx]: %s", b.txMint.GetHash().ToString().c_str());
+            ++nTxDel;
+            for (const auto& t : b.vtx)
+            {
+                Log("Chain rollback occur[removed tx]: %s", t.GetHash().ToString().c_str());
+                ++nTxDel;
+            }
+        }
+        Log("Chain rollback occur, [height]: %u [hash]: %s "
+            "[nBlockAdd]: %u [nBlockDel]: %u [nTxAdd]: %u [nTxDel]: %u",
+            pIndexNew->GetBlockHeight(), pIndexNew->GetBlockHash().ToString().c_str(),
+            update.vBlockAddNew.size(), update.vBlockRemove.size(), nTxAdd, nTxDel);
     }
 
     return OK;
@@ -694,6 +726,11 @@ bool CBlockChain::GetBlockInv(const uint256& hashFork, const CBlockLocator& loca
 bool CBlockChain::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
     return cntrBlock.ListForkUnspent(hashFork, dest, nMax, vUnspent);
+}
+
+bool CBlockChain::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+{
+    return cntrBlock.ListForkUnspentBatch(hashFork, nMax, mapUnspent);
 }
 
 // bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)

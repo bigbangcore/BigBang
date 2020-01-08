@@ -5,11 +5,13 @@
 #include "rpcmod.h"
 
 #include "json/json_spirit_reader_template.h"
+#include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/regex.hpp>
 #include <regex>
+//#include <algorithm>
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
@@ -2254,6 +2256,40 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 {
+    auto lmdImport = [](const string& pathFile, vector<CAddress>& addresses) -> bool {
+        ifstream inFile(pathFile);
+
+        if (!inFile)
+        {
+            return false;
+        }
+
+        // iterate addresses from input file
+        const uint32 MAX_LISTUNSPENT_INPUT = 10000;
+        uint32 nCount = 1;
+        string strAddr;
+        while (getline(inFile, strAddr) && nCount <= MAX_LISTUNSPENT_INPUT)
+        {
+            boost::trim(strAddr);
+            if (strAddr.size() != CAddress::ADDRESS_LEN)
+            {
+                continue;
+            }
+
+            CAddress addr(strAddr);
+            if (!addr.IsNull())
+            {
+                addresses.emplace_back(addr);
+                ++nCount;
+            }
+        }
+
+        auto last = unique(addresses.begin(), addresses.end());
+        addresses.erase(last, addresses.end());
+
+        return true;
+    };
+
     auto spParam = CastParamPtr<CListUnspentParam>(param);
 
     uint256 fork;
@@ -2262,27 +2298,71 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
 
+    vector<CAddress> vAddr;
+
     CAddress addr(spParam->strAddress);
-    if (addr.IsNull())
+    if (!addr.IsNull())
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
+        vAddr.emplace_back(addr);
     }
 
-    vector<CTxUnspent> vUnspent;
-    if (!pService->ListForkUnspent(fork, dynamic_cast<CDestination&>(addr), spParam->nMax, vUnspent))
+    if (spParam->strFile.IsValid() && !lmdImport(spParam->strFile, vAddr))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid import file");
+    }
+
+    if (vAddr.empty())
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Available address as argument should be provided.");
+    }
+
+    std::map<CDestination, std::vector<CTxUnspent>> mapDest;
+    for (const auto& i : vAddr)
+    {
+        mapDest.emplace(std::make_pair(static_cast<CDestination>(i), std::vector<CTxUnspent>()));
+    }
+
+    if (vAddr.size() > 1)
+    {
+        if (!pService->ListForkUnspentBatch(fork, spParam->nMax, mapDest))
+        {
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring batch unspent list failed.");
+        }
+    }
+    else if (1 == vAddr.size())
+    {
+        if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(vAddr[0]),
+                                       spParam->nMax, mapDest[static_cast<CDestination>(vAddr[0])]))
+        {
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring unspent list failed.");
+        }
     }
 
     auto spResult = MakeCListUnspentResultPtr();
-    double dSum = 0.0f;
-    for (const auto& unspent : vUnspent)
+    double dTotal = 0.0f;
+    for (auto& iAddr : mapDest)
     {
-        CUnspentData data = UnspentToJSON(unspent);
-        spResult->vecUnspents.push_back(data);
-        dSum += data.dAmount;
+        CAddress dest(iAddr.first);
+
+        typename CListUnspentResult::CAddresses a;
+        a.strAddress = dest.ToString();
+
+        double dSum = 0.0f;
+        for (const auto& unspent : iAddr.second)
+        {
+            CUnspentData data = UnspentToJSON(unspent);
+            a.vecUnspents.push_back(data);
+            dSum += data.dAmount;
+        }
+
+        a.dSum = dSum;
+
+        spResult->vecAddresses.push_back(a);
+
+        dTotal += dSum;
     }
-    spResult->dSum = dSum;
+
+    spResult->dTotal = dTotal;
 
     return spResult;
 }

@@ -87,6 +87,54 @@ public:
     std::vector<CTxUnspent> vUnspent;
 };
 
+//////////////////////////////
+// CListUnspentBatchWalker
+
+class CListUnspentBatchWalker : public CForkUnspentDBWalker
+{
+public:
+    CListUnspentBatchWalker(const uint256& forkidIn, std::map<CDestination, std::vector<CTxUnspent>>& mapOwnersIn, uint32 maxIn)
+      : forkId(forkidIn), mapUnspent(mapOwnersIn), nMax(maxIn)
+    {
+        for (const auto& i : mapUnspent)
+        {
+            mapCount.insert(std::make_pair(i.first, 0));
+        }
+    }
+    bool Walk(const CTxOutPoint& txout, const CTxOut& output) override
+    {
+        if (nMax != 0 && AllFill())
+        {
+            return false; //exit walk through processing
+        }
+        if (mapUnspent.count(output.destTo) && (nMax == 0 || mapUnspent[output.destTo].size() < nMax))
+        {
+            mapUnspent[output.destTo].emplace_back(CTxUnspent(txout, output));
+            ++mapCount[output.destTo];
+        }
+        return true; //continue walk through processing
+    }
+
+private:
+    bool AllFill() const
+    {
+        for (const auto& i : mapCount)
+        {
+            if (i.second < nMax)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+public:
+    const uint256& forkId;
+    uint32 nMax;
+    std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent;
+    std::map<CDestination, uint8> mapCount;
+};
+
 class CForkUnspentDB : public xengine::CKVDB
 {
     typedef std::map<CTxOutPoint, CTxOut> MapType;
