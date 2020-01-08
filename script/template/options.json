@@ -327,7 +327,7 @@
             "opt": "timeout",
             "default": "DEFAULT_CONNECT_TIMEOUT",
             "format": "-timeout=<n>",
-            "desc": "Specify connection timeout (in milliseconds)"
+            "desc": "Specify connection timeout (in milliseconds, 5 by default)"
         },
         {
             "name": "vNode",
