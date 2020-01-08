@@ -1807,7 +1807,7 @@ CRPCResultPtr CRPCMod::RPCExportWallet(CRPCParamPtr param)
 
 #ifdef BOOST_CYGWIN_FS_PATH
     std::string strCygWinPathPrefix = "/cygdrive";
-    std::size_t found = spParam->strPath.find(strCygWinPathPrefix);
+    std::size_t found = string(spParam->strPath).find(strCygWinPathPrefix);
     if (found != std::string::npos)
     {
         strCygWinPathPrefix = "";
