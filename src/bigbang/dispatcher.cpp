@@ -300,12 +300,12 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     if (!strCmd.empty())
     {
         std::string cmd = strCmd;
-        std::string block_hash = updateBlockChain.hashFork.GetHex();
+        std::string block_hash = " " + updateBlockChain.hashFork.GetHex();
         for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
         {
             block_hash += " " + ite->GetHash().GetHex();
         }
-        boost::replace_all(cmd, "%s", block_hash);
+        cmd += block_hash;
         std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
     }
     // CDelegateRoutine routineDelegate;
