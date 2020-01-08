@@ -1565,7 +1565,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, *strErr);
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
     }
 
     bool fCompleted = false;
@@ -1671,7 +1671,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, *strErr);
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
     }
 
     CBufStream ss;

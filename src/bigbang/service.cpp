@@ -519,7 +519,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
         if (it == mapForkStatus.end())
         {
             StdError("CService", "CreateTransaction: find fork fail, fork: %s", hashFork.GetHex().c_str());
-            return std::string("CreateTransaction: find fork fail, fork: ") + hashFork.GetHex();
+            return std::string("find fork fail, fork: ") + hashFork.GetHex();
         }
         nForkHeight = it->second.nLastBlockHeight;
         txNew.hashAnchor = hashFork;
