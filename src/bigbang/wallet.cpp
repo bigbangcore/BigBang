@@ -227,22 +227,22 @@ bool CWallet::IsMine(const CDestination& dest)
     return false;
 }
 
-bool CWallet::AddKey(const crypto::CKey& key)
+boost::optional<std::string> CWallet::AddKey(const crypto::CKey& key)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
     if (!InsertKey(key))
     {
         Warn("AddKey : invalid or duplicated key");
-        return false;
+        return std::string("AddKey : invalid or duplicated key");
     }
 
     if (!dbWallet.UpdateKey(key.GetPubKey(), key.GetVersion(), key.GetCipher()))
     {
         mapKeyStore.erase(key.GetPubKey());
         Warn("AddKey : failed to save key");
-        return false;
+        return std::string("AddKey : failed to save key");
     }
-    return true;
+    return boost::optional<std::string>{};
 }
 
 bool CWallet::LoadKey(const crypto::CKey& key)
@@ -300,7 +300,7 @@ bool CWallet::Import(const vector<unsigned char>& vchKey, crypto::CPubKey& pubke
         return false;
     }
     pubkey = key.GetPubKey();
-    return AddKey(key);
+    return AddKey(key) ? false : true;
 }
 
 bool CWallet::Encrypt(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,
@@ -597,7 +597,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
 {
     tx.vInput.clear();
     int nMaxInput = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
-    int64 nTargeValue = tx.nAmount + tx.nTxFee;
+    int64 nTargetValue = tx.nAmount + tx.nTxFee;
 
     // locked coin template
     if (CTemplate::IsLockedCoin(destIn))
@@ -608,17 +608,17 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
             StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
             return false;
         }
-        nTargeValue += boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
+        nTargetValue += boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
     }
 
     vector<CTxOutPoint> vCoins;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwWalletTx);
-        int64 nValueIn = SelectCoins(destIn, hashFork, nForkHeight, tx.GetTxTime(), nTargeValue, nMaxInput, vCoins);
-        if (nValueIn < nTargeValue)
+        int64 nValueIn = SelectCoins(destIn, hashFork, nForkHeight, tx.GetTxTime(), nTargetValue, nMaxInput, vCoins);
+        if (nValueIn < nTargetValue)
         {
             StdError("CWallet", "ArrangeInputs: SelectCoins coin not enough, destIn: %s, nValueIn: %ld < nTargeValue: %ld",
-                     destIn.ToString().c_str(), nValueIn, nTargeValue);
+                     destIn.ToString().c_str(), nValueIn, nTargetValue);
             return false;
         }
     }

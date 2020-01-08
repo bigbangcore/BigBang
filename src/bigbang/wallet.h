@@ -150,7 +150,7 @@ public:
     ~CWallet();
     bool IsMine(const CDestination& dest);
     /* Key store */
-    bool AddKey(const crypto::CKey& key) override;
+    boost::optional<std::string> AddKey(const crypto::CKey& key) override;
     bool LoadKey(const crypto::CKey& key);
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override;
     bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override;
@@ -239,9 +239,9 @@ public:
     CDummyWallet() {}
     ~CDummyWallet() {}
     /* Key store */
-    virtual bool AddKey(const crypto::CKey& key) override
+    virtual boost::optional<std::string> AddKey(const crypto::CKey& key) override
     {
-        return false;
+        return std::string();
     }
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override {}
     virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override
