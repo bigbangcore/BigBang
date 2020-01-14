@@ -4,6 +4,7 @@
 
 #include "walletdb.h"
 
+#include <algorithm>
 #include <boost/bind.hpp>
 
 #include "leveldbeng.h"
@@ -527,22 +528,34 @@ size_t CWalletDB::GetTxCount()
 bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     size_t nDBTx = dbWtx.GetTxCount();
-
+    vector<CWalletTx> vTempWalletTx;
     if (nOffset < nDBTx)
     {
-        if (!ListDBTx(nOffset, nCount, vWalletTx))
+        if (!ListDBTx(nOffset, nCount, vTempWalletTx))
         {
             return false;
         }
-        if (vWalletTx.size() < nCount)
+        if (vTempWalletTx.size() < nCount)
         {
-            txCache.ListTx(0, nCount - vWalletTx.size(), vWalletTx);
+            txCache.ListTx(0, nCount - vTempWalletTx.size(), vTempWalletTx);
         }
     }
     else
     {
-        txCache.ListTx(nOffset - nDBTx, nCount, vWalletTx);
+        txCache.ListTx(nOffset - nDBTx, nCount, vTempWalletTx);
     }
+
+    std::copy_if(vTempWalletTx.begin(), vTempWalletTx.end(), vWalletTx.begin(), [&hashFork, &dest](const CWalletTx& tx) -> bool {
+        if (tx.hashFork == hashFork && (tx.destIn == dest || tx.sendTo == dest))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    });
+
     return true;
 }
 
