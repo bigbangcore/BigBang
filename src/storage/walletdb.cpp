@@ -524,7 +524,7 @@ size_t CWalletDB::GetTxCount()
     return dbWtx.GetTxCount() + txCache.Count();
 }
 
-bool CWalletDB::ListTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     size_t nDBTx = dbWtx.GetTxCount();
 
