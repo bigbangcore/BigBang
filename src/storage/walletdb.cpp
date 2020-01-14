@@ -546,14 +546,22 @@ bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nO
     }
 
     std::copy_if(vTempWalletTx.begin(), vTempWalletTx.end(), vWalletTx.begin(), [&hashFork, &dest](const CWalletTx& tx) -> bool {
-        if (tx.hashFork == hashFork && (tx.destIn == dest || tx.sendTo == dest))
+        if (!!hashFork && !dest.IsNull())
         {
-            return true;
+            return (tx.hashFork == hashFork && (tx.destIn == dest || tx.sendTo == dest));
         }
-        else
+
+        if (!!hashFork && dest.IsNull())
         {
-            return false;
+            return tx.hashFork == hashFork;
         }
+
+        if (!hashFork && !dest.IsNull())
+        {
+            return (tx.destIn == dest || tx.sendTo == dest);
+        }
+
+        return true;
     });
 
     return true;
