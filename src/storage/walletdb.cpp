@@ -545,7 +545,7 @@ bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nO
         txCache.ListTx(nOffset - nDBTx, nCount, vTempWalletTx);
     }
 
-    std::copy_if(vTempWalletTx.begin(), vTempWalletTx.end(), vWalletTx.begin(), [&hashFork, &dest](const CWalletTx& tx) -> bool {
+    std::copy_if(vTempWalletTx.begin(), vTempWalletTx.end(), std::back_inserter(vWalletTx), [&hashFork, &dest](const CWalletTx& tx) -> bool {
         if (!!hashFork && !dest.IsNull())
         {
             return (tx.hashFork == hashFork && (tx.destIn == dest || tx.sendTo == dest));
