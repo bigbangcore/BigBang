@@ -2058,6 +2058,18 @@
                     "desc": "query offset. If not set, from 0",
                     "required": false,
                     "opt": "o"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash. If not set, return all local fork 10 tx",
+                    "required": false,
+                    "opt": "f"
+                },
+                "address": {
+                    "type": "string",
+                    "desc": "from address or sendto address",
+                    "required": false,
+                    "opt": "a"
                 }
             }
         },
@@ -2837,21 +2849,21 @@
                 "fork": {
                     "type": "string",
                     "desc": "fork hash",
-                    "opt" : "f",
-                    "required" : false
+                    "opt": "f",
+                    "required": false
                 },
                 "max": {
                     "type": "uint",
                     "desc": "maximum unspents(0 means unlimited)",
-                    "opt" : "n",
+                    "opt": "n",
                     "default": 3,
-                    "required" : false
+                    "required": false
                 },
                 "file": {
                     "type": "string",
                     "desc": "input file containing list of multiple addresses",
-                    "opt" : "if",
-                    "required" : false
+                    "opt": "if",
+                    "required": false
                 }
             }
         },
