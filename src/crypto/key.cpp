@@ -30,12 +30,6 @@ bool CPubKey::Verify(const uint256& hash, const std::vector<uint8>& vchSig) cons
     return CryptoVerify(*this, &hash, sizeof(hash), vchSig);
 }
 
-bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& hash, const std::vector<uint8>& vchSig)
-{
-    std::set<uint256> setPartKey;
-    return CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey);
-}
-
 //////////////////////////////
 // CKey
 

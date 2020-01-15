@@ -126,6 +126,9 @@ bool CryptoVerify(const uint256& pubkey, const void* md, const std::size_t len, 
 //   Si = Ri + hash(Ri,Pi,M) * Pi
 bool CryptoMultiSign(const std::set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pM, const std::size_t lenM, std::vector<uint8>& vchSig);
 bool CryptoMultiVerify(const std::set<uint256>& setPubKey, const uint8* pM, const std::size_t lenM, const std::vector<uint8>& vchSig, std::set<uint256>& setPartKey);
+// defect old version multi-sign algorithm, only for backward compatiblility. 
+bool CryptoMultiVerifyDefect(const std::set<uint256>& setPubKey, const uint8* pX, const size_t lenX,
+                       const uint8* pM, const size_t lenM, const std::vector<uint8>& vchSig, std::set<uint256>& setPartKey);
 
 // Encrypt
 struct CCryptoCipher

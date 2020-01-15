@@ -18,7 +18,6 @@ public:
     CPubKey();
     CPubKey(const uint256& pubkey);
     bool Verify(const uint256& hash, const std::vector<uint8>& vchSig) const;
-    static bool MultiVerify(const std::set<uint256>& setPubKey, const uint256& hash, const std::vector<uint8>& vchSig);
 };
 
 class CKey

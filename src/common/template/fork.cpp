@@ -118,7 +118,7 @@ void CTemplateFork::BuildTemplateData()
 }
 
 bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                      const vector<uint8>& vchSig, bool& fCompleted) const
+                                      const vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const
 {
-    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nHeight, fCompleted);
 }
