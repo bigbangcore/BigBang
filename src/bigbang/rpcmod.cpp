@@ -1499,6 +1499,11 @@ CRPCResultPtr CRPCMod::RPCListTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
 
+    if (!strAddress.empty() && !address.ParseString(strAddress))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+
     int nCount = GetUint(spParam->nCount, 10);
     int nOffset = GetInt(spParam->nOffset, 0);
     if (nCount <= 0)
