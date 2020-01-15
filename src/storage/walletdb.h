@@ -216,7 +216,7 @@ public:
     bool ClearTx();
 
 protected:
-    bool ListDBTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
+    bool ListDBTx(const uint256& hashFork, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
 
 protected:
     CWalletAddrDB dbAddr;

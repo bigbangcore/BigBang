@@ -358,8 +358,8 @@ bool CWalletTxDB::Reset()
 class CWalletDBListTxSeqWalker : public CWalletDBTxSeqWalker
 {
 public:
-    CWalletDBListTxSeqWalker(int nOffsetIn, int nMaxCountIn)
-      : nOffset(nOffsetIn), nMaxCount(nMaxCountIn), nIndex(0)
+    CWalletDBListTxSeqWalker(const uint256& hashForkIn, int nOffsetIn, int nMaxCountIn)
+      : nHashFork(hashForkIn), nOffset(nOffsetIn), nMaxCount(nMaxCountIn), nIndex(0)
     {
     }
     bool Walk(const uint256& txid, const uint256& hashFork, const int nBlockHeight) override
@@ -368,7 +368,18 @@ public:
         {
             return true;
         }
-        vWalletTxid.push_back(txid);
+
+        if (!!nHashFork && nHashFork == hashFork)
+        {
+            vWalletTxid.push_back(txid);
+            return (vWalletTxid.size() < nMaxCount);
+        }
+
+        if (!nHashFork)
+        {
+            vWalletTxid.push_back(txid);
+        }
+
         return (vWalletTxid.size() < nMaxCount);
     }
 
@@ -376,6 +387,7 @@ public:
     int nOffset;
     int nMaxCount;
     int nIndex;
+    const uint256 nHashFork;
     vector<uint256> vWalletTxid;
 };
 
@@ -531,7 +543,7 @@ bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nO
     vector<CWalletTx> vTempWalletTx;
     if (nOffset < nDBTx)
     {
-        if (!ListDBTx(nOffset, nCount, vTempWalletTx))
+        if (!ListDBTx(hashFork, nOffset, nCount, vTempWalletTx))
         {
             return false;
         }
@@ -567,9 +579,9 @@ bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nO
     return true;
 }
 
-bool CWalletDB::ListDBTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWalletDB::ListDBTx(const uint256& hashFork, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
-    CWalletDBListTxSeqWalker walker(nOffset, nCount);
+    CWalletDBListTxSeqWalker walker(hashFork, nOffset, nCount);
     if (!dbWtx.WalkThroughTxSeq(walker))
     {
         return false;
