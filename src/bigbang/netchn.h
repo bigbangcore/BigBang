@@ -295,6 +295,7 @@ protected:
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
+    bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
 
 protected:
     network::CBbPeerNet* pPeerNet;

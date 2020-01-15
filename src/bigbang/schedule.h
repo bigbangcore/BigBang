@@ -178,7 +178,7 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0), fRepeatMintBlock(false) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -191,6 +191,7 @@ class CSchedule
         int64 nRecvInvTime;
         int64 nRecvObjTime;
         int nGetDataCount;
+        bool fRepeatMintBlock;
     };
 
 public:
@@ -201,7 +202,8 @@ public:
         MAX_PEER_TX_INV_COUNT = 1024 * 256,
         MAX_REGETDATA_COUNT = 10,
         MAX_INV_WAIT_TIME = 3600,
-        MAX_OBJ_WAIT_TIME = 7200
+        MAX_OBJ_WAIT_TIME = 7200,
+        MAX_REPEAT_BLOCK_TIME = 180
     };
 
 public:
@@ -230,6 +232,8 @@ public:
     int GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock);
     void SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock, const uint256& hashNext);
     void SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime);
+    bool SetRepeatBlock(uint64 nNonce, const uint256& hash, const CBlock& block);
+    bool IsRepeatBlock(const uint256& hash);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);

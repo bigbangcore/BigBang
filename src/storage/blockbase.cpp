@@ -227,6 +227,24 @@ void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
 }
 
 //////////////////////////////
+// CForkHeightIndex
+
+void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, const CDestination& destMint)
+{
+    mapHeightIndex[nHeight][hashBlock] = destMint;
+}
+
+void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock)
+{
+    mapHeightIndex[nHeight].erase(hashBlock);
+}
+
+map<uint256, CDestination>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
+{
+    return &(mapHeightIndex[nHeight]);
+}
+
+//////////////////////////////
 // CBlockBase
 
 CBlockBase::CBlockBase()
@@ -438,7 +456,8 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
             StdTrace("BlockBase", "AddNewBlock failed: %s", hash.ToString().c_str());
-            mapIndex.erase(hash);
+            //mapIndex.erase(hash);
+            RemoveBlockIndex(pIndexNew->GetOriginHash(), hash);
             delete pIndexNew;
             return false;
         }
@@ -449,7 +468,8 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
             {
                 StdTrace("BlockBase", "UpdateDelegate failed: %s", hash.ToString().c_str());
                 dbBlock.RemoveBlock(hash);
-                mapIndex.erase(hash);
+                //mapIndex.erase(hash);
+                RemoveBlockIndex(pIndexNew->GetOriginHash(), hash);
                 delete pIndexNew;
                 return false;
             }
@@ -982,6 +1002,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
         pIndexNew = new CBlockIndex(static_cast<CBlockIndex&>(outline));
         if (pIndexNew == nullptr)
         {
+            Log("B", "LoadIndex: new CBlockIndex fail");
             return false;
         }
         mi = mapIndex.insert(make_pair(hash, pIndexNew)).first;
@@ -994,13 +1015,24 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
     if (outline.hashPrev != 0)
     {
         pIndexNew->pPrev = GetOrCreateIndex(outline.hashPrev);
+        if (pIndexNew->pPrev == nullptr)
+        {
+            Log("B", "LoadIndex: GetOrCreateIndex prev block index fail");
+            return false;
+        }
     }
 
     if (!pIndexNew->IsOrigin())
     {
         pIndexNew->pOrigin = GetOrCreateIndex(outline.hashOrigin);
+        if (pIndexNew->pOrigin == nullptr)
+        {
+            Log("B", "LoadIndex: GetOrCreateIndex origin block index fail");
+            return false;
+        }
     }
 
+    UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, CDestination());
     return true;
 }
 
@@ -1681,6 +1713,43 @@ bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std:
     return true;
 }
 
+bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
+{
+    map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
+    if (it != mapForkHeightIndex.end())
+    {
+        map<uint256, CDestination>* pBlockMint = it->second.GetBlockMintList(height);
+        if (pBlockMint != nullptr)
+        {
+            for (auto& mt : *pBlockMint)
+            {
+                if (mt.second.IsNull())
+                {
+                    CBlockIndex* pBlockIndex = nullptr;
+                    CTransaction tx;
+                    if (RetrieveIndex(mt.first, &pBlockIndex)
+                        && RetrieveTx(pBlockIndex->txidMint, tx))
+                    {
+                        mt.second = tx.sendTo;
+                        if (tx.sendTo == destMint)
+                        {
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (mt.second == destMint)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
@@ -1692,7 +1761,13 @@ CBlockIndex* CBlockBase::GetOrCreateIndex(const uint256& hash)
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
     if (mi == mapIndex.end())
     {
-        mi = mapIndex.insert(make_pair(hash, new CBlockIndex())).first;
+        CBlockIndex* pIndexNew = new CBlockIndex();
+        mi = mapIndex.insert(make_pair(hash, pIndexNew)).first;
+        if (mi == mapIndex.end())
+        {
+            return nullptr;
+        }
+        pIndexNew->phashBlock = &((*mi).first);
     }
     return ((*mi).second);
 }
@@ -1732,6 +1807,21 @@ CBlockIndex* CBlockBase::GetOriginIndex(const uint256& txidMint) const
         }
     }
     return nullptr;
+}
+
+void CBlockBase::UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, const CDestination& destMint)
+{
+    mapForkHeightIndex[hashFork].AddHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, destMint);
+}
+
+void CBlockBase::RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock)
+{
+    std::map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
+    if (it != mapForkHeightIndex.end())
+    {
+        it->second.RemoveHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock);
+    }
+    mapIndex.erase(hashBlock);
 }
 
 CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust)
@@ -1919,6 +2009,7 @@ void CBlockBase::ClearCache()
         delete (*mi).second;
     }
     mapIndex.clear();
+    mapForkHeightIndex.clear();
     mapFork.clear();
 }
 
