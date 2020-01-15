@@ -9,6 +9,7 @@
 #include <stream/stream.h>
 #include <vector>
 
+#include "../bigbang/param.h"
 #include "proof.h"
 #include "transaction.h"
 #include "uint256.h"
@@ -44,7 +45,7 @@ public:
     }
     void SetNull()
     {
-        nVersion = 1;
+        nVersion = BLOCK_VERSION_MERKLEROOT_JOIN_HASH_CALC;
         nType = 0;
         nTimeStamp = 0;
         hashPrev = 0;
@@ -96,7 +97,15 @@ public:
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
+        switch (nVersion)
+        {
+        case BLOCK_VERSION_ORIGIN:
+            ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
+            break;
+        case BLOCK_VERSION_MERKLEROOT_JOIN_HASH_CALC:
+            ss << nVersion << nType << nTimeStamp << hashPrev << hashMerkle << vchProof;
+            break;
+        }
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
     int64 GetBlockTime() const
