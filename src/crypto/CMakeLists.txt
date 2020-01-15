@@ -13,6 +13,7 @@ set(pow_hash
     pow_hash/hash-extra-skein.c
     pow_hash/jh.h     
     pow_hash/slow-hash.c
+    pow_hash/slow-hash_1.c
     pow_hash/variant4_random_math.h
     pow_hash/blake256.c
     pow_hash/groestl.c
