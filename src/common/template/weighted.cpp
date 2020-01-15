@@ -146,8 +146,7 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    if (!CryptoMultiVerify(setPubKey, hashAnchor.begin(), hashAnchor.size(),
-                           hash.begin(), hash.size(), vchSig, setPartKey))
+    if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
     {
         return false;
     }

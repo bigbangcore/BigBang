@@ -30,11 +30,10 @@ bool CPubKey::Verify(const uint256& hash, const std::vector<uint8>& vchSig) cons
     return CryptoVerify(*this, &hash, sizeof(hash), vchSig);
 }
 
-bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& seed,
-                          const uint256& hash, const std::vector<uint8>& vchSig)
+bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& hash, const std::vector<uint8>& vchSig)
 {
     std::set<uint256> setPartKey;
-    return CryptoMultiVerify(setPubKey, seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig, setPartKey);
+    return CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey);
 }
 
 //////////////////////////////
@@ -134,7 +133,7 @@ bool CKey::Load(const std::vector<unsigned char>& vchKey)
         is.Pop(cipherNew.encrypted, 48);
         is >> cipherNew.nonce >> check;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -215,13 +214,11 @@ bool CKey::Sign(const uint256& hash, std::vector<uint8>& vchSig) const
     return true;
 }
 
-bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& seed,
-                     const uint256& hash, std::vector<uint8>& vchSig) const
+bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const
 {
     if (!IsNull() && !IsLocked())
     {
-        CryptoMultiSign(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey,
-                        seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig);
+        CryptoMultiSign(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey, hash.begin(), hash.size(), vchSig);
         return true;
     }
     return false;

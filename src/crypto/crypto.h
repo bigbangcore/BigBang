@@ -97,26 +97,35 @@ struct CCryptoKey
 
 uint256 CryptoMakeNewKey(CCryptoKey& key);
 uint256 CryptoImportKey(CCryptoKey& key, const uint256& secret);
-void CryptoSign(CCryptoKey& key, const void* md, std::size_t len, std::vector<uint8>& vchSig);
-bool CryptoVerify(const uint256& pubkey, const void* md, std::size_t len, const std::vector<uint8>& vchSig);
+void CryptoSign(const CCryptoKey& key, const void* md, const std::size_t len, std::vector<uint8>& vchSig);
+bool CryptoVerify(const uint256& pubkey, const void* md, const std::size_t len, const std::vector<uint8>& vchSig);
 
-// assume 1 <= i <= j <= n
-// vchSig = (index,R,S)
-//   index is a bitmap of participation keys in order.
-//   R = Ri + ... + Rj = (ri + ... + rj) * B
-//   S = Si + ... + Sj
-//     Si = ri + H(X,apk,M) * hi * si
-//       X is a fixed value in this signature by signers and verifiers
-//       M is message
-//       ri = H(H(si,pi),M)
-//       apk = H(A1,A1,...,An)*A1 + ... + H(An,A1,...,An)*An
-//       hi = H(Ai,A1,...,An)
-//       si is hash of serect of Ai
-// SB = R + H(X,apk,M) * (hi*Ai + ... + hj*Aj)
-bool CryptoMultiSign(const std::set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pX, const size_t lenX,
-                     const uint8* pM, const size_t lenM, std::vector<uint8>& vchSig);
-bool CryptoMultiVerify(const std::set<uint256>& setPubKey, const uint8* pX, const size_t lenX,
-                       const uint8* pM, const size_t lenM, const std::vector<uint8>& vchSig, std::set<uint256>& setPartKey);
+// assume:
+//   1. 1 <= i <= j <= n
+//   2. Pi is the i-th public key
+//   3. ki is the i-th private key
+//   4. Pi = si * B, si = Clamp(sha512(ki)[0, 32))
+//      void Clamp(unsigned char k[32])
+//      {
+//          k[0] &= 248;
+//          k[31] &= 127;
+//          k[31] |= 64;
+//      }
+//   5. the sequence of (P1, ..., Pn) is according to the order of uint256
+//
+// signature:
+//   1. vchSig = (index,Ri,Si...,Rj,Sj)
+//   2. index is a bitmap of participation keys in (P1, ..., Pn) order.
+//      For example: if n = 10, and cosigner participants are (P1, P3, P10), then index is [00000010,00000101]
+//   3. (Ri,Si) is the same as standard ed25519 signature algorithm (reference libsodium crypto_sign_ed25519_detached)
+//   4. Ri = ri * B, ri = sha512(sha512(ki)[32,64),M)
+//   5. Si = ri + hash(Ri,Pi,M) * si,
+//
+// proof:
+//   each (Ri,Si) proof is the same as standard ed25519 verify signature algorithm (reference libsodium crypto_sign_ed25519_verify_detached)
+//   Si = Ri + hash(Ri,Pi,M) * Pi
+bool CryptoMultiSign(const std::set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pM, const std::size_t lenM, std::vector<uint8>& vchSig);
+bool CryptoMultiVerify(const std::set<uint256>& setPubKey, const uint8* pM, const std::size_t lenM, const std::vector<uint8>& vchSig, std::set<uint256>& setPartKey);
 
 // Encrypt
 struct CCryptoCipher

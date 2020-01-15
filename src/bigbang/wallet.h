@@ -208,7 +208,7 @@ protected:
     std::shared_ptr<CWalletTx> LoadWalletTx(const uint256& txid);
     std::shared_ptr<CWalletTx> InsertWalletTx(const uint256& txid, const CAssembledTx& tx, const uint256& hashFork, bool fIsMine, bool fFromMe);
     bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig);
-    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& seed, const uint256& hash, std::vector<uint8>& vchSig);
+    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig);
     bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, std::vector<uint8>& vchSig, bool& fCompleted);
     void UpdateAutoLock(CWalletKeyStore& keystore);
     bool UpdateFork();

@@ -151,269 +151,151 @@ uint256 CryptoImportKey(CCryptoKey& key, const uint256& secret)
     return pk;
 }
 
-void CryptoSign(CCryptoKey& key, const void* md, size_t len, vector<uint8>& vchSig)
+void CryptoSign(const CCryptoKey& key, const void* md, const size_t len, vector<uint8>& vchSig)
 {
     vchSig.resize(64);
-    crypto_sign_ed25519_detached(&vchSig[0], nullptr, (const uint8*)md, len, (uint8*)&key);
+    crypto_sign_ed25519_detached(&vchSig[0], nullptr, (const uint8*)md, len, (const uint8*)&key);
 }
 
-bool CryptoVerify(const uint256& pubkey, const void* md, size_t len, const vector<uint8>& vchSig)
+bool CryptoVerify(const uint256& pubkey, const void* md, const size_t len, const vector<uint8>& vchSig)
 {
     return (vchSig.size() == 64
-            && !crypto_sign_ed25519_verify_detached(&vchSig[0], (const uint8*)md, len, (uint8*)&pubkey));
+            && !crypto_sign_ed25519_verify_detached(&vchSig[0], (const uint8*)md, len, (const uint8*)&pubkey));
 }
 
-//     0        key1          keyn
-// |________|________| ... |_______|
-static vector<uint8> MultiSignPreApk(const set<uint256>& setPubKey)
+// return the nIndex key is signed in multiple signature
+static bool IsSigned(const uint8* pIndex, const size_t nLen, const size_t nIndex)
 {
-    vector<uint8> vecHash;
-    vecHash.resize((setPubKey.size() + 1) * uint256::size());
-
-    int i = uint256::size();
-    for (const uint256& key : setPubKey)
-    {
-        memcpy(&vecHash[i], key.begin(), key.size());
-        i += key.size();
-    }
-
-    return vecHash;
+    return (nLen * 8 > nIndex) && pIndex[nLen - 1 - nIndex / 8] & (1 << (nIndex % 8));
 }
 
-// H(Ai,A1,...,An)*Ai + ... + H(Aj,A1,...,An)*Aj
-// setPubKey = [A1 ... An], setPartKey = [Ai ... Aj], 1 <= i <= j <= n
-static bool MultiSignApk(const set<uint256>& setPubKey, const set<uint256>& setPartKey, uint8* md32)
+// set the nIndex key signed in multiple signature
+static bool SetSigned(uint8* pIndex, const size_t nLen, const size_t nIndex)
 {
-    vector<uint8> vecHash = MultiSignPreApk(setPubKey);
-
-    CEdwards25519 apk;
-    for (const uint256& key : setPartKey)
+    if (nLen * 8 <= nIndex)
     {
-        memcpy(&vecHash[0], key.begin(), key.size());
-        CSC25519 hash = CSC25519(CryptoHash(&vecHash[0], vecHash.size()).begin());
-
-        CEdwards25519 point;
-        if (!point.Unpack(key.begin()))
-        {
-            return false;
-        }
-        apk += point.ScalarMult(hash);
+        return false;
     }
-
-    apk.Pack(md32);
+    pIndex[nLen - 1 - nIndex / 8] |= (1 << (nIndex % 8));
     return true;
 }
 
-// hash = H(X,apk,M)
-static CSC25519 MultiSignHash(const uint8* pX, const size_t lenX, const uint8* pApk, const size_t lenApk, const uint8* pM, const size_t lenM)
-{
-    uint8 hash[32];
-
-    crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, nullptr, 0, 32);
-    crypto_generichash_blake2b_update(&state, pX, lenX);
-    crypto_generichash_blake2b_update(&state, pApk, lenApk);
-    crypto_generichash_blake2b_update(&state, pM, lenM);
-    crypto_generichash_blake2b_final(&state, hash, 32);
-
-    return CSC25519(hash);
-}
-
-// r = H(H(sk,pk),M)
-static CSC25519 MultiSignR(const CCryptoKey& key, const uint8* pM, const size_t lenM)
-{
-    uint8 hash[32];
-
-    crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, nullptr, 0, 32);
-    uint256 keyHash = CryptoHash((uint8*)&key, 64);
-    crypto_generichash_blake2b_update(&state, (uint8*)&keyHash, 32);
-    crypto_generichash_blake2b_update(&state, pM, lenM);
-    crypto_generichash_blake2b_final(&state, hash, 32);
-
-    return CSC25519(hash);
-}
-
-static CSC25519 ClampPrivKey(const uint256& privkey)
-{
-    uint8 hash[64];
-    crypto_hash_sha512(hash, privkey.begin(), privkey.size());
-    hash[0] &= 248;
-    hash[31] &= 127;
-    hash[31] |= 64;
-
-    return CSC25519(hash);
-}
-
-bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pX, const size_t lenX,
-                     const uint8* pM, const size_t lenM, vector<uint8>& vchSig)
+bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pM, const size_t lenM, vector<uint8>& vchSig)
 {
     if (setPubKey.empty())
     {
+        xengine::StdTrace("multisign", "key set is empty");
         return false;
     }
 
-    // unpack (index,R,S)
-    CSC25519 S;
-    CEdwards25519 R;
-    int nIndexLen = (setPubKey.size() - 1) / 8 + 1;
-    if (vchSig.empty())
-    {
-        vchSig.resize(nIndexLen + 64);
-    }
-    else
-    {
-        if (vchSig.size() != nIndexLen + 64)
-        {
-            return false;
-        }
-        if (!R.Unpack(&vchSig[nIndexLen]))
-        {
-            return false;
-        }
-        S.Unpack(&vchSig[nIndexLen + 32]);
-    }
-    uint8* pIndex = &vchSig[0];
-
-    // apk
-    uint256 apk;
-    if (!MultiSignApk(setPubKey, setPubKey, apk.begin()))
-    {
-        return false;
-    }
-    // H(X,apk,M)
-    CSC25519 hash = MultiSignHash(pX, lenX, apk.begin(), apk.size(), pM, lenM);
-
-    // sign
+    // index
     set<uint256>::const_iterator itPub = setPubKey.find(privkey.pubkey);
     if (itPub == setPubKey.end())
     {
+        xengine::StdTrace("multisign", "no key %s in set", privkey.pubkey.ToString().c_str());
         return false;
     }
-    size_t index = distance(setPubKey.begin(), itPub);
+    size_t nIndex = distance(setPubKey.begin(), itPub);
 
-    if (!(pIndex[index / 8] & (1 << (index % 8))))
+    // unpack index of  (index,S,Ri,...,Rj)
+    size_t nIndexLen = (setPubKey.size() - 1) / 8 + 1;
+    if (vchSig.empty())
     {
-        // ri = H(H(si,pi),M)
-        CSC25519 ri = MultiSignR(privkey, pM, lenM);
-        // hi = H(Ai,A1,...,An)
-        vector<uint8> vecHash = MultiSignPreApk(setPubKey);
-        memcpy(&vecHash[0], itPub->begin(), itPub->size());
-        CSC25519 hi = CSC25519(CryptoHash(&vecHash[0], vecHash.size()).begin());
-        // si = H(privkey)
-        CSC25519 si = ClampPrivKey(privkey.secret);
-        // Si = ri + H(X,apk,M) * hi * si
-        CSC25519 Si = ri + hash * hi * si;
-        // S += Si
-        S += Si;
-        // R += Ri
-        CEdwards25519 Ri;
-        Ri.Generate(ri);
-        R += Ri;
+        vchSig.resize(nIndexLen);
+    }
+    else if (vchSig.size() < nIndexLen + 64)
+    {
+        xengine::StdTrace("multisign", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
+        return false;
+    }
+    uint8* pIndex = &vchSig[0];
 
-        pIndex[index / 8] |= (1 << (index % 8));
+    // already signed
+    if (IsSigned(pIndex, nIndexLen, nIndex))
+    {
+        xengine::StdTrace("multisign", "key %s is already signed", privkey.pubkey.ToString().c_str());
+        return true;
     }
 
-    R.Pack(&vchSig[nIndexLen]);
-    S.Pack(&vchSig[nIndexLen + 32]);
+    // position of RS, (index,Ri,Si,...,R,S,...,Rj,Sj)
+    size_t nPosRS = nIndexLen;
+    for (size_t i = 0; i < nIndex; ++i)
+    {
+        if (IsSigned(pIndex, nIndexLen, i))
+        {
+            nPosRS += 64;
+        }
+    }
+    if (nPosRS > vchSig.size())
+    {
+        xengine::StdTrace("multisign", "index %lu key is signed, but not exist R", nIndex);
+        return false;
+    }
+
+    // sign
+    vector<uint8> vchRS;
+    CryptoSign(privkey, pM, lenM, vchRS);
+
+    // record
+    if (!SetSigned(pIndex, nIndexLen, nIndex))
+    {
+        xengine::StdTrace("multisign", "set %lu index signed error", nIndex);
+        return false;
+    }
+    vchSig.insert(vchSig.begin() + nPosRS, vchRS.begin(), vchRS.end());
 
     return true;
 }
 
-bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pX, const size_t lenX,
-                       const uint8* pM, const size_t lenM, const vector<uint8>& vchSig, set<uint256>& setPartKey)
+bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pM, const size_t lenM, const vector<uint8>& vchSig, set<uint256>& setPartKey)
 {
     if (setPubKey.empty())
     {
+        xengine::StdTrace("multiverify", "key set is empty");
         return false;
     }
 
-    if (vchSig.empty())
-    {
-        return true;
-    }
-
-    // unpack (index,R,S)
-    CSC25519 S;
-    CEdwards25519 R;
+    // unpack (index,Ri,Si,...,Rj,Sj)
     int nIndexLen = (setPubKey.size() - 1) / 8 + 1;
-    if (vchSig.size() != (nIndexLen + 64))
+    if (vchSig.size() < (nIndexLen + 64))
     {
+        xengine::StdTrace("multiverify", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
         return false;
     }
-    if (!R.Unpack(&vchSig[nIndexLen]))
-    {
-        return false;
-    }
-    S.Unpack(&vchSig[nIndexLen + 32]);
     const uint8* pIndex = &vchSig[0];
 
-    // apk
-    uint256 apk;
-    if (!MultiSignApk(setPubKey, setPubKey, apk.begin()))
-    {
-        return false;
-    }
-    // H(X,apk,M)
-    CSC25519 hash = MultiSignHash(pX, lenX, apk.begin(), apk.size(), pM, lenM);
-
-    // A = hi*Ai + ... + aj*Aj
-    CEdwards25519 A;
-    vector<uint8> vecHash = MultiSignPreApk(setPubKey);
-    setPartKey.clear();
-    int i = 0;
-
+    size_t nPosRS = nIndexLen;
+    size_t i = 0;
     for (auto itPub = setPubKey.begin(); itPub != setPubKey.end(); ++itPub, ++i)
     {
-        if (pIndex[i / 8] & (1 << (i % 8)))
+        if (IsSigned(pIndex, nIndexLen, i))
         {
-            // hi = H(Ai,A1,...,An)
-            memcpy(&vecHash[0], itPub->begin(), itPub->size());
-            CSC25519 hi = CSC25519(CryptoHash(&vecHash[0], vecHash.size()).begin());
-            // hi * Ai
-            CEdwards25519 Ai;
-            if (!Ai.Unpack(itPub->begin()))
+            const uint256& pk = *itPub;
+            if (nPosRS + 64 > vchSig.size())
             {
+                xengine::StdTrace("multiverify", "index %lu key is signed, but not exist R", i);
                 return false;
             }
-            A += Ai.ScalarMult(hi);
 
-            setPartKey.insert(*itPub);
+            vector<uint8> vchRS(vchSig.begin() + nPosRS, vchSig.begin() + nPosRS + 64);
+            if (!CryptoVerify(pk, pM, lenM, vchRS))
+            {
+                xengine::StdTrace("multiverify", "verify index %lu key sign failed", i);
+                return false;
+            }
+
+            setPartKey.insert(pk);
+            nPosRS += 64;
         }
     }
 
-    // SB = R + H(X,apk,M) * (hi*Ai + ... + aj*Aj)
-    CEdwards25519 SB;
-    SB.Generate(S);
-
-    return SB == R + A.ScalarMult(hash);
-}
-
-set<uint256> CryptoMultiPartKey(const set<uint256>& setPubKey, const vector<uint8>& vchSig)
-{
-    set<uint256> setPartKey;
-    if (setPubKey.empty() || vchSig.empty())
+    if (nPosRS != vchSig.size())
     {
-        return setPartKey;
+        xengine::StdTrace("multiverify", "vchSig size %lu is too long, need %lu", vchSig.size(), nPosRS);
+        return false;
     }
 
-    int nIndexLen = (setPubKey.size() - 1) / 8 + 1;
-    if (vchSig.size() != (nIndexLen + 64))
-    {
-        return setPartKey;
-    }
-
-    const uint8* pIndex = &vchSig[0];
-    int i = 0;
-    for (auto itPub = setPubKey.begin(); itPub != setPubKey.end(); ++itPub, ++i)
-    {
-        if (pIndex[i / 8] & (1 << (i % 8)))
-        {
-            setPartKey.insert(*itPub);
-        }
-    }
-
-    return setPartKey;
+    return true;
 }
 
 // Encrypt
