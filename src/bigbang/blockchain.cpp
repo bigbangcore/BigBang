@@ -506,7 +506,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    if (!update.vBlockAddNew.empty() || !update.vBlockRemove.empty())
+    if (!update.vBlockRemove.empty())
     {
         uint32 nTxAdd = 0;
         for (const auto& b : update.vBlockAddNew)
