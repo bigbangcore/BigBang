@@ -37,13 +37,12 @@
 #include <unistd.h>
 #endif
 
+#include "../../common/param2.h"
 #include "common/int-util.h"
 #include "hash-ops.h"
 #include "oaes_lib.h"
 #include "variant2_int_sqrt.h"
 #include "variant4_random_math.h"
-
-#include "../../bigbang/param.h"
 
 #define MEMORY         (1 << 21) // 2MB scratchpad
 #define ITER           (1 << 12)

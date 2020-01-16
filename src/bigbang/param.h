@@ -28,7 +28,7 @@ static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 static const unsigned int DELEGATE_THRESH = 50;
 
-static const uint32 HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING = 90000;   //hard fork: change of hash algorithm and its input, and update of template address of multiple signature
+//static const uint32 HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING = 90000;   //hard fork: change of hash algorithm and its input, and update of template address of multiple signature
 
 enum ConsensusMethod
 {

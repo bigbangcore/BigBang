@@ -9,7 +9,7 @@
 #include <stream/stream.h>
 #include <vector>
 
-#include "../bigbang/param.h"
+#include "param2.h"
 #include "proof.h"
 #include "transaction.h"
 #include "uint256.h"
