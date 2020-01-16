@@ -25,6 +25,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "template/template.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -164,6 +165,17 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
+
+    // template
+    if (config.GetConfig()->fTestNet)
+    {
+        MULTISIGN_HEIGHT = MULTISIGN_HEIGHT_TESTNET;
+    }
+    else
+    {
+        MULTISIGN_HEIGHT = MULTISIGN_HEIGHT_MAINNET;
+    }
+
     // modules
     return InitializeModules(config.GetModeType());
 }

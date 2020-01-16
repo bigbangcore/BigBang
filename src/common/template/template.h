@@ -16,6 +16,10 @@
 #include "templateid.h"
 #include "util.h"
 
+const int32 MULTISIGN_HEIGHT_MAINNET = 72000;
+const int32 MULTISIGN_HEIGHT_TESTNET = 0;
+extern int32 MULTISIGN_HEIGHT;
+
 class CSpendableTemplate
 {
 };

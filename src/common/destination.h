@@ -65,7 +65,7 @@ public:
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                            const std::vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const;
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                           const std::vector<uint8>& vchSig, const int32 nHeight, const uint256& fork) const;
+                           const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork, const int32 nHeight) const;
 
     bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 
