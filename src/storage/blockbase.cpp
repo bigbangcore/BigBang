@@ -1851,6 +1851,8 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         pIndexNew->nMoneySupply = nMoneySupply;
         pIndexNew->nChainTrust = nChainTrust;
         pIndexNew->nRandBeacon = nRandBeacon;
+
+        UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, block.txMint.sendTo);
     }
     return pIndexNew;
 }
