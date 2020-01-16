@@ -308,8 +308,13 @@ public:
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
     /* Mint */
-    virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
-    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) = 0;
+    virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                         uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                         const CTemplateMintPtr& templMint)
+        = 0;
+    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
+                             crypto::CKey& keyMint, uint256& hashBlock)
+        = 0;
     /* Util */
     virtual bool GetTxSender(const uint256& txid, CAddress& sender) = 0;
 };

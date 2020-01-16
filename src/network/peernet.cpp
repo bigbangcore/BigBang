@@ -338,7 +338,7 @@ void CBbPeerNet::HandlePeerWriten(CPeer* pPeer)
 
 bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 {
-    CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
+    CBbPeer* pBbPeer = dynamic_cast<CBbPeer*>(pPeer);
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
     {

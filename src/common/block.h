@@ -9,6 +9,7 @@
 #include <stream/stream.h>
 #include <vector>
 
+#include "../bigbang/param.h"
 #include "proof.h"
 #include "transaction.h"
 #include "uint256.h"
@@ -96,7 +97,14 @@ public:
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
+        if (GetBlockHeight() < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
+        {
+            ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
+        }
+        else
+        {
+            ss << nVersion << nType << nTimeStamp << hashPrev << hashMerkle << vchProof;
+        }
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
     int64 GetBlockTime() const

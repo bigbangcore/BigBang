@@ -76,7 +76,8 @@ protected:
     }
     bool Wait(long nSeconds);
     bool Wait(long nSeconds, const uint256& hashPrimaryBlock);
-    void PrepareBlock(CBlock& block, const uint256& hashPrev, int64 nPrevTime, int nPrevHeight, const CDelegateAgreement& agreement);
+    void PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
+                      const uint32& nPrevHeight, const CDelegateAgreement& agreement);
     void ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
     bool DispatchBlock(CBlock& block);
