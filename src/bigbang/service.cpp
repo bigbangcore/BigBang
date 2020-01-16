@@ -587,9 +587,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.nNonce = 0;
     proof.Save(block.vchProof);
 
-    //todo: prepare txs to be packaged
-
-    size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2; //todo: avoid hard coding
+    std::size_t nSize = templMint->GetTemplateData().size() + 64;
+    size_t nSigSize = nSize + xengine::GetSerializeSize(xengine::CVarInt(nSize));
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
     int64 nTotalTxFee = 0;
     pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp,

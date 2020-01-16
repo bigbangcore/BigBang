@@ -45,7 +45,7 @@ public:
     }
     void SetNull()
     {
-        nVersion = BLOCK_VERSION_MERKLEROOT_JOIN_HASH_CALC;
+        nVersion = 1;
         nType = 0;
         nTimeStamp = 0;
         hashPrev = 0;
@@ -97,14 +97,13 @@ public:
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        switch (nVersion)
+        if (GetBlockHeight() < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
         {
-        case BLOCK_VERSION_ORIGIN:
             ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
-            break;
-        case BLOCK_VERSION_MERKLEROOT_JOIN_HASH_CALC:
+        }
+        else
+        {
             ss << nVersion << nType << nTimeStamp << hashPrev << hashMerkle << vchProof;
-            break;
         }
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }

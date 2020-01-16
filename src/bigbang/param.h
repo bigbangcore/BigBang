@@ -28,8 +28,7 @@ static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 static const unsigned int DELEGATE_THRESH = 50;
 
-static const uint16 BLOCK_VERSION_ORIGIN = 0x0001;
-static const uint16 BLOCK_VERSION_MERKLEROOT_JOIN_HASH_CALC = 0x0002;
+static const uint32 HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING = 90000;
 
 enum ConsensusMethod
 {
