@@ -97,27 +97,7 @@ public:
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        if (GetBlockHeight() < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
-        {
-            ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
-        }
-        else
-        {
-            std::vector<uint8> vchMerkle = vchProof;
-            std::vector<uint8> agree(vchMerkle[2], vchMerkle[34]);
-            uint256 hashAgree(agree);
-            xengine::CBufStream buf;
-            buf << hashAgree << hashMerkle;
-
-            uint256 hash = bigbang::crypto::CryptoHash(buf.GetData(), buf.GetSize());
-
-            buf.Clear();
-            buf << std::vector<uint8>(vchMerkle[0], vchMerkle[2])
-                << hash
-                << std::vector<uint8>(vchMerkle[34], vchMerkle[vchMerkle.size()]);
-
-            ss << nVersion << nType << nTimeStamp << hashPrev << buf;
-        }
+        ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
     int64 GetBlockTime() const

@@ -587,24 +587,6 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.nNonce = 0;
     proof.Save(block.vchProof);
 
-    std::size_t nSize = templMint->GetTemplateData().size() + 64;
-    size_t nSigSize = nSize + xengine::GetSerializeSize(xengine::CVarInt(nSize));
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
-    int64 nTotalTxFee = 0;
-    pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp,
-                            nMaxTxSize, block.vtx, nTotalTxFee);
-    block.hashMerkle = block.CalcMerkleTreeRoot();
-    block.txMint.nAmount += nTotalTxFee;
-
-    auto it = mapPendingBlock.find(templMint->GetTemplateId());
-    if (it != mapPendingBlock.end())
-    {
-        (*it).second.insert(std::make_pair(block.hashMerkle, block));
-    }
-    else
-    {
-        mapPendingBlock[templMint->GetTemplateId()].insert(std::make_pair(block.hashMerkle, block));
-    }
     block.GetSerializedProofOfWorkData(vchWorkData);
     return true;
 }
@@ -622,7 +604,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     ss.Write((const char*)&vchWorkData[0], vchWorkData.size());
     try
     {
-        ss >> block.nVersion >> block.nType >> block.nTimeStamp >> block.hashPrev >> block.hashMerkle >> block.vchProof;
+        ss >> block.nVersion >> block.nType >> block.nTimeStamp >> block.hashPrev >> block.vchProof;
         proof.Load(block.vchProof);
         if (proof.nAlgo != CM_CRYPTONIGHT)
         {
@@ -641,35 +623,19 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         return FAILED;
     }
 
-    auto it = mapPendingBlock.find(templMint->GetTemplateId());
-    if (mapPendingBlock.end() == it)
-    {
-        return FAILED;
-    }
-    auto merkle = (*it).second;
-    auto i = merkle.find(block.hashMerkle);
-    if (merkle.end() == i)
-    {
-        return FAILED;
-    }
-
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
     txMint.nTimeStamp = block.nTimeStamp;
     txMint.hashAnchor = block.hashPrev;
     txMint.sendTo = CDestination(templMint->GetTemplateId());
-    txMint.nAmount = (*i).second.txMint.nAmount;
+    txMint.nAmount = nReward;
 
-    block.vtx = std::move((*i).second.vtx);
-    if (1 == merkle.size())
-    {
-        merkle.erase(i);
-        mapPendingBlock.erase(it);
-    }
-    else
-    {
-        merkle.erase(i);
-    }
+    size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
+    int64 nTotalTxFee = 0;
+    pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
+    block.hashMerkle = block.CalcMerkleTreeRoot();
+    block.txMint.nAmount += nTotalTxFee;
 
     hashBlock = block.GetHash();
     vector<unsigned char> vchMintSig;

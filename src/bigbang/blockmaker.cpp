@@ -368,22 +368,20 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     proof.nNonce = 0;
     proof.Save(block.vchProof);
 
-    if (Interrupted())
-    {
-        StdTrace("blockmaker", "Create PoW interrupted");
-        return false;
-    }
-
-    ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
-
     if (!CreateProofOfWork(block, mapHashAlgo[profile.nAlgo]))
     {
         StdTrace("blockmaker", "Create PoW failed");
         return false;
     }
 
-    txMint.nTimeStamp = block.nTimeStamp;
+    if (Interrupted())
+    {
+        StdTrace("blockmaker", "Create PoW interrupted");
+        return false;
+    }
 
+    txMint.nTimeStamp = block.nTimeStamp;
+    ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
     if (!SignBlock(block, profile))
     {
         Error("Sign block failed.\n");
