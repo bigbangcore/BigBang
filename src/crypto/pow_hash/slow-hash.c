@@ -43,6 +43,8 @@
 #include "variant2_int_sqrt.h"
 #include "variant4_random_math.h"
 
+#include "../../bigbang/param.h"
+
 #define MEMORY         (1 << 21) // 2MB scratchpad
 #define ITER           (1 << 12)
 #define AES_BLOCK_SIZE  16
@@ -827,7 +829,7 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
 void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height)
 { 
     unsigned int height_ = *((unsigned int *)&data[36]);
-    if (height_ < 20)
+    if (height_ < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
     {   
       cn_slow_hash_1(data, length, hash, variant, prehashed, height);
       return;

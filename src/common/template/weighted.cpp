@@ -9,6 +9,7 @@
 #include "rpc/auto_protocol.h"
 #include "template.h"
 #include "util.h"
+#include "../../bigbang/param.h"
 
 using namespace std;
 using namespace xengine;
@@ -147,7 +148,7 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
 
     set<uint256> setPartKey;
     // before 72000, used defect multi-sign alogrithm
-    if (nHeight > 0 && nHeight < 72000)
+    if (nHeight > 0 && nHeight < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
     {
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {
