@@ -142,7 +142,7 @@ const CTemplateId CDestination::GetTemplateId() const
 }
 
 bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                     const std::vector<uint8>& vchSig, bool& fCompleted) const
+                                     const std::vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const
 {
     if (IsPubKey())
     {
@@ -151,23 +151,23 @@ bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnc
     }
     else if (IsTemplate())
     {
-        return CTemplate::VerifyTxSignature(GetTemplateId(), hash, hashAnchor, destTo, vchSig, fCompleted);
+        return CTemplate::VerifyTxSignature(GetTemplateId(), hash, hashAnchor, destTo, vchSig, nHeight, fCompleted);
     }
     return false;
 }
 
 bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                     const std::vector<uint8>& vchSig, int nForkHeight, const uint256& fork) const
+                                     const std::vector<uint8>& vchSig, const int32 nHeight, const uint256& fork) const
 {
     // if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
     // {
     //     std::shared_ptr<CTemplateExchange> sp = std::make_shared<CTemplateExchange>(vchSig);
-    //     return sp->VerifySignature(hash, vchSig, nForkHeight, fork);
+    //     return sp->VerifySignature(hash, vchSig, nHeight, fork);
     // }
     // else
     {
         bool fCompleted = false;
-        return VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted) && fCompleted;
+        return VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nHeight, fCompleted) && fCompleted;
     }
 }
 
