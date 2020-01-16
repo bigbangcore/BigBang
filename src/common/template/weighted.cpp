@@ -147,8 +147,8 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    // before HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING, used defect multi-sign algorithm
-    if (nHeight > 0 && nHeight < HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING)
+    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
+    if (nHeight > 0 && nHeight < HEIGHT_HASH_MULTI_SIGNER)
     {
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {

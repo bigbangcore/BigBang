@@ -5,6 +5,7 @@
 #ifndef BIGBANG_DEFS_H
 #define BIGBANG_DEFS_H
 
-static const unsigned int HEIGHT_OF_ADDING_MERKLE_AS_INPUT_WHEN_MINING = 90000;   //hard fork: change of hash algorithm and its input, and update of template address of multiple signature
+//hard fork: change of hash algorithm and its input, and update of template address of multiple signature
+static const unsigned int HEIGHT_HASH_MULTI_SIGNER = 20;   
 
 #endif //BIGBANG_DEFS_H
