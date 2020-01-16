@@ -6,7 +6,7 @@
 
 #include <set>
 
-#include "param2.h"
+#include "defs.h"
 #include "rpc/auto_protocol.h"
 #include "template.h"
 #include "util.h"

@@ -27,7 +27,7 @@ set(sources
     block.h
     forkcontext.h
     ${template}
-    param2.h)
+        defs.h)
 
 add_library(common ${sources})
 

@@ -37,7 +37,7 @@
 #include <unistd.h>
 #endif
 
-#include "../../common/param2.h"
+#include "../../common/defs.h"
 #include "common/int-util.h"
 #include "hash-ops.h"
 #include "oaes_lib.h"

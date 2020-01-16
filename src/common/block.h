@@ -9,7 +9,7 @@
 #include <stream/stream.h>
 #include <vector>
 
-#include "param2.h"
+#include "defs.h"
 #include "proof.h"
 #include "transaction.h"
 #include "uint256.h"
