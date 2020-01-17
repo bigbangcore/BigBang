@@ -26,7 +26,7 @@ using namespace xengine;
 using namespace bigbang::crypto;
 using namespace bigbang::rpc;
 
-int32 MULTISIGN_HEIGHT = MULTISIGN_HEIGHT_MAINNET;
+int32 MULTISIGN_HEIGHT = MULTISIGN_HEIGHT_TESTNET;
 
 struct CTypeInfo
 {

@@ -15,9 +15,10 @@
 #include "stream/datastream.h"
 #include "templateid.h"
 #include "util.h"
+#include "../defs.h"
 
-const int32 MULTISIGN_HEIGHT_MAINNET = 72000;
-const int32 MULTISIGN_HEIGHT_TESTNET = 20;
+const int32 MULTISIGN_HEIGHT_MAINNET = HEIGHT_HASH_MULTI_SIGNER;
+const int32 MULTISIGN_HEIGHT_TESTNET = HEIGHT_HASH_MULTI_SIGNER;
 extern int32 MULTISIGN_HEIGHT;
 
 class CSpendableTemplate
