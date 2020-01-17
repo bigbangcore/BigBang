@@ -150,17 +150,21 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     // before MULTISIGN_HEIGHT, used defect multi-sign algorithm
     if (nHeight > 0 && nHeight < MULTISIGN_HEIGHT)
     {
+        xengine::StdTrace("Oijen-hardfork", "nHeight (0, %u)", MULTISIGN_HEIGHT);
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
+        xengine::StdTrace("Oijen-hardfork-success", "nHeight (0, %u)", MULTISIGN_HEIGHT);
     }
     else
     {
+        xengine::StdTrace("Oijen-hardfork", "nHeight [%u, infinit)", MULTISIGN_HEIGHT);
         if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
+        xengine::StdTrace("Oijen-hardfork-success", "nHeight [%u, infinit)", MULTISIGN_HEIGHT);
     }
 
     int nWeight = 0;
