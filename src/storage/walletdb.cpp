@@ -372,7 +372,6 @@ public:
         if (!!nHashFork && nHashFork == hashFork)
         {
             vWalletTxid.push_back(txid);
-            return (vWalletTxid.size() < nMaxCount);
         }
 
         if (!nHashFork)
