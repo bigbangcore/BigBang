@@ -147,8 +147,8 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
-    if (nHeight > 0 && nHeight < HEIGHT_HASH_MULTI_SIGNER)
+    // before MULTISIGN_HEIGHT, used defect multi-sign algorithm
+    if (nHeight > 0 && nHeight < MULTISIGN_HEIGHT)
     {
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {
