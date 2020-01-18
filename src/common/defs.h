@@ -7,7 +7,7 @@
 
 //hard fork: change of hash algorithm and its input, and update of template address of multiple signature
 static const unsigned int HEIGHT_HASH_MULTI_SIGNER_MAINNET = 72000;   
-static const unsigned int HEIGHT_HASH_MULTI_SIGNER_TESTNET = 130;   
+static const unsigned int HEIGHT_HASH_MULTI_SIGNER_TESTNET = 20;
 extern unsigned int HEIGHT_HASH_MULTI_SIGNER;
 
 #endif //BIGBANG_DEFS_H
