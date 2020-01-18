@@ -207,7 +207,7 @@ public:
     virtual std::size_t GetTxCount() = 0;
     virtual bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
-    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
+    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Update */
@@ -308,8 +308,13 @@ public:
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
     /* Mint */
-    virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) = 0;
-    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) = 0;
+    virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                         uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                         const CTemplateMintPtr& templMint)
+        = 0;
+    virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
+                             crypto::CKey& keyMint, uint256& hashBlock)
+        = 0;
     /* Util */
     virtual bool GetTxSender(const uint256& txid, CAddress& sender) = 0;
 };

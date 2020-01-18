@@ -26,7 +26,7 @@ protected:
     virtual bool SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, CDestination&& destInstance);
     virtual void BuildTemplateData();
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                   const std::vector<uint8>& vchSig, bool& fCompleted) const;
+                                   const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
     virtual bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 
 protected:

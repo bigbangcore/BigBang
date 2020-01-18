@@ -254,7 +254,8 @@ bool CBlockMaker::Wait(long nSeconds, const uint256& hashPrimaryBlock)
     return false;
 }
 
-void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, int64 nPrevTime, const int32 nPrevHeight, const CDelegateAgreement& agreement)
+void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
+                               const uint32& nPrevHeight, const CDelegateAgreement& agreement)
 {
     block.SetNull();
     block.nType = CBlock::BLOCK_PRIMARY;
@@ -272,12 +273,11 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, int64 nPr
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+    int64 nTotalTxFee = 0;
+    pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-        int64 nTotalTxFee = 0;
-        pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
         std::set<uint256> setTx;
         for (const auto& obj : block.vtx)
         {
@@ -298,17 +298,9 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
                 }
             }
         }
-        block.hashMerkle = block.CalcMerkleTreeRoot();
-        block.txMint.nAmount += nTotalTxFee;
     }
-    else
-    {
-        size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-        int64 nTotalTxFee = 0;
-        pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
-        block.hashMerkle = block.CalcMerkleTreeRoot();
-        block.txMint.nAmount += nTotalTxFee;
-    }
+    block.hashMerkle = block.CalcMerkleTreeRoot();
+    block.txMint.nAmount += nTotalTxFee;
 }
 
 bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
@@ -325,12 +317,12 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 
 bool CBlockMaker::DispatchBlock(CBlock& block)
 {
-    int nWait = block.nTimeStamp - GetNetTime();
+/*    int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
         StdTrace("blockmaker", "Wait failed nWait: %d", nWait);
         return false;
-    }
+    }*/
     Errno err = pDispatcher->AddNewBlock(block);
     if (err != OK)
     {
@@ -393,13 +385,6 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     if (!SignBlock(block, profile))
     {
         Error("Sign block failed.\n");
-        return false;
-    }
-
-    Errno err = pDispatcher->AddNewBlock(block);
-    if (err != OK)
-    {
-        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
         return false;
     }
 
@@ -572,7 +557,9 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     while (!Interrupted())
     {
         if (nHashRate == 0)
+        {
             nHashRate = 1;
+        }
         for (int i = 0; i < nHashRate; i++)
         {
             uint256 hash = pHashAlgo->Hash(vchProofOfWork);
@@ -752,15 +739,14 @@ void CBlockMaker::BlockMakerThreadFunc()
 
             if (agree.IsProofOfWork())
             {
-                if (!CreateProofOfWorkBlock(block))
+                if (CreateProofOfWorkBlock(block) && !DispatchBlock(block))
                 {
-                    StdTrace("blockmaker", "Create PoW Block failed.");
                     nNextStatus = MAKER_RESET;
                 }
             }
             else
             {
-                StdTrace("blockmaker", "agree is  not PoW");
+                StdTrace("blockmaker", "agreement is not PoW");
             }
             // else
             // {

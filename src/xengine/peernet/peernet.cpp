@@ -285,7 +285,7 @@ void CPeerNet::RewardPeer(CPeer* pPeer, const CEndpointManager::Bonus& bonus)
 
 CPeer* CPeerNet::GetPeer(uint64 nNonce)
 {
-    map<uint64, CPeer*>::iterator it = mapPeer.find(nNonce);
+    auto it = mapPeer.find(nNonce);
     if (it != mapPeer.end())
     {
         return (*it).second;

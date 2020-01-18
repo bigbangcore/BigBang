@@ -453,7 +453,8 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     }
 
     const CDestination& destIn = vUnspent[0].destTo;
-    if (!pWallet->SignTransaction(destIn, tx, fCompleted))
+    int32 nForkHeight = GetForkHeight(hashFork);
+    if (!pWallet->SignTransaction(destIn, tx, nForkHeight, fCompleted))
     {
         StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
@@ -461,7 +462,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
 
     if (!(!fCompleted
           || (pCoreProtocol->ValidateTransaction(tx) == OK
-              && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK)))
+              && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK)))
     {
         StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
@@ -550,7 +551,9 @@ bool CService::ResynchronizeWalletTx()
     return pWallet->ResynchronizeWalletTx();
 }
 
-bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
+bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                       uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
+                       int& nBits, const CTemplateMintPtr& templMint)
 {
     CBlock block;
     block.nType = CBlock::BLOCK_PRIMARY;
@@ -589,7 +592,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     return true;
 }
 
-Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock)
+Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
+                           const CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock)
 {
     if (vchWorkData.empty())
     {

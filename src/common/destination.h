@@ -63,9 +63,9 @@ public:
     const CTemplateId GetTemplateId() const;
 
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                           const std::vector<uint8>& vchSig, bool& fCompleted) const;
+                           const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                           const std::vector<uint8>& vchSig, int nForkHeight, const uint256& fork) const;
+                           const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork) const;
 
     bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 

@@ -19,6 +19,7 @@ set(template
 )
 
 set(sources
+    defs.h          defs.cpp
     destination.h   destination.cpp 
     transaction.h 
     wallettx.h 

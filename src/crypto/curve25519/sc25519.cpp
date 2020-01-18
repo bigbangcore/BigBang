@@ -14,6 +14,25 @@ namespace curve25519
 // 2^252 + 27742317777372353535851937790883648493
 const uint64_t CSC25519::prime[4] = { 0x5812631a5cf5d3ed, 0x14def9dea2f79cd6, 0, 0x1000000000000000 };
 
+CSC25519 CSC25519::Reduce64(uint8_t m[64])
+{
+    CSC25519 sc;
+    // BarrettReduce deals range [0, 2^506]. If m > 2^506, reduce the highest 256 bits first.
+    if (m[63] & 0xFC)
+    {
+        uint8_t n[64];
+        sc.Unpack(m + 32);
+        sc.Pack(n + 32);
+        memmove(n, m, 32);
+        sc.BarrettReduce((uint64_t*)n);
+    }
+    else
+    {
+        sc.BarrettReduce((uint64_t*)m);
+    }
+    return sc;
+}
+
 CSC25519::CSC25519()
 {
     Zero32(value);
@@ -334,8 +353,7 @@ void CSC25519::BarrettReduce(uint64_t* m)
 
     Sub32(value, r1, r2);
 
-    Reduce();
-    Reduce();
+    Reduce(0);
 }
 
 const CSC25519 CSC25519::naturalPowTable[51][26] = {

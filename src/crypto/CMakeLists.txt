@@ -13,6 +13,7 @@ set(pow_hash
     pow_hash/hash-extra-skein.c
     pow_hash/jh.h     
     pow_hash/slow-hash.c
+    pow_hash/slow-hash_1.c
     pow_hash/variant4_random_math.h
     pow_hash/blake256.c
     pow_hash/groestl.c
@@ -60,7 +61,7 @@ set(CMAKE_C_FLAGS "-msse2 -maes")
 
 add_library(crypto ${sources})
 
-include_directories(../xengine ./ ${sodium_INCLUDE_DIR})
+include_directories(../xengine ../common ./ ${sodium_INCLUDE_DIR})
 
 target_link_libraries(crypto
     ${Boost_SYSTEM_LIBRARY}
@@ -74,4 +75,5 @@ target_link_libraries(crypto
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
     xengine
+    common
 )
