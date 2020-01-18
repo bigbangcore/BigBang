@@ -69,6 +69,30 @@ bool CForkUnspentDB::UpdateUnspent(const vector<CTxUnspent>& vAddNew, const vect
     return true;
 }
 
+bool CForkUnspentDB::RepairUnspent(const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove)
+{
+    if (!TxnBegin())
+    {
+        return false;
+    }
+
+    for (const CTxUnspent& unspent : vAddUpdate)
+    {
+        Write(static_cast<const CTxOutPoint&>(unspent), unspent.output);
+    }
+
+    for (const CTxOutPoint& txout : vRemove)
+    {
+        Erase(txout);
+    }
+
+    if (!TxnCommit())
+    {
+        return false;
+    }
+    return true;
+}
+
 bool CForkUnspentDB::WriteUnspent(const CTxOutPoint& txout, const CTxOut& output)
 {
     return Write(txout, output);
@@ -385,6 +409,18 @@ bool CUnspentDB::Update(const uint256& hashFork,
     if (it != mapUnspentDB.end())
     {
         return (*it).second->UpdateUnspent(vAddNew, vRemove);
+    }
+    return false;
+}
+
+bool CUnspentDB::RepairUnspent(const uint256& hashFork, const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove)
+{
+    CReadLock rlock(rwAccess);
+
+    map<uint256, std::shared_ptr<CForkUnspentDB>>::iterator it = mapUnspentDB.find(hashFork);
+    if (it != mapUnspentDB.end())
+    {
+        return (*it).second->RepairUnspent(vAddUpdate, vRemove);
     }
     return false;
 }

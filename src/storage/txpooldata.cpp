@@ -110,5 +110,28 @@ bool CTxPoolData::Load(vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
     return true;
 }
 
+bool CTxPoolData::LoadCheck(vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
+{
+    vTx.clear();
+
+    if (!is_regular_file(pathTxPoolFile))
+    {
+        return true;
+    }
+
+    try
+    {
+        CFileStream fs(pathTxPoolFile.c_str());
+        fs >> vTx;
+    }
+    catch (std::exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace storage
 } // namespace bigbang

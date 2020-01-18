@@ -13,6 +13,7 @@
 #include "core.h"
 #include "datastat.h"
 // #include "delegatedchn.h"
+#include "checkrepair.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
@@ -157,6 +158,18 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
+    if (config.GetModeType() == EModeType::SERVER)
+    {
+        // check and repair data
+        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet);
+        if (!check.CheckRepairData())
+        {
+            StdError("Bigbang", "Check and repair data fail.");
+            return false;
+        }
+        StdLog("Bigbang", "Check and repair data success.");
+    }
+
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
     {
@@ -164,6 +177,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
+
     // modules
     return InitializeModules(config.GetModeType());
 }

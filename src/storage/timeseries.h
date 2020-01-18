@@ -255,7 +255,14 @@ public:
                 {
                     uint32 nMagic, nSize;
                     T t;
-                    fs >> nMagic >> nSize >> t;
+                    try
+                    {
+                        fs >> nMagic >> nSize >> t;
+                    }
+                    catch (std::exception& e)
+                    {
+                        break;
+                    }
                     if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize
                         || !walker.Walk(t, nFile, nOffset + 8))
                     {
