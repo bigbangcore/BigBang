@@ -180,7 +180,8 @@ public:
 class CCheckWalletTxWalker : public CWalletDBTxWalker
 {
 public:
-    CCheckWalletTxWalker() {}
+    CCheckWalletTxWalker()
+      : nWalletTxCount(0) {}
 
     bool Walk(const CWalletTx& wtx) override;
 
@@ -193,6 +194,7 @@ public:
 
 public:
     map<uint256, CCheckWalletForkUnspent> mapWalletFork;
+    int64 nWalletTxCount;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -306,7 +308,7 @@ class CCheckTxPoolData
 public:
     CCheckTxPoolData() {}
 
-    void AddForkUnspent(const uint256& hashFork, const map<CTxOutPoint, CCheckTxOut>& mapUnspent);
+    bool AddForkUnspent(const uint256& hashFork, const map<CTxOutPoint, CCheckTxOut>& mapUnspent);
     bool FetchTxPool(const string& strPath);
     bool CheckTxExist(const uint256& hashFork, const uint256& txid);
     bool CheckTxPoolUnspent(const uint256& hashFork, const CTxOutPoint& point, const CCheckTxOut& out);
@@ -336,7 +338,6 @@ public:
     }
 
 public:
-    uint256 hashFork;
     uint32 nMaxTrustHeight;
     uint256 hashMaxTrustBlock;
     uint256 nMaxChainTrust;
@@ -352,7 +353,7 @@ class CCheckBlockWalker : public CTSWalker<CBlockEx>
 {
 public:
     CCheckBlockWalker(bool fTestnetIn)
-      : nBlockCount(0), nTxCount(0), nMainChainHeight(0), objProofParam(fTestnetIn)
+      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn)
     {
     }
     ~CCheckBlockWalker()
@@ -373,8 +374,8 @@ public:
 
 public:
     int64 nBlockCount;
-    int64 nTxCount;
     uint32 nMainChainHeight;
+    int64 nMainChainTxCount;
     uint256 hashGenesis;
     CProofOfWorkParam objProofParam;
     map<uint256, CCheckFork> mapCheckFork;
