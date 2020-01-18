@@ -147,24 +147,24 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    // before MULTISIGN_HEIGHT, used defect multi-sign algorithm
+    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
     if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
     {
-        xengine::StdTrace("Oijen-hardfork", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
-        xengine::StdTrace("Oijen-hardfork-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
     else
     {
-        xengine::StdTrace("Oijen-hardfork", "nHeight: %u, range: [%u, infinit)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
         if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
-        xengine::StdTrace("Oijen-hardfork-success", "nHeight: %u, range: [%u, infinit)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
 
     int nWeight = 0;
