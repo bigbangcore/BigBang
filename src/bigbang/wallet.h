@@ -177,7 +177,7 @@ public:
     std::size_t GetTxCount() override;
     bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) override;
-    bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
+    bool SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) override;
     bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     /* Update */
@@ -208,8 +208,8 @@ protected:
     std::shared_ptr<CWalletTx> LoadWalletTx(const uint256& txid);
     std::shared_ptr<CWalletTx> InsertWalletTx(const uint256& txid, const CAssembledTx& tx, const uint256& hashFork, bool fIsMine, bool fFromMe);
     bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig);
-    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig);
-    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, std::vector<uint8>& vchSig, bool& fCompleted);
+    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor, const int32 nForkHeight, std::vector<uint8>& vchSig);
+    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted);
     void UpdateAutoLock(CWalletKeyStore& keystore);
     bool UpdateFork();
     void GetWalletTxFork(const uint256& hashFork, int nHeight, std::vector<uint256>& vFork);
@@ -317,7 +317,7 @@ public:
         return false;
     }
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx,
-                                 bool& fCompleted) override
+                                 const int32 nForkHeight, bool& fCompleted) override
     {
         return false;
     }

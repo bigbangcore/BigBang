@@ -138,7 +138,7 @@ void CTemplateWeighted::BuildTemplateData()
 }
 
 bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     set<uint256> setPubKey;
     for (const auto& keyweight : mapPubKeyWeight)
@@ -148,23 +148,23 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
 
     set<uint256> setPartKey;
     // before MULTISIGN_HEIGHT, used defect multi-sign algorithm
-    if (nHeight > 0 && nHeight < MULTISIGN_HEIGHT)
+    if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
     {
-        xengine::StdTrace("Oijen-hardfork", "nHeight (0, %u)", MULTISIGN_HEIGHT);
+        xengine::StdTrace("Oijen-hardfork", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
         if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
-        xengine::StdTrace("Oijen-hardfork-success", "nHeight (0, %u)", MULTISIGN_HEIGHT);
+        xengine::StdTrace("Oijen-hardfork-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
     else
     {
-        xengine::StdTrace("Oijen-hardfork", "nHeight [%u, infinit)", MULTISIGN_HEIGHT);
+        xengine::StdTrace("Oijen-hardfork", "nHeight: %u, range: [%u, infinit)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
         if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
         {
             return false;
         }
-        xengine::StdTrace("Oijen-hardfork-success", "nHeight [%u, infinit)", MULTISIGN_HEIGHT);
+        xengine::StdTrace("Oijen-hardfork-success", "nHeight: %u, range: [%u, infinit)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
 
     int nWeight = 0;

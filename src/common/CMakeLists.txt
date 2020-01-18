@@ -19,6 +19,7 @@ set(template
 )
 
 set(sources
+    defs.h          defs.cpp
     destination.h   destination.cpp 
     transaction.h 
     wallettx.h 
@@ -27,7 +28,7 @@ set(sources
     block.h
     forkcontext.h
     ${template}
-        defs.h)
+)
 
 add_library(common ${sources})
 

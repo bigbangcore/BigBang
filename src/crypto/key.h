@@ -50,6 +50,8 @@ public:
     const CPubKey GetPubKey() const;
     const CCryptoCipher& GetCipher() const;
     bool Sign(const uint256& hash, std::vector<uint8>& vchSig) const;
+    bool MultiSignDefect(const std::set<CPubKey>& setPubKey, const uint256& seed,
+                         const uint256& hash, std::vector<uint8>& vchSig) const;
     bool MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const;
     bool Encrypt(const CCryptoString& strPassphrase,
                  const CCryptoString& strCurrentPassphrase = "");

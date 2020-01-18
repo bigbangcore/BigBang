@@ -164,7 +164,7 @@ void CTemplateExchange::BuildTemplateData()
 }
 
 bool CTemplateExchange::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     return true;
 }
@@ -181,7 +181,7 @@ bool CTemplateExchange::GetSignDestination(const CTransaction& tx, const std::ve
     {
         ds >> vsm >> vss >> hashFork >> height;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -235,7 +235,7 @@ bool CTemplateExchange::BuildTxSignature(const uint256& hash,
     {
         ds >> vsm >> vss >> hashFork >> height;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -261,7 +261,7 @@ bool CTemplateExchange::VerifySignature(const uint256& hash, const std::vector<u
     {
         is >> sign_m >> sign_s >> vchSig_;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;

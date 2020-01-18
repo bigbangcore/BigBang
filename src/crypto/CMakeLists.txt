@@ -61,7 +61,7 @@ set(CMAKE_C_FLAGS "-msse2 -maes")
 
 add_library(crypto ${sources})
 
-include_directories(../xengine ./ ${sodium_INCLUDE_DIR})
+include_directories(../xengine ../common ./ ${sodium_INCLUDE_DIR})
 
 target_link_libraries(crypto
     ${Boost_SYSTEM_LIBRARY}
@@ -75,4 +75,5 @@ target_link_libraries(crypto
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
     xengine
+    common
 )

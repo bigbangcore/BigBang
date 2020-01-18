@@ -2,12 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BIGBANG_DEFS_H
-#define BIGBANG_DEFS_H
+#include "defs.h"
 
 //hard fork: change of hash algorithm and its input, and update of template address of multiple signature
-static const unsigned int HEIGHT_HASH_MULTI_SIGNER_MAINNET = 72000;   
-static const unsigned int HEIGHT_HASH_MULTI_SIGNER_TESTNET = 130;   
-extern unsigned int HEIGHT_HASH_MULTI_SIGNER;
-
-#endif //BIGBANG_DEFS_H
+unsigned int HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;

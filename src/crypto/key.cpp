@@ -208,6 +208,18 @@ bool CKey::Sign(const uint256& hash, std::vector<uint8>& vchSig) const
     return true;
 }
 
+bool CKey::MultiSignDefect(const std::set<CPubKey>& setPubKey, const uint256& seed,
+                           const uint256& hash, std::vector<uint8>& vchSig) const
+{
+    if (!IsNull() && !IsLocked())
+    {
+        CryptoMultiSignDefect(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey,
+                              seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig);
+        return true;
+    }
+    return false;
+}
+
 bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const
 {
     if (!IsNull() && !IsLocked())

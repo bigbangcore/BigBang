@@ -355,8 +355,109 @@ static CSC25519 MultiSignHashDefect(const uint8* pX, const size_t lenX, const ui
     return CSC25519(hash);
 }
 
+// r = H(H(sk,pk),M)
+static CSC25519 MultiSignRDefect(const CCryptoKey& key, const uint8* pM, const size_t lenM)
+{
+    uint8 hash[32];
+
+    crypto_generichash_blake2b_state state;
+    crypto_generichash_blake2b_init(&state, NULL, 0, 32);
+    uint256 keyHash = CryptoHash((uint8*)&key, 64);
+    crypto_generichash_blake2b_update(&state, (uint8*)&keyHash, 32);
+    crypto_generichash_blake2b_update(&state, pM, lenM);
+    crypto_generichash_blake2b_final(&state, hash, 32);
+
+    return CSC25519(hash);
+}
+
+static CSC25519 ClampPrivKeyDefect(const uint256& privkey)
+{
+    uint8 hash[64];
+    crypto_hash_sha512(hash, privkey.begin(), privkey.size());
+    hash[0] &= 248;
+    hash[31] &= 127;
+    hash[31] |= 64;
+
+    return CSC25519(hash);
+}
+
+bool CryptoMultiSignDefect(const set<uint256>& setPubKey, const CCryptoKey& privkey, const uint8* pX, const size_t lenX,
+                           const uint8* pM, const size_t lenM, vector<uint8>& vchSig)
+{
+    if (setPubKey.empty())
+    {
+        return false;
+    }
+
+    // unpack (index,R,S)
+    CSC25519 S;
+    CEdwards25519 R;
+    int nIndexLen = (setPubKey.size() - 1) / 8 + 1;
+    if (vchSig.empty())
+    {
+        vchSig.resize(nIndexLen + 64);
+    }
+    else
+    {
+        if (vchSig.size() != nIndexLen + 64)
+        {
+            return false;
+        }
+        if (!R.Unpack(&vchSig[nIndexLen]))
+        {
+            return false;
+        }
+        S.Unpack(&vchSig[nIndexLen + 32]);
+    }
+    uint8* pIndex = &vchSig[0];
+
+    // apk
+    uint256 apk;
+    if (!MultiSignApkDefect(setPubKey, setPubKey, apk.begin()))
+    {
+        return false;
+    }
+    // H(X,apk,M)
+    CSC25519 hash = MultiSignHashDefect(pX, lenX, apk.begin(), apk.size(), pM, lenM);
+
+    // sign
+    set<uint256>::const_iterator itPub = setPubKey.find(privkey.pubkey);
+    if (itPub == setPubKey.end())
+    {
+        return false;
+    }
+    size_t index = distance(setPubKey.begin(), itPub);
+
+    if (!(pIndex[index / 8] & (1 << (index % 8))))
+    {
+        // ri = H(H(si,pi),M)
+        CSC25519 ri = MultiSignRDefect(privkey, pM, lenM);
+        // hi = H(Ai,A1,...,An)
+        vector<uint8> vecHash = MultiSignPreApkDefect(setPubKey);
+        memcpy(&vecHash[0], itPub->begin(), itPub->size());
+        CSC25519 hi = CSC25519(CryptoHash(&vecHash[0], vecHash.size()).begin());
+        // si = H(privkey)
+        CSC25519 si = ClampPrivKeyDefect(privkey.secret);
+        // Si = ri + H(X,apk,M) * hi * si
+        CSC25519 Si = ri + hash * hi * si;
+        // S += Si
+        S += Si;
+        // R += Ri
+        CEdwards25519 Ri;
+        Ri.Generate(ri);
+        R += Ri;
+
+        pIndex[index / 8] |= (1 << (index % 8));
+    }
+
+    R.Pack(&vchSig[nIndexLen]);
+    S.Pack(&vchSig[nIndexLen + 32]);
+
+    return true;
+}
+
 bool CryptoMultiVerifyDefect(const set<uint256>& setPubKey, const uint8* pX, const size_t lenX,
-                       const uint8* pM, const size_t lenM, const vector<uint8>& vchSig, set<uint256>& setPartKey)
+                             const uint8* pM, const size_t lenM, const vector<uint8>& vchSig, set<uint256>& setPartKey)
 {
     if (setPubKey.empty())
     {

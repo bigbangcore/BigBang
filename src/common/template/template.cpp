@@ -26,8 +26,6 @@ using namespace xengine;
 using namespace bigbang::crypto;
 using namespace bigbang::rpc;
 
-int32 MULTISIGN_HEIGHT = MULTISIGN_HEIGHT_TESTNET;
-
 struct CTypeInfo
 {
     uint16 nType;
@@ -160,7 +158,7 @@ string CTemplate::GetTypeName(uint16 nTypeIn)
 }
 
 bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
-                                  const CDestination& destTo, const vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted)
+                                  const CDestination& destTo, const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
 {
     CTemplatePtr ptr = CreateTemplatePtr(nIdIn.GetType(), vchSig);
     if (!ptr)
@@ -174,7 +172,7 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
     }
 
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
-    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nHeight, fCompleted);
+    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }
 
 bool CTemplate::IsTxSpendable(const CDestination& dest)
@@ -267,11 +265,11 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
                                  const vector<uint8>& vchPreSig, vector<uint8>& vchSig, bool& fCompleted) const
 {
     vchSig = vchData;
-    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, -1, fCompleted))
+    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))
     {
         return false;
     }
