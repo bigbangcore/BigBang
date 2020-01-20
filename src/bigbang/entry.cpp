@@ -158,16 +158,29 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
-    if (config.GetModeType() == EModeType::SERVER)
+    // check and repair data
+    if (config.GetModeType() == EModeType::SERVER
+        && (config.GetConfig()->fCheckRepair || config.GetConfig()->fOnlyCheck))
     {
-        // check and repair data
-        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet);
+        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet, config.GetConfig()->fOnlyCheck);
         if (!check.CheckRepairData())
         {
-            StdError("Bigbang", "Check and repair data fail.");
+            if (config.GetConfig()->fOnlyCheck)
+            {
+                StdError("Bigbang", "Check data fail.");
+            }
+            else
+            {
+                StdError("Bigbang", "Check and repair data fail.");
+            }
             return false;
         }
-        StdLog("Bigbang", "Check and repair data success.");
+        if (config.GetConfig()->fOnlyCheck)
+        {
+            StdLog("Bigbang", "Check data complete.");
+            return false;
+        }
+        StdLog("Bigbang", "Check and repair data complete.");
     }
 
     // docker

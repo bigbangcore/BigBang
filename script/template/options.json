@@ -33,6 +33,22 @@
             "desc": "Purge database and blockfile"
         },
         {
+            "name": "fCheckRepair",
+            "type": "bool",
+            "opt": "checkrepair",
+            "default": true,
+            "format": "-checkrepair",
+            "desc": "Check and repair database"
+        },
+        {
+            "name": "fOnlyCheck",
+            "type": "bool",
+            "opt": "onlycheck",
+            "default": false,
+            "format": "-onlycheck",
+            "desc": "Only check database and blockfile"
+        },
+        {
             "name": "strBlocknotify",
             "type": "string",
             "opt": "blocknotify",

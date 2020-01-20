@@ -110,6 +110,37 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
+// CCheckForkStatus & CCheckForkManager
+
+class CCheckForkStatus
+{
+public:
+    CCheckForkStatus() {}
+
+    void InsertSubline(int nHeight, const uint256& hashSubline)
+    {
+        mapSubline.insert(std::make_pair(nHeight, hashSubline));
+    }
+
+public:
+    CForkContext ctxt;
+    uint256 hashLastBlock;
+    std::multimap<int, uint256> mapSubline;
+};
+
+class CCheckForkManager
+{
+public:
+    CCheckForkManager() {}
+
+    bool FetchForkStatus(const string& strDataPath);
+    void GetWalletTxFork(const uint256& hashFork, int nHeight, vector<uint256>& vFork);
+
+public:
+    map<uint256, CCheckForkStatus> mapForkStatus;
+};
+
+/////////////////////////////////////////////////////////////////////////
 // CCheckWalletTxWalker
 
 class CCheckWalletTx : public CWalletTx
@@ -155,12 +186,12 @@ typedef CWalletTxLinkSet::nth_index<1>::type CWalletTxLinkSetBySequenceNumber;
 class CCheckWalletForkUnspent
 {
 public:
-    CCheckWalletForkUnspent()
-      : nSeqCreate(0) {}
+    CCheckWalletForkUnspent(const uint256& hashForkIn)
+      : nSeqCreate(0), hashFork(hashForkIn) {}
 
-    bool Exist(const uint256& txid);
-    bool AddWalletTx(const CWalletTx& wtx);
-    void RemoveWalletTx(const uint256& txid);
+    bool LocalTxExist(const uint256& txid);
+    bool AddTx(const CWalletTx& wtx);
+    void RemoveTx(const uint256& txid);
 
     bool UpdateUnspent();
     bool AddWalletSpent(const CTxOutPoint& txPoint, const uint256& txidSpent, const CDestination& sendTo);
@@ -169,11 +200,13 @@ public:
     int GetTxAtBlockHeight(const uint256& txid);
     bool CheckWalletUnspent(const CTxOutPoint& point, const CCheckTxOut& out);
 
-public:
+protected:
     uint256 hashFork;
     uint64 nSeqCreate;
-    map<uint256, CCheckWalletTx> mapWalletTx;
     CWalletTxLinkSet setWalletTxLink;
+
+public:
+    map<uint256, CCheckWalletTx> mapWalletTx;
     map<CTxOutPoint, CCheckTxOut> mapWalletUnspent;
 };
 
@@ -181,20 +214,28 @@ class CCheckWalletTxWalker : public CWalletDBTxWalker
 {
 public:
     CCheckWalletTxWalker()
-      : nWalletTxCount(0) {}
+      : nWalletTxCount(0), pForkManager(nullptr) {}
+
+    void SetForkManager(CCheckForkManager* pFork)
+    {
+        pForkManager = pFork;
+    }
 
     bool Walk(const CWalletTx& wtx) override;
 
     bool Exist(const uint256& hashFork, const uint256& txid);
     bool AddWalletTx(const CWalletTx& wtx);
-    void RemoveWalletTx(const uint256& hashFork, const uint256& txid);
+    void RemoveWalletTx(const uint256& hashFork, int nHeight, const uint256& txid);
     bool UpdateUnspent();
     int GetTxAtBlockHeight(const uint256& hashFork, const uint256& txid);
     bool CheckWalletUnspent(const uint256& hashFork, const CTxOutPoint& point, const CCheckTxOut& out);
 
+protected:
+    CCheckForkManager* pForkManager;
+
 public:
-    map<uint256, CCheckWalletForkUnspent> mapWalletFork;
     int64 nWalletTxCount;
+    map<uint256, CCheckWalletForkUnspent> mapWalletFork;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -319,12 +360,12 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
-// CCheckFork
+// CCheckBlockFork
 
-class CCheckFork
+class CCheckBlockFork
 {
 public:
-    CCheckFork()
+    CCheckBlockFork()
       : nMaxTrustHeight(0), pOrigin(nullptr), pLast(nullptr) {}
 
     void UpdateMaxTrust(CBlockIndex* pBlockIndex);
@@ -378,7 +419,7 @@ public:
     int64 nMainChainTxCount;
     uint256 hashGenesis;
     CProofOfWorkParam objProofParam;
-    map<uint256, CCheckFork> mapCheckFork;
+    map<uint256, CCheckBlockFork> mapCheckFork;
     map<uint256, CBlockEx> mapBlock;
     map<uint256, CBlockIndex*> mapBlockIndex;
 };
@@ -389,8 +430,8 @@ public:
 class CCheckRepairData
 {
 public:
-    CCheckRepairData(const string& strPath, bool fTestnetIn)
-      : strDataPath(strPath), fTestnet(fTestnetIn), objBlockWalker(fTestnetIn) {}
+    CCheckRepairData(const string& strPath, bool fTestnetIn, bool fOnlyCheckIn)
+      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn) {}
 
 protected:
     bool FetchBlockData();
@@ -414,7 +455,9 @@ public:
 protected:
     string strDataPath;
     bool fTestnet;
+    bool fOnlyCheck;
 
+    CCheckForkManager objForkManager;
     CCheckBlockWalker objBlockWalker;
     map<uint256, CCheckForkUnspentWalker> mapForkUnspentWalker;
     CCheckDBAddrWalker objWalletAddressWalker;
