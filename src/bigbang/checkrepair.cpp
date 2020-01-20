@@ -1088,7 +1088,7 @@ bool CCheckRepairData::FetchBlockData()
     }
     StdLog("check", "Fetch block and tx success, block: %ld.", objBlockWalker.nBlockCount);
 
-    if (objBlockWalker.hashGenesis == 0)
+    if (objBlockWalker.nBlockCount > 0 && objBlockWalker.hashGenesis == 0)
     {
         StdError("check", "Not genesis block");
         return false;
@@ -1365,7 +1365,7 @@ bool CCheckRepairData::CheckBlockIndex()
     StdLog("check", "Fetch block index success, count: %ld", walker.mapBlockIndex.size());
 
     map<uint256, CBlockIndex*>::iterator it = objBlockWalker.mapBlockIndex.begin();
-    for (; it == objBlockWalker.mapBlockIndex.end(); ++it)
+    for (; it != objBlockWalker.mapBlockIndex.end(); ++it)
     {
         if (!it->second->IsOrigin())
         {
