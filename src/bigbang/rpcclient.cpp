@@ -152,7 +152,7 @@ bool CRPCClient::HandleEvent(CEventHttpGetRsp& event)
         }
         else
         {
-            cerr << "server error: neigher error nor result. resp: " << spResp->Serialize(true) << endl;
+            cerr << "server error: neither error nor result. resp: " << spResp->Serialize(true) << endl;
         }
     }
     catch (exception& e)
@@ -174,7 +174,7 @@ bool CRPCClient::GetResponse(uint64 nNonce, const std::string& content)
     CHttpReqData& httpReqData = eventHttpGet.data;
     httpReqData.strIOModule = GetOwnKey();
     httpReqData.nTimeout = Config()->nRPCConnectTimeout;
-    ;
+
     if (Config()->fRPCSSLEnable)
     {
         httpReqData.strProtocol = "https";

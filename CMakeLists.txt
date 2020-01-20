@@ -106,6 +106,7 @@ endif()
 
 if(CYGWIN)
     add_definitions(-DBOOST_LOG_DYN_LINK)
+    add_definitions(-DBOOST_CYGWIN_FS_PATH)
 endif()
 
 # sub directories

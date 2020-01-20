@@ -5,11 +5,13 @@
 #include "rpcmod.h"
 
 #include "json/json_spirit_reader_template.h"
+#include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/regex.hpp>
 #include <regex>
+//#include <algorithm>
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
@@ -1020,10 +1022,10 @@ CRPCResultPtr CRPCMod::RPCGetNewKey(CRPCParamPtr param)
 
     crypto::CCryptoString strPassphrase = spParam->strPassphrase.c_str();
     crypto::CPubKey pubkey;
-    if (!pService->MakeNewKey(strPassphrase, pubkey))
+    auto strErr = pService->MakeNewKey(strPassphrase, pubkey);
+    if (strErr)
     {
-
-        throw CRPCException(RPC_WALLET_ERROR, "Failed add new key.");
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed add new key: ") + *strErr);
     }
 
     return MakeCGetNewKeyResultPtr(pubkey.ToString());
@@ -1188,9 +1190,10 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
         {
             key.Encrypt(strPassphrase);
         }
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1226,9 +1229,10 @@ CRPCResultPtr CRPCMod::RPCImportPubKey(CRPCParamPtr param)
     key.Load(pubkey, crypto::CKey::PUBLIC_KEY, crypto::CCryptoCipher());
     if (!pService->HaveKey(key.GetPubKey()))
     {
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1257,9 +1261,10 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
     if ((key.IsPrivKey() && !pService->HaveKey(key.GetPubKey(), crypto::CKey::PRIVATE_KEY))
         || (key.IsPubKey() && !pService->HaveKey(key.GetPubKey())))
     {
-        if (!pService->AddKey(key))
+        auto strErr = pService->AddKey(key);
+        if (strErr)
         {
-            throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+            throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
         if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
@@ -1559,9 +1564,10 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    if (!pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew))
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to create transaction");
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
     }
 
     bool fCompleted = false;
@@ -1613,7 +1619,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         ss << (int)obj.prevout.n << ":" << obj.prevout.hash.GetHex().c_str() << ";";
     }
-    std::cout << ss.str();
+
     StdDebug("[SendFrom][DEBUG]", "txNew hash:%s; input:%s", txNew.GetHash().GetHex().c_str(), ss.str().c_str());
     return MakeCSendFromResultPtr(txNew.GetHash().GetHex());
 }
@@ -1664,9 +1670,10 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
     CTransaction txNew;
-    if (!pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew))
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to create transaction");
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
     }
 
     CBufStream ss;
@@ -1805,7 +1812,18 @@ CRPCResultPtr CRPCMod::RPCExportWallet(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CExportWalletParam>(param);
 
-    fs::path pSave(string(spParam->strPath));
+#ifdef BOOST_CYGWIN_FS_PATH
+    std::string strCygWinPathPrefix = "/cygdrive";
+    std::size_t found = string(spParam->strPath).find(strCygWinPathPrefix);
+    if (found != std::string::npos)
+    {
+        strCygWinPathPrefix = "";
+    }
+#else
+    std::string strCygWinPathPrefix;
+#endif
+
+    fs::path pSave(string(strCygWinPathPrefix + spParam->strPath));
     //check if the file name given is available
     if (!pSave.is_absolute())
     {
@@ -1967,9 +1985,10 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
             {
                 continue; //step to next one to continue importing
             }
-            if (!pService->AddKey(key))
+            auto strErr = pService->AddKey(key);
+            if (strErr)
             {
-                throw CRPCException(RPC_WALLET_ERROR, "Failed to add key");
+                throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
             }
             if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
             {
@@ -2243,6 +2262,40 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 {
+    auto lmdImport = [](const string& pathFile, vector<CAddress>& addresses) -> bool {
+        ifstream inFile(pathFile);
+
+        if (!inFile)
+        {
+            return false;
+        }
+
+        // iterate addresses from input file
+        const uint32 MAX_LISTUNSPENT_INPUT = 10000;
+        uint32 nCount = 1;
+        string strAddr;
+        while (getline(inFile, strAddr) && nCount <= MAX_LISTUNSPENT_INPUT)
+        {
+            boost::trim(strAddr);
+            if (strAddr.size() != CAddress::ADDRESS_LEN)
+            {
+                continue;
+            }
+
+            CAddress addr(strAddr);
+            if (!addr.IsNull())
+            {
+                addresses.emplace_back(addr);
+                ++nCount;
+            }
+        }
+
+        auto last = unique(addresses.begin(), addresses.end());
+        addresses.erase(last, addresses.end());
+
+        return true;
+    };
+
     auto spParam = CastParamPtr<CListUnspentParam>(param);
 
     uint256 fork;
@@ -2251,27 +2304,71 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
 
+    vector<CAddress> vAddr;
+
     CAddress addr(spParam->strAddress);
-    if (addr.IsNull())
+    if (!addr.IsNull())
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Address as an argument should be provided.");
+        vAddr.emplace_back(addr);
     }
 
-    vector<CTxUnspent> vUnspent;
-    if (!pService->ListForkUnspent(fork, dynamic_cast<CDestination&>(addr), spParam->nMax, vUnspent))
+    if (spParam->strFile.IsValid() && !lmdImport(spParam->strFile, vAddr))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Acquiring unspent list failed.");
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid import file");
+    }
+
+    if (vAddr.empty())
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Available address as argument should be provided.");
+    }
+
+    std::map<CDestination, std::vector<CTxUnspent>> mapDest;
+    for (const auto& i : vAddr)
+    {
+        mapDest.emplace(std::make_pair(static_cast<CDestination>(i), std::vector<CTxUnspent>()));
+    }
+
+    if (vAddr.size() > 1)
+    {
+        if (!pService->ListForkUnspentBatch(fork, spParam->nMax, mapDest))
+        {
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring batch unspent list failed.");
+        }
+    }
+    else if (1 == vAddr.size())
+    {
+        if (!pService->ListForkUnspent(fork, static_cast<CDestination&>(vAddr[0]),
+                                       spParam->nMax, mapDest[static_cast<CDestination>(vAddr[0])]))
+        {
+            throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Acquiring unspent list failed.");
+        }
     }
 
     auto spResult = MakeCListUnspentResultPtr();
-    double dSum = 0.0f;
-    for (const auto& unspent : vUnspent)
+    double dTotal = 0.0f;
+    for (auto& iAddr : mapDest)
     {
-        CUnspentData data = UnspentToJSON(unspent);
-        spResult->vecUnspents.push_back(data);
-        dSum += data.dAmount;
+        CAddress dest(iAddr.first);
+
+        typename CListUnspentResult::CAddresses a;
+        a.strAddress = dest.ToString();
+
+        double dSum = 0.0f;
+        for (const auto& unspent : iAddr.second)
+        {
+            CUnspentData data = UnspentToJSON(unspent);
+            a.vecUnspents.push_back(data);
+            dSum += data.dAmount;
+        }
+
+        a.dSum = dSum;
+
+        spResult->vecAddresses.push_back(a);
+
+        dTotal += dSum;
     }
-    spResult->dSum = dSum;
+
+    spResult->dTotal = dTotal;
 
     return spResult;
 }

@@ -14,6 +14,7 @@
 #include "datastat.h"
 // #include "delegatedchn.h"
 #include "checkrepair.h"
+#include "defs.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
@@ -191,6 +192,19 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
 
+<<<<<<< HEAD
+=======
+    // hard fork version
+    if (config.GetConfig()->fTestNet)
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
+    }
+    else
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
+    }
+
+>>>>>>> master
     // modules
     return InitializeModules(config.GetModeType());
 }

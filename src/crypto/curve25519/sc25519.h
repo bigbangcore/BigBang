@@ -16,6 +16,8 @@ class CSC25519
 public:
     static const CSC25519 naturalPowTable[51][26];
 
+    static CSC25519 Reduce64(uint8_t m[64]);
+
 public:
     CSC25519();
     CSC25519(const CSC25519& sc);

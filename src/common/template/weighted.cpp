@@ -6,6 +6,7 @@
 
 #include <set>
 
+#include "defs.h"
 #include "rpc/auto_protocol.h"
 #include "template.h"
 #include "util.h"
@@ -137,7 +138,7 @@ void CTemplateWeighted::BuildTemplateData()
 }
 
 bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, bool& fCompleted) const
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     set<uint256> setPubKey;
     for (const auto& keyweight : mapPubKeyWeight)
@@ -146,10 +147,24 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    if (!CryptoMultiVerify(setPubKey, hashAnchor.begin(), hashAnchor.size(),
-                           hash.begin(), hash.size(), vchSig, setPartKey))
+    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
+    if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
     {
-        return false;
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
+        {
+            return false;
+        }
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+    }
+    else
+    {
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
+        {
+            return false;
+        }
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
 
     int nWeight = 0;

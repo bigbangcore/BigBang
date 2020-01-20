@@ -202,12 +202,6 @@ protected:
     std::map<CTxOutPoint, CUnspent> mapUnspent;
     std::vector<uint256> vTxRemove;
     std::vector<uint256> vTxAddNew;
-
-public:
-    uint32 nRemoveBlockCount;
-    uint32 nRemoveTxCount;
-    uint32 nAddBlockCount;
-    uint32 nAddTxCount;
 };
 
 class CBlockBase
@@ -259,6 +253,7 @@ public:
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
+    bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;

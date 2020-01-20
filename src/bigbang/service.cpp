@@ -361,6 +361,11 @@ bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest
     return pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspent);
 }
 
+bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+{
+    return pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspent);
+}
+
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
 {
     return pWallet->Have(pubkey, nVersion);
@@ -376,18 +381,18 @@ bool CService::GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& 
     return pWallet->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic);
 }
 
-bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
+boost::optional<std::string> CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey)
 {
     crypto::CKey key;
     if (!key.Renew())
     {
-        return false;
+        return std::string("Renew Key Failed");
     }
     if (!strPassphrase.empty())
     {
         if (!key.Encrypt(strPassphrase))
         {
-            return false;
+            return std::string("Encrypt Key failed");
         }
         key.Lock();
     }
@@ -395,7 +400,7 @@ bool CService::MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CP
     return pWallet->AddKey(key);
 }
 
-bool CService::AddKey(const crypto::CKey& key)
+boost::optional<std::string> CService::AddKey(const crypto::CKey& key)
 {
     return pWallet->AddKey(key);
 }
@@ -448,7 +453,8 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     }
 
     const CDestination& destIn = vUnspent[0].destTo;
-    if (!pWallet->SignTransaction(destIn, tx, fCompleted))
+    int32 nForkHeight = GetForkHeight(hashFork);
+    if (!pWallet->SignTransaction(destIn, tx, nForkHeight, fCompleted))
     {
         StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
@@ -456,7 +462,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
 
     if (!(!fCompleted
           || (pCoreProtocol->ValidateTransaction(tx) == OK
-              && pCoreProtocol->VerifyTransaction(tx, vUnspent, GetForkHeight(hashFork), hashFork) == OK)))
+              && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK)))
     {
         StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
         return false;
@@ -507,9 +513,9 @@ bool CService::ListWalletTx(int nOffset, int nCount, vector<CWalletTx>& vWalletT
     return pWallet->ListTx(nOffset, nCount, vWalletTx);
 }
 
-bool CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                 const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
-                                 const vector<unsigned char>& vchData, CTransaction& txNew)
+boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
+                                                         const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                         const vector<unsigned char>& vchData, CTransaction& txNew)
 {
     int nForkHeight = 0;
     txNew.SetNull();
@@ -519,7 +525,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
         if (it == mapForkStatus.end())
         {
             StdError("CService", "CreateTransaction: find fork fail, fork: %s", hashFork.GetHex().c_str());
-            return false;
+            return std::string("find fork fail, fork: ") + hashFork.GetHex();
         }
         nForkHeight = it->second.nLastBlockHeight;
         txNew.hashAnchor = hashFork;
@@ -532,7 +538,7 @@ bool CService::CreateTransaction(const uint256& hashFork, const CDestination& de
     txNew.nTxFee = nTxFee;
     txNew.vchData = vchData;
 
-    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew);
+    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew) ? boost::optional<std::string>{} : std::string("CWallet::ArrangeInputs failed.");
 }
 
 bool CService::SynchronizeWalletTx(const CDestination& destNew)
@@ -545,7 +551,9 @@ bool CService::ResynchronizeWalletTx()
     return pWallet->ResynchronizeWalletTx();
 }
 
-bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint)
+bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                       uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
+                       int& nBits, const CTemplateMintPtr& templMint)
 {
     CBlock block;
     block.nType = CBlock::BLOCK_PRIMARY;
@@ -584,7 +592,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     return true;
 }
 
-Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock)
+Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
+                           const CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock)
 {
     if (vchWorkData.empty())
     {

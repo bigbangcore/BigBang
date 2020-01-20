@@ -114,7 +114,7 @@ public:
 
     // Verify transaction signature.
     static bool VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
-                                  const CDestination& destTo, const std::vector<uint8>& vchSig, bool& fCompleted);
+                                  const CDestination& destTo, const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted);
 
     // Return dest is spendable or not.
     static bool IsTxSpendable(const CDestination& dest);
@@ -145,7 +145,7 @@ public:
     std::vector<uint8> Export() const;
 
     // Build transaction signature by concrete template.
-    bool BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+    bool BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
                           const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig, bool& fCompleted) const;
 
     // Build transaction signature by concrete template.
@@ -187,7 +187,7 @@ protected:
 
     // Verify transaction signature by concrete template.
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                   const std::vector<uint8>& vchSig, bool& fCompleted) const = 0;
+                                   const std::vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const = 0;
 
 protected:
     uint16 nType;

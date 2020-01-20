@@ -247,7 +247,7 @@ bool CBbPeer::HandshakeReadCompleted()
 
 bool CBbPeer::HandshakeCompleted()
 {
-    if (!(static_cast<CBbPeerNet*>(pPeerNet))->HandlePeerHandshaked(this, nHsTimerId))
+    if (!(dynamic_cast<CBbPeerNet*>(pPeerNet))->HandlePeerHandshaked(this, nHsTimerId))
     {
         return false;
     }
@@ -264,7 +264,7 @@ bool CBbPeer::HandleReadCompleted()
     {
         try
         {
-            if ((static_cast<CBbPeerNet*>(pPeerNet))->HandlePeerRecvMessage(this, hdrRecv.GetChannel(), hdrRecv.GetCommand(), ss))
+            if ((dynamic_cast<CBbPeerNet*>(pPeerNet))->HandlePeerRecvMessage(this, hdrRecv.GetChannel(), hdrRecv.GetCommand(), ss))
             {
                 Read(MESSAGE_HEADER_SIZE, boost::bind(&CBbPeer::HandleReadHeader, this));
                 return true;
