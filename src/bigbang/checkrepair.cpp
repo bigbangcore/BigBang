@@ -43,7 +43,7 @@ bool CCheckForkUnspentWalker::CheckForkUnspent(map<CTxOutPoint, CCheckTxOut>& ma
                 map<CTxOutPoint, CCheckTxOut>::iterator mt = mapForkUnspent.find(it->first);
                 if (mt == mapForkUnspent.end())
                 {
-                    StdLog("check", "Check 2 unspent: find fail, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
+                    StdLog("check", "Check block unspent: find utxo fail, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
                     mapForkUnspent.insert(*it);
                     vAddUpdate.push_back(CTxUnspent(it->first, static_cast<const CTxOut&>(it->second)));
                 }
@@ -72,21 +72,21 @@ bool CCheckForkUnspentWalker::CheckForkUnspent(map<CTxOutPoint, CCheckTxOut>& ma
                 map<CTxOutPoint, CCheckTxOut>::iterator mt = mapBlockForkUnspent.find(it->first);
                 if (mt == mapBlockForkUnspent.end())
                 {
-                    StdLog("check", "Check fork unspent: find utxo fail, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
+                    StdLog("check", "Check db unspent: find utxo fail, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
                     vRemove.push_back(it->first);
                     mapForkUnspent.erase(it++);
                     continue;
                 }
                 else if (mt->second.IsSpent())
                 {
-                    StdLog("check", "Check fork unspent: is spent, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
+                    StdLog("check", "Check db unspent: is spent, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
                     vRemove.push_back(it->first);
                     mapForkUnspent.erase(it++);
                     continue;
                 }
                 else if (it->second != mt->second)
                 {
-                    StdLog("check", "Check fork unspent: txout error, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
+                    StdLog("check", "Check db unspent: txout error, utxo: [%d] %s.", it->first.n, it->first.hash.GetHex().c_str());
                     it->second = mt->second;
                     vAddUpdate.push_back(CTxUnspent(it->first, static_cast<const CTxOut&>(it->second)));
                 }
