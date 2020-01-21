@@ -827,7 +827,7 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
  */
 void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height)
 { 
-    unsigned int height_ = *((unsigned int *)&data[36]);
+    unsigned int height_ = *((unsigned int *)((unsigned char*)data + 36));
     if (height_ < HEIGHT_HASH_MULTI_SIGNER)
     {   
       cn_slow_hash_1(data, length, hash, variant, prehashed, height);
