@@ -206,7 +206,7 @@ public:
     virtual CTemplatePtr GetTemplate(const CTemplateId& tid) const = 0;
     /* Wallet Tx */
     virtual std::size_t GetTxCount() = 0;
-    virtual bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
+    virtual bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
@@ -301,7 +301,7 @@ public:
     virtual bool AddTemplate(CTemplatePtr& ptr) = 0;
     virtual CTemplatePtr GetTemplate(const CTemplateId& tid) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) = 0;
-    virtual bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
+    virtual bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
                                                            const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
                                                            const std::vector<unsigned char>& vchData, CTransaction& txNew)

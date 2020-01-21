@@ -497,10 +497,10 @@ size_t CWallet::GetTxCount()
     return dbWallet.GetTxCount();
 }
 
-bool CWallet::ListTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWallet::ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwWalletTx);
-    return dbWallet.ListTx(nOffset, nCount, vWalletTx);
+    return dbWallet.ListTx(hashFork, dest, nOffset, nCount, vWalletTx);
 }
 
 bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance)
