@@ -445,6 +445,33 @@ void CSchedule::SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime)
     mapPeer[nPeerNonce].SetNextGetBlocksTime(nWaitTime);
 }
 
+bool CSchedule::SetRepeatBlock(uint64 nNonce, const uint256& hash, const CBlock& block)
+{
+    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
+    if (it == mapState.end())
+    {
+        return false;
+    }
+    CInvState& state = it->second;
+    state.fRepeatMintBlock = true;
+    state.nRecvObjTime = GetTime() - MAX_OBJ_WAIT_TIME + MAX_REPEAT_BLOCK_TIME;
+    return true;
+}
+
+bool CSchedule::IsRepeatBlock(const uint256& hash)
+{
+    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
+    if (it != mapState.end())
+    {
+        CInvState& state = (*it).second;
+        if (state.IsReceived() && state.fRepeatMintBlock)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void CSchedule::RemoveOrphan(const network::CInv& inv)
 {
     if (inv.nType == network::CInv::MSG_TX)
