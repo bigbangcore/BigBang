@@ -52,19 +52,26 @@ public:
     {
         hashTX = ptx->GetHash();
         nSequenceNumber = ptx->nSequenceNumber;
+        nType = ptx->nType;
     }
 
 public:
     uint256 hashTX;
     uint64 nSequenceNumber;
+    uint16 nType;
     CPooledTx* ptx;
 };
 
 typedef boost::multi_index_container<
     CPooledTxLink,
     boost::multi_index::indexed_by<
+        // sorted by Tx ID
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>,
+        // sorted by tx type
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint16, &CPooledTxLink::nType>>>>
+        
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
