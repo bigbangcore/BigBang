@@ -213,6 +213,8 @@ protected:
     void UpdateAutoLock(CWalletKeyStore& keystore);
     bool UpdateFork();
     void GetWalletTxFork(const uint256& hashFork, int nHeight, std::vector<uint256>& vFork);
+    bool AddWalletTxOut(const CTxOutPoint& txout);
+    void RemoveWalletTxOut(const CTxOutPoint& txout);
     void AddNewWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, std::vector<uint256>& vFork);
     void RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint256& hashFork);
     bool SyncWalletTx(CTxFilter& txFilter);
@@ -230,6 +232,7 @@ protected:
     std::map<uint256, std::shared_ptr<CWalletTx>> mapWalletTx;
     std::map<CDestination, CWalletUnspent> mapWalletUnspent;
     std::map<uint256, CWalletFork> mapFork;
+    std::set<CTxOutPoint> setWalletTxOut;
 };
 
 // dummy wallet for on wallet server
