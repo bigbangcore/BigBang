@@ -702,6 +702,11 @@ bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
 
     if (spWalletTx->IsFromMe())
     {
+        if (!AddWalletTxOut(CTxOutPoint(wtx.txid, 1)))
+        {
+            StdError("CWallet", "LoadTxUnspent: Txout added, txout: [1] %s", wtx.txid.GetHex().c_str());
+            return false;
+        }
         for (const uint256& hashFork : vFork)
         {
             mapWalletUnspent[spWalletTx->destIn].Push(hashFork, spWalletTx, 1);
@@ -709,6 +714,11 @@ bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
     }
     if (spWalletTx->IsMine())
     {
+        if (!AddWalletTxOut(CTxOutPoint(wtx.txid, 0)))
+        {
+            StdError("CWallet", "LoadTxUnspent: Txout added, txout: [0] %s", wtx.txid.GetHex().c_str());
+            return false;
+        }
         for (const uint256& hashFork : vFork)
         {
             mapWalletUnspent[spWalletTx->sendTo].Push(hashFork, spWalletTx, 0);
@@ -1592,47 +1602,80 @@ void CWallet::GetWalletTxFork(const uint256& hashFork, int nHeight, vector<uint2
     }
 }
 
+bool CWallet::AddWalletTxOut(const CTxOutPoint& txout)
+{
+    if (setWalletTxOut.find(txout) == setWalletTxOut.end())
+    {
+        setWalletTxOut.insert(txout);
+        return true;
+    }
+    return false;
+}
+
+void CWallet::RemoveWalletTxOut(const CTxOutPoint& txout)
+{
+    setWalletTxOut.erase(txout);
+}
+
 void CWallet::AddNewWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, vector<uint256>& vFork)
 {
-    StdTrace("CWallet", "AddNewWalletTx: txid: %s", spWalletTx->txid.GetHex().c_str());
+    StdTrace("CWallet", "Add new wallet tx: txid: %s", spWalletTx->txid.GetHex().c_str());
     if (spWalletTx->IsFromMe())
     {
-        for (const CTxIn& txin : spWalletTx->vInput)
+        if (AddWalletTxOut(CTxOutPoint(spWalletTx->txid, 1)))
         {
-            map<uint256, std::shared_ptr<CWalletTx>>::iterator it = mapWalletTx.find(txin.prevout.hash);
-            if (it != mapWalletTx.end())
+            for (const CTxIn& txin : spWalletTx->vInput)
             {
-                std::shared_ptr<CWalletTx>& spPrevWalletTx = (*it).second;
-                for (const uint256& hashFork : vFork)
+                map<uint256, std::shared_ptr<CWalletTx>>::iterator it = mapWalletTx.find(txin.prevout.hash);
+                if (it != mapWalletTx.end())
                 {
-                    mapWalletUnspent[spWalletTx->destIn].Pop(hashFork, spPrevWalletTx, txin.prevout.n);
+                    std::shared_ptr<CWalletTx>& spPrevWalletTx = (*it).second;
+                    for (const uint256& hashFork : vFork)
+                    {
+                        mapWalletUnspent[spWalletTx->destIn].Pop(hashFork, spPrevWalletTx, txin.prevout.n);
+                    }
+                    if (!spPrevWalletTx->GetRefCount())
+                    {
+                        mapWalletTx.erase(it);
+                    }
                 }
-
-                if (!spPrevWalletTx->GetRefCount())
+                else
                 {
-                    mapWalletTx.erase(it);
+                    StdError("CWallet", "Add new wallet tx: find prev tx fail, txid: %s", txin.prevout.hash.GetHex().c_str());
                 }
             }
+            for (const uint256& hashFork : vFork)
+            {
+                mapWalletUnspent[spWalletTx->destIn].Push(hashFork, spWalletTx, 1);
+            }
         }
-        for (const uint256& hashFork : vFork)
+        else
         {
-            mapWalletUnspent[spWalletTx->destIn].Push(hashFork, spWalletTx, 1);
+            StdTrace("CWallet", "Add new wallet tx: Txout added, txout: [1] %s", spWalletTx->txid.GetHex().c_str());
         }
     }
     if (spWalletTx->IsMine())
     {
-        for (const uint256& hashFork : vFork)
+        if (AddWalletTxOut(CTxOutPoint(spWalletTx->txid, 0)))
         {
-            mapWalletUnspent[spWalletTx->sendTo].Push(hashFork, spWalletTx, 0);
+            for (const uint256& hashFork : vFork)
+            {
+                mapWalletUnspent[spWalletTx->sendTo].Push(hashFork, spWalletTx, 0);
+            }
+        }
+        else
+        {
+            StdTrace("CWallet", "Add new wallet tx: Txout added, txout: [0] %s", spWalletTx->txid.GetHex().c_str());
         }
     }
 }
 
 void CWallet::RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint256& hashFork)
 {
-    StdTrace("CWallet", "RemoveWalletTx: txid: %s", spWalletTx->txid.GetHex().c_str());
+    StdTrace("CWallet", "Remove wallet tx: txid: %s", spWalletTx->txid.GetHex().c_str());
     if (spWalletTx->IsFromMe())
     {
+        RemoveWalletTxOut(CTxOutPoint(spWalletTx->txid, 1));
         for (const CTxIn& txin : spWalletTx->vInput)
         {
             std::shared_ptr<CWalletTx> spPrevWalletTx = LoadWalletTx(txin.prevout.hash);
@@ -1645,6 +1688,7 @@ void CWallet::RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint2
     }
     if (spWalletTx->IsMine())
     {
+        RemoveWalletTxOut(CTxOutPoint(spWalletTx->txid, 0));
         mapWalletUnspent[spWalletTx->sendTo].Pop(hashFork, spWalletTx, 0);
     }
 }
