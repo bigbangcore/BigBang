@@ -21,6 +21,8 @@ set(sources
     txpool_tests.cpp
 )
 
+#set(lib_src ../src/common/destination.h ../src/common/destination.cpp)
+
 add_executable(test_big ${sources})
 
 include_directories(../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss)
@@ -34,6 +36,10 @@ target_link_libraries(test_big
     OpenSSL::Crypto
     # mpvss
     crypto
+    libbigbang
+    common
+    xengine
+    ${Boost_LOG_LIBRARY}
 )
 
 add_executable(test_ctsdb test_big_main.cpp test_big.h test_big.cpp ctsdb_test.cpp)

@@ -78,6 +78,8 @@ set(sources
 
 add_executable(bigbang ${sources})
 
+add_library(libbigbang ${sources})
+
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)

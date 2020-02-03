@@ -14,7 +14,16 @@ BOOST_FIXTURE_TEST_SUITE(txpool_tests, BasicUtfSetup)
 
 BOOST_AUTO_TEST_CASE(multi_index_tx_score)
 {
-    CPooledTxLinkSet linkSet;
+    CPooledTxLinkSet setTxLinkIndex;
+    
+    for(int i = 0; i < 10; ++i)
+    {
+        CTransaction tx;
+        tx.SetNull();
+
+        CPooledTx pooledTx(tx, -1, i++);
+        setTxLinkIndex.insert(CPooledTxLink(&pooledTx));
+    }
 
 }
 
