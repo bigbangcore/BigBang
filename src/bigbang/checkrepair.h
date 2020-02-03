@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -134,7 +134,9 @@ public:
     CCheckForkManager() {}
 
     bool FetchForkStatus(const string& strDataPath);
-    void GetWalletTxFork(const uint256& hashFork, int nHeight, vector<uint256>& vFork);
+    void GetForkList(const uint256& hashGenesis, vector<uint256>& vForkList);
+    void GetTxFork(const uint256& hashFork, int nHeight, vector<uint256>& vFork);
+    bool UpdateForkLast(const string& strDataPath, const vector<pair<uint256, uint256>>& vForkLast);
 
 public:
     map<uint256, CCheckForkStatus> mapForkStatus;
@@ -407,7 +409,8 @@ public:
     uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement());
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
     bool UpdateBlockNext();
-    bool UpdateBlockTx();
+    bool UpdateBlockTx(CCheckForkManager& objForkMn);
+    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256> vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     void ClearBlockIndex();
     bool CheckTxExist(const uint256& hashFork, const uint256& txid);
@@ -440,6 +443,7 @@ protected:
     bool FetchWalletAddress();
     bool FetchWalletTx();
 
+    bool CheckRepairFork();
     bool CheckBlockUnspent();
     bool CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>& vRemoveTx);
     bool CheckBlockIndex();
