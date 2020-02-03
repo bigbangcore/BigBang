@@ -1,9 +1,10 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "walletdb.h"
 
+#include <algorithm>
 #include <boost/bind.hpp>
 
 #include "leveldbeng.h"
@@ -365,8 +366,8 @@ bool CWalletTxDB::Reset()
 class CWalletDBListTxSeqWalker : public CWalletDBTxSeqWalker
 {
 public:
-    CWalletDBListTxSeqWalker(int nOffsetIn, int nMaxCountIn)
-      : nOffset(nOffsetIn), nMaxCount(nMaxCountIn), nIndex(0)
+    CWalletDBListTxSeqWalker(const uint256& hashForkIn, int nOffsetIn, int nMaxCountIn)
+      : nHashFork(hashForkIn), nOffset(nOffsetIn), nMaxCount(nMaxCountIn), nIndex(0)
     {
     }
     bool Walk(const uint256& txid, const uint256& hashFork, const int nBlockHeight) override
@@ -375,7 +376,17 @@ public:
         {
             return true;
         }
-        vWalletTxid.push_back(txid);
+
+        if (!!nHashFork && nHashFork == hashFork)
+        {
+            vWalletTxid.push_back(txid);
+        }
+
+        if (!nHashFork)
+        {
+            vWalletTxid.push_back(txid);
+        }
+
         return (vWalletTxid.size() < nMaxCount);
     }
 
@@ -383,6 +394,7 @@ public:
     int nOffset;
     int nMaxCount;
     int nIndex;
+    const uint256 nHashFork;
     vector<uint256> vWalletTxid;
 };
 
@@ -532,31 +544,51 @@ size_t CWalletDB::GetTxCount()
     return dbWtx.GetTxCount() + txCache.Count();
 }
 
-bool CWalletDB::ListTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWalletDB::ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     size_t nDBTx = dbWtx.GetTxCount();
-
+    vector<CWalletTx> vTempWalletTx;
     if (nOffset < nDBTx)
     {
-        if (!ListDBTx(nOffset, nCount, vWalletTx))
+        if (!ListDBTx(hashFork, nOffset, nCount, vTempWalletTx))
         {
             return false;
         }
-        if (vWalletTx.size() < nCount)
+        if (vTempWalletTx.size() < nCount)
         {
-            txCache.ListTx(0, nCount - vWalletTx.size(), vWalletTx);
+            txCache.ListTx(0, nCount - vTempWalletTx.size(), vTempWalletTx);
         }
     }
     else
     {
-        txCache.ListTx(nOffset - nDBTx, nCount, vWalletTx);
+        txCache.ListTx(nOffset - nDBTx, nCount, vTempWalletTx);
     }
+
+    std::copy_if(vTempWalletTx.begin(), vTempWalletTx.end(), std::back_inserter(vWalletTx), [&hashFork, &dest](const CWalletTx& tx) -> bool {
+        if (!!hashFork && !dest.IsNull())
+        {
+            return (tx.hashFork == hashFork && (tx.destIn == dest || tx.sendTo == dest));
+        }
+
+        if (!!hashFork && dest.IsNull())
+        {
+            return tx.hashFork == hashFork;
+        }
+
+        if (!hashFork && !dest.IsNull())
+        {
+            return (tx.destIn == dest || tx.sendTo == dest);
+        }
+
+        return true;
+    });
+
     return true;
 }
 
-bool CWalletDB::ListDBTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWalletDB::ListDBTx(const uint256& hashFork, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
-    CWalletDBListTxSeqWalker walker(nOffset, nCount);
+    CWalletDBListTxSeqWalker walker(hashFork, nOffset, nCount);
     if (!dbWtx.WalkThroughTxSeq(walker))
     {
         return false;

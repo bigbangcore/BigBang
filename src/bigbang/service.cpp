@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -500,7 +500,7 @@ bool CService::GetBalance(const CDestination& dest, const uint256& hashFork, CWa
     return pWallet->GetBalance(dest, hashFork, nForkHeight, balance);
 }
 
-bool CService::ListWalletTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CService::ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     if (nOffset < 0)
     {
@@ -510,7 +510,7 @@ bool CService::ListWalletTx(int nOffset, int nCount, vector<CWalletTx>& vWalletT
             nOffset = 0;
         }
     }
-    return pWallet->ListTx(nOffset, nCount, vWalletTx);
+    return pWallet->ListTx(hashFork, dest, nOffset, nCount, vWalletTx);
 }
 
 boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,

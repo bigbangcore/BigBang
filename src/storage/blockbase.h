@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -204,6 +204,19 @@ protected:
     std::vector<uint256> vTxAddNew;
 };
 
+class CForkHeightIndex
+{
+public:
+    CForkHeightIndex() {}
+
+    void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, const CDestination& destMint);
+    void RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock);
+    std::map<uint256, CDestination>* GetBlockMintList(uint32 nHeight);
+
+protected:
+    std::map<uint32, std::map<uint256, CDestination>> mapHeightIndex;
+};
+
 class CBlockBase
 {
     friend class CBlockView;
@@ -254,12 +267,15 @@ public:
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
+    bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
     CBlockIndex* GetOrCreateIndex(const uint256& hash);
     CBlockIndex* GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, std::vector<CBlockIndex*>& vPath);
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
+    void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, const CDestination& destMint);
+    void RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
@@ -310,6 +326,7 @@ protected:
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;
     std::map<uint256, CBlockIndex*> mapIndex;
+    std::map<uint256, CForkHeightIndex> mapForkHeightIndex;
     std::map<uint256, boost::shared_ptr<CBlockFork>> mapFork;
 };
 

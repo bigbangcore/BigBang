@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -497,10 +497,10 @@ size_t CWallet::GetTxCount()
     return dbWallet.GetTxCount();
 }
 
-bool CWallet::ListTx(int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
+bool CWallet::ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwWalletTx);
-    return dbWallet.ListTx(nOffset, nCount, vWalletTx);
+    return dbWallet.ListTx(hashFork, dest, nOffset, nCount, vWalletTx);
 }
 
 bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance)

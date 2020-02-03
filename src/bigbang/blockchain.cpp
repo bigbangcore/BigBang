@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -731,6 +731,11 @@ bool CBlockChain::ListForkUnspent(const uint256& hashFork, const CDestination& d
 bool CBlockChain::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
 {
     return cntrBlock.ListForkUnspentBatch(hashFork, nMax, mapUnspent);
+}
+
+bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
+{
+    return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);
 }
 
 // bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
