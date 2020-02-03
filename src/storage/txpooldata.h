@@ -24,6 +24,7 @@ public:
     bool Remove();
     bool Save(const std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
     bool Load(std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
+    bool LoadCheck(std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
 
 protected:
     boost::filesystem::path pathTxPoolFile;

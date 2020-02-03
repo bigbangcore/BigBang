@@ -292,8 +292,12 @@ bool CWalletTxDB::TxSeqWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBT
     ssKey >> strPrefix;
     if (strPrefix != "seq")
     {
-        StdLog("CWalletTxDB", "TxSeqWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
-        return false;
+        if (!(strPrefix == "txcount" || strPrefix == "sequence" || strPrefix == "wtx"))
+        {
+            StdLog("CWalletTxDB", "TxSeqWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
+            return false;
+        }
+        return true;
     }
 
     ssKey >> nSeqNum;
@@ -311,8 +315,12 @@ bool CWalletTxDB::TxWalker(CBufStream& ssKey, CBufStream& ssValue, CWalletDBTxWa
     ssKey >> strPrefix;
     if (strPrefix != "seq")
     {
-        StdLog("CWalletTxDB", "TxWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
-        return false;
+        if (!(strPrefix == "txcount" || strPrefix == "sequence" || strPrefix == "wtx"))
+        {
+            StdLog("CWalletTxDB", "TxWalker: strPrefix != seq, strPrefix: %s", strPrefix.c_str());
+            return false;
+        }
+        return true;
     }
 
     ssKey >> nSeqNum;
@@ -484,11 +492,11 @@ bool CWalletDB::WalkThroughAddress(CWalletDBAddrWalker& walker)
 
 bool CWalletDB::AddNewTx(const CWalletTx& wtx)
 {
-    /*if (wtx.nBlockHeight < 0)
+    if (wtx.nBlockHeight < 0)
     {
         txCache.AddNew(wtx);
         return true;
-    }*/
+    }
 
     return dbWtx.AddNewTx(wtx);
 }

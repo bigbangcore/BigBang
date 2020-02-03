@@ -781,4 +781,24 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.Save(block.vchProof);
 }
 
+///////////////////////////////
+// CProofOfWorkParam
+
+CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
+{
+    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
+    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
+    nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    if (fTestnet)
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
+    }
+    else
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
+    }
+    nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
+}
+
 } // namespace bigbang

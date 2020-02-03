@@ -58,6 +58,20 @@ public:
     void GetGenesisBlock(CBlock& block) override;
 };
 
+class CProofOfWorkParam
+{
+public:
+    CProofOfWorkParam(bool fTestnet);
+
+public:
+    int nProofOfWorkLowerLimit;
+    int nProofOfWorkUpperLimit;
+    int nProofOfWorkInit;
+    int64 nProofOfWorkUpperTarget;
+    int64 nProofOfWorkLowerTarget;
+    int nProofOfWorkAdjustCount;
+};
+
 } // namespace bigbang
 
 #endif //BIGBANG_BASE_H
