@@ -1205,7 +1205,12 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 {
                     StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, block: %s",
                            GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
-                    sched.SetRepeatBlock(nNonceSender, hashBlock, *pBlock);
+                    if (!sched.SetRepeatBlock(nNonceSender, hashBlock))
+                    {
+                        StdLog("NetChannel", "NetChannel AddNewBlock: Generate multiple repeat blocks, peer: %s, height: %d, block: %s",
+                               GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                        setMisbehavePeer.insert(nNonceSender);
+                    }
                     return;
                 }
             }
