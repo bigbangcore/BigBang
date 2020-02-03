@@ -1025,7 +1025,7 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
     return true;
 }
 
-bool CCheckBlockWalker::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256> vFork)
+bool CCheckBlockWalker::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork)
 {
     for (const uint256& hashFork : vFork)
     {

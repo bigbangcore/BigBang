@@ -410,7 +410,7 @@ public:
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
     bool UpdateBlockNext();
     bool UpdateBlockTx(CCheckForkManager& objForkMn);
-    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256> vFork);
+    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     void ClearBlockIndex();
     bool CheckTxExist(const uint256& hashFork, const uint256& txid);
