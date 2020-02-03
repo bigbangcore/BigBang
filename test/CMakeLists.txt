@@ -6,6 +6,15 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
 
+#set(auto_files
+ #   ${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang/mode/auto_options.h
+  #  ${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang/mode/auto_config.cpp
+   # ${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang/mode/auto_config.h
+#)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc ../src/jsonrpc)
+
 set(sources
     test_big_main.cpp
     test_big.h test_big.cpp
@@ -15,6 +24,7 @@ set(sources
     # mpvss_tests.cpp
     ipv6_tests.cpp
     crypto_tests.cpp
+    txpool_tests.cpp
 )
 
 add_executable(test_big ${sources})
@@ -25,6 +35,7 @@ target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     OpenSSL::SSL
     OpenSSL::Crypto
