@@ -97,16 +97,15 @@ protected:
 private:
     enum
     {
-        MAKER_RUN = 0,
+        MAKER_RUN   = 0,
         MAKER_RESET = 1,
-        MAKER_EXIT = 2,
-        MAKER_HOLD = 3
+        MAKER_EXIT  = 2,
+        MAKER_HOLD  = 3
     };
     void BlockMakerThreadFunc();
     void ExtendedMakerThreadFunc();
 
 protected:
-    mutable boost::shared_mutex rwAccess;
     xengine::CThread thrMaker;
     xengine::CThread thrExtendedMaker;
     boost::mutex mutex;

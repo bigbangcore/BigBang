@@ -211,12 +211,12 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 
     if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
     {
-        nMakerStatus = MAKER_RESET;
-        hashLastBlock = eventUpdate.data.hashBlock;
-        nLastBlockTime = eventUpdate.data.nBlockTime;
+        nMakerStatus     = MAKER_RESET;
+        hashLastBlock    = eventUpdate.data.hashBlock;
+        nLastBlockTime   = eventUpdate.data.nBlockTime;
         nLastBlockHeight = eventUpdate.data.nBlockHeight;
-        nLastAgreement = eventUpdate.data.nAgreement;
-        nLastWeight = eventUpdate.data.nWeight;
+        nLastAgreement   = eventUpdate.data.nAgreement;
+        nLastWeight      = eventUpdate.data.nWeight;
         cond.notify_all();
     }
 
@@ -257,11 +257,11 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
                                const uint32& nPrevHeight, const CDelegateAgreement& agreement)
 {
     block.SetNull();
-    block.nType = CBlock::BLOCK_PRIMARY;
+    block.nType      = CBlock::BLOCK_PRIMARY;
     block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING;
-    block.hashPrev = hashPrev;
+    block.hashPrev   = hashPrev;
     CProofOfSecretShare proof;
-    proof.nWeight = agreement.nWeight;
+    proof.nWeight    = agreement.nWeight;
     proof.nAgreement = agreement.nAgreement;
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)
@@ -659,8 +659,8 @@ void CBlockMaker::BlockMakerThreadFunc()
 
     {
         boost::unique_lock<boost::mutex> lock(mutex);
-        hashPrimaryBlock = hashLastBlock;
-        nPrimaryBlockTime = nLastBlockTime;
+        hashPrimaryBlock    = hashLastBlock;
+        nPrimaryBlockTime   = nLastBlockTime;
         nPrimaryBlockHeight = nLastBlockHeight;
     }
 
@@ -695,8 +695,8 @@ void CBlockMaker::BlockMakerThreadFunc()
 
             if (hashPrimaryBlock != hashLastBlock)
             {
-                hashPrimaryBlock = hashLastBlock;
-                nPrimaryBlockTime = nLastBlockTime;
+                hashPrimaryBlock    = hashLastBlock;
+                nPrimaryBlockTime   = nLastBlockTime;
                 nPrimaryBlockHeight = nLastBlockHeight;
                 int64 nWaitAgreement = nPrimaryBlockTime + WAIT_AGREEMENT_TIME - GetNetTime();
                 if (nWaitAgreement <= 0)
@@ -768,15 +768,15 @@ void CBlockMaker::BlockMakerThreadFunc()
 void CBlockMaker::ExtendedMakerThreadFunc()
 {
     uint256 hashPrimaryBlock = uint64(0);
-    int64 nPrimaryBlockTime = 0;
-    int nPrimaryBlockHeight = 0;
+    int64 nPrimaryBlockTime  = 0;
+    int nPrimaryBlockHeight  = 0;
 
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         hashPrimaryBlock = hashLastBlock;
     }
 
-    Log("Extened block maker started, initial primary block hash = %s\n", hashPrimaryBlock.GetHex().c_str());
+    Log("Extended block maker started, initial primary block hash = %s\n", hashPrimaryBlock.GetHex().c_str());
 
     for (;;)
     {
@@ -795,15 +795,15 @@ void CBlockMaker::ExtendedMakerThreadFunc()
 
             if (currentAgreement.IsProofOfWork()
                 || currentAgreement.nAgreement != nLastAgreement
-                || currentAgreement.nWeight != nLastWeight)
+                || currentAgreement.nWeight    != nLastWeight)
             {
                 hashPrimaryBlock = hashLastBlock;
                 continue;
             }
 
-            agree = currentAgreement;
-            hashPrimaryBlock = hashLastBlock;
-            nPrimaryBlockTime = nLastBlockTime;
+            agree               = currentAgreement;
+            hashPrimaryBlock    = hashLastBlock;
+            nPrimaryBlockTime   = nLastBlockTime;
             nPrimaryBlockHeight = nLastBlockHeight;
         }
 
