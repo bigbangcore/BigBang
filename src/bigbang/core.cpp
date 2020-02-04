@@ -571,7 +571,6 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
 {
     if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
     {
-        StdLog("CCoreProtocol", "GetBlockTrust: block error");
         return uint64(0);
     }
     else if (block.IsProofOfWork())
@@ -605,7 +604,6 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
         int64 nReward;
         if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: dpos trust: weight: %ld, bits: %d", agreement.nWeight, nBits);
             return uint256(uint64(agreement.nWeight)) << nBits;
         }
         else

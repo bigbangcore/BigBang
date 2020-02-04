@@ -472,8 +472,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     // Get block trust
-    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
-    Log("AddNewBlock nChainTrust: %s ", nChainTrust.GetHex().c_str());
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement);
+    Log("AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
 
     CBlockIndex* pIndexNew;
     if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
