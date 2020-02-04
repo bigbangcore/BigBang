@@ -76,10 +76,24 @@ BOOST_AUTO_TEST_CASE(multi_index_tx_score)
 
     const CPooledTxLinkSetByTxScore& idxTxLinkScore = setTxLinkIndex.get<tx_score>();
     CPooledTxLinkSetByTxScore::iterator iter = idxTxLinkScore.begin();
+
+    std::vector<CPooledTxLinkSetByTxScore::iterator> iterVec;
     for (; iter != idxTxLinkScore.end(); ++iter)
     {
-        std::cout << "type " << std::hex << iter->nType << std::dec << " seq " << iter->nSequenceNumber << std::endl;
+        // std::cout << "type " << std::hex << iter->nType << std::dec << " seq " << iter->nSequenceNumber << std::endl;
+        iterVec.push_back(iter);
     }
+
+    BOOST_CHECK(iterVec.size() == setTxLinkIndex.size());
+
+    BOOST_CHECK(iterVec[0]->nType == CTransaction::TX_CERT && iterVec[1]->nType == CTransaction::TX_CERT);
+    BOOST_CHECK(iterVec[0]->nSequenceNumber == 1 && iterVec[1]->nSequenceNumber == 6);
+
+    BOOST_CHECK(iterVec[4]->nType == CTransaction::TX_STAKE && iterVec[5]->nType == CTransaction::TX_STAKE);
+    BOOST_CHECK(iterVec[4]->nSequenceNumber == 3 && iterVec[5]->nSequenceNumber == 8);
+
+    BOOST_CHECK(iterVec[8]->nType == CTransaction::TX_TOKEN && iterVec[9]->nType == CTransaction::TX_TOKEN && iterVec[10]->nType == CTransaction::TX_TOKEN);
+    BOOST_CHECK(iterVec[8]->nSequenceNumber == 0 && iterVec[9]->nSequenceNumber == 5 && iterVec[10]->nSequenceNumber == 10);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
