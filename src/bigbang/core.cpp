@@ -13,13 +13,17 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
+//#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
+#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
+#else
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+#endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
@@ -28,6 +32,7 @@ static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
+static const int64 BBCP_INIT_REWARD_TOKEN = 20;
 #else
 static const int64 BBCP_TOKEN_INIT = 0;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
@@ -73,6 +78,7 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
     126,
     73
 };
+static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 #endif
 
 namespace bigbang
@@ -150,7 +156,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -162,11 +168,11 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
-    if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
+    /*if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
         && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
-    }
+    }*/
     if (tx.nType == CTransaction::TX_TOKEN
         && (tx.sendTo.IsPubKey()
             || (tx.sendTo.IsTemplate()
@@ -248,10 +254,10 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context
     // Only allow CBlock::BLOCK_PRIMARY type in v1.0.0
-    if (block.nType != CBlock::BLOCK_PRIMARY)
+    /*if (block.nType != CBlock::BLOCK_PRIMARY)
     {
         return DEBUG(ERR_BLOCK_TYPE_INVALID, "Block type error\n");
-    }
+    }*/
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
@@ -464,10 +470,10 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     }
 
     // v1.0 function
-    if (!tx.vchData.empty())
+    /*if (!tx.vchData.empty())
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }
+    }*/
 
     vector<uint8> vchSig;
     if (CTemplate::IsDestInRecorded(tx.sendTo))
@@ -519,10 +525,10 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     }
 
     // v1.0 function
-    if (!tx.vchData.empty())
+    /*if (!tx.vchData.empty())
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }
+    }*/
 
     // record destIn in vchSig
     vector<uint8> vchSig;
@@ -565,6 +571,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
 {
     if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
     {
+        StdLog("CCoreProtocol", "GetBlockTrust: block error");
         return uint64(0);
     }
     else if (block.IsProofOfWork())
@@ -598,10 +605,12 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
         int64 nReward;
         if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
         {
+            StdLog("CCoreProtocol", "GetBlockTrust: dpos trust: weight: %ld, bits: %d", agreement.nWeight, nBits);
             return uint256(uint64(agreement.nWeight)) << nBits;
         }
         else
         {
+            StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
             return uint64(0);
         }
     }
@@ -611,6 +620,14 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 {
     if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
     {
+        if (!pIndexPrev->IsPrimary())
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: not is primary");
+        }
+        else
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
+        }
         return false;
     }
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
@@ -753,7 +770,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 {
     using namespace boost::posix_time;
     using namespace boost::gregorian;
-    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("62a401ff58234d2c7543859ed4917a9e85fb431ffb650a4d7694a301234771c4")));
+    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("68e4dca5989876ca64f16537e82d05c103e5695dfaf009a01632cb33639cc530")));
 
     block.SetNull();
 
@@ -773,7 +790,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
