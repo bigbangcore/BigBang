@@ -637,7 +637,7 @@ void CBlockMaker::BlockMakerThreadFunc()
 {
     const char* ConsensusMethodName[CM_MAX] = { "mpvss", "cryptonight" };
     Log("Block maker started");
-    for (map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
+    for (auto it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
         Log("Profile [%s] : dest=%s,pubkey=%s",
@@ -645,8 +645,7 @@ void CBlockMaker::BlockMakerThreadFunc()
             CAddress(profile.destMint).ToString().c_str(),
             profile.keyMint.GetPubKey().GetHex().c_str());
     }
-    for (map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.begin();
-         it != mapDelegatedProfile.end(); ++it)
+    for (auto it = mapDelegatedProfile.begin(); it != mapDelegatedProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
         Log("Profile [%s] : dest=%s,pubkey=%s\n",
