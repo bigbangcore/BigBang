@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1489,6 +1489,21 @@ CRPCResultPtr CRPCMod::RPCListTransaction(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListTransactionParam>(param);
 
+    const CRPCString& strFork = spParam->strFork;
+    const CRPCString& strAddress = spParam->strAddress;
+
+    CAddress address(strAddress);
+    uint256 fork;
+    if (!strFork.empty() && !GetForkHashOfDef(strFork, fork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+
+    if (!strAddress.empty() && !address.ParseString(strAddress))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+
     int nCount = GetUint(spParam->nCount, 10);
     int nOffset = GetInt(spParam->nOffset, 0);
     if (nCount <= 0)
@@ -1497,7 +1512,7 @@ CRPCResultPtr CRPCMod::RPCListTransaction(CRPCParamPtr param)
     }
 
     vector<CWalletTx> vWalletTx;
-    if (!pService->ListWalletTx(nOffset, nCount, vWalletTx))
+    if (!pService->ListWalletTx(fork, address, nOffset, nCount, vWalletTx))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to list transactions");
     }

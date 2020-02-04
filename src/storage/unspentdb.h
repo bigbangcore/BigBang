@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -174,6 +174,7 @@ public:
     ~CForkUnspentDB();
     bool RemoveAll();
     bool UpdateUnspent(const std::vector<CTxUnspent>& vAddNew, const std::vector<CTxOutPoint>& vRemove);
+    bool RepairUnspent(const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove);
     bool WriteUnspent(const CTxOutPoint& txout, const CTxOut& output);
     bool ReadUnspent(const CTxOutPoint& txout, CTxOut& output);
     bool Copy(CForkUnspentDB& dbUnspent);
@@ -211,6 +212,7 @@ public:
     void Clear();
     bool Update(const uint256& hashFork,
                 const std::vector<CTxUnspent>& vAddNew, const std::vector<CTxOutPoint>& vRemove);
+    bool RepairUnspent(const uint256& hashFork, const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove);
     bool Retrieve(const uint256& hashFork, const CTxOutPoint& txout, CTxOut& output);
     bool Copy(const uint256& srcFork, const uint256& destFork);
     bool WalkThrough(const uint256& hashFork, CForkUnspentDBWalker& walker);

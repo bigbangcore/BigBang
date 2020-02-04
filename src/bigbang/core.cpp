@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -779,6 +779,26 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.SetFlag(true, false, false);
 
     profile.Save(block.vchProof);
+}
+
+///////////////////////////////
+// CProofOfWorkParam
+
+CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
+{
+    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
+    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
+    nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    if (fTestnet)
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
+    }
+    else
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
+    }
+    nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
 }
 
 } // namespace bigbang

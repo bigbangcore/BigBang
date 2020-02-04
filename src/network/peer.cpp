@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -247,7 +247,7 @@ bool CBbPeer::HandshakeReadCompleted()
 
 bool CBbPeer::HandshakeCompleted()
 {
-    if (!(static_cast<CBbPeerNet*>(pPeerNet))->HandlePeerHandshaked(this, nHsTimerId))
+    if (!(dynamic_cast<CBbPeerNet*>(pPeerNet))->HandlePeerHandshaked(this, nHsTimerId))
     {
         return false;
     }
@@ -264,7 +264,7 @@ bool CBbPeer::HandleReadCompleted()
     {
         try
         {
-            if ((static_cast<CBbPeerNet*>(pPeerNet))->HandlePeerRecvMessage(this, hdrRecv.GetChannel(), hdrRecv.GetCommand(), ss))
+            if ((dynamic_cast<CBbPeerNet*>(pPeerNet))->HandlePeerRecvMessage(this, hdrRecv.GetChannel(), hdrRecv.GetCommand(), ss))
             {
                 Read(MESSAGE_HEADER_SIZE, boost::bind(&CBbPeer::HandleReadHeader, this));
                 return true;

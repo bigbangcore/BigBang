@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -338,7 +338,7 @@ void CBbPeerNet::HandlePeerWriten(CPeer* pPeer)
 
 bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
 {
-    CBbPeer* pBbPeer = static_cast<CBbPeer*>(pPeer);
+    CBbPeer* pBbPeer = dynamic_cast<CBbPeer*>(pPeer);
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
     {

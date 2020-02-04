@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -255,7 +255,14 @@ public:
                 {
                     uint32 nMagic, nSize;
                     T t;
-                    fs >> nMagic >> nSize >> t;
+                    try
+                    {
+                        fs >> nMagic >> nSize >> t;
+                    }
+                    catch (std::exception& e)
+                    {
+                        break;
+                    }
                     if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize
                         || !walker.Walk(t, nFile, nOffset + 8))
                     {

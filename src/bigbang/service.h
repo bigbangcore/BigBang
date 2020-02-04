@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -66,15 +66,18 @@ public:
     bool AddTemplate(CTemplatePtr& ptr) override;
     CTemplatePtr GetTemplate(const CTemplateId& tid) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) override;
-    bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
+    bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
     boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
                                                    const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
                                                    const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;
     /* Mint */
-    bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
-    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) override;
+    bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                 uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                 const CTemplateMintPtr& templMint) override;
+    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
+                     crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
     bool GetTxSender(const uint256& txid, CAddress& sender) override;
 

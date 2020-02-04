@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,13 +28,6 @@ CPubKey::CPubKey(const uint256& pubkey)
 bool CPubKey::Verify(const uint256& hash, const std::vector<uint8>& vchSig) const
 {
     return CryptoVerify(*this, &hash, sizeof(hash), vchSig);
-}
-
-bool CPubKey::MultiVerify(const std::set<uint256>& setPubKey, const uint256& seed,
-                          const uint256& hash, const std::vector<uint8>& vchSig)
-{
-    std::set<uint256> setPartKey;
-    return CryptoMultiVerify(setPubKey, seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig, setPartKey);
 }
 
 //////////////////////////////
@@ -134,7 +127,7 @@ bool CKey::Load(const std::vector<unsigned char>& vchKey)
         is.Pop(cipherNew.encrypted, 48);
         is >> cipherNew.nonce >> check;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -215,13 +208,23 @@ bool CKey::Sign(const uint256& hash, std::vector<uint8>& vchSig) const
     return true;
 }
 
-bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& seed,
-                     const uint256& hash, std::vector<uint8>& vchSig) const
+bool CKey::MultiSignDefect(const std::set<CPubKey>& setPubKey, const uint256& seed,
+                           const uint256& hash, std::vector<uint8>& vchSig) const
 {
     if (!IsNull() && !IsLocked())
     {
-        CryptoMultiSign(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey,
-                        seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig);
+        CryptoMultiSignDefect(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey,
+                              seed.begin(), seed.size(), hash.begin(), hash.size(), vchSig);
+        return true;
+    }
+    return false;
+}
+
+bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const
+{
+    if (!IsNull() && !IsLocked())
+    {
+        CryptoMultiSign(std::set<uint256>(setPubKey.begin(), setPubKey.end()), *pCryptoKey, hash.begin(), hash.size(), vchSig);
         return true;
     }
     return false;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -56,6 +56,20 @@ class CTestNetCoreProtocol : public CCoreProtocol
 public:
     CTestNetCoreProtocol();
     void GetGenesisBlock(CBlock& block) override;
+};
+
+class CProofOfWorkParam
+{
+public:
+    CProofOfWorkParam(bool fTestnet);
+
+public:
+    int nProofOfWorkLowerLimit;
+    int nProofOfWorkUpperLimit;
+    int nProofOfWorkInit;
+    int64 nProofOfWorkUpperTarget;
+    int64 nProofOfWorkLowerTarget;
+    int nProofOfWorkAdjustCount;
 };
 
 } // namespace bigbang

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -133,15 +133,15 @@ void CTemplateDelegate::BuildTemplateData()
 }
 
 bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, bool& fCompleted) const
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     if (destTo.GetTemplateId() == nId)
     {
-        return CDestination(keyDelegate).VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+        return CDestination(keyDelegate).VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
     else
     {
-        return destTo.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+        return destTo.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -158,7 +158,7 @@ string CTemplate::GetTypeName(uint16 nTypeIn)
 }
 
 bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
-                                  const CDestination& destTo, const vector<uint8>& vchSig, bool& fCompleted)
+                                  const CDestination& destTo, const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
 {
     CTemplatePtr ptr = CreateTemplatePtr(nIdIn.GetType(), vchSig);
     if (!ptr)
@@ -172,7 +172,7 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
     }
 
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
-    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, fCompleted);
+    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }
 
 bool CTemplate::IsTxSpendable(const CDestination& dest)
@@ -265,11 +265,11 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
                                  const vector<uint8>& vchPreSig, vector<uint8>& vchSig, bool& fCompleted) const
 {
     vchSig = vchData;
-    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, fCompleted))
+    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))
     {
         return false;
     }

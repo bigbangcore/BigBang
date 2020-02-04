@@ -37,6 +37,7 @@
 #include <unistd.h>
 #endif
 
+#include "defs.h"
 #include "common/int-util.h"
 #include "hash-ops.h"
 #include "oaes_lib.h"
@@ -44,7 +45,7 @@
 #include "variant4_random_math.h"
 
 #define MEMORY         (1 << 21) // 2MB scratchpad
-#define ITER           (1 << 15)
+#define ITER           (1 << 12)
 #define AES_BLOCK_SIZE  16
 #define AES_KEY_SIZE    32
 #define INIT_SIZE_BLK   8
@@ -245,6 +246,105 @@ extern void aesb_pseudo_round(const uint8_t *in, uint8_t *out, const uint8_t *ex
   } while (0)
 
 
+#define bbc_math_0() \
+	{ \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+	}
+
+#define SSE2_001() { \
+	U64(&_c_aes)[0] += U64(&_c)[0] ^ a[0]; \
+	U64(&_c_aes)[1] += U64(&_c)[1] ^ a[1]; \
+}
+
+#define SSE2_002() { \
+	U64(&_c_aes)[0] = (U64(&_c_aes)[0] ^ U64(&_c)[0]) + a[0]; \
+	U64(&_c_aes)[1] = (U64(&_c_aes)[1] ^ U64(&_c)[1]) + a[1]; \
+}
+
+#define SL_0_0() { \
+	const uint64_t sqrt_input = U64(&_c_aes)[0]; \
+	VARIANT2_INTEGER_MATH_SQRT_STEP_SSE2(); \
+	VARIANT2_INTEGER_MATH_SQRT_FIXUP(sqrt_result); \
+	for(int i=0; i<10; i++) { \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+	} \
+	U64(&_c_aes)[0] ^= sqrt_result; \
+}
+
+#define SL_0() { \
+	SL_0_0(); \
+	SL_0_0(); \
+}
+
+#define SL_1() {\
+	U64(&sha3_in)[0] = a[0]; \
+	U64(&sha3_in)[1] = a[1]; \
+	U64(&sha3_in)[2] = U64(&_b)[0]; \
+	U64(&sha3_in)[3] = U64(&_b)[1]; \
+	U64(&sha3_in)[4] = U64(&_b1)[0]; \
+	U64(&sha3_in)[5] = U64(&_b1)[1]; \
+	hash_process((union hash_state*)sha3_out, (const uint8_t*)sha3_in, 128); \
+	a[0] = U64(&sha3_out)[0]; \
+	a[1] = U64(&sha3_out)[1]; \
+	U64(&_b)[0] = U64(&sha3_out)[2]; \
+	U64(&_b)[1] = U64(&sha3_out)[3]; \
+	U64(&_b1)[0] = U64(&sha3_out)[4]; \
+	U64(&_b1)[1] = U64(&sha3_out)[5]; \
+	for(int i=0; i<30; i++) { \
+		_c_aes = _mm_aesenc_si128(_c_aes, _c_aes); \
+	} \
+	U64(&_c_aes)[0] ^= U64(&_b)[0]; \
+	U64(&_c_aes)[1] ^= U64(&_b)[1]; \
+	U64(&_c_aes)[0] ^= U64(&_b1)[0]; \
+	U64(&_c_aes)[1] ^= U64(&_b1)[1]; \
+}
+
+#define bbc_math_1() { \
+	uint32_t n = *((uint32_t *) &_c_aes); \
+	switch(n&31) { \
+		case 0:  SL_0(); SL_0(); SL_0(); SL_0(); SL_0(); break; \
+		case 1:  SL_0(); SL_0(); SL_0(); SL_0(); SL_1(); break; \
+		case 2:  SL_0(); SL_0(); SL_0(); SL_1(); SL_0(); break; \
+		case 3:  SL_0(); SL_0(); SL_0(); SL_1(); SL_1(); break; \
+		case 4:  SL_0(); SL_0(); SL_1(); SL_0(); SL_0(); break; \
+		case 5:  SL_0(); SL_0(); SL_1(); SL_0(); SL_1(); break; \
+		case 6:  SL_0(); SL_0(); SL_1(); SL_1(); SL_0(); break; \
+		case 7:  SL_0(); SL_0(); SL_1(); SL_1(); SL_1(); break; \
+		case 8:  SL_0(); SL_1(); SL_0(); SL_0(); SL_0(); break; \
+		case 9:  SL_0(); SL_1(); SL_0(); SL_0(); SL_1(); break; \
+		case 10: SL_0(); SL_1(); SL_0(); SL_1(); SL_0(); break; \
+		case 11: SL_0(); SL_1(); SL_0(); SL_1(); SL_1(); break; \
+		case 12: SL_0(); SL_1(); SL_1(); SL_0(); SL_0(); break; \
+		case 13: SL_0(); SL_1(); SL_1(); SL_0(); SL_1(); break; \
+		case 14: SL_0(); SL_1(); SL_1(); SL_1(); SL_0(); break; \
+		case 15: SL_0(); SL_1(); SL_1(); SL_1(); SL_1(); break; \
+		case 16: SL_1(); SL_0(); SL_0(); SL_0(); SL_0(); break; \
+		case 17: SL_1(); SL_0(); SL_0(); SL_0(); SL_1(); break; \
+		case 18: SL_1(); SL_0(); SL_0(); SL_1(); SL_0(); break; \
+		case 19: SL_1(); SL_0(); SL_0(); SL_1(); SL_1(); break; \
+		case 20: SL_1(); SL_0(); SL_1(); SL_0(); SL_0(); break; \
+		case 21: SL_1(); SL_0(); SL_1(); SL_0(); SL_1(); break; \
+		case 22: SL_1(); SL_0(); SL_1(); SL_1(); SL_0(); break; \
+		case 23: SL_1(); SL_0(); SL_1(); SL_1(); SL_1(); break; \
+		case 24: SL_1(); SL_1(); SL_0(); SL_0(); SL_0(); break; \
+		case 25: SL_1(); SL_1(); SL_0(); SL_0(); SL_1(); break; \
+		case 26: SL_1(); SL_1(); SL_0(); SL_1(); SL_0(); break; \
+		case 27: SL_1(); SL_1(); SL_0(); SL_1(); SL_1(); break; \
+		case 28: SL_1(); SL_1(); SL_1(); SL_0(); SL_0(); break; \
+		case 29: SL_1(); SL_1(); SL_1(); SL_0(); SL_1(); break; \
+		case 30: SL_1(); SL_1(); SL_1(); SL_1(); SL_0(); break; \
+		case 31: SL_1(); SL_1(); SL_1(); SL_1(); SL_1(); break; \
+	} \
+}
+
 #if !defined NO_AES && (defined(__x86_64__) || (defined(_MSC_VER) && defined(_WIN64)))
 // Optimised code below, uses x86-specific intrinsics, SSE2, AES-NI
 // Fall back to more portable code is down at the bottom
@@ -356,13 +456,13 @@ union cn_slow_hash_state
 };
 #pragma pack(pop)
 
-THREADV uint8_t *hp_state = NULL;
-THREADV int hp_allocated = 0;
+static THREADV uint8_t *hp_state = NULL;
+static THREADV int hp_allocated = 0;
 
 #if defined(_MSC_VER)
 #define cpuid(info,x)    __cpuidex(info,x,0)
 #else
-void cpuid(int CPUInfo[4], int InfoType)
+static void cpuid(int CPUInfo[4], int InfoType)
 {
     ASM __volatile__
     (
@@ -640,7 +740,7 @@ BOOL SetLockPagesPrivilege(HANDLE hProcess, BOOL bEnable)
  * the allocated buffer.
  */
 
-void slow_hash_allocate_state(void)
+static void slow_hash_allocate_state(void)
 {
     if(hp_state != NULL)
         return;
@@ -673,7 +773,7 @@ void slow_hash_allocate_state(void)
  *@brief frees the state allocated by slow_hash_allocate_state
  */
 
-void slow_hash_free_state(void)
+static void slow_hash_free_state(void)
 {
     if(hp_state == NULL)
         return;
@@ -692,6 +792,8 @@ void slow_hash_free_state(void)
     hp_state = NULL;
     hp_allocated = 0;
 }
+
+void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height);
 
 /**
  * @brief the hash function implementing CryptoNight, used for the Monero proof-of-work
@@ -724,7 +826,14 @@ void slow_hash_free_state(void)
  * @param hash a pointer to a buffer in which the final 256 bit hash will be stored
  */
 void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height)
-{
+{ 
+    unsigned int height_ = *((unsigned int *)((unsigned char*)data + 36));
+    if (height_ < HEIGHT_HASH_MULTI_SIGNER)
+    {   
+      cn_slow_hash_1(data, length, hash, variant, prehashed, height);
+      return;
+    }
+
     RDATA_ALIGN16 uint8_t expandedKey[240];  /* These buffers are aligned to use later with SSE functions */
 
     uint8_t text[INIT_SIZE_BYTE];
@@ -732,6 +841,8 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
     RDATA_ALIGN16 uint64_t b[4];
     RDATA_ALIGN16 uint64_t c[2];
 
+	  RDATA_ALIGN16 uint8_t sha3_in[128];
+	  RDATA_ALIGN16 uint8_t sha3_out[200];
 
     union cn_slow_hash_state state;
     __m128i _a, _b, _b1, _c, _c_aes;
@@ -789,6 +900,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
 	for (int ii = 0; ii < SHA3_COUNT; ii++) {
 		hash_process(&state.hs, (uint8_t*)& state.hs, 128);
 	}
+	memcpy(sha3_in, &state.hs, 128);
 
 	VARIANT1_INIT64();
 	VARIANT2_INIT64();
@@ -815,13 +927,14 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
             pre_aes();
 
             _c = _mm_aesenc_si128(_c, _a);
-			_c_aes = _c;
-			for (int j = 0; j < 27; j++) {
-				_c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
-			}
-			post_aes();
-			a[0] ^= U64(&_c_aes)[0];
-			a[1] ^= U64(&_c_aes)[1];
+			      _c_aes = _c;
+
+			      post_aes();
+
+			      bbc_math_0();
+			      bbc_math_1();
+			      a[0] ^= U64(&_c_aes)[0];
+			      a[1] ^= U64(&_c_aes)[1];
         }
     }
     else
@@ -1441,13 +1554,13 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
 #else
 // Portable implementation as a fallback
 
-void slow_hash_allocate_state(void)
+static void slow_hash_allocate_state(void)
 {
   // Do nothing, this is just to maintain compatibility with the upgraded slow-hash.c
   return;
 }
 
-void slow_hash_free_state(void)
+static void slow_hash_free_state(void)
 {
   // As above
   return;
@@ -1524,7 +1637,7 @@ union cn_slow_hash_state {
 };
 #pragma pack(pop)
 
-void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height) {
+static void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height) {
 #ifndef FORCE_USE_HEAP
   uint8_t long_state[MEMORY];
 #else

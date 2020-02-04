@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -802,6 +802,25 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         else
         {
             sched.AddOrphanBlockPrev(hash, block.hashPrev);
+
+            uint256 hashFirst;
+            uint256 hashPrev;
+            if (CheckPrevBlock(hash, sched, hashFirst, hashPrev))
+            {
+                if (pBlockChain->GetBlockLocation(hashPrev, hashForkPrev, nHeightPrev))
+                {
+                    if (hashForkPrev == hashFork)
+                    {
+                        AddNewBlock(hashFork, hashFirst, sched, setSchedPeer, setMisbehavePeer);
+                    }
+                    else
+                    {
+                        StdLog("NetChannel", "CEventPeerBlock: hashForkPrev != hashFork, hashForkPrev: %s, hashFork: %s, hashBlockPrev: %s",
+                               hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), hashPrev.GetHex().c_str());
+                        sched.InvalidateBlock(hashFirst, setMisbehavePeer);
+                    }
+                }
+            }
         }
 
         PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
@@ -1180,6 +1199,17 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 }
             }
 
+            if (!sched.IsRepeatBlock(hashBlock))
+            {
+                if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock))
+                {
+                    StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, block: %s",
+                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    sched.SetRepeatBlock(nNonceSender, hashBlock, *pBlock);
+                    return;
+                }
+            }
+
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
             {
@@ -1248,7 +1278,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 DispatchAwardEvent(nNonceSender, CEndpointManager::VITAL_DATA);
                 setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
             }
-            else if (err == ERR_ALREADY_HAVE && pBlock->IsVacant())
+            else if (err == ERR_ALREADY_HAVE /*&& pBlock->IsVacant()*/)
             {
                 StdLog("NetChannel", "NetChannel AddNewBlock: block already have, peer: %s, height: %d, block: %s",
                        GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
@@ -1486,6 +1516,45 @@ const string CNetChannel::GetPeerAddressInfo(uint64 nNonce)
         return it->second.GetRemoteAddress();
     }
     return string("0.0.0.0");
+}
+
+bool CNetChannel::CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev)
+{
+    uint256 hashBlock = hash;
+    while (hashBlock != 0)
+    {
+        uint64 nNonceSender = 0;
+        CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
+        if (pBlock == nullptr)
+        {
+            break;
+        }
+        hashFirst = hashBlock;
+        hashPrev = pBlock->hashPrev;
+
+        vector<uint256> vNextBlock;
+        sched.GetNextBlock(pBlock->hashPrev, vNextBlock);
+        if (vNextBlock.empty())
+        {
+            break;
+        }
+        bool fNext = false;
+        for (const uint256& hashNext : vNextBlock)
+        {
+            if (hashNext == hashBlock)
+            {
+                fNext = true;
+                break;
+            }
+        }
+        if (!fNext)
+        {
+            break;
+        }
+
+        hashBlock = pBlock->hashPrev;
+    }
+    return (hashFirst != hash);
 }
 
 } // namespace bigbang
