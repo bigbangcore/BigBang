@@ -412,7 +412,7 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
     vector<CBlockMakerProfile*> vProfile;
     set<uint256> setFork;
 
-    if (!GetAvailiableDelegatedProfile(agreement.vBallot, vProfile) || !GetAvailiableExtendedFork(setFork))
+    if (!GetAvailableDelegatedProfile(agreement.vBallot, vProfile) || !GetAvailableExtendedFork(setFork))
     {
         return;
     }
@@ -594,7 +594,7 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     return false;
 }
 
-bool CBlockMaker::GetAvailiableDelegatedProfile(const vector<CDestination>& vBallot, vector<CBlockMakerProfile*>& vProfile)
+bool CBlockMaker::GetAvailableDelegatedProfile(const vector<CDestination>& vBallot, vector<CBlockMakerProfile*>& vProfile)
 {
     int nAvailProfile = 0;
     vProfile.reserve(vBallot.size());
@@ -615,7 +615,7 @@ bool CBlockMaker::GetAvailiableDelegatedProfile(const vector<CDestination>& vBal
     return (!!nAvailProfile);
 }
 
-bool CBlockMaker::GetAvailiableExtendedFork(set<uint256>& setFork)
+bool CBlockMaker::GetAvailableExtendedFork(set<uint256>& setFork)
 {
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
