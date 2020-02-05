@@ -77,7 +77,33 @@ private:
     }
 };
 
+class ComparePooledTxLinkByEnrollTx
+{
+public:
+    bool operator()(const CPooledTxLink& a, const CPooledTxLink& b) const
+    {
+        if (a.nType == CTransaction::TX_CERT || b.nType == CTransaction::TX_CERT)
+        {
+            return GetScore(a) > GetScore(b);
+        }
+        else
+        {
+            return a.nSequenceNumber < b.nSequenceNumber;
+        }
+    }
+
+private:
+    double GetScore(const CPooledTxLink& link) const
+    {
+        return (double)((double)link.nType + (double)(1.0f / (double)(link.nSequenceNumber + 1)));
+    }
+};
+
 struct tx_score
+{
+};
+
+struct enroll_tx_first
 {
 };
 
@@ -92,11 +118,18 @@ typedef boost::multi_index_container<
         boost::multi_index::ordered_non_unique<
             boost::multi_index::tag<tx_score>,
             boost::multi_index::identity<CPooledTxLink>,
-            ComparePooledTxLinkByTxScore>>>
+            ComparePooledTxLinkByTxScore>,
+        // sorted by enroll tx first
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<enroll_tx_first>,
+            boost::multi_index::identity<CPooledTxLink>,
+            ComparePooledTxLinkByEnrollTx>>>
+
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
 typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxScore;
+typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByEnrollTx;
 
 class CTxPoolView
 {

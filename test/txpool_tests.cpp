@@ -96,4 +96,57 @@ BOOST_AUTO_TEST_CASE(multi_index_tx_score)
     BOOST_CHECK(iterVec[8]->nSequenceNumber == 0 && iterVec[9]->nSequenceNumber == 5 && iterVec[10]->nSequenceNumber == 10);
 }
 
+BOOST_AUTO_TEST_CASE(multi_index_enroll_tx_first)
+{
+    CPooledTxLinkSet setTxLinkIndex;
+    std::map<uint8, uint16> mapType{
+        { 0, CTransaction::TX_TOKEN },
+        { 1, CTransaction::TX_CERT },
+        { 2, CTransaction::TX_GENESIS },
+        { 3, CTransaction::TX_STAKE },
+        { 4, CTransaction::TX_WORK }
+    };
+
+    uint32 timestamp = 1579021270;
+    for (int i = 10; i >= 0; --i)
+    {
+        CTransaction tx;
+        tx.SetNull();
+        tx.nTimeStamp = timestamp++;
+        tx.nType = mapType[i % 5];
+        tx.nLockUntil = i;
+        CPooledTx pooledTx(tx, -1, i);
+        setTxLinkIndex.insert(CPooledTxLink(&pooledTx));
+    }
+
+    BOOST_CHECK(setTxLinkIndex.size() == 11);
+
+    const CPooledTxLinkSetByEnrollTx& idxTxLinkEnrollTx = setTxLinkIndex.get<enroll_tx_first>();
+    CPooledTxLinkSetByEnrollTx::iterator iter = idxTxLinkEnrollTx.begin();
+
+    std::vector<CPooledTxLinkSetByEnrollTx::iterator> iterVec;
+    for (; iter != idxTxLinkEnrollTx.end(); ++iter)
+    {
+        // std::cout << "type " << std::hex << iter->nType << std::dec << " seq " << iter->nSequenceNumber << std::endl;
+        iterVec.push_back(iter);
+    }
+
+    BOOST_CHECK(iterVec[0]->nType == CTransaction::TX_CERT && iterVec[1]->nType == CTransaction::TX_CERT);
+    BOOST_CHECK(iterVec[0]->nSequenceNumber == 1 && iterVec[1]->nSequenceNumber == 6);
+
+    int k = 2;
+    for (int i = 3; i < 6; ++i)
+    {
+        BOOST_CHECK(iterVec[i]->nSequenceNumber == k);
+        k++;
+    }
+
+    k = 7;
+    for (int i = 7; i < iterVec.size(); ++i)
+    {
+        BOOST_CHECK(iterVec[i]->nSequenceNumber == k);
+        k++;
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
