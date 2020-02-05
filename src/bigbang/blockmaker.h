@@ -64,6 +64,7 @@ public:
     CBlockMaker();
     ~CBlockMaker();
     bool HandleEvent(CEventBlockMakerUpdate& eventUpdate) override;
+    bool HandleEvent(CEventBlockMakerAgreement& eventAgreement) override;
 
 protected:
     bool HandleInitialize() override;
@@ -85,22 +86,25 @@ protected:
     void ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight);
     void ProcessExtended(const CDelegateAgreement& agreement, const uint256& hashPrimaryBlock,
                          int64 nPrimaryBlockTime, const int32 nPrimaryBlockHeight);
-    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, std::size_t nWeight);
+    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork,
+                              const CBlockMakerProfile& profile, std::size_t nWeight);
     bool CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo);
     void CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                          const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight);
     void CreateExtended(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                        const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
-    bool GetAvailableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
+                        const uint256& hashRefBlock, const std::set<uint256>& setFork,
+                        int nPrimaryBlockHeight, int64 nTime);
+    bool GetAvailableDelegatedProfile(const std::vector<CDestination>& vBallot,
+                                      std::vector<CBlockMakerProfile*>& vProfile);
     bool GetAvailableExtendedFork(std::set<uint256>& setFork);
 
 private:
     enum
     {
-        MAKER_RUN   = 0,
+        MAKER_RUN = 0,
         MAKER_RESET = 1,
-        MAKER_EXIT  = 2,
-        MAKER_HOLD  = 3
+        MAKER_EXIT = 2,
+        MAKER_HOLD = 3
     };
     void BlockMakerThreadFunc();
     void ExtendedMakerThreadFunc();

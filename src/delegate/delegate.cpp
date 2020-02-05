@@ -16,14 +16,6 @@ namespace delegate
 //////////////////////////////
 // CDelegate
 
-CDelegate::CDelegate()
-{
-}
-
-CDelegate::~CDelegate()
-{
-}
-
 bool CDelegate::Initialize()
 {
     return true;
@@ -48,9 +40,9 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                        const map<CDestination, vector<unsigned char>>& mapEnrollData,
                        CDelegateEvolveResult& result, const uint256& block_hash)
 {
-    const int nTarget = nBlockHeight + CONSENSUS_INTERVAL;
+    const int nTarget    = nBlockHeight + CONSENSUS_INTERVAL;
     const int nEnrollEnd = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-    const int nPublish = nBlockHeight + 1;
+    const int nPublish   = nBlockHeight + 1;
     const int nDelete = std::abs(nBlockHeight - 5);
 
     result.Clear();
@@ -71,7 +63,8 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
             std::stringstream ss;
-            ss << "Setup height:" << nTarget << " time:" << (t1 - t0).ticks() << " hash:" << vote.blockHash.GetHex();
+            ss << "Setup height:" << nTarget << " time:" << (t1 - t0).ticks()
+            << " hash:" << vote.blockHash.GetHex();
             xengine::StdDebug("CDelegate", ss.str().c_str());
         }
         else
@@ -98,13 +91,15 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
                 auto t1 = boost::posix_time::microsec_clock::universal_time();
                 std::stringstream ss;
-                ss << "Enroll height:" << nEnrollEnd << " time:" << (t1 - t0).ticks() << " hash:" << vote.blockHash.GetHex();
+                ss << "Enroll height:" << nEnrollEnd << " time:" << (t1 - t0).ticks()
+                << " hash:" << vote.blockHash.GetHex();
                 xengine::StdDebug("CDelegate", ss.str().c_str());
             }
             else
             {
                 std::stringstream ss;
-                ss << "Already is_enroll. height:" << nEnrollEnd << " hash:" << vote.blockHash.GetHex();
+                ss << "Already is_enroll. height:" << nEnrollEnd
+                << " hash:" << vote.blockHash.GetHex();
                 xengine::StdDebug("CDelegate", ss.str().c_str());
             }
         }

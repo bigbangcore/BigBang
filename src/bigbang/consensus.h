@@ -68,7 +68,7 @@ public:
 class CDelegateContext
 {
 public:
-    CDelegateContext();
+    CDelegateContext() = default;
     CDelegateContext(const crypto::CKey& keyDelegateIn, const CDestination& destOwnerIn);
     void Clear();
     const CDestination GetDestination() const
@@ -93,7 +93,7 @@ class CConsensus : public IConsensus
 {
 public:
     CConsensus();
-    ~CConsensus();
+    ~CConsensus() = default;
     void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) override;
     void AddNewTx(const CAssembledTx& tx) override;
     bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;
@@ -115,6 +115,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    IDispatcher* pDispatcher;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
 };

@@ -25,17 +25,25 @@ CDispatcher::CDispatcher()
     pBlockChain = nullptr;
     pTxPool = nullptr;
     pForkManager = nullptr;
-    // pConsensus = nullptr;
+    pConsensus = nullptr;
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
-    // pDelegatedChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
 
-CDispatcher::~CDispatcher()
+bool CDispatcher::HandleEvent(CEventDispatcherAgreement& eventAgreement)
 {
+    auto pEvent = new CDispatcherEventListener(eventAgreement);
+    if (pEvent != nullptr)
+    {
+        pBlockMaker->PostEvent(pEvent);
+        return true;
+    }
+
+    return false;
 }
 
 bool CDispatcher::HandleInitialize()
@@ -64,11 +72,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    // if (!GetObject("consensus", pConsensus))
-    // {
-    //     Error("Failed to request consensus");
-    //     return false;
-    // }
+    if (!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus");
+        return false;
+    }
 
     if (!GetObject("wallet", pWallet))
     {
@@ -94,11 +102,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    // if (!GetObject("delegatedchannel", pDelegatedChannel))
-    // {
-    //     Error("Failed to request delegatedchanne");
-    //     return false;
-    // }
+    if (!GetObject("delegatedchannel", pDelegatedChannel))
+    {
+        Error("Failed to request delegatedchanne");
+        return false;
+    }
 
     if (!GetObject("datastat", pDataStat))
     {
@@ -115,12 +123,12 @@ void CDispatcher::HandleDeinitialize()
     pBlockChain = nullptr;
     pTxPool = nullptr;
     pForkManager = nullptr;
-    // pConsensus = nullptr;
+    pConsensus = nullptr;
     pWallet = nullptr;
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
-    // pDelegatedChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pDataStat = nullptr;
 }
 

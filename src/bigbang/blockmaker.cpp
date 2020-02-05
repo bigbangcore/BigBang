@@ -76,7 +76,7 @@ CBlockMaker::CBlockMaker()
 
 CBlockMaker::~CBlockMaker()
 {
-    for (map<int, CBlockMakerHashAlgo*>::iterator it = mapHashAlgo.begin(); it != mapHashAlgo.end(); ++it)
+    for (auto it = mapHashAlgo.begin(); it != mapHashAlgo.end(); ++it)
     {
         delete ((*it).second);
     }
@@ -123,7 +123,8 @@ bool CBlockMaker::HandleInitialize()
 
     if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
     {
-        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
+        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss,
+                                   MintConfig()->keyMpvss);
         if (profile.IsValid())
         {
             mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
@@ -132,7 +133,8 @@ bool CBlockMaker::HandleInitialize()
 
     if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
     {
-        CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
+        CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight,
+                                   MintConfig()->keyCryptonight);
         if (profile.IsValid())
         {
             mapWorkProfile.insert(make_pair(CM_CRYPTONIGHT, profile));
@@ -162,7 +164,8 @@ bool CBlockMaker::HandleInvoke()
         return false;
     }
 
-    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastBlockHeight, nLastBlockTime))
+    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(),
+                                   hashLastBlock, nLastBlockHeight, nLastBlockTime))
     {
         return false;
     }
@@ -197,6 +200,7 @@ void CBlockMaker::HandleHalt()
 
     thrExtendedMaker.Interrupt();
     ThreadExit(thrExtendedMaker);
+
     IBlockMaker::HandleHalt();
 }
 
@@ -209,16 +213,28 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
         return true;
     }
 
-    if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
+    if (Interrupted() || currentAgreement.IsProofOfWork()
+        || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
     {
-        nMakerStatus     = MAKER_RESET;
-        hashLastBlock    = eventUpdate.data.hashBlock;
-        nLastBlockTime   = eventUpdate.data.nBlockTime;
+        nMakerStatus = MAKER_RESET;
+        hashLastBlock = eventUpdate.data.hashBlock;
+        nLastBlockTime = eventUpdate.data.nBlockTime;
         nLastBlockHeight = eventUpdate.data.nBlockHeight;
-        nLastAgreement   = eventUpdate.data.nAgreement;
-        nLastWeight      = eventUpdate.data.nWeight;
+        nLastAgreement = eventUpdate.data.nAgreement;
+        nLastWeight = eventUpdate.data.nWeight;
         cond.notify_all();
     }
+
+    return true;
+}
+
+bool CBlockMaker::HandleEvent(CEventBlockMakerAgreement& eventAgreement)
+{
+    boost::unique_lock<boost::mutex> lock(mutex);
+
+    nMakerStatus = MAKER_RESET;
+    currentAgreement = eventAgreement.data;
+    cond.notify_all();
 
     return true;
 }
@@ -257,11 +273,11 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
                                const uint32& nPrevHeight, const CDelegateAgreement& agreement)
 {
     block.SetNull();
-    block.nType      = CBlock::BLOCK_PRIMARY;
+    block.nType = CBlock::BLOCK_PRIMARY;
     block.nTimeStamp = nPrevTime + BLOCK_TARGET_SPACING;
-    block.hashPrev   = hashPrev;
+    block.hashPrev = hashPrev;
     CProofOfSecretShare proof;
-    proof.nWeight    = agreement.nWeight;
+    proof.nWeight = agreement.nWeight;
     proof.nAgreement = agreement.nAgreement;
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)
@@ -659,8 +675,8 @@ void CBlockMaker::BlockMakerThreadFunc()
 
     {
         boost::unique_lock<boost::mutex> lock(mutex);
-        hashPrimaryBlock    = hashLastBlock;
-        nPrimaryBlockTime   = nLastBlockTime;
+        hashPrimaryBlock = hashLastBlock;
+        nPrimaryBlockTime = nLastBlockTime;
         nPrimaryBlockHeight = nLastBlockHeight;
     }
 
@@ -687,7 +703,6 @@ void CBlockMaker::BlockMakerThreadFunc()
                     break;
                 }
             }
-
             if (nMakerStatus == MAKER_EXIT)
             {
                 break;
@@ -695,36 +710,9 @@ void CBlockMaker::BlockMakerThreadFunc()
 
             if (hashPrimaryBlock != hashLastBlock)
             {
-                hashPrimaryBlock    = hashLastBlock;
-                nPrimaryBlockTime   = nLastBlockTime;
+                hashPrimaryBlock = hashLastBlock;
+                nPrimaryBlockTime = nLastBlockTime;
                 nPrimaryBlockHeight = nLastBlockHeight;
-                int64 nWaitAgreement = nPrimaryBlockTime + WAIT_AGREEMENT_TIME - GetNetTime();
-                if (nWaitAgreement <= 0)
-                {
-                    nWaitAgreement = 1;
-                }
-                boost::system_time const toWaitAgree = boost::get_system_time() + boost::posix_time::seconds(nWaitAgreement);
-                while (hashPrimaryBlock == hashLastBlock && nMakerStatus != MAKER_EXIT)
-                {
-                    if (!cond.timed_wait(lock, toWaitAgree))
-                    {
-                        pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
-                        currentAgreement = agree;
-
-                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
-                            nLastBlockHeight + 1, agree.nWeight,
-                            agree.IsProofOfWork() ? "pow" : "dpos");
-                        break;
-                    }
-                }
-                if (nMakerStatus == MAKER_EXIT)
-                {
-                    break;
-                }
-                if (hashPrimaryBlock != hashLastBlock)
-                {
-                    continue;
-                }
             }
             nMakerStatus = MAKER_RUN;
         }
@@ -768,8 +756,8 @@ void CBlockMaker::BlockMakerThreadFunc()
 void CBlockMaker::ExtendedMakerThreadFunc()
 {
     uint256 hashPrimaryBlock = uint64(0);
-    int64 nPrimaryBlockTime  = 0;
-    int nPrimaryBlockHeight  = 0;
+    int64 nPrimaryBlockTime = 0;
+    int nPrimaryBlockHeight = 0;
 
     {
         boost::unique_lock<boost::mutex> lock(mutex);
@@ -795,15 +783,15 @@ void CBlockMaker::ExtendedMakerThreadFunc()
 
             if (currentAgreement.IsProofOfWork()
                 || currentAgreement.nAgreement != nLastAgreement
-                || currentAgreement.nWeight    != nLastWeight)
+                || currentAgreement.nWeight != nLastWeight)
             {
                 hashPrimaryBlock = hashLastBlock;
                 continue;
             }
 
-            agree               = currentAgreement;
-            hashPrimaryBlock    = hashLastBlock;
-            nPrimaryBlockTime   = nLastBlockTime;
+            agree = currentAgreement;
+            hashPrimaryBlock = hashLastBlock;
+            nPrimaryBlockTime = nLastBlockTime;
             nPrimaryBlockHeight = nLastBlockHeight;
         }
 

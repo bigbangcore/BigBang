@@ -25,7 +25,7 @@ enum
     EVENT_BLOCKMAKER_ENROLL,
     EVENT_BLOCKMAKER_DISTRIBUTE,
     EVENT_BLOCKMAKER_PUBLISH,
-    EVENT_BLOCKMAKER_AGREE
+    EVENT_BLOCKMAKER_AGREEMENT
 };
 
 class CBlockMakerEventListener;
@@ -33,14 +33,14 @@ class CBlockMakerEventListener;
     xengine::CEventCategory<type, CBlockMakerEventListener, body, CNil>
 
 typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_UPDATE, CBlockMakerUpdate) CEventBlockMakerUpdate;
-typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREE, CDelegateAgreement) CEventBlockMakerAgree;
+typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREEMENT, CDelegateAgreement) CEventBlockMakerAgreement;
 
 class CBlockMakerEventListener : virtual public xengine::CEventListener
 {
 public:
     virtual ~CBlockMakerEventListener() {}
     DECLARE_EVENTHANDLER(CEventBlockMakerUpdate);
-    DECLARE_EVENTHANDLER(CEventBlockMakerAgree);
+    DECLARE_EVENTHANDLER(CEventBlockMakerAgreement);
 };
 
 } // namespace bigbang

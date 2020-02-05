@@ -36,37 +36,37 @@ bool CNetwork::HandleInitialize()
         return false;
     }
 
-    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK /*| network::NODE_DELEGATED*/,
+    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK | network::NODE_DELEGATED,
               FormatSubVersion(), !NetworkConfig()->vConnectTo.empty(), pCoreProtocol->GetGenesisBlockHash());
 
     CPeerNetConfig config;
     if (NetworkConfig()->fListen || NetworkConfig()->fListen4)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
+        config.vecService.emplace_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
                                                  NetworkConfig()->nMaxInBounds));
     }
     if (NetworkConfig()->fListen || NetworkConfig()->fListen6)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
+        config.vecService.emplace_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
                                                  NetworkConfig()->nMaxInBounds));
     }
     config.nMaxOutBounds = NetworkConfig()->nMaxOutBounds;
     config.nPortDefault = (NetworkConfig()->fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);
     for (const string& conn : NetworkConfig()->vConnectTo)
     {
-        config.vecNode.push_back(CNetHost(conn, config.nPortDefault, "connect",
+        config.vecNode.emplace_back(CNetHost(conn, config.nPortDefault, "connect",
                                           boost::any(uint64(network::NODE_NETWORK))));
     }
     if (config.vecNode.empty())
     {
         for (const string& seed : NetworkConfig()->vDNSeed)
         {
-            config.vecNode.push_back(CNetHost(seed, DEFAULT_DNSEED_PORT, "dnseed",
+            config.vecNode.emplace_back(CNetHost(seed, DEFAULT_DNSEED_PORT, "dnseed",
                                               boost::any(uint64(network::NODE_NETWORK))));
         }
         for (const string& node : NetworkConfig()->vNode)
         {
-            config.vecNode.push_back(CNetHost(node, config.nPortDefault, node,
+            config.vecNode.emplace_back(CNetHost(node, config.nPortDefault, node,
                                               boost::any(uint64(network::NODE_NETWORK))));
         }
     }

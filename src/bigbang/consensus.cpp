@@ -6,6 +6,7 @@
 
 #include "address.h"
 #include "template/delegate.h"
+#include "dispatcherevent.h"
 
 using namespace std;
 using namespace xengine;
@@ -35,10 +36,6 @@ protected:
 //////////////////////////////
 // CDelegateContext
 
-CDelegateContext::CDelegateContext()
-{
-}
-
 CDelegateContext::CDelegateContext(const crypto::CKey& keyDelegateIn, const CDestination& destOwnerIn)
   : keyDelegate(keyDelegateIn), destOwner(destOwnerIn)
 {
@@ -57,12 +54,12 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
     for (std::size_t i = 0; i < change.vTxRemove.size(); i++)
     {
         const uint256& txid = change.vTxRemove[i].first;
-        map<uint256, CDelegateTx>::iterator it = mapTx.find(txid);
+        auto it = mapTx.find(txid);
         if (it != mapTx.end())
         {
             for (const CTxIn& txin : change.vTxRemove[i].second)
             {
-                map<uint256, CDelegateTx>::iterator mi = mapTx.find(txin.prevout.hash);
+                auto mi = mapTx.find(txin.prevout.hash);
                 if (mi != mapTx.end())
                 {
                     mapUnspent.insert(make_pair(txin.prevout, &(*mi).second));
@@ -71,10 +68,11 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
             mapTx.erase(it);
         }
     }
-    for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
+
+    for (auto it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
-        map<uint256, CDelegateTx>::iterator mi = mapTx.find(txid);
+        auto mi = mapTx.find(txid);
         if (mi != mapTx.end())
         {
             (*mi).second.nBlockHeight = (*it).second;
@@ -134,7 +132,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     tx.vchData = vchData;
 
     int64 nValueIn = 0;
-    for (map<CTxOutPoint, CDelegateTx*>::iterator it = mapUnspent.begin(); it != mapUnspent.end(); ++it)
+    for (auto it = mapUnspent.begin(); it != mapUnspent.end(); ++it)
     {
         const CTxOutPoint& txout = (*it).first;
         CDelegateTx* pTx = (*it).second;
@@ -146,7 +144,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         {
             continue;
         }
-        tx.vInput.push_back(CTxIn(txout));
+        tx.vInput.emplace_back(CTxIn(txout));
         nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
         if (nValueIn > nTxFee)
         {
@@ -166,7 +164,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     {
         return false;
     }
-    CTemplateDelegate* p = dynamic_cast<CTemplateDelegate*>(templDelegate.get());
+    auto p = dynamic_cast<CTemplateDelegate*>(templDelegate.get());
     return p->BuildVssSignature(hash, vchDelegateSig, tx.vchSig);
 }
 
@@ -176,12 +174,8 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
 CConsensus::CConsensus()
 {
     pCoreProtocol = nullptr;
-    pBlockChain = nullptr;
-    pTxPool = nullptr;
-}
-
-CConsensus::~CConsensus()
-{
+    pBlockChain   = nullptr;
+    pTxPool       = nullptr;
 }
 
 bool CConsensus::HandleInitialize()
@@ -201,6 +195,12 @@ bool CConsensus::HandleInitialize()
     if (!GetObject("txpool", pTxPool))
     {
         Error("Failed to request txpool");
+        return false;
+    }
+
+    if (!GetObject("dispatcher", pDispatcher))
+    {
+        Error("Failed to request dispatcher");
         return false;
     }
 
@@ -227,6 +227,7 @@ void CConsensus::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pTxPool = nullptr;
+    pDispatcher = nullptr;
 }
 
 bool CConsensus::HandleInvoke()
@@ -259,7 +260,7 @@ void CConsensus::HandleHalt()
     boost::unique_lock<boost::mutex> lock(mutex);
 
     delegate.Deinitialize();
-    for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
+    for (auto it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         (*it).second.Clear();
     }
@@ -276,7 +277,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         delegate.Rollback(nPrevBlockHeight, nStartHeight);
     }
 
-    for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
+    for (auto it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         (*it).second.ChangeTxSet(change);
     }
@@ -298,7 +299,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         int height;
         uint256 fork = pCoreProtocol->GetGenesisBlockHash();
         pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
+        routine.vEnrolledWeight.emplace_back(make_pair(height, enrolled.mapWeight));
 
         nBlockHeight++;
     }
@@ -317,10 +318,10 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
             int nPublishTargetHeight = nBlockHeight + 1;
 
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapEnrollData.begin();
+            for (auto it = result.mapEnrollData.begin();
                  it != result.mapEnrollData.end(); ++it)
             {
-                map<CDestination, CDelegateContext>::iterator mi = mapContext.find((*it).first);
+                auto mi = mapContext.find((*it).first);
                 if (mi != mapContext.end())
                 {
                     CTransaction tx;
@@ -330,14 +331,14 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                     }
                 }
             }
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
+            for (auto it = result.mapDistributeData.begin();
                  it != result.mapDistributeData.end(); ++it)
             {
                 delegate.HandleDistribute(nDistributeTargetHeight, (*it).first, (*it).second);
             }
             routine.mapDistributeData = result.mapDistributeData;
 
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
+            for (auto it = result.mapPublishData.begin();
                  it != result.mapPublishData.end(); ++it)
             {
                 bool fCompleted = false;
@@ -349,7 +350,19 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         int height;
         uint256 fork = pCoreProtocol->GetGenesisBlockHash();
         pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
+        routine.vEnrolledWeight.emplace_back(make_pair(height, enrolled.mapWeight));
+    }
+
+    map<CDestination, size_t> mapBallot;
+    CDelegateAgreement agree;
+    delegate.GetAgreement(update.nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
+    delegate.GetAgreement(update.nLastBlockHeight + 1, nAgreement, nWeight, mapBallot);
+    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot, nTargetHeight);
+
+    auto pEvent = new CEventDispatcherAgreement();
+    if (pEvent != nullptr)
+    {
+        pDispatcher->PostEvent(pEvent);
     }
 }
 
@@ -394,7 +407,7 @@ void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)
 bool CConsensus::LoadDelegateTx()
 {
     const uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
-    for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
+    for (auto it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         CDelegateTxFilter txFilter((*it).second);
         if (!pBlockChain->FilterTx(hashGenesis, txFilter) || !pTxPool->FilterTx(hashGenesis, txFilter))

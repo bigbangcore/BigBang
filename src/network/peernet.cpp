@@ -614,75 +614,75 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             break;
         }
     }
-    // else if (nChannel == PROTO_CHN_DELEGATE)
-    // {
-    //     int hashAnchor;
-    //     ssPayload >> hashAnchor;
-    //     switch (nCommand)
-    //     {
-    //     case PROTO_CMD_BULLETIN:
-    //     {
-    //         CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
-    //         if (pEvent != nullptr)
-    //         {
-    //             ssPayload >> pEvent->data;
-    //             pDelegatedChannel->PostEvent(pEvent);
-    //             return true;
-    //         }
-    //     }
-    //     break;
-    //     case PROTO_CMD_GETDELEGATED:
-    //     {
-    //         CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
-    //         if (pEvent != nullptr)
-    //         {
-    //             ssPayload >> pEvent->data;
-    //             pDelegatedChannel->PostEvent(pEvent);
-    //             return true;
-    //         }
-    //     }
-    //     break;
-    //     case PROTO_CMD_DISTRIBUTE:
-    //     {
-    //         CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
-    //         if (pEvent != nullptr)
-    //         {
-    //             ssPayload >> pEvent->data;
+    else if (nChannel == PROTO_CHN_DELEGATE)
+    {
+        int hashAnchor;
+        ssPayload >> hashAnchor;
+        switch (nCommand)
+        {
+        case PROTO_CMD_BULLETIN:
+        {
+            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_GETDELEGATED:
+        {
+            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_DISTRIBUTE:
+        {
+            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
 
-    //             CBufStream ss;
-    //             ss << hashAnchor << (pEvent->data.destDelegate);
-    //             uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-    //             CInv inv(CInv::MSG_DISTRIBUTE, hash);
-    //             CancelTimer(pBbPeer->Responded(inv));
+                CBufStream ss;
+                ss << hashAnchor << (pEvent->data.destDelegate);
+                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+                CInv inv(CInv::MSG_DISTRIBUTE, hash);
+                CancelTimer(pBbPeer->Responded(inv));
 
-    //             pDelegatedChannel->PostEvent(pEvent);
+                pDelegatedChannel->PostEvent(pEvent);
 
-    //             return true;
-    //         }
-    //     }
-    //     break;
-    //     case PROTO_CMD_PUBLISH:
-    //     {
-    //         CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
-    //         if (pEvent != nullptr)
-    //         {
-    //             ssPayload >> pEvent->data;
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_PUBLISH:
+        {
+            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
 
-    //             CBufStream ss;
-    //             ss << hashAnchor << (pEvent->data.destDelegate);
-    //             uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-    //             CInv inv(CInv::MSG_PUBLISH, hash);
-    //             CancelTimer(pBbPeer->Responded(inv));
+                CBufStream ss;
+                ss << hashAnchor << (pEvent->data.destDelegate);
+                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+                CInv inv(CInv::MSG_PUBLISH, hash);
+                CancelTimer(pBbPeer->Responded(inv));
 
-    //             pDelegatedChannel->PostEvent(pEvent);
-    //             return true;
-    //         }
-    //     }
-    //     break;
-    //     default:
-    //         break;
-    //     }
-    // }
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        default:
+            break;
+        }
+    }
     return false;
 }
 

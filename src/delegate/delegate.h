@@ -33,8 +33,8 @@ public:
 class CDelegate
 {
 public:
-    CDelegate();
-    ~CDelegate();
+    CDelegate() = default;
+    ~CDelegate() = default;
     bool Initialize();
     void Deinitialize();
     void AddNewDelegate(const CDestination& destDelegate);
