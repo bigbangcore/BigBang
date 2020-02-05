@@ -342,10 +342,12 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
     {
+        StdLog("CBbPeerNet", "HandlePeerHandshaked: CheckPeerVersion fail");
         return false;
     }
     if (pBbPeer->hashGenesis != hashGenesis)
     {
+        StdLog("CBbPeerNet", "HandlePeerHandshaked: hashGenesis error, peer genesis: %s, local genesis: %s", pBbPeer->hashGenesis.GetHex().c_str(), hashGenesis.GetHex().c_str());
         return false;
     }
     if (!pBbPeer->IsInBound())

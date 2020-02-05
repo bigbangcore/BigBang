@@ -9,6 +9,8 @@
 #include "block.h"
 #include "blockindexdb.h"
 #include "core.h"
+#include "delegatecomm.h"
+#include "delegateverify.h"
 #include "param.h"
 #include "struct.h"
 #include "timeseries.h"
@@ -265,6 +267,32 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
+// CCheckDelegateDB
+
+class CCheckDelegateDB : public CDelegateDB
+{
+public:
+    CCheckDelegateDB() {}
+    ~CCheckDelegateDB()
+    {
+        Deinitialize();
+    }
+};
+
+/////////////////////////////////////////////////////////////////////////
+// CCheckTsBlock
+
+class CCheckTsBlock : public CTimeSeriesCached
+{
+public:
+    CCheckTsBlock() {}
+    ~CCheckTsBlock()
+    {
+        Deinitialize();
+    }
+};
+
+/////////////////////////////////////////////////////////////////////////
 // CCheckBlockIndexWalker
 
 class CCheckBlockIndexWalker : public CBlockDBWalker
@@ -291,6 +319,15 @@ public:
             return false;
         }
         return true;
+    }
+    CBlockOutline* GetBlockOutline(const uint256& hashBlock)
+    {
+        map<uint256, CBlockOutline>::iterator it = mapBlockIndex.find(hashBlock);
+        if (it == mapBlockIndex.end())
+        {
+            return nullptr;
+        }
+        return &(it->second);
     }
 
 public:
@@ -396,25 +433,29 @@ class CCheckBlockWalker : public CTSWalker<CBlockEx>
 {
 public:
     CCheckBlockWalker(bool fTestnetIn)
-      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn)
-    {
-    }
-    ~CCheckBlockWalker()
-    {
-        ClearBlockIndex();
-    }
+      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn) {}
+    ~CCheckBlockWalker();
+
+    bool Initialize(const string& strPath);
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
     uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement());
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement);
+    bool GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled);
+    bool RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange, int64 nDelegateWeightRatio,
+                               map<CDestination, size_t>& mapWeight, map<CDestination, vector<unsigned char>>& mapEnrollData);
+
     bool UpdateBlockNext();
     bool UpdateBlockTx(CCheckForkManager& objForkMn);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
+    CBlockIndex* AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline);
     void ClearBlockIndex();
     bool CheckTxExist(const uint256& hashFork, const uint256& txid);
     bool GetBlockWalletTx(const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
+    bool CheckBlockIndex(bool fOnlyCheck);
 
 public:
     int64 nBlockCount;
@@ -425,6 +466,10 @@ public:
     map<uint256, CCheckBlockFork> mapCheckFork;
     map<uint256, CBlockEx> mapBlock;
     map<uint256, CBlockIndex*> mapBlockIndex;
+    CBlockIndexDB dbBlockIndex;
+    CCheckBlockIndexWalker objBlockIndexWalker;
+    CCheckDelegateDB objDelegateDB;
+    CCheckTsBlock objTsBlock;
 };
 
 /////////////////////////////////////////////////////////////////////////

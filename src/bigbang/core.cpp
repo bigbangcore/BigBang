@@ -702,6 +702,8 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     }
     size_t nWeightWork = ((DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight))
                          / (DELEGATE_THRESH * DELEGATE_THRESH);
+    StdTrace("Core", "GetDelegatedBallot: nSelected: %d, nWorkRandom: %lu, nWeight: %lu, nWeightWork: %lu",
+             nSelected, (nWeightWork * 256 / (nWeightWork + nWeight)), nWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nWeight))
     {
         size_t nTrust = nWeight;

@@ -6,6 +6,7 @@
 
 using namespace std;
 using namespace xengine;
+using namespace boost::filesystem;
 
 #define BLOCKFILE_PREFIX "block"
 
@@ -752,6 +753,36 @@ bool CCheckBlockFork::AddBlockUnspent(const CTxOutPoint& txPoint, const CTxOut& 
 /////////////////////////////////////////////////////////////////////////
 // CCheckBlockWalker
 
+CCheckBlockWalker::~CCheckBlockWalker()
+{
+    ClearBlockIndex();
+    dbBlockIndex.Deinitialize();
+}
+
+bool CCheckBlockWalker::Initialize(const string& strPath)
+{
+    if (!objDelegateDB.Initialize(path(strPath)))
+    {
+        StdError("check", "Block walker: Delegate db initialize fail, path: %s.", strPath.c_str());
+        return false;
+    }
+
+    if (!objTsBlock.Initialize(path(strPath) / "block", BLOCKFILE_PREFIX))
+    {
+        StdError("check", "Block walker: TsBlock initialize fail, path: %s.", strPath.c_str());
+        return false;
+    }
+
+    if (!dbBlockIndex.Initialize(path(strPath)))
+    {
+        StdLog("check", "dbBlockIndex Initialize fail");
+        return false;
+    }
+    dbBlockIndex.WalkThroughBlock(objBlockIndexWalker);
+    StdLog("check", "Fetch block index success, count: %ld", objBlockIndexWalker.mapBlockIndex.size());
+    return true;
+}
+
 bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset)
 {
     const uint256 hashBlock = block.GetHash();
@@ -762,12 +793,18 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
 
     CBlockEx* pPrevBlock = nullptr;
+    CBlockIndex* pIndexPrev = nullptr;
     if (block.hashPrev != 0)
     {
         map<uint256, CBlockEx>::iterator it = mapBlock.find(block.hashPrev);
         if (it != mapBlock.end())
         {
             pPrevBlock = &(it->second);
+        }
+        map<uint256, CBlockIndex*>::iterator mt = mapBlockIndex.find(block.hashPrev);
+        if (mt != mapBlockIndex.end())
+        {
+            pIndexPrev = mt->second;
         }
     }
     if (!block.IsGenesis() && pPrevBlock == nullptr)
@@ -784,11 +821,50 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
-    CBlockIndex* pNewBlockIndex = AddNewIndex(hashBlock, static_cast<const CBlock&>(checkBlock), nFile, nOffset, GetBlockTrust(block));
-    if (pNewBlockIndex == nullptr)
+    CBlockIndex* pNewBlockIndex = nullptr;
+    CBlockOutline* pBlockOutline = objBlockIndexWalker.GetBlockOutline(hashBlock);
+    if (pBlockOutline == nullptr)
     {
-        StdError("check", "Add new block index fail, hash: %s.", hashBlock.GetHex().c_str());
-        return false;
+        uint256 nChainTrust;
+        if (pIndexPrev != nullptr && !(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+        {
+            if (block.IsProofOfWork())
+            {
+                nChainTrust = GetBlockTrust(block);
+            }
+            else
+            {
+                CDelegateAgreement agreement;
+                if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement))
+                {
+                    StdError("check", "GetBlockDelegateAgreement fail, hash: %s.", hashBlock.GetHex().c_str());
+                    return false;
+                }
+                nChainTrust = GetBlockTrust(block, pIndexPrev, agreement);
+            }
+        }
+        pNewBlockIndex = AddNewIndex(hashBlock, static_cast<const CBlock&>(checkBlock), nFile, nOffset, nChainTrust);
+        if (pNewBlockIndex == nullptr)
+        {
+            StdError("check", "Add new block index fail 1, hash: %s.", hashBlock.GetHex().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        pNewBlockIndex = AddNewIndex(hashBlock, *pBlockOutline);
+        if (pNewBlockIndex == nullptr)
+        {
+            StdError("check", "Add new block index fail 2, hash: %s.", hashBlock.GetHex().c_str());
+            return false;
+        }
+        if (pNewBlockIndex->nFile != nFile || pNewBlockIndex->nOffset != nOffset)
+        {
+            StdLog("check", "Block index param error, hash: %s, File: %d - %d, Offset: %d - %d.",
+                   hashBlock.GetHex().c_str(), pNewBlockIndex->nFile, nFile, pNewBlockIndex->nOffset, nOffset);
+            pNewBlockIndex->nFile = nFile;
+            pNewBlockIndex->nOffset = nOffset;
+        }
     }
     if (pNewBlockIndex->GetOriginHash() == 0)
     {
@@ -830,6 +906,12 @@ uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockInde
     else
     {
         // Get the last PoW block nAlgo
+        if (pIndexPrev == nullptr)
+        {
+            StdLog("check", "GetBlockTrust: pIndexPrev is null");
+            return uint64(0);
+        }
+
         int nAlgo;
         const CBlockIndex* pIndex = pIndexPrev;
         while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
@@ -853,6 +935,7 @@ uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockInde
         }
         else
         {
+            StdLog("check", "GetBlockTrust: GetProofOfWorkTarget fail");
             return uint64(0);
         }
     }
@@ -905,6 +988,119 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
     else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
     {
         nBits++;
+    }
+    return true;
+}
+
+bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement)
+{
+    agreement.Clear();
+    if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
+    {
+        return true;
+    }
+
+    CBlockIndex* pIndex = pIndexPrev;
+    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+    {
+        if (pIndex == nullptr)
+        {
+            StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+        pIndex = pIndex->pPrev;
+    }
+
+    CDelegateEnrolled enrolled;
+    if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
+    {
+        StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+
+    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    map<CDestination, size_t> mapBallot;
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    {
+        StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled)
+{
+    enrolled.Clear();
+    if (pIndex == nullptr)
+    {
+        StdLog("check", "GetBlockDelegateEnrolled : pIndex is null, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+
+    int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
+    {
+        return true;
+    }
+
+    vector<uint256> vBlockRange;
+    for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
+    {
+        if (pIndex == nullptr)
+        {
+            StdLog("check", "GetBlockDelegateEnrolled : pIndex is null 2, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+        vBlockRange.push_back(pIndex->GetBlockHash());
+        pIndex = pIndex->pPrev;
+    }
+
+    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nDelegateWeightRatio,
+                               enrolled.mapWeight, enrolled.mapEnrollData))
+    {
+        StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
+                                              int64 nDelegateWeightRatio,
+                                              map<CDestination, size_t>& mapWeight,
+                                              map<CDestination, vector<unsigned char>>& mapEnrollData)
+{
+    map<CDestination, int64> mapVote;
+    if (!objDelegateDB.RetrieveDelegatedVote(hash, mapVote))
+    {
+        StdLog("check", "RetrieveAvailDelegate: RetrieveDelegatedVote fail, block: %s", hash.ToString().c_str());
+        return false;
+    }
+
+    map<CDestination, CDiskPos> mapEnrollTxPos;
+    if (!objDelegateDB.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos))
+    {
+        StdLog("check", "RetrieveAvailDelegate: RetrieveEnrollTx fail, block: %s, height: %d", hash.ToString().c_str(), height);
+        return false;
+    }
+
+    for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
+    {
+        if ((*it).second >= nDelegateWeightRatio)
+        {
+            const CDestination& dest = (*it).first;
+            map<CDestination, CDiskPos>::iterator mi = mapEnrollTxPos.find(dest);
+            if (mi != mapEnrollTxPos.end())
+            {
+                CTransaction tx;
+                if (!objTsBlock.Read(tx, (*mi).second))
+                {
+                    StdLog("BlockBase", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
+                    return false;
+                }
+                mapWeight.insert(make_pair(dest, size_t((*it).second / nDelegateWeightRatio)));
+                mapEnrollData.insert(make_pair(dest, tx.vchData));
+            }
+        }
     }
     return true;
 }
@@ -1083,6 +1279,53 @@ CBlockIndex* CCheckBlockWalker::AddNewIndex(const uint256& hash, const CBlock& b
     return pIndexNew;
 }
 
+CBlockIndex* CCheckBlockWalker::AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline)
+{
+    CBlockIndex* pIndexNew = new CBlockIndex(static_cast<const CBlockIndex&>(objBlockOutline));
+    if (pIndexNew != nullptr)
+    {
+        map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.insert(make_pair(hash, pIndexNew)).first;
+        if (mi == mapBlockIndex.end())
+        {
+            StdError("check", "AddNewIndex: insert fail, block: %s", hash.GetHex().c_str());
+            delete pIndexNew;
+            return nullptr;
+        }
+        pIndexNew->phashBlock = &((*mi).first);
+
+        if (objBlockOutline.hashPrev != 0)
+        {
+            map<uint256, CBlockIndex*>::iterator miPrev = mapBlockIndex.find(objBlockOutline.hashPrev);
+            if (miPrev == mapBlockIndex.end())
+            {
+                StdError("check", "AddNewIndex: find prev fail, prev: %s", objBlockOutline.hashPrev.GetHex().c_str());
+                mapBlockIndex.erase(hash);
+                delete pIndexNew;
+                return nullptr;
+            }
+            pIndexNew->pPrev = miPrev->second;
+        }
+
+        if (objBlockOutline.hashOrigin != 0)
+        {
+            map<uint256, CBlockIndex*>::iterator miOri = mapBlockIndex.find(objBlockOutline.hashOrigin);
+            if (miOri == mapBlockIndex.end())
+            {
+                StdError("check", "AddNewIndex: find origin fail, origin: %s", objBlockOutline.hashOrigin.GetHex().c_str());
+                mapBlockIndex.erase(hash);
+                delete pIndexNew;
+                return nullptr;
+            }
+            pIndexNew->pOrigin = miOri->second;
+        }
+    }
+    else
+    {
+        StdError("check", "AddNewIndex: new fail, block: %s", hash.GetHex().c_str());
+    }
+    return pIndexNew;
+}
+
 void CCheckBlockWalker::ClearBlockIndex()
 {
     map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.begin();
@@ -1153,6 +1396,33 @@ bool CCheckBlockWalker::GetBlockWalletTx(const set<CDestination>& setAddress, ve
     return true;
 }
 
+bool CCheckBlockWalker::CheckBlockIndex(bool fOnlyCheck)
+{
+    for (map<uint256, CBlockIndex*>::iterator it = mapBlockIndex.begin(); it != mapBlockIndex.end(); ++it)
+    {
+        if (!objBlockIndexWalker.CheckBlock(CBlockOutline(it->second)))
+        {
+            StdLog("check", "CheckBlockIndex: Find block index fail, add block index, block: %s.", it->first.GetHex().c_str());
+            if (!fOnlyCheck)
+            {
+                dbBlockIndex.AddNewBlock(CBlockOutline(it->second));
+            }
+        }
+    }
+    for (map<uint256, CBlockOutline>::iterator it = objBlockIndexWalker.mapBlockIndex.begin(); it != objBlockIndexWalker.mapBlockIndex.end(); ++it)
+    {
+        const CBlockOutline& blockOut = it->second;
+        if (mapBlockIndex.find(blockOut.hashBlock) == mapBlockIndex.end())
+        {
+            StdLog("check", "CheckBlockIndex: Find block hash fail, remove block index, block: %s.", blockOut.hashBlock.GetHex().c_str());
+            if (!fOnlyCheck)
+            {
+                dbBlockIndex.RemoveBlock(blockOut.hashBlock);
+            }
+        }
+    }
+    return true;
+}
 /////////////////////////////////////////////////////////////////////////
 // CCheckRepairData
 
@@ -1162,6 +1432,12 @@ bool CCheckRepairData::FetchBlockData()
     if (!tsBlock.Initialize(path(strDataPath) / "block", BLOCKFILE_PREFIX))
     {
         StdError("check", "tsBlock Initialize fail");
+        return false;
+    }
+
+    if (!objBlockWalker.Initialize(strDataPath))
+    {
+        StdError("check", "objBlockWalker Initialize fail");
         return false;
     }
 
@@ -1837,7 +2113,7 @@ bool CCheckRepairData::CheckRepairData()
     }
 
     StdLog("check", "Check block index starting");
-    if (!CheckBlockIndex())
+    if (!objBlockWalker.CheckBlockIndex(fOnlyCheck))
     {
         StdLog("check", "Check block index fail");
         return false;
