@@ -405,7 +405,7 @@ class CCheckBlockFork
 {
 public:
     CCheckBlockFork()
-      : nMaxTrustHeight(0), pOrigin(nullptr), pLast(nullptr) {}
+      : nMaxTrustHeight(0), nMaxTrustTimeStamp(0), pOrigin(nullptr), pLast(nullptr) {}
 
     void UpdateMaxTrust(CBlockIndex* pBlockIndex);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn);
@@ -419,6 +419,7 @@ public:
 
 public:
     uint32 nMaxTrustHeight;
+    uint32 nMaxTrustTimeStamp;
     uint256 hashMaxTrustBlock;
     uint256 nMaxChainTrust;
     CBlockIndex* pOrigin;
@@ -440,7 +441,7 @@ public:
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
-    uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement());
+    uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr);
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
     bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement);
     bool GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled);

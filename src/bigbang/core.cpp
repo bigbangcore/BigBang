@@ -573,6 +573,10 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     {
         return uint64(0);
     }
+    else if (block.IsVacant())
+    {
+        return uint64(0);
+    }
     else if (block.IsPrimary())
     {
         if (block.IsProofOfWork())
@@ -606,6 +610,10 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             int64 nReward;
             if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
             {
+                if (agreement.nWeight == 0 || nBits <= 0)
+                {
+                    StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                }
                 return uint256(uint64(agreement.nWeight)) << nBits;
             }
             else
@@ -616,6 +624,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
         }
         else
         {
+            StdLog("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
             return uint64(0);
         }
     }
@@ -627,6 +636,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     {
         if (pIndexRef->pPrev == nullptr)
         {
+            StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
             return pIndexRef->nChainTrust;
         }
         else
@@ -636,6 +646,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     }
     else
     {
+        StdLog("CCoreProtocol", "GetBlockTrust: block type error");
         return uint64(0);
     }
 }

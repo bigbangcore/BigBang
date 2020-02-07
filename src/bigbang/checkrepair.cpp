@@ -276,35 +276,44 @@ void CCheckWalletForkUnspent::RemoveTx(const uint256& txid)
 bool CCheckWalletForkUnspent::UpdateUnspent()
 {
     CWalletTxLinkSetBySequenceNumber& idxTx = setWalletTxLink.get<1>();
-    CWalletTxLinkSetBySequenceNumber::iterator it = idxTx.begin();
-    for (; it != idxTx.end(); ++it)
     {
-        const CCheckWalletTx& wtx = *(it->ptx);
-        if (wtx.IsFromMe())
+        CWalletTxLinkSetBySequenceNumber::iterator it = idxTx.begin();
+        for (; it != idxTx.end(); ++it)
         {
-            for (int n = 0; n < wtx.vInput.size(); n++)
+            const CCheckWalletTx& wtx = *(it->ptx);
+            if (wtx.IsMine())
             {
-                if (!AddWalletSpent(wtx.vInput[n].prevout, wtx.txid, wtx.sendTo))
+                if (!AddWalletUnspent(CTxOutPoint(wtx.txid, 0), wtx.GetOutput(0)))
                 {
-                    StdError("check", "Wallet update unspent: spent fail");
+                    StdError("check", "Wallet update unspent: add unspent 0 fail");
+                    return false;
+                }
+            }
+            if (wtx.IsFromMe())
+            {
+                if (!AddWalletUnspent(CTxOutPoint(wtx.txid, 1), wtx.GetOutput(1)))
+                {
+                    StdError("check", "Wallet update unspent: add unspent 1 fail");
                     return false;
                 }
             }
         }
-        if (wtx.IsMine())
+    }
+    {
+        CWalletTxLinkSetBySequenceNumber::iterator it = idxTx.begin();
+        for (; it != idxTx.end(); ++it)
         {
-            if (!AddWalletUnspent(CTxOutPoint(wtx.txid, 0), wtx.GetOutput(0)))
+            const CCheckWalletTx& wtx = *(it->ptx);
+            if (wtx.IsFromMe())
             {
-                StdError("check", "Wallet update unspent: add unspent 0 fail");
-                return false;
-            }
-        }
-        if (wtx.IsFromMe())
-        {
-            if (!AddWalletUnspent(CTxOutPoint(wtx.txid, 1), wtx.GetOutput(1)))
-            {
-                StdError("check", "Wallet update unspent: add unspent 1 fail");
-                return false;
+                for (int n = 0; n < wtx.vInput.size(); n++)
+                {
+                    if (!AddWalletSpent(wtx.vInput[n].prevout, wtx.txid, wtx.sendTo))
+                    {
+                        StdError("check", "Wallet update unspent: spent fail");
+                        return false;
+                    }
+                }
             }
         }
     }
@@ -670,19 +679,19 @@ void CCheckBlockFork::UpdateMaxTrust(CBlockIndex* pBlockIndex)
 {
     if (pBlockIndex->IsOrigin())
     {
-        if (pOrigin == nullptr)
-        {
-            pOrigin = pBlockIndex;
-        }
-        else
+        if (pOrigin != nullptr)
         {
             StdLog("check", "CCheckBlockFork pOrigin is not NULL");
+            return;
         }
+        pOrigin = pBlockIndex;
     }
-    if (pBlockIndex->nChainTrust > nMaxChainTrust)
+    if (pBlockIndex->nChainTrust > nMaxChainTrust
+        || (pBlockIndex->nChainTrust == nMaxChainTrust && pBlockIndex->nTimeStamp > nMaxTrustTimeStamp))
     {
         nMaxChainTrust = pBlockIndex->nChainTrust;
         nMaxTrustHeight = pBlockIndex->nHeight;
+        nMaxTrustTimeStamp = pBlockIndex->nTimeStamp;
         hashMaxTrustBlock = pBlockIndex->GetBlockHash();
     }
 }
@@ -788,7 +797,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     const uint256 hashBlock = block.GetHash();
     if (mapBlock.count(hashBlock) > 0)
     {
-        StdError("check", "block exist, hash: %s.", hashBlock.GetHex().c_str());
+        StdError("check", "Block walk: block exist, hash: %s.", hashBlock.GetHex().c_str());
         return true;
     }
 
@@ -809,14 +818,14 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     if (!block.IsGenesis() && pPrevBlock == nullptr)
     {
-        StdError("check", "Prev block not exist, hash: %s.", hashBlock.GetHex().c_str());
+        StdError("check", "Block walk: Prev block not exist, block: %s.", hashBlock.GetHex().c_str());
         return false;
     }
 
     map<uint256, CBlockEx>::iterator mt = mapBlock.insert(make_pair(hashBlock, block)).first;
     if (mt == mapBlock.end())
     {
-        StdError("check", "insert block fail, hash: %s.", hashBlock.GetHex().c_str());
+        StdError("check", "Block walk: Insert block fail, block: %s.", hashBlock.GetHex().c_str());
         return false;
     }
     CBlockEx& checkBlock = mt->second;
@@ -834,19 +843,46 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
             }
             else
             {
+                CBlockIndex* pIndexRef = nullptr;
                 CDelegateAgreement agreement;
-                if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement))
+                if (block.IsPrimary())
                 {
-                    StdError("check", "GetBlockDelegateAgreement fail, hash: %s.", hashBlock.GetHex().c_str());
-                    return false;
+                    if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement))
+                    {
+                        StdError("check", "Block walk: GetBlockDelegateAgreement fail, block: %s.", hashBlock.GetHex().c_str());
+                        return false;
+                    }
                 }
-                nChainTrust = GetBlockTrust(block, pIndexPrev, agreement);
+                else if (block.IsSubsidiary() || block.IsExtended())
+                {
+                    CProofOfPiggyback proof;
+                    proof.Load(block.vchProof);
+                    if (proof.hashRefBlock != 0)
+                    {
+                        map<uint256, CBlockIndex*>::iterator mt = mapBlockIndex.find(proof.hashRefBlock);
+                        if (mt != mapBlockIndex.end())
+                        {
+                            pIndexRef = mt->second;
+                        }
+                    }
+                    if (pIndexRef == nullptr)
+                    {
+                        StdError("check", "Block walk: refblock find fail, refblock: %s, block: %s.", proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                        return false;
+                    }
+                    if (pIndexRef->pPrev == nullptr)
+                    {
+                        StdError("check", "Block walk: pIndexRef->pPrev is null, refblock: %s, block: %s.", proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                        return false;
+                    }
+                }
+                nChainTrust = GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
             }
         }
         pNewBlockIndex = AddNewIndex(hashBlock, static_cast<const CBlock&>(checkBlock), nFile, nOffset, nChainTrust);
         if (pNewBlockIndex == nullptr)
         {
-            StdError("check", "Add new block index fail 1, hash: %s.", hashBlock.GetHex().c_str());
+            StdError("check", "Block walk: Add new block index fail 1, block: %s.", hashBlock.GetHex().c_str());
             return false;
         }
     }
@@ -855,12 +891,12 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
         pNewBlockIndex = AddNewIndex(hashBlock, *pBlockOutline);
         if (pNewBlockIndex == nullptr)
         {
-            StdError("check", "Add new block index fail 2, hash: %s.", hashBlock.GetHex().c_str());
+            StdError("check", "Block walk: Add new block index fail 2, block: %s.", hashBlock.GetHex().c_str());
             return false;
         }
         if (pNewBlockIndex->nFile != nFile || pNewBlockIndex->nOffset != nOffset)
         {
-            StdLog("check", "Block index param error, hash: %s, File: %d - %d, Offset: %d - %d.",
+            StdLog("check", "Block walk: Block index param error, block: %s, File: %d - %d, Offset: %d - %d.",
                    hashBlock.GetHex().c_str(), pNewBlockIndex->nFile, nFile, pNewBlockIndex->nOffset, nOffset);
             pNewBlockIndex->nFile = nFile;
             pNewBlockIndex->nOffset = nOffset;
@@ -868,7 +904,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     if (pNewBlockIndex->GetOriginHash() == 0)
     {
-        StdError("check", "Get block origin hash is 0, hash: %s.", hashBlock.GetHex().c_str());
+        StdError("check", "Block walk: Get block origin hash is 0, block: %s.", hashBlock.GetHex().c_str());
         return false;
     }
     mapCheckFork[pNewBlockIndex->GetOriginHash()].UpdateMaxTrust(pNewBlockIndex);
@@ -877,7 +913,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     {
         if (hashGenesis != 0)
         {
-            StdError("check", "more genesis block, block hash: %s, hashGenesis: %s.",
+            StdError("check", "Block walk: more genesis block, block hash: %s, hashGenesis: %s.",
                      hashBlock.GetHex().c_str(), hashGenesis.GetHex().c_str());
             return false;
         }
@@ -889,57 +925,87 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     return true;
 }
 
-uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement)
+uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
-    if (block.IsOrigin() || block.IsVacant() || block.IsNull())
+    if (block.IsGenesis())
     {
         return uint64(0);
     }
-    else if (block.IsProofOfWork())
+    else if (block.IsVacant())
     {
-        // PoW difficulty = 2 ^ nBits
-        CProofOfHashWorkCompact proof;
-        proof.Load(block.vchProof);
-        uint256 v(1);
-        return v << proof.nBits;
+        return uint64(0);
+    }
+    else if (block.IsPrimary())
+    {
+        if (block.IsProofOfWork())
+        {
+            // PoW difficulty = 2 ^ nBits
+            CProofOfHashWorkCompact proof;
+            proof.Load(block.vchProof);
+            uint256 v(1);
+            return v << proof.nBits;
+        }
+        else if (pIndexPrev != nullptr)
+        {
+            // Get the last PoW block nAlgo
+            int nAlgo;
+            const CBlockIndex* pIndex = pIndexPrev;
+            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+            {
+                pIndex = pIndex->pPrev;
+            }
+            if (!pIndex->IsProofOfWork())
+            {
+                nAlgo = CM_CRYPTONIGHT;
+            }
+            else
+            {
+                nAlgo = pIndex->nProofAlgo;
+            }
+
+            // DPoS difficulty = weight * (2 ^ nBits)
+            int nBits;
+            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
+            {
+                if (agreement.nWeight == 0 || nBits <= 0)
+                {
+                    StdLog("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                }
+                return uint256(uint64(agreement.nWeight)) << nBits;
+            }
+            else
+            {
+                StdLog("check", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return uint64(0);
+            }
+        }
+        else
+        {
+            StdLog("check", "GetBlockTrust: Primary pIndexPrev is null");
+            return uint64(0);
+        }
+    }
+    else if (block.IsOrigin())
+    {
+        return uint64(0);
+    }
+    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
+    {
+        if (pIndexRef->pPrev == nullptr)
+        {
+            StdLog("check", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
+            return uint64(0);
+        }
+        else
+        {
+            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
+        }
     }
     else
     {
-        // Get the last PoW block nAlgo
-        if (pIndexPrev == nullptr)
-        {
-            StdLog("check", "GetBlockTrust: pIndexPrev is null");
-            return uint64(0);
-        }
-
-        int nAlgo;
-        const CBlockIndex* pIndex = pIndexPrev;
-        while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-        {
-            pIndex = pIndex->pPrev;
-        }
-        if (!pIndex->IsProofOfWork())
-        {
-            nAlgo = CM_CRYPTONIGHT;
-        }
-        else
-        {
-            nAlgo = pIndex->nProofAlgo;
-        }
-
-        // DPoS difficulty = weight * (2 ^ nBits)
-        int nBits;
-        if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
-        {
-            return uint256(uint64(agreement.nWeight)) << nBits;
-        }
-        else
-        {
-            StdLog("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-            return uint64(0);
-        }
+        StdLog("check", "GetBlockTrust: block type error");
+        return uint64(0);
     }
-    return uint256();
 }
 
 bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits)
@@ -1181,35 +1247,36 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
                     return false;
                 }
                 const CBlockEx& block = it->second;
-
-                vector<uint256> vFork;
-                objForkMn.GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
-
-                CBufStream ss;
-                CTxContxt txContxt;
-                txContxt.destIn = block.txMint.sendTo;
-                uint32 nTxOffset = pIndex->nOffset + block.GetTxSerializedOffset();
-                if (!AddBlockTx(block.txMint, txContxt, block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
+                if (!(block.IsVacant() || block.IsNull()))
                 {
-                    StdError("check", "UpdateBlockTx: Add mint tx fail, txid: %s, block: %s",
-                             block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
-                    return false;
-                }
-                nTxOffset += ss.GetSerializeSize(block.txMint);
+                    vector<uint256> vFork;
+                    objForkMn.GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
 
-                CVarInt var(block.vtx.size());
-                nTxOffset += ss.GetSerializeSize(var);
-                for (int i = 0; i < block.vtx.size(); i++)
-                {
-                    if (!AddBlockTx(block.vtx[i], block.vTxContxt[i], block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
+                    CBufStream ss;
+                    CTxContxt txContxt;
+                    txContxt.destIn = block.txMint.sendTo;
+                    uint32 nTxOffset = pIndex->nOffset + block.GetTxSerializedOffset();
+                    if (!AddBlockTx(block.txMint, txContxt, block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
                     {
-                        StdError("check", "UpdateBlockTx: Add tx fail, txid: %s, block: %s",
-                                 block.vtx[i].GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
+                        StdError("check", "UpdateBlockTx: Add mint tx fail, txid: %s, block: %s",
+                                 block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
                         return false;
                     }
-                    nTxOffset += ss.GetSerializeSize(block.vtx[i]);
-                }
+                    nTxOffset += ss.GetSerializeSize(block.txMint);
 
+                    CVarInt var(block.vtx.size());
+                    nTxOffset += ss.GetSerializeSize(var);
+                    for (int i = 0; i < block.vtx.size(); i++)
+                    {
+                        if (!AddBlockTx(block.vtx[i], block.vTxContxt[i], block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
+                        {
+                            StdError("check", "UpdateBlockTx: Add tx fail, txid: %s, block: %s",
+                                     block.vtx[i].GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
+                            return false;
+                        }
+                        nTxOffset += ss.GetSerializeSize(block.vtx[i]);
+                    }
+                }
                 pIndex = pIndex->pNext;
             }
             if (it->first == hashGenesis)
@@ -1583,7 +1650,7 @@ bool CCheckRepairData::CheckRepairFork()
             }
         }
     }
-    if (!vForkUpdate.empty())
+    if (!fOnlyCheck && !vForkUpdate.empty())
     {
         return objForkManager.UpdateForkLast(strDataPath, vForkUpdate);
     }
@@ -1834,7 +1901,7 @@ bool CCheckRepairData::CheckTxIndex()
                 return false;
             }
             const CBlockEx& block = at->second;
-            if (!block.IsGenesis())
+            if (!(block.IsOrigin() || block.IsVacant() || block.IsNull()))
             {
                 CBufStream ss;
                 CTxIndex txIndex;
