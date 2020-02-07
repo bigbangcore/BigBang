@@ -571,7 +571,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
 {
     if (block.IsGenesis())
     {
-        return uint64(1);
+        return uint64(0);
     }
     else if (block.IsPrimary())
     {
@@ -621,7 +621,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     }
     else if (block.IsOrigin())
     {
-        return uint64(1);
+        return uint64(0);
     }
     else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
     {
