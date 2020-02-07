@@ -68,7 +68,7 @@ protected:
     bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
                                    CDelegateAgreement& agreement);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                      int64& nReward, CDelegateAgreement& agreement);
+                      int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef);
 
 protected:
     boost::shared_mutex rwAccess;

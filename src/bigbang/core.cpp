@@ -567,50 +567,76 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement)
+uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
-    if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
+    if (block.IsGenesis())
     {
-        return uint64(0);
+        return uint64(1);
     }
-    else if (block.IsProofOfWork())
+    else if (block.IsPrimary())
     {
-        // PoW difficulty = 2 ^ nBits
-        CProofOfHashWorkCompact proof;
-        proof.Load(block.vchProof);
-        uint256 v(1);
-        return v << proof.nBits;
+        if (block.IsProofOfWork())
+        {
+            // PoW difficulty = 2 ^ nBits
+            CProofOfHashWorkCompact proof;
+            proof.Load(block.vchProof);
+            uint256 v(1);
+            return v << proof.nBits;
+        }
+        else if (pIndexPrev != nullptr)
+        {
+            // Get the last PoW block nAlgo
+            int nAlgo;
+            const CBlockIndex* pIndex = pIndexPrev;
+            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+            {
+                pIndex = pIndex->pPrev;
+            }
+            if (!pIndex->IsProofOfWork())
+            {
+                nAlgo = CM_CRYPTONIGHT;
+            }
+            else
+            {
+                nAlgo = pIndex->nProofAlgo;
+            }
+
+            // DPoS difficulty = weight * (2 ^ nBits)
+            int nBits;
+            int64 nReward;
+            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
+            {
+                return uint256(uint64(agreement.nWeight)) << nBits;
+            }
+            else
+            {
+                StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return uint64(0);
+            }
+        }
+        else
+        {
+            return uint64(0);
+        }
+    }
+    else if (block.IsOrigin())
+    {
+        return uint64(1);
+    }
+    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
+    {
+        if (pIndexRef->pPrev == nullptr)
+        {
+            return pIndexRef->nChainTrust;
+        }
+        else
+        {
+            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
+        }
     }
     else
     {
-        // Get the last PoW block nAlgo
-        int nAlgo;
-        const CBlockIndex* pIndex = pIndexPrev;
-        while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-        {
-            pIndex = pIndex->pPrev;
-        }
-        if (!pIndex->IsProofOfWork())
-        {
-            nAlgo = CM_CRYPTONIGHT;
-        }
-        else
-        {
-            nAlgo = pIndex->nProofAlgo;
-        }
-
-        // DPoS difficulty = weight * (2 ^ nBits)
-        int nBits;
-        int64 nReward;
-        if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
-        {
-            return uint256(uint64(agreement.nWeight)) << nBits;
-        }
-        else
-        {
-            StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
-            return uint64(0);
-        }
+        return uint64(0);
     }
 }
 

@@ -404,7 +404,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     int64 nReward;
     CDelegateAgreement agreement;
-    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement);
+    CBlockIndex* pIndexRef = nullptr;
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, &pIndexRef);
     if (err != OK)
     {
         Log("AddNewBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
@@ -472,7 +473,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     // Get block trust
-    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement);
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
     Log("AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
 
     CBlockIndex* pIndexNew;
@@ -955,7 +956,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 }
 
 Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                               int64& nReward, CDelegateAgreement& agreement)
+                               int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef)
 {
     nReward = 0;
     if (block.IsOrigin())
@@ -1026,8 +1027,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        CBlockIndex* pIndexRef = nullptr;
-        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
+        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
@@ -1056,7 +1056,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             }
         }
 
-        return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, pIndexRef, agreement);
+        return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
     return OK;
 }
