@@ -1122,7 +1122,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
         {
-            StdLog("BlockBase", "FilterTx2: Block read fail, nFile: %d, nOffset: %d.", pIndex->nFile, pIndex->nOffset);
+            StdLog("BlockBase", "FilterTx2: Block read fail, nFile: %d, nOffset: %d, block: %s.",
+                   pIndex->nFile, pIndex->nOffset, pIndex->GetBlockHash().GetHex().c_str());
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
@@ -1130,7 +1131,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
-                StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, txid: %s.", block.txMint.GetHash().GetHex().c_str());
+                StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, height: %d, txid: %s, block: %s, fork: %s.",
+                       block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                 return false;
             }
         }
@@ -1143,7 +1145,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
             {
                 if (!filter.FoundTx(hashFork, CAssembledTx(tx, nBlockHeight, ctxt.destIn, ctxt.GetValueIn())))
                 {
-                    StdLog("BlockBase", "FilterTx2: FoundTx tx fail, txid: %s.", tx.GetHash().GetHex().c_str());
+                    StdLog("BlockBase", "FilterTx2: FoundTx tx fail, height: %d, txid: %s, block: %s, fork: %s.",
+                           nBlockHeight, tx.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                     return false;
                 }
             }

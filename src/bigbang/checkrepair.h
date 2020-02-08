@@ -194,6 +194,7 @@ public:
       : nSeqCreate(0), hashFork(hashForkIn) {}
 
     bool LocalTxExist(const uint256& txid);
+    CCheckWalletTx* GetLocalWalletTx(const uint256& txid);
     bool AddTx(const CWalletTx& wtx);
     void RemoveTx(const uint256& txid);
 
@@ -228,6 +229,7 @@ public:
     bool Walk(const CWalletTx& wtx) override;
 
     bool Exist(const uint256& hashFork, const uint256& txid);
+    CCheckWalletTx* GetWalletTx(const uint256& hashFork, const uint256& txid);
     bool AddWalletTx(const CWalletTx& wtx);
     void RemoveWalletTx(const uint256& hashFork, int nHeight, const uint256& txid);
     bool UpdateUnspent();
@@ -411,11 +413,7 @@ public:
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn);
     bool AddBlockSpent(const CTxOutPoint& txPoint, const uint256& txidSpent, const CDestination& sendTo);
     bool AddBlockUnspent(const CTxOutPoint& txPoint, const CTxOut& txOut);
-
-    bool CheckTxExist(const uint256& txid)
-    {
-        return (mapBlockTx.find(txid) != mapBlockTx.end());
-    }
+    bool CheckTxExist(const uint256& txid, int& nHeight);
 
 public:
     uint32 nMaxTrustHeight;
@@ -454,7 +452,7 @@ public:
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline);
     void ClearBlockIndex();
-    bool CheckTxExist(const uint256& hashFork, const uint256& txid);
+    bool CheckTxExist(const uint256& hashFork, const uint256& txid, int& nHeight);
     bool GetBlockWalletTx(const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
     bool CheckBlockIndex(bool fOnlyCheck);
 
