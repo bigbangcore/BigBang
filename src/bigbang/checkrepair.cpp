@@ -1169,7 +1169,7 @@ bool CCheckRepairData::FetchBlockData()
     uint32 nLastPosRet = 0;
 
     StdLog("check", "Fetch block and tx......");
-    if (!tsBlock.WalkThrough(objBlockWalker, nLastFileRet, nLastPosRet))
+    if (!tsBlock.WalkThrough(objBlockWalker, nLastFileRet, nLastPosRet, !fOnlyCheck))
     {
         StdError("check", "Fetch block and tx fail.");
         return false;
