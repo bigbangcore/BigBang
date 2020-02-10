@@ -38,7 +38,7 @@ CBbPeerNet::CBbPeerNet()
     nService = 0;
     fEnclosed = false;
     pNetChannel = nullptr;
-    // pDelegatedChannel = nullptr;
+    pDelegatedChannel = nullptr;
     nSeqCreate = (GetTimeMillis() << 32) | (GetTime() & 0xFFFFFFFF);
 }
 
@@ -54,11 +54,11 @@ bool CBbPeerNet::HandleInitialize()
         return false;
     }
 
-    // if (!GetObject("delegatedchannel", pDelegatedChannel))
-    // {
-    //     Error("Failed to request delegated datachannel\n");
-    //     return false;
-    // }
+     if (!GetObject("delegatedchannel", pDelegatedChannel))
+     {
+         Error("Failed to request delegated datachannel\n");
+         return false;
+     }
 
     return true;
 }
@@ -67,7 +67,7 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
-    // pDelegatedChannel = nullptr;
+    pDelegatedChannel = nullptr;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)

@@ -232,8 +232,11 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerAgreement& eventAgreement)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    nMakerStatus = MAKER_RESET;
     currentAgreement = eventAgreement.data;
+    if (!currentAgreement.IsProofOfWork())
+    {
+        nMakerStatus = MAKER_RESET;
+    }
     cond.notify_all();
 
     return true;
@@ -408,7 +411,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
 void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight)
 {
-    map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(agreement.vBallot[0]);
+    auto it = mapDelegatedProfile.find(agreement.vBallot[0]);
     if (it != mapDelegatedProfile.end())
     {
         CBlockMakerProfile& profile = (*it).second;
@@ -715,6 +718,7 @@ void CBlockMaker::BlockMakerThreadFunc()
                 nPrimaryBlockHeight = nLastBlockHeight;
             }
             nMakerStatus = MAKER_RUN;
+            agree = currentAgreement;
         }
 
         CBlock block;

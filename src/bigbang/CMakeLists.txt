@@ -74,7 +74,7 @@ set(sources
     ${auto_files}
     ${src}
     ${mode_src}
-        dispatcherevent.h)
+        )
 
 add_executable(bigbang ${sources})
 

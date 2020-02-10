@@ -6,7 +6,6 @@
 
 #include "address.h"
 #include "template/delegate.h"
-#include "dispatcherevent.h"
 
 using namespace std;
 using namespace xengine;
@@ -174,8 +173,8 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
 CConsensus::CConsensus()
 {
     pCoreProtocol = nullptr;
-    pBlockChain   = nullptr;
-    pTxPool       = nullptr;
+    pBlockChain = nullptr;
+    pTxPool = nullptr;
 }
 
 bool CConsensus::HandleInitialize()
@@ -355,21 +354,17 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 
     map<CDestination, size_t> mapBallot;
     CDelegateAgreement agree;
-    delegate.GetAgreement(update.nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
-    delegate.GetAgreement(update.nLastBlockHeight + 1, nAgreement, nWeight, mapBallot);
-    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot, nTargetHeight);
-
-    auto pEvent = new CEventDispatcherAgreement();
-    if (pEvent != nullptr)
-    {
-        pDispatcher->PostEvent(pEvent);
-    }
+    delegate.GetAgreement(update.nLastBlockHeight + 1, agree.nAgreement,
+                          agree.nWeight, mapBallot);
+    pCoreProtocol->GetDelegatedBallot(agree.nAgreement, agree.nWeight, mapBallot,
+                                      agree.vBallot, update.nLastBlockHeight + 1);
+    pDispatcher->UpdateAgreement(agree);
 }
 
 void CConsensus::AddNewTx(const CAssembledTx& tx)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
-    for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
+    for (auto it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         (*it).second.AddNewTx(tx);
     }

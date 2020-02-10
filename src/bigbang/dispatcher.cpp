@@ -34,18 +34,6 @@ CDispatcher::CDispatcher()
     pDataStat = nullptr;
 }
 
-bool CDispatcher::HandleEvent(CEventDispatcherAgreement& eventAgreement)
-{
-    auto pEvent = new CDispatcherEventListener(eventAgreement);
-    if (pEvent != nullptr)
-    {
-        pBlockMaker->PostEvent(pEvent);
-        return true;
-    }
-
-    return false;
-}
-
 bool CDispatcher::HandleInitialize()
 {
     if (!GetObject("coreprotocol", pCoreProtocol))
@@ -299,6 +287,16 @@ bool CDispatcher::AddNewDistribute(const int& hashAnchor, const CDestination& de
 bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
     return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+}
+
+void CDispatcher::UpdateAgreement(const CDelegateAgreement& agree)
+{
+    CEventBlockMakerAgreement* pEvent = new CEventBlockMakerAgreement(0);
+    if (pEvent != nullptr)
+    {
+        pEvent->data = agree;
+        pBlockMaker->PostEvent(pEvent);
+    }
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)

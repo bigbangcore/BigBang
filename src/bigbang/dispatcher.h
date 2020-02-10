@@ -6,31 +6,30 @@
 #define BIGBANG_DISPATCHER_H
 
 #include "base.h"
-#include "dispatcherevent.h"
 #include "peernet.h"
 
 namespace bigbang
 {
 
-class CDispatcher : public IDispatcher, virtual public CDispatcherEventListener
+class CDispatcher : public IDispatcher
 {
 public:
     CDispatcher();
     ~CDispatcher() = default;
-    bool HandleEvent(CEventDispatcherAgreement& eventAgreement) override;
-
     Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) override;
     Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) override;
     bool AddNewDistribute(const int& hashAnchor, const CDestination& dest,
                           const std::vector<unsigned char>& vchDistribute) override;
     bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
+    void UpdateAgreement(const CDelegateAgreement& agree) override;
 
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
+
     void UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain,
                             const CTxSetChange& changeTxSet, const uint64& nNonce);
     void ActivateFork(const uint256& hashFork, const uint64& nNonce);
