@@ -636,8 +636,8 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     {
         if (pIndexRef->pPrev == nullptr)
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return pIndexRef->nChainTrust;
+            StdError("CCoreProtocol", "GetBlockTrust: prev block of reference block of subsidiary or extended block is null, block: %s, ref: %s", block.GetHash().ToString().c_str(), pIndexRef->GetBlockHash().ToString().c_str());
+            return uint64(0);
         }
         else
         {
