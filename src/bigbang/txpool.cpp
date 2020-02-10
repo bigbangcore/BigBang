@@ -204,8 +204,23 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     size_t nTotalSize = 0;
     nTotalTxFee = 0;
 
-    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (auto const& i : idxTxLinkSeq)
+    // const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
+    // for (auto const& i : idxTxLinkSeq)
+    // {
+    //     if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
+    //     {
+    //         if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+    //         {
+    //             break;
+    //         }
+    //         vtx.push_back(*static_cast<CTransaction*>(i.ptx));
+    //         nTotalSize += i.ptx->nSerializeSize;
+    //         nTotalTxFee += i.ptx->nTxFee;
+    //     }
+    // }
+
+    const CPooledTxLinkSetByEnrollTx& TxLinkEnrollTx = setTxLinkIndex.get<enroll_tx_first>();
+    for (auto const& i : TxLinkEnrollTx)
     {
         if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
         {
@@ -218,6 +233,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
             nTotalTxFee += i.ptx->nTxFee;
         }
     }
+    
 }
 
 //////////////////////////////
