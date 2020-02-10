@@ -353,7 +353,7 @@ bool CBlockMaker::DispatchBlock(CBlock& block)
 bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 {
     int nConsensus = CM_CRYPTONIGHT;
-    map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.find(nConsensus);
+    auto it = mapWorkProfile.find(nConsensus);
     if (it == mapWorkProfile.end())
     {
         StdTrace("blockmaker", "did not find Work profile");
@@ -490,7 +490,7 @@ void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDele
 
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
-    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    for (auto it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
@@ -619,7 +619,7 @@ bool CBlockMaker::GetAvailableDelegatedProfile(const vector<CDestination>& vBall
     vProfile.reserve(vBallot.size());
     for (const CDestination& dest : vBallot)
     {
-        map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(dest);
+        auto it = mapDelegatedProfile.find(dest);
         if (it != mapDelegatedProfile.end())
         {
             vProfile.push_back(&(*it).second);
@@ -638,7 +638,7 @@ bool CBlockMaker::GetAvailableExtendedFork(set<uint256>& setFork)
 {
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
-    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    for (auto it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         CProfile profile;
         const uint256& hashFork = (*it).first;

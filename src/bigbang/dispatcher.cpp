@@ -168,8 +168,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
     else
     {
-        // err = pBlockChain->AddNewOrigin(block, updateBlockChain);
-        err = ERR_BLOCK_INVALID_FORK;
+        err = pBlockChain->AddNewOrigin(block, updateBlockChain);
     }
 
     if (err != OK || updateBlockChain.IsNull())
@@ -184,14 +183,14 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return ERR_SYS_DATABASE_ERROR;
     }
 
-    // if (block.IsOrigin())
-    // {
-    //     if (!pWallet->AddNewFork(updateBlockChain.hashFork, updateBlockChain.hashParent,
-    //                              updateBlockChain.nOriginHeight))
-    //     {
-    //         return ERR_SYS_DATABASE_ERROR;
-    //     }
-    // }
+    if (block.IsOrigin())
+    {
+        if (!pWallet->AddNewFork(updateBlockChain.hashFork, updateBlockChain.hashParent,
+                                 updateBlockChain.nOriginHeight))
+        {
+            return ERR_SYS_DATABASE_ERROR;
+        }
+    }
 
     if (!pWallet->SynchronizeTxSet(changeTxSet))
     {
@@ -207,21 +206,21 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     pService->NotifyBlockChainUpdate(updateBlockChain);
 
-    // if (!block.IsVacant())
-    // {
-    //     vector<uint256> vActive, vDeactive;
-    //     pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
+    if (!block.IsVacant())
+    {
+        vector<uint256> vActive, vDeactive;
+        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
 
-    //     for (const uint256 hashFork : vActive)
-    //     {
-    //         ActivateFork(hashFork, nNonce);
-    //     }
+        for (const uint256 hashFork : vActive)
+        {
+            ActivateFork(hashFork, nNonce);
+        }
 
-    //     for (const uint256 hashFork : vDeactive)
-    //     {
-    //         pNetChannel->UnsubscribeFork(hashFork);
-    //     }
-    // }
+        for (const uint256 hashFork : vDeactive)
+        {
+            pNetChannel->UnsubscribeFork(hashFork);
+        }
+    }
 
     if (block.IsPrimary())
     {
