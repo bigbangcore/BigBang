@@ -4,7 +4,9 @@
 
 #include "core.h"
 
+#include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
+#include "../common/template/mint.h"
 #include "address.h"
 #include "wallet.h"
 
@@ -395,11 +397,14 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
     }
 
-    if (block.txMint.sendTo != agreement.vBallot[0])
+    /*if (block.txMint.sendTo != agreement.vBallot[0])
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+    }*/
+    if (!block.txMint.sendTo.VerifyBlockMintDestination(block.vchSig, agreement.vBallot[0]))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
-
     return OK;
 }
 
@@ -428,7 +433,11 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     }
 
     int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
-    if (block.txMint.sendTo != agreement.GetBallot(nIndex))
+    /*if (block.txMint.sendTo != agreement.GetBallot(nIndex))
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+    }*/
+    if (!block.txMint.sendTo.VerifyBlockMintDestination(block.vchSig, agreement.GetBallot(nIndex)))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
@@ -476,7 +485,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     }*/
 
     vector<uint8> vchSig;
-    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
         if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
@@ -487,6 +496,10 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     else
     {
         vchSig = tx.vchSig;
+    }*/
+    if (!VerifyDestRecorded(tx, destIn, vchSig))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
@@ -532,7 +545,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
     // record destIn in vchSig
     vector<uint8> vchSig;
-    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
         if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
@@ -543,6 +556,10 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     else
     {
         vchSig = tx.vchSig;
+    }*/
+    if (!VerifyDestRecorded(tx, destIn, vchSig))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
 
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
@@ -739,7 +756,7 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     }
     size_t nWeightWork = ((DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight))
                          / (DELEGATE_THRESH * DELEGATE_THRESH);
-    StdTrace("Core", "GetDelegatedBallot: nSelected: %d, nWorkRandom: %lu, nWeight: %lu, nWeightWork: %lu",
+    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %d, nRandomWork: %lu, nWeightDelegate: %lu, nWeightWork: %lu",
              nSelected, (nWeightWork * 256 / (nWeightWork + nWeight)), nWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nWeight))
     {
@@ -784,6 +801,67 @@ Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
     }
 
     return OK;
+}
+
+bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, const CDestination& destIn, vector<uint8>& vchSigOut)
+{
+    bool fRecordedDestIn = false;
+    bool fRecordedSendTo = false;
+    if (CTemplate::IsDestInRecorded(destIn))
+    {
+        fRecordedDestIn = true;
+    }
+    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        fRecordedSendTo = true;
+    }
+    if (fRecordedDestIn || fRecordedSendTo)
+    {
+        CDestination destInDelegate;
+        CDestination destInOwner;
+        CDestination sendToDelegate;
+        CDestination sendToOwner;
+        if (!CDestInRecordedTemplate::ParseDest(tx.vchSig, destInDelegate, destInOwner, sendToDelegate, sendToOwner, vchSigOut))
+        {
+            StdError("Core", "Verify dest recorded: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        if (fRecordedDestIn)
+        {
+            if (destInDelegate.IsNull() || destInOwner.IsNull())
+            {
+                StdError("Core", "Verify dest recorded: destIn dest is null, txid: %s", tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            if (CTemplateMint::CreateTemplatePtr(new CTemplateDelegate(destInDelegate.GetPubKey(), destInOwner))->GetTemplateId() != destIn.GetTemplateId())
+            {
+                StdError("Core", "Verify dest recorded: destIn error, txid: %s, destIn: %s, delegate pubkey: %s, owner dest: %s",
+                         tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str(),
+                         destInDelegate.GetPubKey().GetHex().c_str(), CAddress(destInOwner).ToString().c_str());
+                return false;
+            }
+        }
+        if (fRecordedSendTo)
+        {
+            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
+            {
+                StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            if (CTemplateMint::CreateTemplatePtr(new CTemplateDelegate(sendToDelegate.GetPubKey(), sendToOwner))->GetTemplateId() != tx.sendTo.GetTemplateId())
+            {
+                StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate pubkey: %s, owner dest: %s",
+                         tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                         sendToDelegate.GetPubKey().GetHex().c_str(), CAddress(sendToOwner).ToString().c_str());
+                return false;
+            }
+        }
+    }
+    else
+    {
+        vchSigOut = tx.vchSig;
+    }
+    return true;
 }
 
 ///////////////////////////////

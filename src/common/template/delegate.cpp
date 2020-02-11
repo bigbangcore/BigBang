@@ -29,23 +29,19 @@ CTemplateDelegate* CTemplateDelegate::clone() const
 bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    return false;
-
     if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
-
     setSubDest.clear();
-    if (tx.sendTo.GetTemplateId() == nId)
+    if (tx.sendTo.GetTemplateId() == nId && tx.nType == CTransaction::TX_CERT)
     {
         setSubDest.insert(CDestination(keyDelegate));
     }
     else
     {
-        setSubDest.insert(tx.sendTo);
+        setSubDest.insert(destOwner);
     }
-
     return true;
 }
 
@@ -55,6 +51,12 @@ void CTemplateDelegate::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
     obj.delegate.strOwner = (destInstance = destOwner).ToString();
 }
 
+void CTemplateDelegate::GetMintTemplateData(bigbang::crypto::CPubKey& keyMintOut, CDestination& destOwnerOut) const
+{
+    keyMintOut = keyDelegate;
+    destOwnerOut = destOwner;
+}
+
 bool CTemplateDelegate::BuildVssSignature(const uint256& hash, const vector<uint8>& vchDelegateSig, vector<uint8>& vchVssSig)
 {
     if (!keyDelegate.Verify(hash, vchDelegateSig))
@@ -62,13 +64,28 @@ bool CTemplateDelegate::BuildVssSignature(const uint256& hash, const vector<uint
         return false;
     }
 
-    vchVssSig.clear();
+    /*vchVssSig.clear();
     xengine::CODataStream ods(vchVssSig, CDestination::DESTINATION_SIZE + vchData.size() + vchDelegateSig.size());
     //ods << CDestination(nId) << vchData << vchDelegateSig;
     ods << CDestination(nId);
     ods.Push(&vchData[0], vchData.size());
-    ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
+    ods.Push(&vchDelegateSig[0], vchDelegateSig.size());*/
 
+    vector<uint8> vPrevSig;
+    {
+        xengine::CODataStream ods(vPrevSig, vchData.size() + vchDelegateSig.size());
+        ods.Push(&vchData[0], vchData.size());
+        ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
+    }
+    CDestination destDelegate(keyDelegate);
+    CDestInRecordedTemplate::RecordDest(destDelegate, destOwner, destDelegate, destOwner, vPrevSig, vchVssSig);
+    return true;
+}
+
+bool CTemplateDelegate::GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const
+{
+    destDelegateOut.SetPubKey(keyDelegate);
+    destOwnerOut = destOwner;
     return true;
 }
 
