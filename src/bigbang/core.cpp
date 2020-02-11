@@ -29,7 +29,7 @@ static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 #else
-static const int64 BBCP_TOKEN_INIT = 0;
+static const int64 BBCP_TOKEN_INIT = 300000000;//0
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
 
 #define BBCP_TOKEN_SET_COUNT 16
@@ -163,7 +163,8 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
     if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
-        && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
+        && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK
+        && tx.nType != CTransaction::TX_CERT)
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
     }
@@ -466,7 +467,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     // v1.0 function
     if (!tx.vchData.empty())
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
+//        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
     }
 
     vector<uint8> vchSig;
@@ -521,7 +522,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     // v1.0 function
     if (!tx.vchData.empty())
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
+//        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
     }
 
     // record destIn in vchSig

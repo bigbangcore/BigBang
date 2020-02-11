@@ -233,6 +233,9 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerAgreement& eventAgreement)
     boost::unique_lock<boost::mutex> lock(mutex);
 
     currentAgreement = eventAgreement.data;
+    StdTrace("blockmaker", "Handle Agreement: agree : %s target : %d, weight : %d\n",
+             currentAgreement.nAgreement.GetHex().c_str(),
+             nLastBlockHeight, currentAgreement.nWeight);
     if (!currentAgreement.IsProofOfWork())
     {
         nMakerStatus = MAKER_RESET;

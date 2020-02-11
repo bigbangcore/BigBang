@@ -290,11 +290,14 @@ bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest,
 
 void CDispatcher::UpdateAgreement(const CDelegateAgreement& agree)
 {
+    Log("CDispatcher::UpdateAgreement starting...");
+
     CEventBlockMakerAgreement* pEvent = new CEventBlockMakerAgreement(0);
     if (pEvent != nullptr)
     {
         pEvent->data = agree;
         pBlockMaker->PostEvent(pEvent);
+        Log("CDispatcher::UpdateAgreement posted to maker");
     }
 }
 

@@ -358,6 +358,12 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                           agree.nWeight, mapBallot);
     pCoreProtocol->GetDelegatedBallot(agree.nAgreement, agree.nWeight, mapBallot,
                                       agree.vBallot, update.nLastBlockHeight + 1);
+    Log("Before posting agreement to dispatcher: agree : %s , weight : %d , ballot : %d , target : %d",
+        agree.nAgreement.ToString().c_str(), agree.nWeight, agree.vBallot.size(), update.nLastBlockHeight + 1);
+    for (const auto& i : agree.vBallot)
+    {
+        Log("ballot : %s", i.ToString().c_str());
+    }
     pDispatcher->UpdateAgreement(agree);
 }
 
