@@ -15,7 +15,7 @@ set(sources
     uint256_tests.cpp
     rpc_tests.cpp
     version_tests.cpp
-    # mpvss_tests.cpp
+    mpvss_tests.cpp
     ipv6_tests.cpp
     crypto_tests.cpp
     txpool_tests.cpp
@@ -34,7 +34,7 @@ target_link_libraries(test_big
     ${CMAKE_THREAD_LIBS_INIT}
     OpenSSL::SSL
     OpenSSL::Crypto
-    # mpvss
+    mpvss
     crypto
     libbigbang
     common
@@ -52,7 +52,7 @@ target_link_libraries(test_ctsdb
     ${CMAKE_THREAD_LIBS_INIT}
     OpenSSL::SSL
     OpenSSL::Crypto
-    # mpvss
+    mpvss
     crypto
     storage
 )

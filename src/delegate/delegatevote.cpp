@@ -2,8 +2,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "crypto.h"
 #include "delegatevote.h"
+
+#include "crypto.h"
 
 using namespace std;
 using namespace xengine;
@@ -244,6 +245,10 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
             mapBallot.insert(make_pair(DestFromIdentUInt256((*it).first), (*it).second.second));
         }
         nAgreement = crypto::CryptoHash(&vch[0], vch.size());
+    }
+    else
+    {
+        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty");
     }
 }
 

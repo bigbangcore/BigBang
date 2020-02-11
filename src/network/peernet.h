@@ -91,7 +91,7 @@ protected:
 
 protected:
     INetChannel* pNetChannel;
-    // IDelegatedChannel* pDelegatedChannel;
+    IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

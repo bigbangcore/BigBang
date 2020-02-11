@@ -679,7 +679,7 @@ CAddress CService::GetBackSender(const uint256& txid)
         throw std::runtime_error("get tx failed.");
     }
 
-    while (tx.nType != CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/
+    while ((tx.nType != CTransaction::TX_WORK && tx.nType != CTransaction::TX_STAKE)
            && (tx.vInput.size() > 0 ? 0 != tx.vInput[0].prevout.n : false))
     {
         uint256 txHash = tx.vInput[0].prevout.hash;
@@ -689,7 +689,7 @@ CAddress CService::GetBackSender(const uint256& txid)
         }
     }
 
-    if (tx.nType == CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/)
+    if (tx.nType == CTransaction::TX_WORK || tx.nType == CTransaction::TX_STAKE)
     {
         return CAddress(CDestination());
     }

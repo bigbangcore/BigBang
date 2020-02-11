@@ -169,29 +169,6 @@ public:
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
-    /*std::string ToString() const
-    {
-        std::ostringstream oss;
-
-        oss << "CBlockView : Add=(";
-        if (!vTxAddNew.empty())
-        {
-            oss << std::accumulate(vTxAddNew.begin() + 1, vTxAddNew.end(), vTxAddNew.front().GetHex(),
-                                   [](std::string lhs, const uint256& rhs) {
-                                       return std::move(lhs) + "," + rhs.GetHex();
-                                   });
-        }
-        oss << ") Remove=(";
-        if (!vTxRemove.empty())
-        {
-            oss << std::accumulate(vTxRemove.begin() + 1, vTxRemove.end(), vTxRemove.front().GetHex(),
-                                   [](std::string lhs, const uint256& rhs) {
-                                       return std::move(lhs) + "," + rhs.GetHex();
-                                   });
-        }
-        oss << ")";
-        return oss.str();
-    }*/
 
 protected:
     CBlockBase* pBlockBase;

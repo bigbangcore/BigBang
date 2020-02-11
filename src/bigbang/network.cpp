@@ -36,7 +36,7 @@ bool CNetwork::HandleInitialize()
         return false;
     }
 
-    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK /*| network::NODE_DELEGATED*/,
+    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK | network::NODE_DELEGATED,
               FormatSubVersion(), !NetworkConfig()->vConnectTo.empty(), pCoreProtocol->GetGenesisBlockHash());
 
     CPeerNetConfig config;
