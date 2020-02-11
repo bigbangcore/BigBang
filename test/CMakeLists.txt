@@ -36,8 +36,8 @@ target_link_libraries(test_big
     OpenSSL::Crypto
     mpvss
     crypto
-    libbigbang
     common
+    libbigbang
     xengine
     storage
     ${Boost_LOG_LIBRARY}
