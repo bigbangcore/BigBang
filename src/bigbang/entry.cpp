@@ -9,11 +9,11 @@
 
 #include "blockchain.h"
 #include "blockmaker.h"
-// #include "consensus.h"
+#include "consensus.h"
 #include "core.h"
 #include "datastat.h"
-// #include "delegatedchn.h"
 #include "defs.h"
+#include "delegatedchn.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
@@ -265,14 +265,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        // case EModuleType::DELEGATEDCHANNEL:
-        // {
-        //     if (!AttachModule(new CDelegatedChannel()))
-        //     {
-        //         return false;
-        //     }
-        //     break;
-        // }
+        case EModuleType::DELEGATEDCHANNEL:
+        {
+            if (!AttachModule(new CDelegatedChannel()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::NETWORK:
         {
             if (!AttachModule(new CNetwork()))
@@ -354,14 +354,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        // case EModuleType::CONSENSUS:
-        // {
-        //     if (!AttachModule(new CConsensus()))
-        //     {
-        //         return false;
-        //     }
-        //     break;
-        // }
+        case EModuleType::CONSENSUS:
+        {
+            if (!AttachModule(new CConsensus()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))
