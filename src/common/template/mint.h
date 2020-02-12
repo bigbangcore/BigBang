@@ -23,13 +23,8 @@ public:
     // Verify block signature.
     static bool VerifyBlockSignature(const CTemplateId& nIdIn, const uint256& hash, const std::vector<uint8>& vchSig);
 
-    // Verify block mint destination
-    static bool VerifyBlockMintDestination(const CTemplateId& nIdIn, const std::vector<uint8>& vchSig, const CDestination& destMint);
-
     // Build block signature by concrete template.
     bool BuildBlockSignature(const uint256& hash, const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig) const;
-
-    virtual void GetMintTemplateData(bigbang::crypto::CPubKey& keyMintOut, CDestination& destOwnerOut) const = 0;
 
 protected:
     // Verify block signature by concrete template.

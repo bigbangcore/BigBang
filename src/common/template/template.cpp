@@ -9,9 +9,9 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include "delegate.h"
-#include "exchange.h"
-#include "fork.h"
+// #include "delegate.h"
+// #include "exchange.h"
+// #include "fork.h"
 #include "multisig.h"
 #include "proof.h"
 #include "rpc/auto_protocol.h"
@@ -42,10 +42,10 @@ using CTypeInfoSet = boost::multi_index_container<
 static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_WEIGHTED, new CTemplateWeighted, "weighted" },
     { TEMPLATE_MULTISIG, new CTemplateMultiSig, "multisig" },
-    { TEMPLATE_FORK, new CTemplateFork, "fork" },
+    // { TEMPLATE_FORK, new CTemplateFork, "fork" },
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
-    { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
-    { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    // { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
+    // { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)

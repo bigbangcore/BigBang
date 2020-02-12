@@ -14,8 +14,8 @@ namespace bigbang
 namespace delegate
 {
 
-#define CONSENSUS_DISTRIBUTE_INTERVAL 3 //15
-#define CONSENSUS_ENROLL_INTERVAL 6     //30
+#define CONSENSUS_DISTRIBUTE_INTERVAL 15
+#define CONSENSUS_ENROLL_INTERVAL 30
 #define CONSENSUS_INTERVAL (CONSENSUS_DISTRIBUTE_INTERVAL + CONSENSUS_ENROLL_INTERVAL + 1)
 
 /* 
@@ -61,14 +61,12 @@ namespace delegate
 
 inline const CDestination DestFromIdentUInt256(const uint256& nIdent)
 {
-    //return CDestination(CTemplateId(nIdent));
-    return CDestination(crypto::CPubKey(nIdent));
+    return CDestination(CTemplateId(nIdent));
 }
 
 inline const uint256 DestToIdentUInt256(const CDestination& dest)
 {
-    //return dest.GetTemplateId();
-    return dest.GetPubKey();
+    return dest.GetTemplateId();
 }
 
 } // namespace delegate

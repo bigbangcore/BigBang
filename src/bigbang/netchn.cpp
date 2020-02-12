@@ -306,27 +306,18 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         StdLog("NetChannel", "SubscribeFork: mapSched insert success, hashFork: %s", hashFork.GetHex().c_str());
     }
 
-    vector<uint64> vPeerNonce;
     network::CEventPeerSubscribe eventSubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
     eventSubscribe.data.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
-            vPeerNonce.push_back((*it).first);
             eventSubscribe.nNonce = (*it).first;
             pPeerNet->DispatchEvent(&eventSubscribe);
+            DispatchGetBlocksEvent(it->first, hashFork);
+            BroadcastTxInv(hashFork);
         }
     }
-    if (!vPeerNonce.empty())
-    {
-        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-        for (const uint64& nPeer : vPeerNonce)
-        {
-            DispatchGetBlocksEvent(nPeer, hashFork);
-        }
-    }
-    BroadcastTxInv(hashFork);
 }
 
 void CNetChannel::UnsubscribeFork(const uint256& hashFork)
@@ -343,6 +334,7 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
 
     network::CEventPeerUnsubscribe eventUnsubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
     eventUnsubscribe.data.push_back(hashFork);
+
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
@@ -364,10 +356,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
     StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
-        {
-            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-            DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
-        }
+        DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
         BroadcastTxInv(pCoreProtocol->GetGenesisBlockHash());
 
         network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -433,32 +422,22 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        vector<uint256> vDispatchHash;
+        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        if (it != mapPeer.end())
         {
-            boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-            map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
-            if (it != mapPeer.end())
+            for (const uint256& hash : eventSubscribe.data)
             {
-                for (const uint256& hash : eventSubscribe.data)
+                (*it).second.Subscribe(hash);
+                mapUnsync[hash].insert(nNonce);
+
                 {
-                    (*it).second.Subscribe(hash);
-                    mapUnsync[hash].insert(nNonce);
+                    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                    if (mapSched.count(hash))
                     {
-                        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-                        if (mapSched.count(hash))
-                        {
-                            vDispatchHash.push_back(hash);
-                        }
+                        DispatchGetBlocksEvent(nNonce, hash);
                     }
                 }
-            }
-        }
-        if (!vDispatchHash.empty())
-        {
-            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-            for (const uint256& hash : vDispatchHash)
-            {
-                DispatchGetBlocksEvent(nNonce, hash);
             }
         }
     }
@@ -466,6 +445,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     {
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, string("eventSubscribe: ") + hashFork.GetHex());
     }
+
     return true;
 }
 
