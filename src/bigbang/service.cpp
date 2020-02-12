@@ -5,6 +5,7 @@
 #include "service.h"
 
 #include "event.h"
+#include "template/delegate.h"
 
 using namespace std;
 using namespace xengine;
@@ -364,6 +365,47 @@ bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest
 bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
 {
     return pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspent);
+}
+
+bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause)
+{
+    if (destDelegate.IsTemplate())
+    {
+        CTemplateId tid;
+        if (!(destDelegate.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE))
+        {
+            strFailCause = "Not a delegate template address";
+            return false;
+        }
+        CTemplatePtr ptr = pWallet->GetTemplate(tid);
+        if (ptr == nullptr)
+        {
+            strFailCause = "Delegate template address not imported";
+            return false;
+        }
+        CDestination destDelegateOut;
+        CDestination destOwnerOut;
+        boost::dynamic_pointer_cast<CTemplateDelegate>(ptr)->GetDelegateOwnerDestination(destDelegateOut, destOwnerOut);
+        if (destDelegateOut.IsNull())
+        {
+            strFailCause = "Delegate template address not imported";
+            return false;
+        }
+        if (!pBlockChain->GetVotes(destDelegateOut, nVotes))
+        {
+            strFailCause = "Query failed";
+            return false;
+        }
+    }
+    else
+    {
+        if (!pBlockChain->GetVotes(destDelegate, nVotes))
+        {
+            strFailCause = "Query failed";
+            return false;
+        }
+    }
+    return true;
 }
 
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)

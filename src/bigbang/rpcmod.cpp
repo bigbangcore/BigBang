@@ -203,6 +203,8 @@ CRPCMod::CRPCMod()
         ("sendtransaction", &CRPCMod::RPCSendTransaction)
         //
         ("getforkheight", &CRPCMod::RPCGetForkHeight)
+        //
+        ("getvotes", &CRPCMod::RPCGetVotes)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
         //
@@ -978,6 +980,36 @@ CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
     }
 
     return MakeCGetForkHeightResultPtr(pService->GetForkHeight(hashFork));
+}
+
+CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetVotesParam>(param);
+
+    CDestination destDelegate;
+    CAddress tempAddress(spParam->strAddress);
+    if (tempAddress.IsNull())
+    {
+        uint256 hash;
+        if (hash.SetHex(spParam->strAddress) != spParam->strAddress.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
+        }
+        destDelegate = CDestination(bigbang::crypto::CPubKey(hash));
+    }
+    else
+    {
+        destDelegate = tempAddress;
+    }
+
+    int64 nVotesToken;
+    string strFailCause;
+    if (!pService->GetVotes(destDelegate, nVotesToken, strFailCause))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, strFailCause);
+    }
+
+    return MakeCGetVotesResultPtr(ValueFromAmount(nVotesToken));
 }
 
 /* Wallet */

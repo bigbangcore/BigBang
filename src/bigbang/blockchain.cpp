@@ -737,6 +737,11 @@ bool CBlockChain::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std
     return cntrBlock.ListForkUnspentBatch(hashFork, nMax, mapUnspent);
 }
 
+bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
+{
+    return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
+}
+
 bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
 {
     return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);

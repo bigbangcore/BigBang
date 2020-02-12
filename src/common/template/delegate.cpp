@@ -158,7 +158,7 @@ bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
     else
     {
-        return destTo.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+        return destOwner.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
 }
 

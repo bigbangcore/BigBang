@@ -52,6 +52,7 @@ public:
     bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
+    bool GetVotes(const CDestination& destDelegate, int64& nVotes) override;
     bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) override;
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) override;
     int64 GetDelegateWeightRatio(const uint256& hashBlock) override;

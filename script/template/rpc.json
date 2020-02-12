@@ -1364,6 +1364,41 @@
             "{\"code\":-6,\"message\":\"Unknown fork\"}"
         ]
     },
+    "getvotes": {
+        "type": "command",
+        "name": "GetVotes",
+        "desc": "Get votes",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "delegate template address or delegate pubkey or delegate address"
+                }
+            }
+        },
+        "response": {
+            "type": "double",
+            "name": "votes",
+            "desc": "number of votes"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getvotes 20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0",
+                "response": "70000000.000000"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getvotes\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":70000000.000000}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -6, \"message\" : \"Invalid address\"}",
+            "{\"code\" : -32603, \"message\" : \"Not a delegate template address\"}",
+            "{\"code\" : -32603, \"message\" : \"Delegate template address not imported\"}",
+            "{\"code\" : -32603, \"message\" : \"Query failed\"}"
+        ]
+    },
     "listkey": {
         "type": "command",
         "name": "ListKey",

@@ -1738,6 +1738,22 @@ bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std:
     return true;
 }
 
+bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes)
+{
+    CBlockIndex* pForkLastIndex = nullptr;
+    if (!RetrieveFork(hashGenesis, &pForkLastIndex))
+    {
+        return false;
+    }
+    std::map<CDestination, int64> mapVote;
+    if (!dbBlock.RetrieveDelegate(pForkLastIndex->GetBlockHash(), mapVote))
+    {
+        return false;
+    }
+    nVotes = mapVote[destDelegate];
+    return true;
+}
+
 bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
 {
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
