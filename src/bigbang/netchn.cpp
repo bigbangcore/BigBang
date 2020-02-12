@@ -1351,6 +1351,13 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 continue;
             }
 
+            if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
+            {
+                StdDebug("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
+                         GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                continue;
+            }
+
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
