@@ -169,29 +169,6 @@ public:
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
-    /*std::string ToString() const
-    {
-        std::ostringstream oss;
-
-        oss << "CBlockView : Add=(";
-        if (!vTxAddNew.empty())
-        {
-            oss << std::accumulate(vTxAddNew.begin() + 1, vTxAddNew.end(), vTxAddNew.front().GetHex(),
-                                   [](std::string lhs, const uint256& rhs) {
-                                       return std::move(lhs) + "," + rhs.GetHex();
-                                   });
-        }
-        oss << ") Remove=(";
-        if (!vTxRemove.empty())
-        {
-            oss << std::accumulate(vTxRemove.begin() + 1, vTxRemove.end(), vTxRemove.front().GetHex(),
-                                   [](std::string lhs, const uint256& rhs) {
-                                       return std::move(lhs) + "," + rhs.GetHex();
-                                   });
-        }
-        oss << ")";
-        return oss.str();
-    }*/
 
 protected:
     CBlockBase* pBlockBase;
@@ -231,7 +208,7 @@ public:
     bool Exists(const uint256& hash) const;
     bool ExistsTx(const uint256& txid);
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
-    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
+    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nDelegateWeightRatio);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
@@ -268,6 +245,7 @@ public:
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
+    bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -281,7 +259,8 @@ protected:
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
     boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
-    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock);
+    bool VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate);
+    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate);
     bool GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent);
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
     void ClearCache();
