@@ -45,12 +45,6 @@ void CTemplateProof::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDest
     obj.mint.strSpent = (destInstance = destSpend).ToString();
 }
 
-void CTemplateProof::GetMintTemplateData(bigbang::crypto::CPubKey& keyMintOut, CDestination& destOwnerOut) const
-{
-    keyMintOut = keyMint;
-    destOwnerOut = destSpend;
-}
-
 bool CTemplateProof::ValidateParam() const
 {
     if (!keyMint)

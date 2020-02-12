@@ -208,7 +208,7 @@ public:
     bool Exists(const uint256& hash) const;
     bool ExistsTx(const uint256& txid);
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
-    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nDelegateWeightRatio);
+    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
@@ -245,7 +245,6 @@ public:
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
-    bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -259,8 +258,7 @@ protected:
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
     boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
-    bool VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate);
-    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate);
+    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock);
     bool GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent);
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
     void ClearCache();

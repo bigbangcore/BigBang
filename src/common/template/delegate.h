@@ -17,10 +17,8 @@ public:
     virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
-    virtual void GetMintTemplateData(bigbang::crypto::CPubKey& keyMintOut, CDestination& destOwnerOut) const;
 
     bool BuildVssSignature(const uint256& hash, const std::vector<uint8>& vchDelegateSig, std::vector<uint8>& vchVssSig);
-    virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const;
 
 protected:
     virtual bool ValidateParam() const;

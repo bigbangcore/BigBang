@@ -184,15 +184,6 @@ bool CDestination::VerifyBlockSignature(const uint256& hash, const vector<uint8>
     return false;
 }
 
-bool CDestination::VerifyBlockMintDestination(const std::vector<uint8>& vchSig, const CDestination& destMint) const
-{
-    if (IsTemplate())
-    {
-        return CTemplateMint::VerifyBlockMintDestination(GetTemplateId(), vchSig, destMint);
-    }
-    return false;
-}
-
 bool CDestination::ParseString(const string& str)
 {
     if (str.size() != DESTINATION_SIZE * 2 - 1 || str[0] < '0' || str[0] >= '0' + PREFIX_MAX)

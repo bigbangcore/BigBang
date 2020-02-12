@@ -300,11 +300,6 @@ inline uint64 BSwap64(uint64 n)
     return (n >> 32) | (n << 32);
 }
 
-inline double ValueFromToken(uint64 amount)
-{
-    return ((double)amount / (double)1000000);
-}
-
 } // namespace xengine
 
 #endif //XENGINE_UTIL_H

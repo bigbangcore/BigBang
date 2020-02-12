@@ -41,7 +41,6 @@ protected:
     Errno Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...);
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
-    bool VerifyDestRecorded(const CTransaction& tx, const CDestination& destIn, vector<uint8>& vchSigOut);
 
 protected:
     uint256 hashGenesisBlock;
