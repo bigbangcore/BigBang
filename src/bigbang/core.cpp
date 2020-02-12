@@ -162,6 +162,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
+
     if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
         && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
     {
@@ -516,12 +517,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
-    }
-
-    // v1.0 function
-    if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
     }
 
     // record destIn in vchSig

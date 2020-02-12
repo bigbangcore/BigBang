@@ -14,6 +14,7 @@
 //#include <algorithm>
 
 #include "address.h"
+#include "defs.h"
 #include "rpc/auto_protocol.h"
 #include "template/proof.h"
 #include "template/template.h"
@@ -1540,18 +1541,10 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
+    CTemplateId toID = to.GetTemplateId();
+    bool isForkAddr = (toID.GetType() == TEMPLATE_FORK);
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
-
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
 
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
@@ -1563,10 +1556,11 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
+
     vector<unsigned char> vchData;
-    auto strDataTmp = spParam->strData;
-    if (strDataTmp.IsValid())
+    if (spParam->strData.IsValid())
     {
+        auto strDataTmp = spParam->strData;
         if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
             auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
@@ -1575,6 +1569,50 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         else
         {
             vchData = ParseHexString(strDataTmp);
+        }
+        if (!isForkAddr)
+        {
+            if (TX_USER_DATA_MAX_SIZE < vchData.size())
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "User data size exceeds limit");
+            }
+        }
+    }
+
+    int64 nTxFee = MIN_TX_FEE;
+    if (spParam->dTxfee.IsValid())
+    {
+        nTxFee = AmountFromValue(spParam->dTxfee);
+        if (isForkAddr)
+        {
+            if (nTxFee < MIN_TX_FEE)
+            {
+                nTxFee = MIN_TX_FEE;
+            }
+        }
+        else
+        {
+            if (0 == vchData.size())
+            {
+                if (nTxFee < MIN_TX_FEE)
+                {
+                    nTxFee = MIN_TX_FEE;
+                }
+            }
+            else if (TX_USER_DATA_MAX_SIZE / 2 >= vchData.size())
+            {
+                if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1)
+                {
+                    nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1;
+                }
+            }
+            else
+            {
+                if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2)
+                {
+                    nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2;
+                }
+            }
         }
     }
 
@@ -1658,16 +1696,6 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
-
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
@@ -1683,7 +1711,39 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     if (spParam->strData.IsValid())
     {
         vchData = ParseHexString(spParam->strData);
+        if (TX_USER_DATA_MAX_SIZE < vchData.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "User data size exceeds limit");
+        }
     }
+
+    int64 nTxFee = MIN_TX_FEE;
+    if (spParam->dTxfee.IsValid())
+    {
+        nTxFee = AmountFromValue(spParam->dTxfee);
+        if (0 == vchData.size())
+        {
+            if (nTxFee < MIN_TX_FEE)
+            {
+                nTxFee = MIN_TX_FEE;
+            }
+        }
+        else if (TX_USER_DATA_MAX_SIZE / 2 >= vchData.size())
+        {
+            if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1)
+            {
+                nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1;
+            }
+        }
+        else
+        {
+            if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2)
+            {
+                nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2;
+            }
+        }
+    }
+
     CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
