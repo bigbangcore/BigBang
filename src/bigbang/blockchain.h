@@ -48,8 +48,8 @@ public:
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
     bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) override;
     bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) override;
-    // bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
-    // bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
+    bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
     bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) override;
@@ -65,10 +65,10 @@ protected:
     Errno GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt);
     bool GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                          std::vector<CBlockEx>& vBlockAddNew, std::vector<CBlockEx>& vBlockRemove);
-    // bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-    //    CDelegateAgreement& agreement);
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
+                                   CDelegateAgreement& agreement);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                      int64& nReward, CDelegateAgreement& agreement);
+                      int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef);
 
 protected:
     boost::shared_mutex rwAccess;

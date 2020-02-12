@@ -4,10 +4,10 @@
 
 #include "wallet.h"
 
+#include "../common/template/exchange.h"
 #include "address.h"
 #include "defs.h"
 
-// #include "../common/template/exchange.h"
 using namespace std;
 using namespace xengine;
 
@@ -1505,12 +1505,12 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
                 return false;
             }
         }
-        // if (ptr->GetTemplateType() == TEMPLATE_EXCHANGE)
-        // {
-        //     CTemplateExchangePtr pe = boost::dynamic_pointer_cast<CTemplateExchange>(ptr);
-        //     return pe->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, nForkHeight, vchSubSig, vchSig);
-        // }
-        // else
+        if (ptr->GetTemplateType() == TEMPLATE_EXCHANGE)
+        {
+            CTemplateExchangePtr pe = boost::dynamic_pointer_cast<CTemplateExchange>(ptr);
+            return pe->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, vchSubSig, vchSig);
+        }
+        else
         {
             if (!ptr->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, nForkHeight, vchSubSig, vchSig, fCompleted))
             {
