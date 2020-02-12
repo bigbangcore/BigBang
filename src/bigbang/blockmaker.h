@@ -46,9 +46,13 @@ public:
         xengine::CVarInt var(size);
         return (size + xengine::GetSerializeSize(var));
     }
-    const CDestination GetDestination() const
+    const CDestination GetMintTemplateDestination() const
     {
-        return (CDestination(templMint->GetTemplateId()));
+        return CDestination(templMint->GetTemplateId());
+    }
+    const CDestination GetDelegateDestination() const
+    {
+        return CDestination(keyMint.GetPubKey());
     }
 
 public:

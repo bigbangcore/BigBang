@@ -7,6 +7,8 @@
 #include "../common/template/exchange.h"
 #include "address.h"
 #include "defs.h"
+#include "template/delegate.h"
+#include "template/mint.h"
 
 using namespace std;
 using namespace xengine;
@@ -553,8 +555,48 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted)
 {
     vector<uint8> vchSig;
-
-    bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
+    CDestination destInDelegate;
+    CDestination destInOwner;
+    CDestination sendToDelegate;
+    CDestination sendToOwner;
+    bool fDestInRecorded = false;
+    {
+        CTemplateId tid;
+        if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            CTemplatePtr tempPtr = GetTemplate(tid);
+            if (tempPtr != nullptr)
+            {
+                boost::dynamic_pointer_cast<CTemplateDelegate>(tempPtr)->GetDelegateOwnerDestination(destInDelegate, destInOwner);
+            }
+            if (destInDelegate.IsNull() || destInOwner.IsNull())
+            {
+                StdError("CWallet", "SignTransaction: destIn does not load template, destIn: %s, txid: %s",
+                         CAddress(destIn).ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            fDestInRecorded = true;
+        }
+    }
+    {
+        CTemplateId tid;
+        if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            CTemplatePtr tempPtr = GetTemplate(tid);
+            if (tempPtr != nullptr)
+            {
+                boost::dynamic_pointer_cast<CTemplateDelegate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
+            }
+            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
+            {
+                StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
+                         CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            fDestInRecorded = true;
+        }
+    }
+    /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
     {
         if (fDestInRecorded)
@@ -571,7 +613,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         {
             vchSig = move(tx.vchSig);
         }
-    }
+    }*/
 
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
@@ -585,7 +627,8 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 
     if (fDestInRecorded)
     {
-        CDestInRecordedTemplate::RecordDestIn(destIn, vchSig, tx.vchSig);
+        CDestInRecordedTemplate::RecordDest(destInDelegate, destInOwner, sendToDelegate, sendToOwner, vchSig, tx.vchSig);
+        //CDestInRecordedTemplate::RecordDestIn(destDelegate, destOwner, vchSig, tx.vchSig);
     }
     else
     {
@@ -1448,6 +1491,7 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
 {
     if (destIn.IsPubKey())
     {
+        StdTrace("CWallet", "SignDestination: destIn.IsPubKey(), destIn: %s", CAddress(destIn).ToString().c_str());
         fCompleted = SignPubKey(destIn.GetPubKey(), hash, vchSig);
         if (!fCompleted)
         {
@@ -1480,6 +1524,8 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         }
         else if (setSubDest.size() == 1)
         {
+            StdTrace("CWallet", "SignDestination: setSubDest.size() == 1, destSubDest: %s, destIn: %s",
+                     CAddress(*setSubDest.begin()).ToString().c_str(), CAddress(destIn).ToString().c_str());
             if (!SignDestination(*setSubDest.begin(), tx, hash, vchSubSig, nForkHeight, fCompleted))
             {
                 StdError("CWallet", "SignDestination: SignDestination fail, txid: %s", tx.GetHash().GetHex().c_str());

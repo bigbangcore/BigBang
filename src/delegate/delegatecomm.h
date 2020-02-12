@@ -61,12 +61,14 @@ namespace delegate
 
 inline const CDestination DestFromIdentUInt256(const uint256& nIdent)
 {
-    return CDestination(CTemplateId(nIdent));
+    //return CDestination(CTemplateId(nIdent));
+    return CDestination(crypto::CPubKey(nIdent));
 }
 
 inline const uint256 DestToIdentUInt256(const CDestination& dest)
 {
-    return dest.GetTemplateId();
+    //return dest.GetTemplateId();
+    return dest.GetPubKey();
 }
 
 } // namespace delegate
