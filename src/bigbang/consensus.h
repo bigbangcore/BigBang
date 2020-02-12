@@ -71,13 +71,9 @@ public:
     CDelegateContext();
     CDelegateContext(const crypto::CKey& keyDelegateIn, const CDestination& destOwnerIn);
     void Clear();
-    const CDestination GetMintTemplateDestination() const
+    const CDestination GetDestination() const
     {
-        return destMintTemplate;
-    }
-    const CDestination GetDelegateDestination() const
-    {
-        return CDestination(keyDelegate.GetPubKey());
+        return destDelegate;
     }
     void ChangeTxSet(const CTxSetChange& change);
     void AddNewTx(const CAssembledTx& tx);
@@ -85,7 +81,7 @@ public:
                        const uint256& hashAnchor, int64 nTxFee, const std::vector<unsigned char>& vchData);
 
 protected:
-    CDestination destMintTemplate;
+    CDestination destDelegate;
     crypto::CKey keyDelegate;
     CDestination destOwner;
     CTemplatePtr templDelegate;

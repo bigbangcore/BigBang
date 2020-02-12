@@ -68,7 +68,6 @@ public:
                            const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork) const;
 
     bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
-    bool VerifyBlockMintDestination(const std::vector<uint8>& vchSig, const CDestination& destMint) const;
 
     // format
     virtual bool ParseString(const std::string& str);

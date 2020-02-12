@@ -19,7 +19,7 @@ class CDelegateTxFilter : public CTxFilter
 {
 public:
     CDelegateTxFilter(CDelegateContext& ctxtIn)
-      : CTxFilter(ctxtIn.GetMintTemplateDestination()), ctxt(ctxtIn)
+      : CTxFilter(ctxtIn.GetDestination()), ctxt(ctxtIn)
     {
     }
     bool FoundTx(const uint256& hashFork, const CAssembledTx& tx) override
@@ -43,7 +43,7 @@ CDelegateContext::CDelegateContext(const crypto::CKey& keyDelegateIn, const CDes
   : keyDelegate(keyDelegateIn), destOwner(destOwnerIn)
 {
     templDelegate = CTemplate::CreateTemplatePtr(new CTemplateDelegate(keyDelegateIn.GetPubKey(), destOwner));
-    destMintTemplate.SetTemplateId(templDelegate->GetTemplateId());
+    destDelegate.SetTemplateId(templDelegate->GetTemplateId());
 }
 
 void CDelegateContext::Clear()
@@ -89,7 +89,7 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
 
 void CDelegateContext::AddNewTx(const CAssembledTx& tx)
 {
-    if (tx.sendTo == destMintTemplate)
+    if (tx.sendTo == destDelegate)
     {
         if (tx.nType == CTransaction::TX_TOKEN && tx.destIn == destOwner)
         {
@@ -99,7 +99,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             delegateTx = CDelegateTx(tx);
             mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
         }
-        else if (tx.nType == CTransaction::TX_CERT && tx.destIn == destMintTemplate)
+        else if (tx.nType == CTransaction::TX_CERT && tx.destIn == destDelegate)
         {
             uint256 txid = tx.GetHash();
             CDelegateTx& delegateTx = mapTx[txid];
@@ -112,7 +112,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             }
         }
     }
-    if (tx.destIn == destMintTemplate)
+    if (tx.destIn == destDelegate)
     {
         for (const CTxIn& txin : tx.vInput)
         {
@@ -128,7 +128,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     tx.nType = CTransaction::TX_CERT;
     tx.nTimeStamp = nTime;
     tx.hashAnchor = hashAnchor;
-    tx.sendTo = destMintTemplate;
+    tx.sendTo = destDelegate;
     tx.nAmount = 0;
     tx.nTxFee = nTxFee;
     tx.vchData = vchData;
@@ -155,7 +155,6 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     }
     if (nValueIn <= nTxFee)
     {
-        StdLog("CDelegateContext", "BuildEnrollTx: nValueIn <= nTxFee, nValueIn: %.6f, unspent: %ld", ValueFromToken(nValueIn), mapUnspent.size());
         return false;
     }
 
@@ -165,7 +164,6 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     vector<unsigned char> vchDelegateSig;
     if (!keyDelegate.Sign(hash, vchDelegateSig))
     {
-        StdLog("CDelegateContext", "BuildEnrollTx: Sign fail");
         return false;
     }
     CTemplateDelegate* p = dynamic_cast<CTemplateDelegate*>(templDelegate.get());
@@ -212,11 +210,11 @@ bool CConsensus::HandleInitialize()
         key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyMpvss.begin(), MintConfig()->keyMpvss.end()));
 
         CDelegateContext ctxt(key, MintConfig()->destMpvss);
-        mapContext.insert(make_pair(ctxt.GetDelegateDestination(), ctxt));
+        mapContext.insert(make_pair(ctxt.GetDestination(), ctxt));
 
-        delegate.AddNewDelegate(ctxt.GetDelegateDestination());
+        delegate.AddNewDelegate(ctxt.GetDestination());
 
-        Log("AddNew delegate : %s", CAddress(ctxt.GetDelegateDestination()).ToString().c_str());
+        Log("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
     }
 
     return true;
@@ -310,11 +308,8 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         uint256 hash = update.vBlockAddNew[0].GetHash();
 
         CDelegateEnrolled enrolled;
-        if (!pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
-        {
-            StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateEnrolled fail, hash: %s", hash.GetHex().c_str());
-        }
-        else
+
+        if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
@@ -322,50 +317,15 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
             int nPublishTargetHeight = nBlockHeight + 1;
 
-            std::map<CDestination, int64> mapDelegateVote;
-            int64 nDelegateWeightRatio = pBlockChain->GetDelegateWeightRatio(hash);
-            bool fGetVote = pBlockChain->GetBlockDelegateVote(hash, mapDelegateVote);
-            if (nDelegateWeightRatio < 0 || !fGetVote)
+            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapEnrollData.begin();
+                 it != result.mapEnrollData.end(); ++it)
             {
-                if (nDelegateWeightRatio < 0)
+                map<CDestination, CDelegateContext>::iterator mi = mapContext.find((*it).first);
+                if (mi != mapContext.end())
                 {
-                    StdError("CConsensus", "PrimaryUpdate: GetDelegateWeightRatio fail, nDelegateWeightRatio: %.6f, hash: %s",
-                             ValueFromToken(nDelegateWeightRatio), hash.GetHex().c_str());
-                }
-                if (!fGetVote)
-                {
-                    StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateVote fail, hash: %s", hash.GetHex().c_str());
-                }
-            }
-            else
-            {
-                for (map<CDestination, vector<unsigned char>>::iterator it = result.mapEnrollData.begin();
-                     it != result.mapEnrollData.end(); ++it)
-                {
-                    StdTrace("CConsensus", "PrimaryUpdate: destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                    map<CDestination, CDelegateContext>::iterator mi = mapContext.find((*it).first);
-                    if (mi == mapContext.end())
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: mapContext find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
-                    std::map<CDestination, int64>::iterator dt = mapDelegateVote.find((*it).first);
-                    if (dt == mapDelegateVote.end())
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: mapDelegateVote find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
-                    if (dt->second < nDelegateWeightRatio)
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
                     CTransaction tx;
                     if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), 0, (*it).second))
                     {
-                        StdTrace("CConsensus", "PrimaryUpdate: BuildEnrollTx success, vote token: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
                         routine.vEnrollTx.push_back(tx);
                     }
                 }

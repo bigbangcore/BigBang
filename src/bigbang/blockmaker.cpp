@@ -126,7 +126,7 @@ bool CBlockMaker::HandleInitialize()
         CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
         if (profile.IsValid())
         {
-            mapDelegatedProfile.insert(make_pair(profile.GetDelegateDestination(), profile));
+            mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
         }
     }
 
@@ -342,7 +342,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
     }
 
     CBlockMakerProfile& profile = (*it).second;
-    CDestination destSendTo = profile.GetMintTemplateDestination();
+    CDestination destSendTo = profile.GetDestination();
 
     int nAlgo = nConsensus;
     int nBits;
@@ -441,7 +441,7 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
 
 bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, size_t nWeight)
 {
-    CDestination destSendTo = profile.GetMintTemplateDestination();
+    CDestination destSendTo = profile.GetDestination();
 
     int64 nReward;
     if (!pBlockChain->GetBlockMintReward(block.hashPrev, nReward))
@@ -520,7 +520,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
             txMint.nType = CTransaction::TX_STAKE;
             txMint.nTimeStamp = block.nTimeStamp;
             txMint.hashAnchor = hashFork;
-            txMint.sendTo = profile.GetMintTemplateDestination();
+            txMint.sendTo = profile.GetDestination();
             txMint.nAmount = 0;
 
             ArrangeBlockTx(block, hashFork, profile);
