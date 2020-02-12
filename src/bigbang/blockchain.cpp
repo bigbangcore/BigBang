@@ -474,15 +474,15 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
-    Log("AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
+    int64 nDelegateWeightRatio = (pIndexPrev->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    Log("AddNewBlock block chain trust: %s, delegate weight ratio: %.6f", nChainTrust.GetHex().c_str(), ValueFromToken(nDelegateWeightRatio));
 
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nDelegateWeightRatio))
     {
         Log("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
     CBlockIndex* pIndexFork = nullptr;
@@ -619,10 +619,11 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+    int64 nDelegateWeightRatio = (pIndexPrev->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
 
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nDelegateWeightRatio))
     {
         Log("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -739,6 +740,22 @@ bool CBlockChain::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std
 bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
 {
     return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);
+}
+
+bool CBlockChain::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination, int64>& mapVote)
+{
+    return cntrBlock.GetBlockDelegateVote(hashBlock, mapVote);
+}
+
+int64 CBlockChain::GetDelegateWeightRatio(const uint256& hashBlock)
+{
+    CBlockIndex* pIndex;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    {
+        StdLog("CBlockChain", "GetDelegateWeightRatio: RetrieveIndex fail, block: %s", hashBlock.GetHex().c_str());
+        return -1;
+    }
+    return (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
 }
 
 bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
