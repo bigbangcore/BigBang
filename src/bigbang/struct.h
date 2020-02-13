@@ -39,9 +39,14 @@ inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
     }
 
     int64 nFee = TX_USER_DATA_FEE_THRESH1 + nMinFee;
-    for (int i = 1; i < nSeg; ++i)
+    for (int i = 0; i < nSeg; ++i)
     {// size is more than TX_BASE_THRESHOLD
-        nFee += TX_USER_DATA_FEE_THRESH2 * (2 << (i - 1));
+        if (0 == i)
+        {
+            nFee += TX_USER_DATA_FEE_THRESH2 * 1;   //2^0
+            continue;
+        }
+        nFee += TX_USER_DATA_FEE_THRESH2 * (2 << (i - 1));  //2^(n-1)
     }
 
     return nFee;
