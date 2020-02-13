@@ -1678,7 +1678,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
 
-    int64 nTxFee = MIN_TX_FEE;
+    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
