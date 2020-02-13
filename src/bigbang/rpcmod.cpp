@@ -14,7 +14,6 @@
 //#include <algorithm>
 
 #include "address.h"
-#include "defs.h"
 #include "rpc/auto_protocol.h"
 #include "template/proof.h"
 #include "template/template.h"
@@ -1541,8 +1540,6 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
-    CTemplateId toID = to.GetTemplateId();
-    bool isForkAddr = (toID.GetType() == TEMPLATE_FORK);
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
@@ -1569,50 +1566,19 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         {
             vchData = ParseHexString(strDataTmp);
         }
-        if (!isForkAddr)
-        {
-            if (TX_USER_DATA_MAX_SIZE < vchData.size())
-            {
-                throw CRPCException(RPC_INVALID_PARAMETER, "User data size exceeds limit");
-            }
-        }
     }
 
     int64 nTxFee = MIN_TX_FEE;
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
-        if (isForkAddr)
+
+        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        if (nTxFee < nFee)
         {
-            if (nTxFee < MIN_TX_FEE)
-            {
-                nTxFee = MIN_TX_FEE;
-            }
+            nTxFee = nFee;
         }
-        else
-        {
-            if (0 == vchData.size())
-            {
-                if (nTxFee < MIN_TX_FEE)
-                {
-                    nTxFee = MIN_TX_FEE;
-                }
-            }
-            else if (TX_USER_DATA_MAX_SIZE / 2 >= vchData.size())
-            {
-                if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1)
-                {
-                    nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1;
-                }
-            }
-            else
-            {
-                if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2)
-                {
-                    nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2;
-                }
-            }
-        }
+        StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
     CTransaction txNew;
@@ -1712,37 +1678,19 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     if (spParam->strData.IsValid())
     {
         vchData = ParseHexString(spParam->strData);
-        if (TX_USER_DATA_MAX_SIZE < vchData.size())
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, "User data size exceeds limit");
-        }
     }
 
     int64 nTxFee = MIN_TX_FEE;
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
-        if (0 == vchData.size())
+
+        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        if (nTxFee < nFee)
         {
-            if (nTxFee < MIN_TX_FEE)
-            {
-                nTxFee = MIN_TX_FEE;
-            }
+            nTxFee = nFee;
         }
-        else if (TX_USER_DATA_MAX_SIZE / 2 >= vchData.size())
-        {
-            if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1)
-            {
-                nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH1;
-            }
-        }
-        else
-        {
-            if (nTxFee < MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2)
-            {
-                nTxFee = MIN_TX_FEE + TX_USER_DATA_FEE_THRESH2;
-            }
-        }
+        StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
     CTransaction txNew;

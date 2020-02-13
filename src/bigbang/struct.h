@@ -23,11 +23,6 @@ namespace bigbang
 
 inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
 {
-    if (MAX_TX_SIZE < nVchData)
-    {// size is more than MAX_TX_SIZE
-        return -1;
-    }
-
     if (0 == nVchData)
     {// size equals zero
         return nMinFee;
