@@ -1358,6 +1358,35 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 continue;
             }
 
+            if (pTx->nType == CTransaction::TX_CERT)
+            {
+                CDelegateEnrolled enrolled;
+                uint256 nLastBlockHash;
+                int nHeight;
+                int64 nTime;
+
+                if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), nLastBlockHash, nHeight, nTime))
+                {
+                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
+                    continue;
+                }
+
+                if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
+                {
+                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
+                             nLastBlockHash.GetHex().c_str());
+                    continue;
+                }
+
+                std::map<CDestination, std::size_t>::const_iterator iter = enrolled.mapWeight.find(pTx->sendTo);
+                if (iter == enrolled.mapWeight.end())
+                {
+                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
+                             pTx->sendTo.ToString());
+                    continue;
+                }
+            }
+
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
