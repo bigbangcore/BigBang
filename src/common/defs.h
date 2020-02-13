@@ -10,9 +10,4 @@ static const unsigned int HEIGHT_HASH_MULTI_SIGNER_MAINNET = 78256;
 static const unsigned int HEIGHT_HASH_MULTI_SIGNER_TESTNET = 20;
 extern unsigned int HEIGHT_HASH_MULTI_SIGNER;
 
-//max size of vchData of tx for common usage
-static const unsigned int TX_USER_DATA_MAX_SIZE = 400;
-static const unsigned int TX_USER_DATA_FEE_THRESH1 = 200;
-static const unsigned int TX_USER_DATA_FEE_THRESH2 = 300;
-
 #endif //BIGBANG_DEFS_H

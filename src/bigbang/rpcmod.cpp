@@ -1551,7 +1551,6 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
-
     if (!pService->HaveFork(hashFork))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
@@ -1653,6 +1652,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from address");
         }
     }
+
     if (!pService->SignTransaction(txNew, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
@@ -1661,6 +1661,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_WALLET_ERROR, "The signature is not completed");
     }
+
     Errno err = pService->SendTransaction(txNew);
     if (err != OK)
     {
