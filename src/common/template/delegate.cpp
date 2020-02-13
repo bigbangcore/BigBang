@@ -51,41 +51,16 @@ void CTemplateDelegate::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
     obj.delegate.strOwner = (destInstance = destOwner).ToString();
 }
 
-void CTemplateDelegate::GetMintTemplateData(bigbang::crypto::CPubKey& keyMintOut, CDestination& destOwnerOut) const
-{
-    keyMintOut = keyDelegate;
-    destOwnerOut = destOwner;
-}
-
 bool CTemplateDelegate::BuildVssSignature(const uint256& hash, const vector<uint8>& vchDelegateSig, vector<uint8>& vchVssSig)
 {
     if (!keyDelegate.Verify(hash, vchDelegateSig))
     {
         return false;
     }
-
-    /*vchVssSig.clear();
-    xengine::CODataStream ods(vchVssSig, CDestination::DESTINATION_SIZE + vchData.size() + vchDelegateSig.size());
-    //ods << CDestination(nId) << vchData << vchDelegateSig;
-    ods << CDestination(nId);
+    vchVssSig.clear();
+    xengine::CODataStream ods(vchVssSig, vchData.size() + vchDelegateSig.size());
     ods.Push(&vchData[0], vchData.size());
-    ods.Push(&vchDelegateSig[0], vchDelegateSig.size());*/
-
-    vector<uint8> vPrevSig;
-    {
-        xengine::CODataStream ods(vPrevSig, vchData.size() + vchDelegateSig.size());
-        ods.Push(&vchData[0], vchData.size());
-        ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
-    }
-    CDestination destDelegate(keyDelegate);
-    CDestInRecordedTemplate::RecordDest(destDelegate, destOwner, destDelegate, destOwner, vPrevSig, vchVssSig);
-    return true;
-}
-
-bool CTemplateDelegate::GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const
-{
-    destDelegateOut.SetPubKey(keyDelegate);
-    destOwnerOut = destOwner;
+    ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
     return true;
 }
 

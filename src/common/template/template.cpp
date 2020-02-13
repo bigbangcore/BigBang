@@ -19,6 +19,7 @@
 #include "template.h"
 #include "templateid.h"
 #include "transaction.h"
+#include "vote.h"
 #include "weighted.h"
 
 using namespace std;
@@ -46,6 +47,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    { TEMPLATE_VOTE, new CTemplateVote, "vote" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)

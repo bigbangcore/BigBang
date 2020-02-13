@@ -16,6 +16,7 @@ set(template
     template/proof.h        template/proof.cpp 
     template/delegate.h     template/delegate.cpp 
     template/exchange.h     template/exchange.cpp 
+    template/vote.h         template/vote.cpp 
 )
 
 set(sources

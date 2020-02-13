@@ -205,6 +205,8 @@ CRPCMod::CRPCMod()
         ("getforkheight", &CRPCMod::RPCGetForkHeight)
         //
         ("getvotes", &CRPCMod::RPCGetVotes)
+        //
+        ("listdelegate", &CRPCMod::RPCListDelegate)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
         //
@@ -986,20 +988,10 @@ CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetVotesParam>(param);
 
-    CDestination destDelegate;
-    CAddress tempAddress(spParam->strAddress);
-    if (tempAddress.IsNull())
+    CAddress destDelegate(spParam->strAddress);
+    if (destDelegate.IsNull())
     {
-        uint256 hash;
-        if (hash.SetHex(spParam->strAddress) != spParam->strAddress.size())
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
-        }
-        destDelegate = CDestination(bigbang::crypto::CPubKey(hash));
-    }
-    else
-    {
-        destDelegate = tempAddress;
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
     int64 nVotesToken;
@@ -1010,6 +1002,27 @@ CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
     }
 
     return MakeCGetVotesResultPtr(ValueFromAmount(nVotesToken));
+}
+
+CRPCResultPtr CRPCMod::RPCListDelegate(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDelegateParam>(param);
+
+    std::multimap<int64, CDestination> mapVotes;
+    if (!pService->ListDelegate(spParam->nCount, mapVotes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Query fail");
+    }
+
+    auto spResult = MakeCListDelegateResultPtr();
+    for (const auto& d : mapVotes)
+    {
+        CListDelegateResult::CDelegate delegateData;
+        delegateData.strAddress = CAddress(d.second).ToString();
+        delegateData.dVotes = ValueFromAmount(d.first);
+        spResult->vecDelegate.push_back(delegateData);
+    }
+    return spResult;
 }
 
 /* Wallet */

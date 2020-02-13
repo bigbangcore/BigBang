@@ -742,6 +742,11 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
+bool CBlockChain::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
+{
+    return cntrBlock.GetDelegateList(pCoreProtocol->GetGenesisBlockHash(), nCount, mapVotes);
+}
+
 bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
 {
     return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);

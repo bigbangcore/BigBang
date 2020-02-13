@@ -19,7 +19,7 @@ class CDelegateTxFilter : public CTxFilter
 {
 public:
     CDelegateTxFilter(CDelegateContext& ctxtIn)
-      : CTxFilter(ctxtIn.GetMintTemplateDestination()), ctxt(ctxtIn)
+      : CTxFilter(ctxtIn.GetDestination()), ctxt(ctxtIn)
     {
     }
     bool FoundTx(const uint256& hashFork, const CAssembledTx& tx) override
@@ -43,7 +43,7 @@ CDelegateContext::CDelegateContext(const crypto::CKey& keyDelegateIn, const CDes
   : keyDelegate(keyDelegateIn), destOwner(destOwnerIn)
 {
     templDelegate = CTemplate::CreateTemplatePtr(new CTemplateDelegate(keyDelegateIn.GetPubKey(), destOwner));
-    destMintTemplate.SetTemplateId(templDelegate->GetTemplateId());
+    destDelegate.SetTemplateId(templDelegate->GetTemplateId());
 }
 
 void CDelegateContext::Clear()
@@ -89,7 +89,7 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
 
 void CDelegateContext::AddNewTx(const CAssembledTx& tx)
 {
-    if (tx.sendTo == destMintTemplate)
+    if (tx.sendTo == destDelegate)
     {
         if (tx.nType == CTransaction::TX_TOKEN && tx.destIn == destOwner)
         {
@@ -99,7 +99,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             delegateTx = CDelegateTx(tx);
             mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
         }
-        else if (tx.nType == CTransaction::TX_CERT && tx.destIn == destMintTemplate)
+        else if (tx.nType == CTransaction::TX_CERT && tx.destIn == destDelegate)
         {
             uint256 txid = tx.GetHash();
             CDelegateTx& delegateTx = mapTx[txid];
@@ -112,7 +112,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             }
         }
     }
-    if (tx.destIn == destMintTemplate)
+    if (tx.destIn == destDelegate)
     {
         for (const CTxIn& txin : tx.vInput)
         {
@@ -128,7 +128,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     tx.nType = CTransaction::TX_CERT;
     tx.nTimeStamp = nTime;
     tx.hashAnchor = hashAnchor;
-    tx.sendTo = destMintTemplate;
+    tx.sendTo = destDelegate;
     tx.nAmount = 0;
     tx.nTxFee = nTxFee;
     tx.vchData = vchData;
@@ -212,11 +212,11 @@ bool CConsensus::HandleInitialize()
         key.SetSecret(crypto::CCryptoKeyData(MintConfig()->keyMpvss.begin(), MintConfig()->keyMpvss.end()));
 
         CDelegateContext ctxt(key, MintConfig()->destMpvss);
-        mapContext.insert(make_pair(ctxt.GetDelegateDestination(), ctxt));
+        mapContext.insert(make_pair(ctxt.GetDestination(), ctxt));
 
-        delegate.AddNewDelegate(ctxt.GetDelegateDestination());
+        delegate.AddNewDelegate(ctxt.GetDestination());
 
-        Log("AddNew delegate : %s", CAddress(ctxt.GetDelegateDestination()).ToString().c_str());
+        Log("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
     }
 
     return true;

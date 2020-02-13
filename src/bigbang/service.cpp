@@ -369,35 +369,14 @@ bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::m
 
 bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause)
 {
-    if (destDelegate.IsTemplate())
+    CTemplateId tid;
+    if (!destDelegate.GetTemplateId(tid)
+        || (tid.GetType() != TEMPLATE_DELEGATE && tid.GetType() != TEMPLATE_VOTE))
     {
-        CTemplateId tid;
-        if (!(destDelegate.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE))
-        {
-            strFailCause = "Not a delegate template address";
-            return false;
-        }
-        CTemplatePtr ptr = pWallet->GetTemplate(tid);
-        if (ptr == nullptr)
-        {
-            strFailCause = "Delegate template address not imported";
-            return false;
-        }
-        CDestination destDelegateOut;
-        CDestination destOwnerOut;
-        boost::dynamic_pointer_cast<CTemplateDelegate>(ptr)->GetDelegateOwnerDestination(destDelegateOut, destOwnerOut);
-        if (destDelegateOut.IsNull())
-        {
-            strFailCause = "Delegate template address not imported";
-            return false;
-        }
-        if (!pBlockChain->GetVotes(destDelegateOut, nVotes))
-        {
-            strFailCause = "Query failed";
-            return false;
-        }
+        strFailCause = "Not a delegate or vote template address";
+        return false;
     }
-    else
+    if (tid.GetType() == TEMPLATE_DELEGATE)
     {
         if (!pBlockChain->GetVotes(destDelegate, nVotes))
         {
@@ -405,7 +384,34 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
             return false;
         }
     }
+    else
+    {
+        CTemplatePtr ptr = pWallet->GetTemplate(tid);
+        if (ptr == nullptr)
+        {
+            strFailCause = "Delegate template address not imported";
+            return false;
+        }
+        CDestination destDelegateTemplateOut;
+        CDestination destOwnerOut;
+        boost::dynamic_pointer_cast<CDestInRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
+        if (destDelegateTemplateOut.IsNull())
+        {
+            strFailCause = "Delegate template address not imported";
+            return false;
+        }
+        if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
+        {
+            strFailCause = "Query failed";
+            return false;
+        }
+    }
     return true;
+}
+
+bool CService::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
+{
+    return pBlockChain->ListDelegate(nCount, mapVotes);
 }
 
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)

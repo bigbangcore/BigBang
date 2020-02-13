@@ -2,21 +2,23 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef COMMON_TEMPLATE_PROOF_H
-#define COMMON_TEMPLATE_PROOF_H
+#ifndef COMMON_TEMPLATE_VOTE_H
+#define COMMON_TEMPLATE_VOTE_H
 
 #include "destination.h"
 #include "mint.h"
 
-class CTemplateProof : virtual public CTemplateMint
+class CTemplateVote : virtual public CTemplate, virtual public CDestInRecordedTemplate
 {
 public:
-    CTemplateProof(const bigbang::crypto::CPubKey keyMintIn = bigbang::crypto::CPubKey(),
-                   const CDestination& destSpendIn = CDestination());
-    virtual CTemplateProof* clone() const;
+    CTemplateVote(const CDestination& destDelegateIn = CDestination(),
+                  const CDestination& destOwnerIn = CDestination());
+    virtual CTemplateVote* clone() const;
     virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
+
+    virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const;
 
 protected:
     virtual bool ValidateParam() const;
@@ -25,11 +27,10 @@ protected:
     virtual void BuildTemplateData();
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                    const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
-    virtual bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 
 protected:
-    bigbang::crypto::CPubKey keyMint;
-    CDestination destSpend;
+    CDestination destDelegate;
+    CDestination destOwner;
 };
 
-#endif // COMMON_TEMPLATE_PROOF_H
+#endif // COMMON_TEMPLATE_VOTE_H

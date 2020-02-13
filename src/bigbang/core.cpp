@@ -7,6 +7,7 @@
 #include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
 #include "../common/template/mint.h"
+#include "../common/template/vote.h"
 #include "address.h"
 #include "wallet.h"
 
@@ -397,11 +398,7 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
     }
 
-    /*if (block.txMint.sendTo != agreement.vBallot[0])
-    {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
-    }*/
-    if (!block.txMint.sendTo.VerifyBlockMintDestination(block.vchSig, agreement.vBallot[0]))
+    if (block.txMint.sendTo != agreement.vBallot[0])
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
@@ -433,11 +430,7 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     }
 
     int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
-    /*if (block.txMint.sendTo != agreement.GetBallot(nIndex))
-    {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
-    }*/
-    if (!block.txMint.sendTo.VerifyBlockMintDestination(block.vchSig, agreement.GetBallot(nIndex)))
+    if (block.txMint.sendTo != agreement.GetBallot(nIndex))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
@@ -817,42 +810,70 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, const CDestinatio
     }
     if (fRecordedDestIn || fRecordedSendTo)
     {
-        CDestination destInDelegate;
+        CDestination destInDelegateTemplate;
         CDestination destInOwner;
-        CDestination sendToDelegate;
+        CDestination sendToDelegateTemplate;
         CDestination sendToOwner;
-        if (!CDestInRecordedTemplate::ParseDest(tx.vchSig, destInDelegate, destInOwner, sendToDelegate, sendToOwner, vchSigOut))
+        if (!CDestInRecordedTemplate::ParseDest(tx.vchSig, destInDelegateTemplate, destInOwner, sendToDelegateTemplate, sendToOwner, vchSigOut))
         {
             StdError("Core", "Verify dest recorded: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
             return false;
         }
         if (fRecordedDestIn)
         {
-            if (destInDelegate.IsNull() || destInOwner.IsNull())
+            if (destInDelegateTemplate.IsNull() || destInOwner.IsNull())
             {
                 StdError("Core", "Verify dest recorded: destIn dest is null, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
             }
-            if (CTemplateMint::CreateTemplatePtr(new CTemplateDelegate(destInDelegate.GetPubKey(), destInOwner))->GetTemplateId() != destIn.GetTemplateId())
+            CTemplateId tid;
+            if (!(destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
+            {
+                StdError("Core", "Verify dest recorded: destIn not is template, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str());
+                return false;
+            }
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(destInDelegateTemplate, destInOwner));
+            if (ptr == nullptr)
+            {
+                StdError("Core", "Verify dest recorded: destIn CreateTemplatePtr fail, txid: %s, destIn: %s, delegate dest: %s, owner dest: %s",
+                         tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str(),
+                         CAddress(destInDelegateTemplate).ToString().c_str(), CAddress(destInOwner).ToString().c_str());
+                return false;
+            }
+            if (ptr->GetTemplateId() != destIn.GetTemplateId())
             {
                 StdError("Core", "Verify dest recorded: destIn error, txid: %s, destIn: %s, delegate pubkey: %s, owner dest: %s",
                          tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str(),
-                         destInDelegate.GetPubKey().GetHex().c_str(), CAddress(destInOwner).ToString().c_str());
+                         destInDelegateTemplate.GetPubKey().GetHex().c_str(), CAddress(destInOwner).ToString().c_str());
                 return false;
             }
         }
         if (fRecordedSendTo)
         {
-            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
+            if (sendToDelegateTemplate.IsNull() || sendToOwner.IsNull())
             {
                 StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
             }
-            if (CTemplateMint::CreateTemplatePtr(new CTemplateDelegate(sendToDelegate.GetPubKey(), sendToOwner))->GetTemplateId() != tx.sendTo.GetTemplateId())
+            CTemplateId tid;
+            if (!(tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
+            {
+                StdError("Core", "Verify dest recorded: sendTo not is template, txid: %s, sendTo: %s", tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
+                return false;
+            }
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(sendToDelegateTemplate, sendToOwner));
+            if (ptr == nullptr)
+            {
+                StdError("Core", "Verify dest recorded: sendTo CreateTemplatePtr fail, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
+                         tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                         CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
+                return false;
+            }
+            if (ptr->GetTemplateId() != tx.sendTo.GetTemplateId())
             {
                 StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate pubkey: %s, owner dest: %s",
                          tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
-                         sendToDelegate.GetPubKey().GetHex().c_str(), CAddress(sendToOwner).ToString().c_str());
+                         sendToDelegateTemplate.GetPubKey().GetHex().c_str(), CAddress(sendToOwner).ToString().c_str());
                 return false;
             }
         }

@@ -96,6 +96,7 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
+    virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) = 0;
     virtual bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) = 0;
     virtual int64 GetDelegateWeightRatio(const uint256& hashBlock) = 0;
@@ -284,6 +285,7 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause) = 0;
+    virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
 
     /* Wallet */
     virtual bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) = 0;

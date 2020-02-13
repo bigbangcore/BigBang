@@ -759,8 +759,8 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     }
     for (const auto d : mapVote)
     {
-        StdTrace("BlockBase", "RetrieveAvailDelegate mapVote: dest: %s, vote: %.6f",
-                 CAddress(d.first).ToString().c_str(), ValueFromToken(d.second));
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapVote: height: %d, dest: %s, vote: %.6f",
+                 height, CAddress(d.first).ToString().c_str(), ValueFromToken(d.second));
     }
 
     map<CDestination, CDiskPos> mapEnrollTxPos;
@@ -772,8 +772,8 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     }
     for (const auto d : mapEnrollTxPos)
     {
-        StdTrace("BlockBase", "RetrieveAvailDelegate mapEnrollTxPos: dest: %s",
-                 CAddress(d.first).ToString().c_str());
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapEnrollTxPos: height: %d, dest: %s",
+                 height, CAddress(d.first).ToString().c_str());
     }
 
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
@@ -1754,6 +1754,35 @@ bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDe
     return true;
 }
 
+bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
+{
+    CBlockIndex* pForkLastIndex = nullptr;
+    if (!RetrieveFork(hashGenesis, &pForkLastIndex))
+    {
+        return false;
+    }
+    std::map<CDestination, int64> mapVote;
+    if (!dbBlock.RetrieveDelegate(pForkLastIndex->GetBlockHash(), mapVote))
+    {
+        return false;
+    }
+    for (const auto& d : mapVote)
+    {
+        mapVotes.insert(std::make_pair(d.second, d.first));
+    }
+    if (nCount > 0)
+    {
+        std::size_t nGetVotesCount = mapVotes.size();
+        std::multimap<int64, CDestination>::iterator it = mapVotes.begin();
+        while (it != mapVotes.end() && nGetVotesCount > nCount)
+        {
+            mapVotes.erase(++it);
+            --nGetVotesCount;
+        }
+    }
+    return true;
+}
+
 bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
 {
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
@@ -1974,60 +2003,84 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
     for (int i = 0; i < block.vtx.size(); i++)
     {
         CTransaction& tx = block.vtx[i];
-        CDestination destInDelegate;
-        CDestination sendToDelegate;
-        bool fHasDelegate = false;
+        CDestination sendToDelegateTemplate;
+        CDestination destInDelegateTemplate;
+        bool fHasRecordedDest = false;
         {
             CTemplateId tid;
-            if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+            if (tx.sendTo.GetTemplateId(tid))
             {
-                fHasDelegate = true;
+                if (tid.GetType() == TEMPLATE_DELEGATE)
+                {
+                    sendToDelegateTemplate = tx.sendTo;
+                }
+                else if (tid.GetType() == TEMPLATE_VOTE)
+                {
+                    fHasRecordedDest = true;
+                }
                 //mapDelegate[tx.sendTo] += tx.nAmount;
             }
         }
         CTxContxt& txContxt = block.vTxContxt[i];
         {
             CTemplateId tid;
-            if (txContxt.destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+            if (txContxt.destIn.GetTemplateId(tid))
             {
-                fHasDelegate = true;
+                if (tid.GetType() == TEMPLATE_DELEGATE)
+                {
+                    destInDelegateTemplate = txContxt.destIn;
+                }
+                else if (tid.GetType() == TEMPLATE_VOTE)
+                {
+                    fHasRecordedDest = true;
+                }
                 //mapDelegate[txContxt.destIn] -= tx.nAmount + tx.nTxFee;
             }
         }
-        if (fHasDelegate)
+        if (fHasRecordedDest)
         {
-            if (!CDestInRecordedTemplate::ParseDelegateDest(tx.vchSig, destInDelegate, sendToDelegate))
+            CDestination sendToDest;
+            CDestination destInDest;
+            if (!CDestInRecordedTemplate::ParseDelegateDest(tx.vchSig, destInDest, sendToDest))
             {
-                destInDelegate.SetNull();
-                sendToDelegate.SetNull();
+                destInDest.SetNull();
+                sendToDest.SetNull();
             }
-            if (!sendToDelegate.IsNull())
+            if (!sendToDest.IsNull() && sendToDelegateTemplate.IsNull())
             {
-                vDestVote.push_back(make_pair(sendToDelegate, tx.nAmount));
+                sendToDelegateTemplate = sendToDest;
             }
-            if (!destInDelegate.IsNull())
+            if (!destInDest.IsNull() && destInDelegateTemplate.IsNull())
             {
-                vDestVote.push_back(make_pair(destInDelegate, 0 - (tx.nAmount + tx.nTxFee)));
+                destInDelegateTemplate = destInDest;
             }
+        }
+        if (!sendToDelegateTemplate.IsNull())
+        {
+            vDestVote.push_back(make_pair(sendToDelegateTemplate, tx.nAmount));
+        }
+        if (!destInDelegateTemplate.IsNull())
+        {
+            vDestVote.push_back(make_pair(destInDelegateTemplate, 0 - (tx.nAmount + tx.nTxFee)));
         }
         if (tx.nType == CTransaction::TX_CERT)
         {
-            if (destInDelegate.IsNull())
+            if (destInDelegateTemplate.IsNull())
             {
                 StdLog("CBlockBase", "Verify delegate vote: destInDelegate is null, destInDelegate: %s, block: %s",
-                       CAddress(destInDelegate).ToString().c_str(), hash.GetHex().c_str());
+                       CAddress(destInDelegateTemplate).ToString().c_str(), hash.GetHex().c_str());
                 return false;
             }
-            int64 nDelegateVote = mapDelegate[destInDelegate];
+            int64 nDelegateVote = mapDelegate[destInDelegateTemplate];
             if (nDelegateVote < nDelegateWeightRatio)
             {
                 StdLog("CBlockBase", "Verify delegate vote: TX_CERT not enough votes, destInDelegate: %s, delegate vote: %.6f, weight ratio: %.6f, txid: %s",
-                       CAddress(destInDelegate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nDelegateWeightRatio), tx.GetHash().GetHex().c_str());
+                       CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nDelegateWeightRatio), tx.GetHash().GetHex().c_str());
                 return false;
             }
-            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegate, CDiskPos(0, nOffset)));
+            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
             StdTrace("CBlockBase", "VerifyDelegateVote: Enroll cert tx, height: %d, vote: %.6f, destInDelegate: %s, txid: %s",
-                     GetIndex(block.hashPrev)->GetBlockHeight(), ValueFromToken(nDelegateVote), CAddress(destInDelegate).ToString().c_str(), tx.GetHash().GetHex().c_str());
+                     GetIndex(block.hashPrev)->GetBlockHeight(), ValueFromToken(nDelegateVote), CAddress(destInDelegateTemplate).ToString().c_str(), tx.GetHash().GetHex().c_str());
             //mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
         }
         nOffset += ss.GetSerializeSize(tx);
@@ -2049,7 +2102,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
     {
         for (auto it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
         {
-            StdTrace("CBlockBase", "VerifyDelegateVote: Delegate dest: %s, token: %.6f",
+            StdTrace("CBlockBase", "VerifyDelegateVote: destDelegate: %s, votes: %.6f",
                      CAddress(it->first).ToString().c_str(), ValueFromToken(it->second));
         }
     }
