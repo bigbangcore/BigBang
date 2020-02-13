@@ -1571,7 +1571,11 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
-        nTxFee = AmountFromValue(spParam->dTxfee);
+        int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
+        if (nUserTxFee > nTxFee)
+        {
+            nTxFee = nUserTxFee;
+        }
         StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
