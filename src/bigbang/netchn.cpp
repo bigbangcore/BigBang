@@ -1353,8 +1353,8 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
 
             if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
             {
-                StdDebug("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
-                         GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                StdWarn("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
+                        GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
                 continue;
             }
 
@@ -1367,22 +1367,22 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
 
                 if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), nLastBlockHash, nHeight, nTime))
                 {
-                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
                     continue;
                 }
 
                 if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
                 {
-                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
-                             nLastBlockHash.GetHex().c_str());
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
+                            nLastBlockHash.GetHex().c_str());
                     continue;
                 }
 
                 std::map<CDestination, std::size_t>::const_iterator iter = enrolled.mapWeight.find(pTx->sendTo);
                 if (iter == enrolled.mapWeight.end())
                 {
-                    StdDebug("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
-                             pTx->sendTo.ToString());
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
+                            pTx->sendTo.ToString());
                     continue;
                 }
             }
