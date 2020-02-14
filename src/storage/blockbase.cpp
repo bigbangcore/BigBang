@@ -1825,6 +1825,24 @@ bool CBlockBase::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination
     return dbBlock.RetrieveDelegate(hashBlock, mapVote);
 }
 
+bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, set<CDestination>>& mapEnrollDest)
+{
+    map<int, map<CDestination, CDiskPos>> mapEnrollTxPos;
+    if (!dbBlock.RetrieveEnroll(hashBlock, mapEnrollTxPos))
+    {
+        return false;
+    }
+    for (const auto& d : mapEnrollTxPos)
+    {
+        set<CDestination>& destEnroll = mapEnrollDest[d.first];
+        for (const auto& m : d.second)
+        {
+            destEnroll.insert(m.first);
+        }
+    }
+    return true;
+}
+
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);

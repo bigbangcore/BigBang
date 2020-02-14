@@ -100,6 +100,7 @@ public:
     virtual bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) = 0;
     virtual bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) = 0;
     virtual int64 GetDelegateWeightRatio(const uint256& hashBlock) = 0;
+    virtual bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) = 0;
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
     const CBasicConfig* Config()

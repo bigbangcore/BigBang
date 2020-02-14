@@ -248,6 +248,7 @@ public:
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
     bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
+    bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;

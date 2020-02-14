@@ -199,16 +199,27 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
 {
     size_t nTotalSize = 0;
     nTotalTxFee = 0;
-
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
     for (auto const& i : idxTxLinkSeq)
     {
         if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
         {
+            if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+            {
+                std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
+                if (it != mapVoteCert.end())
+                {
+                    if (it->second <= 0)
+                    {
+                        continue;
+                    }
+                    it->second--;
+                }
+            }
             if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
             {
                 break;
@@ -468,8 +479,24 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
                              vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    CTxPoolView& txView = mapPoolView[hashFork];
-    txView.ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize);
+    map<CDestination, int> mapVoteCert;
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        uint256 hashLastBlock;
+        int nHeight;
+        int64 nTime;
+        if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
+            return;
+        }
+        if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
+            return;
+        }
+    }
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)

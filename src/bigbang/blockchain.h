@@ -57,6 +57,7 @@ public:
     bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) override;
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) override;
     int64 GetDelegateWeightRatio(const uint256& hashBlock) override;
+    bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) override;
 
 protected:
     bool HandleInitialize() override;
@@ -73,6 +74,7 @@ protected:
                                    CDelegateAgreement& agreement);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
                       int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef);
+    bool VerifyBlockCertTx(const CBlock& block);
 
 protected:
     boost::shared_mutex rwAccess;

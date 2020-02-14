@@ -191,7 +191,7 @@ public:
         mapSpent.clear();
     }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
-    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
+    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
