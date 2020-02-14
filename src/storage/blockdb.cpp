@@ -157,13 +157,13 @@ bool CBlockDB::UpdateFork(const uint256& hash, const uint256& hashRefBlock, cons
     {
         return false;
     }
-    dbTxIndex.Flush(hash);
+    //dbTxIndex.Flush(hash);
 
     if (!dbUnspent.Update(hash, vAddNew, vRemove))
     {
         return false;
     }
-    dbUnspent.Flush(hash);
+    //dbUnspent.Flush(hash);
 
     return true;
 }

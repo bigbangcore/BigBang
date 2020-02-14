@@ -9,11 +9,12 @@
 
 #include "blockchain.h"
 #include "blockmaker.h"
-// #include "consensus.h"
+#include "checkrepair.h"
+#include "consensus.h"
 #include "core.h"
 #include "datastat.h"
-// #include "delegatedchn.h"
 #include "defs.h"
+#include "delegatedchn.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
 #include "miner.h"
@@ -158,6 +159,31 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
+    // check and repair data
+    if (config.GetModeType() == EModeType::SERVER
+        && (config.GetConfig()->fCheckRepair || config.GetConfig()->fOnlyCheck))
+    {
+        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet, config.GetConfig()->fOnlyCheck);
+        if (!check.CheckRepairData())
+        {
+            if (config.GetConfig()->fOnlyCheck)
+            {
+                StdError("Bigbang", "Check data fail.");
+            }
+            else
+            {
+                StdError("Bigbang", "Check and repair data fail.");
+            }
+            return false;
+        }
+        if (config.GetConfig()->fOnlyCheck)
+        {
+            StdLog("Bigbang", "Check data complete.");
+            return false;
+        }
+        StdLog("Bigbang", "Check and repair data complete.");
+    }
+
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
     {
@@ -265,14 +291,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        // case EModuleType::DELEGATEDCHANNEL:
-        // {
-        //     if (!AttachModule(new CDelegatedChannel()))
-        //     {
-        //         return false;
-        //     }
-        //     break;
-        // }
+        case EModuleType::DELEGATEDCHANNEL:
+        {
+            if (!AttachModule(new CDelegatedChannel()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::NETWORK:
         {
             if (!AttachModule(new CNetwork()))
@@ -354,14 +380,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        // case EModuleType::CONSENSUS:
-        // {
-        //     if (!AttachModule(new CConsensus()))
-        //     {
-        //         return false;
-        //     }
-        //     break;
-        // }
+        case EModuleType::CONSENSUS:
+        {
+            if (!AttachModule(new CConsensus()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))

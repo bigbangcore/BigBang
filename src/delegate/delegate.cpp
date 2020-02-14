@@ -179,6 +179,10 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const CDestination& destFrom
 
         return ret;
     }
+    else
+    {
+        xengine::StdDebug("CDelegate", "HandleDistribute: find target height fail, height: %d", nTargetHeight);
+    }
     return false;
 }
 
@@ -202,6 +206,10 @@ bool CDelegate::HandlePublish(int nTargetHeight, const CDestination& destFrom,
 
         return ret;
     }
+    else
+    {
+        xengine::StdDebug("CDelegate", "HandlePublish: find target height fail, height: %d", nTargetHeight);
+    }
     return false;
 }
 
@@ -223,6 +231,10 @@ void CDelegate::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWe
         std::stringstream ss;
         ss << "Reconstruct height:" << nTargetHeight << " time:" << (t1 - t0).ticks();
         xengine::StdDebug("CDelegate", ss.str().c_str());
+    }
+    else
+    {
+        xengine::StdDebug("CDelegate", "Get agreement: find target height fail, height: %d", nTargetHeight);
     }
 }
 

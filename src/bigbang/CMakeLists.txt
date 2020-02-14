@@ -33,11 +33,11 @@ set(src
     error.cpp           error.h
     miner.cpp           miner.h
     netchn.cpp          netchn.h
-    # delegatedchn.cpp    delegatedchn.h
+    delegatedchn.cpp    delegatedchn.h
     network.cpp         network.h
     rpcclient.cpp       rpcclient.h
     rpcmod.cpp          rpcmod.h
-    # consensus.cpp       consensus.h
+    consensus.cpp       consensus.h
     blockmaker.cpp      blockmaker.h
     rpcclient.cpp       rpcclient.h
     miner.cpp           miner.h
@@ -48,6 +48,7 @@ set(src
     blockchain.cpp      blockchain.h
     forkmanager.cpp     forkmanager.h
     datastat.cpp        datastat.h
+    checkrepair.cpp     checkrepair.h
     event.h
     base.h
     struct.h
@@ -99,7 +100,7 @@ target_link_libraries(bigbang
     crypto    
     storage    
     network
-    # delegate    
+    delegate    
     jsonrpc
     common
 )
