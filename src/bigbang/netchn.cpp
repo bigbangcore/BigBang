@@ -1374,7 +1374,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
                 {
                     StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
-                            nLastBlockHash.GetHex().c_str());
+                            nLastBlockHash.ToString());
                     continue;
                 }
 
@@ -1385,6 +1385,22 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                             pTx->sendTo.ToString());
                     continue;
                 }
+
+                // {
+                //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);
+
+                //     std::remove_if(setHashAnchorSendTo.begin(), setHashAnchorSendTo.end(), [nHeight, nLastBlockHash](const std::pair<uint256, CDestination>& element){
+
+                //     });
+
+                //     if (setHashAnchorSendTo.count(std::make_pair(pTx->hashAnchor, pTx->sendTo)) > 0)
+                //     {
+                //         StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx hashanchor and SendTo exists, HashAnchor: %s, SendTo: %s",
+                //                 pTx->hashAnchor.ToString(), pTx->sendTo.ToString());
+                //         sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+                //         continue;
+                //     }
+                // }
             }
 
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
@@ -1396,6 +1412,11 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
+
+                // {
+                //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);
+                //     setHashAnchorSendTo.insert(std::make_pair(pTx->hashAnchor, pTx->sendTo));
+                // }
             }
             else if (err == ERR_MISSING_PREV
                      || err == ERR_TRANSACTION_CONFLICTING_INPUT

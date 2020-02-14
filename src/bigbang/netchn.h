@@ -316,6 +316,9 @@ protected:
     uint32 nTimerPushTx;
     bool fStartIdlePushTxTimer;
     std::set<uint256> setPushTxFork;
+
+    mutable boost::mutex mtxHashAnchorSendTo;
+    std::set<std::pair<uint256, CDestination>> setHashAnchorSendTo;
 };
 
 } // namespace bigbang
