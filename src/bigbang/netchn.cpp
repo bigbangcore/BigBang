@@ -1351,6 +1351,58 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 continue;
             }
 
+            if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
+            {
+                StdWarn("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
+                        GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                continue;
+            }
+
+            if (pTx->nType == CTransaction::TX_CERT)
+            {
+                CDelegateEnrolled enrolled;
+                uint256 nLastBlockHash;
+                int nHeight;
+                int64 nTime;
+
+                if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), nLastBlockHash, nHeight, nTime))
+                {
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
+                    continue;
+                }
+
+                if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
+                {
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
+                            nLastBlockHash.ToString());
+                    continue;
+                }
+
+                std::map<CDestination, std::size_t>::const_iterator iter = enrolled.mapWeight.find(pTx->sendTo);
+                if (iter == enrolled.mapWeight.end())
+                {
+                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
+                            pTx->sendTo.ToString());
+                    continue;
+                }
+
+                // {
+                //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);
+
+                //     std::remove_if(setHashAnchorSendTo.begin(), setHashAnchorSendTo.end(), [nHeight, nLastBlockHash](const std::pair<uint256, CDestination>& element){
+
+                //     });
+
+                //     if (setHashAnchorSendTo.count(std::make_pair(pTx->hashAnchor, pTx->sendTo)) > 0)
+                //     {
+                //         StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx hashanchor and SendTo exists, HashAnchor: %s, SendTo: %s",
+                //                 pTx->hashAnchor.ToString(), pTx->sendTo.ToString());
+                //         sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
+                //         continue;
+                //     }
+                // }
+            }
+
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
@@ -1360,6 +1412,11 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
+
+                // {
+                //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);
+                //     setHashAnchorSendTo.insert(std::make_pair(pTx->hashAnchor, pTx->sendTo));
+                // }
             }
             else if (err == ERR_MISSING_PREV
                      || err == ERR_TRANSACTION_CONFLICTING_INPUT
