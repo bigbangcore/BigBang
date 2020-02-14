@@ -43,6 +43,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
             if (!VerifySignature(delegateData)
                 || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
             {
+                xengine::StdTrace("CDelegateVerify", "VerifyProof fail point 1");
                 return false;
             }
         }
@@ -50,6 +51,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
     catch (exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
+        xengine::StdTrace("CDelegateVerify", "VerifyProof fail point 2: %s", e.what());
         return false;
     }
 

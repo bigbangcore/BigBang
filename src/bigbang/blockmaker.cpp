@@ -235,7 +235,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerAgreement& eventAgreement)
     currentAgreement = eventAgreement.data;
     StdTrace("blockmaker", "Handle Agreement: agree : %s target : %d, weight : %d\n",
              currentAgreement.nAgreement.GetHex().c_str(),
-             nLastBlockHeight, currentAgreement.nWeight);
+             nLastBlockHeight + 1, currentAgreement.nWeight);
     if (!currentAgreement.IsProofOfWork())
     {
         nMakerStatus = MAKER_RESET;
@@ -739,6 +739,7 @@ void CBlockMaker::BlockMakerThreadFunc()
             }
             else
             {
+                Log("Prepare to build DPOS block...\n");
                 ProcessDelegatedProofOfStake(block, agree, nPrimaryBlockHeight);
             }
 

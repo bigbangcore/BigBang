@@ -350,21 +350,21 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         uint256 fork = pCoreProtocol->GetGenesisBlockHash();
         pBlockChain->GetBlockLocation(hash, fork, height);
         routine.vEnrolledWeight.emplace_back(make_pair(height, enrolled.mapWeight));
-    }
 
-    map<CDestination, size_t> mapBallot;
-    CDelegateAgreement agree;
-    delegate.GetAgreement(update.nLastBlockHeight + 1, agree.nAgreement,
-                          agree.nWeight, mapBallot);
-    pCoreProtocol->GetDelegatedBallot(agree.nAgreement, agree.nWeight, mapBallot,
-                                      agree.vBallot, update.nLastBlockHeight + 1);
-    Log("Before posting agreement to dispatcher: agree : %s , weight : %d , ballot : %d , target : %d",
-        agree.nAgreement.ToString().c_str(), agree.nWeight, agree.vBallot.size(), update.nLastBlockHeight + 1);
-    for (const auto& i : agree.vBallot)
-    {
-        Log("ballot : %s", i.ToString().c_str());
+        map<CDestination, size_t> mapBallot;
+        CDelegateAgreement agree;
+        delegate.GetAgreement(update.nLastBlockHeight + 1, agree.nAgreement,
+                              agree.nWeight, mapBallot);
+        pCoreProtocol->GetDelegatedBallot(agree.nAgreement, agree.nWeight, mapBallot,
+                                          agree.vBallot, update.nLastBlockHeight + 1);
+        Log("Before posting agreement to dispatcher: agree : %s , weight : %d , ballot : %d , target : %d",
+            agree.nAgreement.ToString().c_str(), agree.nWeight, agree.vBallot.size(), update.nLastBlockHeight + 1);
+        for (const auto& i : agree.vBallot)
+        {
+            Log("ballot : %s", i.ToString().c_str());
+        }
+        pDispatcher->UpdateAgreement(agree);
     }
-    pDispatcher->UpdateAgreement(agree);
 }
 
 void CConsensus::AddNewTx(const CAssembledTx& tx)
