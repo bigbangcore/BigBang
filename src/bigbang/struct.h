@@ -11,6 +11,7 @@
 #include <boost/multi_index_container.hpp>
 #include <map>
 #include <set>
+#include <tuple>
 #include <vector>
 
 #include "block.h"
@@ -110,9 +111,9 @@ class CTxSetChange
 {
 public:
     uint256 hashFork;
-    std::map<uint256, int> mapTxUpdate;
+    std::map<uint256, std::pair<int, CTransaction>> mapTxUpdate;
     std::vector<CAssembledTx> vTxAddNew;
-    std::vector<std::pair<uint256, std::vector<CTxIn>>> vTxRemove;
+    std::vector<std::tuple<uint256, std::vector<CTxIn>, CTransaction>> vTxRemove;
 };
 
 class CNetworkPeerUpdate
