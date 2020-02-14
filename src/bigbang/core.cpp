@@ -162,6 +162,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
+
     if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
         && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
     {
@@ -218,7 +219,8 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 
     if (!MoneyRange(tx.nTxFee)
         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-        || (tx.nType == CTransaction::TX_TOKEN && tx.nTxFee < MIN_TX_FEE))
+        || (tx.nType == CTransaction::TX_TOKEN
+            && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), MIN_TX_FEE)))
     {
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
     }
@@ -463,12 +465,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    // v1.0 function
-    if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }
-
     vector<uint8> vchSig;
     if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
@@ -516,12 +512,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
-    }
-
-    // v1.0 function
-    if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
     }
 
     // record destIn in vchSig
