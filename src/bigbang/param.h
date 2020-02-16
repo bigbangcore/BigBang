@@ -18,6 +18,8 @@ inline bool MoneyRange(int64 nValue)
 
 static const unsigned int MAX_BLOCK_SIZE = 2000000;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);
+static const unsigned int MAX_SIGNATURE_SIZE = 2048;
+static const unsigned int MAX_TX_INPUT_COUNT = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
 
 static const unsigned int BLOCK_TARGET_SPACING = 60; // 1-minute block spacing
 static const unsigned int EXTENDED_BLOCK_SPACING = 2;

@@ -8,7 +8,7 @@
 #include "destination.h"
 #include "mint.h"
 
-class CTemplateVote : virtual public CTemplate, virtual public CDestInRecordedTemplate
+class CTemplateVote : virtual public CTemplate, virtual public CSendToRecordedTemplate
 {
 public:
     CTemplateVote(const CDestination& destDelegateIn = CDestination(),

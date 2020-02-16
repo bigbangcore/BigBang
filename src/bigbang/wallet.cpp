@@ -18,7 +18,7 @@ namespace bigbang
 {
 
 #define MAX_TXIN_SELECTIONS 128
-#define MAX_SIGNATURE_SIZE 2048
+//#define MAX_SIGNATURE_SIZE 2048
 
 //////////////////////////////
 // CDBAddressWalker
@@ -556,46 +556,24 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted)
 {
     vector<uint8> vchSig;
-    CDestination destInDelegate;
-    CDestination destInOwner;
     CDestination sendToDelegate;
     CDestination sendToOwner;
     bool fDestInRecorded = false;
+    CTemplateId tid;
+    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
     {
-        CTemplateId tid;
-        if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
         {
-            CTemplatePtr tempPtr = GetTemplate(tid);
-            if (tempPtr != nullptr)
-            {
-                boost::dynamic_pointer_cast<CDestInRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(destInDelegate, destInOwner);
-            }
-            if (destInDelegate.IsNull() || destInOwner.IsNull())
-            {
-                StdError("CWallet", "SignTransaction: destIn does not load template, destIn: %s, txid: %s",
-                         CAddress(destIn).ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-            fDestInRecorded = true;
+            boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
         }
-    }
-    {
-        CTemplateId tid;
-        if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
+        if (sendToDelegate.IsNull() || sendToOwner.IsNull())
         {
-            CTemplatePtr tempPtr = GetTemplate(tid);
-            if (tempPtr != nullptr)
-            {
-                boost::dynamic_pointer_cast<CDestInRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
-            }
-            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
-            {
-                StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
-                         CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-            fDestInRecorded = true;
+            StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
+                     CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
         }
+        fDestInRecorded = true;
     }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
@@ -603,7 +581,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         if (fDestInRecorded)
         {
             CDestination preDestIn;
-            if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, preDestIn, vchSig) || preDestIn != destIn)
+            if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, preDestIn, vchSig) || preDestIn != destIn)
             {
                 StdError("CWallet", "SignTransaction: ParseDestIn fail, destIn: %s, txid: %s",
                          destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
@@ -628,8 +606,8 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 
     if (fDestInRecorded)
     {
-        CDestInRecordedTemplate::RecordDest(destInDelegate, destInOwner, sendToDelegate, sendToOwner, vchSig, tx.vchSig);
-        //CDestInRecordedTemplate::RecordDestIn(destDelegate, destOwner, vchSig, tx.vchSig);
+        CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
+        //CSendToRecordedTemplate::RecordDestIn(destDelegate, destOwner, vchSig, tx.vchSig);
     }
     else
     {
@@ -641,7 +619,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx)
 {
     tx.vInput.clear();
-    int nMaxInput = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
+    //int nMaxInput = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
     int64 nTargetValue = tx.nAmount + tx.nTxFee;
 
     // locked coin template
@@ -659,7 +637,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     vector<CTxOutPoint> vCoins;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwWalletTx);
-        int64 nValueIn = SelectCoins(destIn, hashFork, nForkHeight, tx.GetTxTime(), nTargetValue, nMaxInput, vCoins);
+        int64 nValueIn = SelectCoins(destIn, hashFork, nForkHeight, tx.GetTxTime(), nTargetValue, MAX_TX_INPUT_COUNT, vCoins);
         if (nValueIn < nTargetValue)
         {
             StdError("CWallet", "ArrangeInputs: SelectCoins coin not enough, destIn: %s, nValueIn: %ld < nTargeValue: %ld",

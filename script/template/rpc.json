@@ -1425,7 +1425,7 @@
         "error": [
             "{\"code\" : -6, \"message\" : \"Invalid address\"}",
             "{\"code\" : -32603, \"message\" : \"Not a delegate template address\"}",
-            "{\"code\" : -32603, \"message\" : \"Delegate template address not imported\"}",
+            "{\"code\" : -32603, \"message\" : \"Vote template address not imported\"}",
             "{\"code\" : -32603, \"message\" : \"Query failed\"}"
         ]
     },

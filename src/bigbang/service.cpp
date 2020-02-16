@@ -389,15 +389,15 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
         CTemplatePtr ptr = pWallet->GetTemplate(tid);
         if (ptr == nullptr)
         {
-            strFailCause = "Delegate template address not imported";
+            strFailCause = "Vote template address not imported";
             return false;
         }
         CDestination destDelegateTemplateOut;
         CDestination destOwnerOut;
-        boost::dynamic_pointer_cast<CDestInRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
+        boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
         if (destDelegateTemplateOut.IsNull())
         {
-            strFailCause = "Delegate template address not imported";
+            strFailCause = "Vote template address not imported";
             return false;
         }
         if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))

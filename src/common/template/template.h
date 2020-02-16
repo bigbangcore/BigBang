@@ -20,117 +20,31 @@ class CSpendableTemplate
 {
 };
 
-//When this kind of template acts as target payment address, leave its destination in signature.
-class CDestInRecordedTemplate
+class CSendToRecordedTemplate
 {
 public:
-    static void RecordDest(const CDestination& destInDelegate, const CDestination& destInOwner,
-                           const CDestination& sendToDelegate, const CDestination& sendToOwner,
+    static void RecordDest(const CDestination& sendToDelegate, const CDestination& sendToOwner,
                            const std::vector<uint8>& vchPreSigIn, std::vector<uint8>& vchSigOut)
     {
         vchSigOut.clear();
-
-        uint8 nDestCount = 0;
-        uint8 nDestInFlag = 0;
-        uint8 nSendToFlag = 0;
-        size_t nDestSize = sizeof(nDestCount);
-        if (!destInDelegate.IsNull() && !destInOwner.IsNull())
-        {
-            nDestInFlag = 1;
-            nDestCount++;
-            nDestSize += (sizeof(nDestInFlag) + CDestination::DESTINATION_SIZE);
-            if (destInDelegate == sendToDelegate && destInOwner == sendToOwner)
-            {
-                nDestInFlag = 3;
-            }
-        }
-        if (nDestInFlag != 3)
-        {
-            if (!sendToDelegate.IsNull() && !sendToOwner.IsNull())
-            {
-                nSendToFlag = 2;
-                nDestCount++;
-                nDestSize += (sizeof(nSendToFlag) + CDestination::DESTINATION_SIZE);
-            }
-        }
-        nDestSize += vchPreSigIn.size();
-        xengine::CODataStream ods(vchSigOut, nDestSize);
-
-        ods << nDestCount;
-        if (nDestInFlag != 0)
-        {
-            ods << nDestInFlag << destInDelegate << destInOwner;
-        }
-        if (nSendToFlag != 0)
-        {
-            ods << nSendToFlag << sendToDelegate << sendToOwner;
-        }
+        xengine::CODataStream ods(vchSigOut, CDestination::DESTINATION_SIZE * 2 + vchPreSigIn.size());
+        ods << sendToDelegate << sendToOwner;
         ods.Push(&vchPreSigIn[0], vchPreSigIn.size());
     }
 
     static bool ParseDest(const std::vector<uint8>& vchSigIn,
-                          CDestination& destInDelegateOut, CDestination& destInOwnerOut,
                           CDestination& sendToDelegateOut, CDestination& sendToOwnerOut,
                           std::vector<uint8>& vchSubSigOut)
     {
         xengine::CIDataStream is(vchSigIn);
         try
         {
-            uint8 nDestCount = 0;
-            uint8 nDestFlag = 0;
-            size_t nDestSize = 0;
-
-            is >> nDestCount;
-            if (nDestCount > 2)
-            {
-                xengine::StdError(__PRETTY_FUNCTION__, "nDestCount error, nDestCount: %d", nDestCount);
-                return false;
-            }
-            nDestSize += sizeof(nDestCount);
-            for (int i = 0; i < nDestCount; i++)
-            {
-                is >> nDestFlag;
-                nDestSize += sizeof(nDestFlag);
-                if (nDestFlag == 1)
-                {
-                    is >> destInDelegateOut >> destInOwnerOut;
-                    nDestSize += (CDestination::DESTINATION_SIZE * 2);
-                }
-                else if (nDestFlag == 2)
-                {
-                    is >> sendToDelegateOut >> sendToOwnerOut;
-                    nDestSize += (CDestination::DESTINATION_SIZE * 2);
-                }
-                else if (nDestFlag == 3)
-                {
-                    is >> destInDelegateOut >> destInOwnerOut;
-                    nDestSize += (CDestination::DESTINATION_SIZE * 2);
-                    sendToDelegateOut = destInDelegateOut;
-                    sendToOwnerOut = destInOwnerOut;
-                }
-                else
-                {
-                    xengine::StdError(__PRETTY_FUNCTION__, "DestFlag error, DestFlag: %d", nDestFlag);
-                    return false;
-                }
-            }
-            vchSubSigOut.assign(vchSigIn.begin() + nDestSize, vchSigIn.end());
+            is >> sendToDelegateOut >> sendToOwnerOut;
+            vchSubSigOut.assign(vchSigIn.begin() + (CDestination::DESTINATION_SIZE * 2), vchSigIn.end());
         }
         catch (std::exception& e)
         {
             xengine::StdError(__PRETTY_FUNCTION__, e.what());
-            return false;
-        }
-        return true;
-    }
-
-    static bool ParseDelegateDest(const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
-    {
-        std::vector<uint8> vchSubSig;
-        CDestination destInOwnerOut;
-        CDestination sendToOwnerOut;
-        if (!ParseDest(vchSigIn, destInDelegateOut, destInOwnerOut, sendToDelegateOut, sendToOwnerOut, vchSubSig))
-        {
             return false;
         }
         return true;
@@ -211,6 +125,9 @@ public:
 
     // Return dest is destIn recorded or not.
     static bool IsDestInRecorded(const CDestination& dest);
+
+    // Return delegate address.
+    static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
 
     // Return dest limits coin on transaction or not.
     static bool IsLockedCoin(const CDestination& dest);

@@ -481,7 +481,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
-        if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
+        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
         }
@@ -490,7 +490,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         vchSig = tx.vchSig;
     }*/
-    if (!VerifyDestRecorded(tx, destIn, vchSig))
+    if (!VerifyDestRecorded(tx, vchSig))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
@@ -541,7 +541,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
-        if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
+        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
         }
@@ -550,7 +550,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     {
         vchSig = tx.vchSig;
     }*/
-    if (!VerifyDestRecorded(tx, destIn, vchSig))
+    if (!VerifyDestRecorded(tx, vchSig))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
@@ -796,91 +796,47 @@ Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
     return OK;
 }
 
-bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, const CDestination& destIn, vector<uint8>& vchSigOut)
+bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut)
 {
-    bool fRecordedDestIn = false;
-    bool fRecordedSendTo = false;
-    if (CTemplate::IsDestInRecorded(destIn))
-    {
-        fRecordedDestIn = true;
-    }
     if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
-        fRecordedSendTo = true;
-    }
-    if (fRecordedDestIn || fRecordedSendTo)
-    {
-        CDestination destInDelegateTemplate;
-        CDestination destInOwner;
         CDestination sendToDelegateTemplate;
         CDestination sendToOwner;
-        if (!CDestInRecordedTemplate::ParseDest(tx.vchSig, destInDelegateTemplate, destInOwner, sendToDelegateTemplate, sendToOwner, vchSigOut))
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSigOut))
         {
             StdError("Core", "Verify dest recorded: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
             return false;
         }
-        if (fRecordedDestIn)
+        if (sendToDelegateTemplate.IsNull() || sendToOwner.IsNull())
         {
-            if (destInDelegateTemplate.IsNull() || destInOwner.IsNull())
-            {
-                StdError("Core", "Verify dest recorded: destIn dest is null, txid: %s", tx.GetHash().GetHex().c_str());
-                return false;
-            }
-            CTemplateId tid;
-            if (!(destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
-            {
-                StdError("Core", "Verify dest recorded: destIn not is template, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str());
-                return false;
-            }
-            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(destInDelegateTemplate, destInOwner));
-            if (ptr == nullptr)
-            {
-                StdError("Core", "Verify dest recorded: destIn CreateTemplatePtr fail, txid: %s, destIn: %s, delegate dest: %s, owner dest: %s",
-                         tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str(),
-                         CAddress(destInDelegateTemplate).ToString().c_str(), CAddress(destInOwner).ToString().c_str());
-                return false;
-            }
-            if (ptr->GetTemplateId() != destIn.GetTemplateId())
-            {
-                StdError("Core", "Verify dest recorded: destIn error, txid: %s, destIn: %s, delegate pubkey: %s, owner dest: %s",
-                         tx.GetHash().GetHex().c_str(), CAddress(destIn).ToString().c_str(),
-                         destInDelegateTemplate.GetPubKey().GetHex().c_str(), CAddress(destInOwner).ToString().c_str());
-                return false;
-            }
+            StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
         }
-        if (fRecordedSendTo)
+        CTemplateId tid;
+        if (!(tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
         {
-            if (sendToDelegateTemplate.IsNull() || sendToOwner.IsNull())
-            {
-                StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
-                return false;
-            }
-            CTemplateId tid;
-            if (!(tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
-            {
-                StdError("Core", "Verify dest recorded: sendTo not is template, txid: %s, sendTo: %s", tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
-                return false;
-            }
-            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(sendToDelegateTemplate, sendToOwner));
-            if (ptr == nullptr)
-            {
-                StdError("Core", "Verify dest recorded: sendTo CreateTemplatePtr fail, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
-                         tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
-                         CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
-                return false;
-            }
-            if (ptr->GetTemplateId() != tx.sendTo.GetTemplateId())
-            {
-                StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate pubkey: %s, owner dest: %s",
-                         tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
-                         sendToDelegateTemplate.GetPubKey().GetHex().c_str(), CAddress(sendToOwner).ToString().c_str());
-                return false;
-            }
+            StdError("Core", "Verify dest recorded: sendTo not is template, txid: %s, sendTo: %s", tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
+            return false;
+        }
+        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(sendToDelegateTemplate, sendToOwner));
+        if (ptr == nullptr)
+        {
+            StdError("Core", "Verify dest recorded: sendTo CreateTemplatePtr fail, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
+                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
+            return false;
+        }
+        if (ptr->GetTemplateId() != tx.sendTo.GetTemplateId())
+        {
+            StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
+                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
+            return false;
         }
     }
     else
     {
-        vchSigOut = tx.vchSig;
+        vchSigOut = move(tx.vchSig);
     }
     return true;
 }

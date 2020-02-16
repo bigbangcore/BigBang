@@ -89,7 +89,7 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
 
 void CDelegateContext::AddNewTx(const CAssembledTx& tx)
 {
-    if (tx.sendTo == destDelegate)
+    /*if (tx.sendTo == destDelegate)
     {
         if (tx.nType == CTransaction::TX_TOKEN && tx.destIn == destOwner)
         {
@@ -117,6 +117,30 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         for (const CTxIn& txin : tx.vInput)
         {
             mapUnspent.erase(txin.prevout);
+        }
+    }*/
+    bool fAddTx = false;
+    if (tx.sendTo == destDelegate)
+    {
+        uint256 txid = tx.GetHash();
+        CDelegateTx& delegateTx = mapTx[txid];
+        delegateTx = CDelegateTx(tx);
+        fAddTx = true;
+        mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
+    }
+    if (tx.destIn == destDelegate)
+    {
+        for (const CTxIn& txin : tx.vInput)
+        {
+            mapUnspent.erase(txin.prevout);
+        }
+        uint256 txid = tx.GetHash();
+        CDelegateTx& delegateTx = mapTx[txid];
+        if (!fAddTx)
+            delegateTx = CDelegateTx(tx);
+        if (delegateTx.nChange != 0)
+        {
+            mapUnspent.insert(make_pair(CTxOutPoint(txid, 1), &delegateTx));
         }
     }
 }
@@ -148,7 +172,11 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         }
         tx.vInput.push_back(CTxIn(txout));
         nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
-        if (nValueIn > nTxFee)
+        /*if (nValueIn > nTxFee)
+        {
+            break;
+        }*/
+        if (tx.vInput.size() >= MAX_TX_INPUT_COUNT)
         {
             break;
         }
@@ -158,6 +186,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         StdLog("CDelegateContext", "BuildEnrollTx: nValueIn <= nTxFee, nValueIn: %.6f, unspent: %ld", ValueFromToken(nValueIn), mapUnspent.size());
         return false;
     }
+    StdTrace("CDelegateContext", "BuildEnrollTx: arrange inputs success, nValueIn: %.6f, unspent.size: %ld, tx.vInput.size: %ld", ValueFromToken(nValueIn), mapUnspent.size(), tx.vInput.size());
 
     tx.nAmount = nValueIn - nTxFee;
 

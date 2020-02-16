@@ -34,7 +34,7 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
         return false;
     }
     setSubDest.clear();
-    if (tx.sendTo.GetTemplateId() == nId && tx.nType == CTransaction::TX_CERT)
+    if (tx.sendTo.GetTemplateId() == nId)
     {
         setSubDest.insert(CDestination(keyDelegate));
     }

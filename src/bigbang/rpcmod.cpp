@@ -9,6 +9,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/regex.hpp>
 #include <regex>
 //#include <algorithm>
@@ -1015,7 +1016,7 @@ CRPCResultPtr CRPCMod::RPCListDelegate(CRPCParamPtr param)
     }
 
     auto spResult = MakeCListDelegateResultPtr();
-    for (const auto& d : mapVotes)
+    for (const auto& d : boost::adaptors::reverse(mapVotes))
     {
         CListDelegateResult::CDelegate delegateData;
         delegateData.strAddress = CAddress(d.second).ToString();
