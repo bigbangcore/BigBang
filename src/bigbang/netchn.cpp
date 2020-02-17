@@ -1374,7 +1374,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
                 {
                     StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
-                            nLastBlockHash.ToString());
+                            nLastBlockHash.ToString().c_str());
                     continue;
                 }
 
@@ -1382,7 +1382,7 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 if (iter == enrolled.mapWeight.end())
                 {
                     StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
-                            pTx->sendTo.ToString());
+                            pTx->sendTo.ToString().c_str());
                     continue;
                 }
 
