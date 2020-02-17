@@ -1366,16 +1366,18 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
 
             if (pTx->nType == CTransaction::TX_CERT)
             {
-                CDelegateEnrolled enrolled;
-                uint256 nLastBlockHash;
-                int nHeight;
-                int64 nTime;
 
-                if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), nLastBlockHash, nHeight, nTime))
-                {
-                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
-                    continue;
-                }
+                // TODO: Verify Enroll Tx weight and (hashAnchor,sendTo)
+                // CDelegateEnrolled enrolled;
+                // uint256 nLastBlockHash;
+                // int nHeight;
+                // int64 nTime;
+
+                // if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), nLastBlockHash, nHeight, nTime))
+                // {
+                //     StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetLastBlock failed.");
+                //     continue;
+                // }
 
                 // uint256 nAgreement;
                 // size_t nWeight;
