@@ -5,6 +5,7 @@
 #include "txpool.h"
 
 #include <boost/range/adaptor/reversed.hpp>
+#include <deque>
 
 using namespace std;
 using namespace xengine;
@@ -203,19 +204,32 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 {
     size_t nTotalSize = 0;
     nTotalTxFee = 0;
+    (void)nTotalSize;
+
+    std::vector<CPooledTxLink> certRelatives;
 
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (auto const& i : idxTxLinkSeq)
+    for (CPooledTxLinkSetBySequenceNumber::iterator iter = idxTxLinkSeq.begin(); iter != idxTxLinkSeq.end(); iter++)
     {
-        if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
+        // if (iter->ptx && iter->ptx->GetTxTime() <= nBlockTime)
+        // {
+        //     if (nTotalSize + iter->ptx->nSerializeSize > nMaxSize)
+        //     {
+        //         break;
+        //     }
+
+        //     vtx.push_back(*static_cast<CTransaction*>(iter->ptx));
+        //     nTotalSize += iter->ptx->nSerializeSize;
+        //     nTotalTxFee += iter->ptx->nTxFee;
+        // }
+
+        if (iter->nType == CTransaction::TX_CERT)
         {
-            if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
-            {
-                break;
-            }
-            vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-            nTotalSize += i.ptx->nSerializeSize;
-            nTotalTxFee += i.ptx->nTxFee;
+            certRelatives.push_back(*iter);
+
+            std::vector<CPooledTxLink> prevLinks;
+            GetAllPrevTxLink(*iter, prevLinks);
+            certRelatives.insert(certRelatives.begin(), prevLinks.begin(), prevLinks.end());
         }
     }
 
@@ -233,6 +247,30 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     //         nTotalTxFee += i.ptx->nTxFee;
     //     }
     // }
+}
+
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
+{
+    std::deque<CPooledTxLink> queueBFS;
+    queueBFS.push_back(link);
+
+    while (!queueBFS.empty())
+    {
+        const CPooledTxLink& tempLink = queueBFS.front();
+        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
+        {
+            const CTxIn& txin = tempLink.ptx->vInput[i];
+            const uint256& prevHash = txin.prevout.hash;
+            auto iter = setTxLinkIndex.find(prevHash);
+            if (iter != setTxLinkIndex.end())
+            {
+                prevLinks.push_back(*iter);
+                queueBFS.push_back(*iter);
+            }
+        }
+
+        queueBFS.pop_front();
+    }
 }
 
 //////////////////////////////
