@@ -288,14 +288,17 @@ bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest,
     return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
 }
 
-void CDispatcher::UpdateAgreement(const CDelegateAgreement& agree)
+void CDispatcher::UpdateAgreement(const CDelegateAgreement& agree, const uint256& hash, const int64& time, int height)
 {
     Log("CDispatcher::UpdateAgreement starting...");
 
     CEventBlockMakerAgreement* pEvent = new CEventBlockMakerAgreement(0);
     if (pEvent != nullptr)
     {
-        pEvent->data = agree;
+        pEvent->data.agreement = agree;
+        pEvent->data.hashLastBlock = hash;
+        pEvent->data.nLastBlockTime = time;
+        pEvent->data.nLastBlockHeight = height;
         pBlockMaker->PostEvent(pEvent);
         Log("CDispatcher::UpdateAgreement posted to maker");
     }

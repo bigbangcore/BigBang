@@ -363,7 +363,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         {
             Log("ballot : %s", i.ToString().c_str());
         }
-        pDispatcher->UpdateAgreement(agree);
+        pDispatcher->UpdateAgreement(agree, update.hashLastBlock, update.nLastBlockTime, update.nLastBlockHeight);
     }
 }
 

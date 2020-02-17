@@ -22,7 +22,7 @@ public:
                           const std::vector<unsigned char>& vchDistribute) override;
     bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
-    void UpdateAgreement(const CDelegateAgreement& agree) override;
+    void UpdateAgreement(const CDelegateAgreement& agree, const uint256& hash, const int64& time, int height) override;
 
 protected:
     bool HandleInitialize() override;

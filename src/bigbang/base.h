@@ -242,7 +242,7 @@ public:
     virtual bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
                                const std::vector<unsigned char>& vchPublish)
         = 0;
-    virtual void UpdateAgreement(const CDelegateAgreement& agree) = 0;
+    virtual void UpdateAgreement(const CDelegateAgreement& agree, const uint256& hash, const int64& time, int height) = 0;
 };
 
 class IService : public xengine::IBase

@@ -32,8 +32,17 @@ class CBlockMakerEventListener;
 #define TYPE_BLOCKMAKEREVENT(type, body) \
     xengine::CEventCategory<type, CBlockMakerEventListener, body, CNil>
 
+class CAgreementUpdater
+{
+public:
+    CDelegateAgreement agreement;
+    uint256 hashLastBlock;
+    int64 nLastBlockTime;
+    int nLastBlockHeight;
+};
+
 typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_UPDATE, CBlockMakerUpdate) CEventBlockMakerUpdate;
-typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREEMENT, CDelegateAgreement) CEventBlockMakerAgreement;
+typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREEMENT, CAgreementUpdater) CEventBlockMakerAgreement;
 
 class CBlockMakerEventListener : virtual public xengine::CEventListener
 {

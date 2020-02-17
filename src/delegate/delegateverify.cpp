@@ -56,6 +56,8 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
     }
 
     GetAgreement(nAgreement, nWeight, mapBallot);
+    xengine::StdTrace("CDelegateVerify", "VerifyProof point 3: nAgreement[%s] vs. nAgreementParse[%s]",
+                      nAgreement.ToString().c_str(), nAgreementParse.ToString().c_str());
 
     return (nAgreement == nAgreementParse);
 }

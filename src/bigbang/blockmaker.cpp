@@ -208,10 +208,10 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
+/*    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
     {
         return true;
-    }
+    }*/
 
     if (Interrupted() || currentAgreement.IsProofOfWork()
         || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
@@ -232,7 +232,10 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerAgreement& eventAgreement)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    currentAgreement = eventAgreement.data;
+    currentAgreement = eventAgreement.data.agreement;
+    hashLastBlock = eventAgreement.data.hashLastBlock;
+    nLastBlockTime = eventAgreement.data.nLastBlockTime;
+    nLastBlockHeight = eventAgreement.data.nLastBlockHeight;
     StdTrace("blockmaker", "Handle Agreement: agree : %s target : %d, weight : %d\n",
              currentAgreement.nAgreement.GetHex().c_str(),
              nLastBlockHeight + 1, currentAgreement.nWeight);
@@ -288,6 +291,7 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)
     {
+        StdTrace("blockmaker", "PrepareBlock target: %d", nPrevHeight + 1);
         pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
     }
 }

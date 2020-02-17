@@ -825,7 +825,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+        Log("GetBlockDelegateAgreement : Invalid block proof 1: %s \n", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -944,7 +944,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
-        Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
+        Log("GetBlockDelegateAgreement : Invalid block proof 2: %s \n", hashBlock.ToString().c_str());
         return false;
     }
 

@@ -29,6 +29,7 @@ CTemplateDelegate* CTemplateDelegate::clone() const
 bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
+    return false;
     if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
     {
         return false;
