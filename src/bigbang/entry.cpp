@@ -9,6 +9,7 @@
 
 #include "blockchain.h"
 #include "blockmaker.h"
+#include "checkrepair.h"
 #include "consensus.h"
 #include "core.h"
 #include "datastat.h"
@@ -156,6 +157,31 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     {
         cerr << "Failed to open log file : " << (pathData / "bigbang.log") << "\n";
         return false;
+    }
+
+    // check and repair data
+    if (config.GetModeType() == EModeType::SERVER
+        && (config.GetConfig()->fCheckRepair || config.GetConfig()->fOnlyCheck))
+    {
+        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet, config.GetConfig()->fOnlyCheck);
+        if (!check.CheckRepairData())
+        {
+            if (config.GetConfig()->fOnlyCheck)
+            {
+                StdError("Bigbang", "Check data fail.");
+            }
+            else
+            {
+                StdError("Bigbang", "Check and repair data fail.");
+            }
+            return false;
+        }
+        if (config.GetConfig()->fOnlyCheck)
+        {
+            StdLog("Bigbang", "Check data complete.");
+            return false;
+        }
+        StdLog("Bigbang", "Check and repair data complete.");
     }
 
     // docker

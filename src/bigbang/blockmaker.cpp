@@ -338,12 +338,12 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 
 bool CBlockMaker::DispatchBlock(CBlock& block)
 {
-    /*    int nWait = block.nTimeStamp - GetNetTime();
+    int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
         StdTrace("blockmaker", "Wait failed nWait: %d", nWait);
         return false;
-    }*/
+    }
     Errno err = pDispatcher->AddNewBlock(block);
     if (err != OK)
     {

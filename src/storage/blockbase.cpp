@@ -7,6 +7,7 @@
 #include <boost/timer/timer.hpp>
 #include <cstdio>
 
+#include "../bigbang/address.h"
 #include "template/template.h"
 #include "util.h"
 
@@ -521,7 +522,8 @@ bool CBlockBase::Retrieve(const CBlockIndex* pIndex, CBlock& block)
 
     if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset, false))
     {
-        StdTrace("BlockBase", "RetrieveFromIndex::Read %s block failed", pIndex->GetBlockHash().ToString().c_str());
+        StdTrace("BlockBase", "RetrieveFromIndex::Read %s block failed, File: %d, Offset: %d",
+                 pIndex->GetBlockHash().ToString().c_str(), pIndex->nFile, pIndex->nOffset);
         return false;
     }
     return true;
@@ -1120,7 +1122,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         CBlockEx block;
         if (!tsBlock.Read(block, pIndex->nFile, pIndex->nOffset))
         {
-            StdLog("BlockBase", "FilterTx2: Block read fail, nFile: %d, nOffset: %d.", pIndex->nFile, pIndex->nOffset);
+            StdLog("BlockBase", "FilterTx2: Block read fail, nFile: %d, nOffset: %d, block: %s.",
+                   pIndex->nFile, pIndex->nOffset, pIndex->GetBlockHash().GetHex().c_str());
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
@@ -1128,7 +1131,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
-                StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, txid: %s.", block.txMint.GetHash().GetHex().c_str());
+                StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, height: %d, txid: %s, block: %s, fork: %s.",
+                       block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                 return false;
             }
         }
@@ -1141,7 +1145,8 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
             {
                 if (!filter.FoundTx(hashFork, CAssembledTx(tx, nBlockHeight, ctxt.destIn, ctxt.GetValueIn())))
                 {
-                    StdLog("BlockBase", "FilterTx2: FoundTx tx fail, txid: %s.", tx.GetHash().GetHex().c_str());
+                    StdLog("BlockBase", "FilterTx2: FoundTx tx fail, height: %d, txid: %s, block: %s, fork: %s.",
+                           nBlockHeight, tx.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                     return false;
                 }
             }
@@ -1908,6 +1913,8 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
 
 bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock)
 {
+    StdTrace("CBlockBase", "UpdateDelegate: start, vtx.size: %ld, height: %d, block: %s", block.vtx.size(), block.GetBlockHeight(), hash.GetHex().c_str());
+
     CDelegateContext ctxtDelegate;
 
     map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
@@ -1915,6 +1922,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
 
     if (!dbBlock.RetrieveDelegate(block.hashPrev, mapDelegate))
     {
+        StdLog("CBlockBase", "UpdateDelegate: RetrieveDelegate fail");
         return false;
     }
 
@@ -1947,8 +1955,17 @@ bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDis
         if (tx.nType == CTransaction::TX_CERT)
         {
             mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
+            StdTrace("CBlockBase", "UpdateDelegate: Enroll tx, height: %d, destIn: %s, txid: %s",
+                     GetIndex(block.hashPrev)->GetBlockHeight(), CAddress(txContxt.destIn).ToString().c_str(), tx.GetHash().GetHex().c_str());
         }
         nOffset += ss.GetSerializeSize(tx);
+    }
+
+    {
+        for (auto it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
+        {
+            StdTrace("CBlockBase", "UpdateDelegate: Delegate dest: %s, token: %ld", CAddress(it->first).ToString().c_str(), it->second);
+        }
     }
     return dbBlock.UpdateDelegateContext(hash, ctxtDelegate);
 }

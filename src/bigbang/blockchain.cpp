@@ -404,7 +404,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     int64 nReward;
     CDelegateAgreement agreement;
-    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement);
+    CBlockIndex* pIndexRef = nullptr;
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, &pIndexRef);
     if (err != OK)
     {
         Log("AddNewBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
@@ -472,7 +473,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     // Get block trust
-    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
+    uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
+    Log("AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
 
     CBlockIndex* pIndexNew;
     if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust))
@@ -488,7 +490,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
-        Log("AddNew Block : Short chain, Fork chain trust: %s", pIndexFork->nChainTrust.GetHex().c_str());
+        Log("AddNew Block : Short chain, new block height: %d, fork chain trust: %s, fork last block: %s",
+            pIndexNew->GetBlockHeight(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
         return OK;
     }
 
@@ -953,7 +956,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 }
 
 Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                               int64& nReward, CDelegateAgreement& agreement)
+                               int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef)
 {
     nReward = 0;
     if (block.IsOrigin())
@@ -978,13 +981,28 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_COINBASE_INVALID;
         }
 
-        if (agreement.IsProofOfWork())
+        /*if (pCoreProtocol->CheckSpecialHeight(pIndexPrev->GetBlockHeight() + 1))
         {
+            if (!pCoreProtocol->VerifySpecialAddress(pIndexPrev->GetBlockHeight() + 1, block))
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+            if (!agreement.IsProofOfWork())
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
             return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
         }
-        else
+        else*/
         {
-            return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+            if (agreement.IsProofOfWork())
+            {
+                return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+            }
+            else
+            {
+                return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+            }
         }
     }
     else if (!block.IsVacant())
@@ -1009,8 +1027,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        CBlockIndex* pIndexRef = nullptr;
-        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, &pIndexRef))
+        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
@@ -1039,12 +1056,9 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             }
         }
 
-        return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, pIndexRef, agreement);
+        return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
-    else
-    {
-        return OK;
-    }
+    return OK;
 }
 
 } // namespace bigbang

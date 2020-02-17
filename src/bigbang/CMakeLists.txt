@@ -48,6 +48,7 @@ set(src
     blockchain.cpp      blockchain.h
     forkmanager.cpp     forkmanager.h
     datastat.cpp        datastat.h
+    checkrepair.cpp     checkrepair.h
     event.h
     base.h
     struct.h
@@ -74,7 +75,7 @@ set(sources
     ${auto_files}
     ${src}
     ${mode_src}
-        )
+)
 
 add_executable(bigbang ${sources})
 
@@ -99,7 +100,7 @@ target_link_libraries(bigbang
     crypto    
     storage    
     network
-    delegate
+    delegate    
     jsonrpc
     common
 )

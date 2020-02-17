@@ -530,12 +530,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     CTxPoolView viewInvolvedTx;
     CTxPoolView& txView = mapPoolView[update.hashFork];
 
-    int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
+    //int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
     {
+        int nBlockHeight = block.GetBlockHeight();
         if (block.txMint.nAmount != 0)
         {
-            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nHeight));
+            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight /*nHeight*/));
         }
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -548,7 +549,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     txView.Remove(txid);
                     mapTx.erase(txid);
-                    change.mapTxUpdate.insert(make_pair(txid, nHeight));
+                    change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
                 }
                 else
                 {
@@ -556,21 +557,22 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     {
                         txView.InvalidateSpent(txin.prevout, viewInvolvedTx);
                     }
-                    change.vTxAddNew.push_back(CAssembledTx(tx, nHeight, txContxt.destIn, txContxt.GetValueIn()));
+                    change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight /*nHeight*/, txContxt.destIn, txContxt.GetValueIn()));
                 }
             }
             else
             {
-                change.mapTxUpdate.insert(make_pair(txid, nHeight));
+                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
             }
         }
-        nHeight++;
+        //nHeight++;
     }
 
     vector<pair<uint256, vector<CTxIn>>> vTxRemove;
-    std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
-    std::reverse(vBlockRemove.begin(), vBlockRemove.end());
-    for (const CBlockEx& block : vBlockRemove)
+    //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
+    //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
+    //for (const CBlockEx& block : vBlockRemove)
+    for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
     {
         for (int i = 0; i < block.vtx.size(); ++i)
         {

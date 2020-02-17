@@ -13,13 +13,17 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
+//#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 10 * 60;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 8;//32;
+#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
+#else
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+#endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
@@ -28,8 +32,9 @@ static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
+static const int64 BBCP_INIT_REWARD_TOKEN = 20;
 #else
-static const int64 BBCP_TOKEN_INIT = 300000000;//0
+static const int64 BBCP_TOKEN_INIT = 0;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
 
 #define BBCP_TOKEN_SET_COUNT 16
@@ -73,6 +78,7 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
     126,
     73
 };
+static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 #endif
 
 namespace bigbang
@@ -150,7 +156,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -249,10 +255,10 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context
     // Only allow CBlock::BLOCK_PRIMARY type in v1.0.0
-    if (block.nType != CBlock::BLOCK_PRIMARY)
+    /*if (block.nType != CBlock::BLOCK_PRIMARY)
     {
         return DEBUG(ERR_BLOCK_TYPE_INVALID, "Block type error\n");
-    }
+    }*/
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
@@ -562,49 +568,87 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement)
+uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
-    if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
+    if (block.IsGenesis())
     {
         return uint64(0);
     }
-    else if (block.IsProofOfWork())
+    else if (block.IsVacant())
     {
-        // PoW difficulty = 2 ^ nBits
-        CProofOfHashWorkCompact proof;
-        proof.Load(block.vchProof);
-        uint256 v(1);
-        return v << proof.nBits;
+        return uint64(0);
+    }
+    else if (block.IsPrimary())
+    {
+        if (block.IsProofOfWork())
+        {
+            // PoW difficulty = 2 ^ nBits
+            CProofOfHashWorkCompact proof;
+            proof.Load(block.vchProof);
+            uint256 v(1);
+            return v << proof.nBits;
+        }
+        else if (pIndexPrev != nullptr)
+        {
+            // Get the last PoW block nAlgo
+            int nAlgo;
+            const CBlockIndex* pIndex = pIndexPrev;
+            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+            {
+                pIndex = pIndex->pPrev;
+            }
+            if (!pIndex->IsProofOfWork())
+            {
+                nAlgo = CM_CRYPTONIGHT;
+            }
+            else
+            {
+                nAlgo = pIndex->nProofAlgo;
+            }
+
+            // DPoS difficulty = weight * (2 ^ nBits)
+            int nBits;
+            int64 nReward;
+            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
+            {
+                if (agreement.nWeight == 0 || nBits <= 0)
+                {
+                    StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                }
+                return uint256(uint64(agreement.nWeight)) << nBits;
+            }
+            else
+            {
+                StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return uint64(0);
+            }
+        }
+        else
+        {
+            StdLog("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
+            return uint64(0);
+        }
+    }
+    else if (block.IsOrigin())
+    {
+        return uint64(0);
+    }
+    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
+    {
+        if (pIndexRef->pPrev == nullptr)
+        {
+            StdError("CCoreProtocol", "GetBlockTrust: prev block of reference block of subsidiary or extended block is null, block: %s, ref: %s", block.GetHash().ToString().c_str(), pIndexRef->GetBlockHash().ToString().c_str());
+            return uint64(0);
+        }
+        else
+        {
+            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
+        }
     }
     else
     {
-        // Get the last PoW block nAlgo
-        int nAlgo;
-        const CBlockIndex* pIndex = pIndexPrev;
-        while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-        {
-            pIndex = pIndex->pPrev;
-        }
-        if (!pIndex->IsProofOfWork())
-        {
-            nAlgo = CM_CRYPTONIGHT;
-        }
-        else
-        {
-            nAlgo = pIndex->nProofAlgo;
-        }
-
-        // DPoS difficulty = weight * (2 ^ nBits)
-        int nBits;
-        int64 nReward;
-        if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
-        {
-            return uint256(uint64(agreement.nWeight)) << nBits;
-        }
-        else
-        {
-            return uint64(0);
-        }
+        StdLog("CCoreProtocol", "GetBlockTrust: block type error");
+        return uint64(0);
     }
 }
 
@@ -612,6 +656,14 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 {
     if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
     {
+        if (!pIndexPrev->IsPrimary())
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: not is primary");
+        }
+        else
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
+        }
         return false;
     }
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
@@ -688,6 +740,8 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     }
     size_t nWeightWork = ((DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight))
                          / (DELEGATE_THRESH * DELEGATE_THRESH);
+    StdTrace("Core", "GetDelegatedBallot: nSelected: %d, nWorkRandom: %lu, nWeight: %lu, nWeightWork: %lu",
+             nSelected, (nWeightWork * 256 / (nWeightWork + nWeight)), nWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nWeight))
     {
         size_t nTrust = nWeight;
@@ -754,7 +808,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 {
     using namespace boost::posix_time;
     using namespace boost::gregorian;
-    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("62a401ff58234d2c7543859ed4917a9e85fb431ffb650a4d7694a301234771c4")));
+    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("68e4dca5989876ca64f16537e82d05c103e5695dfaf009a01632cb33639cc530")));
 
     block.SetNull();
 
@@ -774,12 +828,32 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
     profile.Save(block.vchProof);
+}
+
+///////////////////////////////
+// CProofOfWorkParam
+
+CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
+{
+    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
+    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
+    nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    if (fTestnet)
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
+    }
+    else
+    {
+        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
+    }
+    nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
 }
 
 } // namespace bigbang

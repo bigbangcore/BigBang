@@ -54,11 +54,11 @@ bool CBbPeerNet::HandleInitialize()
         return false;
     }
 
-     if (!GetObject("delegatedchannel", pDelegatedChannel))
-     {
-         Error("Failed to request delegated datachannel\n");
-         return false;
-     }
+    if (!GetObject("delegatedchannel", pDelegatedChannel))
+    {
+        Error("Failed to request delegated datachannel\n");
+        return false;
+    }
 
     return true;
 }
@@ -205,14 +205,14 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
         {
             pEventDeactive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
-            // CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
+            CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
 
             pNetChannel->PostEvent(pEventDeactive);
 
-            // if (pEventDeactiveDelegated != nullptr)
-            // {
-            //     pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
-            // }
+            if (pEventDeactiveDelegated != nullptr)
+            {
+                pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
+            }
         }
     }
     CPeerNet::DestroyPeer(pPeer);
@@ -342,10 +342,12 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
     CancelTimer(nTimerId);
     if (!CheckPeerVersion(pBbPeer->nVersion, pBbPeer->nService, pBbPeer->strSubVer))
     {
+        StdLog("CBbPeerNet", "HandlePeerHandshaked: CheckPeerVersion fail");
         return false;
     }
     if (pBbPeer->hashGenesis != hashGenesis)
     {
+        StdLog("CBbPeerNet", "HandlePeerHandshaked: hashGenesis error, peer genesis: %s, local genesis: %s", pBbPeer->hashGenesis.GetHex().c_str(), hashGenesis.GetHex().c_str());
         return false;
     }
     if (!pBbPeer->IsInBound())
@@ -377,13 +379,13 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         }
 
         pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-        // CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
+        CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
 
         pNetChannel->PostEvent(pEventActive);
-        // if (pEventActiveDelegated != nullptr)
-        // {
-        //     pDelegatedChannel->PostEvent(pEventActiveDelegated);
-        // }
+        if (pEventActiveDelegated != nullptr)
+        {
+            pDelegatedChannel->PostEvent(pEventActiveDelegated);
+        }
 
         pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     }

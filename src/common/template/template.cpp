@@ -10,7 +10,7 @@
 #include <boost/multi_index_container.hpp>
 
 #include "delegate.h"
-// #include "exchange.h"
+#include "exchange.h"
 #include "fork.h"
 #include "multisig.h"
 #include "proof.h"
@@ -45,7 +45,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_FORK, new CTemplateFork, "fork" },
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
-    // { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
