@@ -184,6 +184,12 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -1371,20 +1377,46 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                     continue;
                 }
 
-                if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
-                {
-                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
-                            nLastBlockHash.ToString().c_str());
-                    continue;
-                }
+                // uint256 nAgreement;
+                // size_t nWeight;
+                // std::vector<CDestination> vBallot;
+                // map<CDestination, size_t> mapBallot;
+                // pConsensus->GetAgreement(nHeight, nAgreement, nWeight, vBallot, mapBallot);
 
-                std::map<CDestination, std::size_t>::const_iterator iter = enrolled.mapWeight.find(pTx->sendTo);
-                if (iter == enrolled.mapWeight.end())
-                {
-                    StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
-                            pTx->sendTo.ToString().c_str());
-                    continue;
-                }
+                // StdDebug("NetChannel", "########################################");
+                // for (const auto& kv : mapBallot)
+                // {
+                //     const CDestination& destTo = kv.first;
+                //     StdDebug("NetChannel", "mapBallot destination: %s, weight: %d", destTo.ToString().c_str(), kv.second);
+                // }
+
+                // StdDebug("NetChannel", "****************************************");
+
+                // if (!pBlockChain->GetBlockDelegateEnrolled(nLastBlockHash, enrolled))
+                // {
+                //     StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, GetBlockDelegateEnrolled failed, Last Block Hash: %s",
+                //             nLastBlockHash.ToString().c_str());
+                //     continue;
+                // }
+
+                // if (enrolled.mapWeight.size() > 0)
+                // {
+                //     std::map<CDestination, std::size_t>::const_iterator iter = enrolled.mapWeight.find(pTx->sendTo);
+                //     if (iter == enrolled.mapWeight.end())
+                //     {
+                //         StdWarn("NetChannel", "NetChannel AddNewTx: Verify Enroll tx weight failed, can not find enroll tx SendTo weight, SendTo: %s",
+                //                 pTx->sendTo.ToString().c_str());
+
+                //         StdDebug("NetChannel", "########################################");
+                //         for (const auto& kv : enrolled.mapWeight)
+                //         {
+                //             const CDestination& destTo = kv.first;
+                //             StdDebug("NetChannel", "mapWeight destination: %s", destTo.ToString().c_str());
+                //         }
+                //         StdDebug("NetChannel", "××××××××××××××××××××××××××××××××××××××××××");
+                //         continue;
+                //     }
+                // }
 
                 // {
                 //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);

@@ -304,6 +304,7 @@ protected:
     ITxPool* pTxPool;
     IDispatcher* pDispatcher;
     IService* pService;
+    IConsensus* pConsensus;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;
