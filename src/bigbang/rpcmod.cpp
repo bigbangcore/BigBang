@@ -9,6 +9,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/regex.hpp>
 #include <regex>
 //#include <algorithm>
@@ -203,6 +204,10 @@ CRPCMod::CRPCMod()
         ("sendtransaction", &CRPCMod::RPCSendTransaction)
         //
         ("getforkheight", &CRPCMod::RPCGetForkHeight)
+        //
+        ("getvotes", &CRPCMod::RPCGetVotes)
+        //
+        ("listdelegate", &CRPCMod::RPCListDelegate)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
         //
@@ -978,6 +983,47 @@ CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
     }
 
     return MakeCGetForkHeightResultPtr(pService->GetForkHeight(hashFork));
+}
+
+CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetVotesParam>(param);
+
+    CAddress destDelegate(spParam->strAddress);
+    if (destDelegate.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
+    }
+
+    int64 nVotesToken;
+    string strFailCause;
+    if (!pService->GetVotes(destDelegate, nVotesToken, strFailCause))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, strFailCause);
+    }
+
+    return MakeCGetVotesResultPtr(ValueFromAmount(nVotesToken));
+}
+
+CRPCResultPtr CRPCMod::RPCListDelegate(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDelegateParam>(param);
+
+    std::multimap<int64, CDestination> mapVotes;
+    if (!pService->ListDelegate(spParam->nCount, mapVotes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Query fail");
+    }
+
+    auto spResult = MakeCListDelegateResultPtr();
+    for (const auto& d : boost::adaptors::reverse(mapVotes))
+    {
+        CListDelegateResult::CDelegate delegateData;
+        delegateData.strAddress = CAddress(d.second).ToString();
+        delegateData.dVotes = ValueFromAmount(d.first);
+        spResult->vecDelegate.push_back(delegateData);
+    }
+    return spResult;
 }
 
 /* Wallet */
