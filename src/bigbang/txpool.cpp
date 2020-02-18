@@ -246,6 +246,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 
     // process all cert related tx by seqnum
     std::set<uint256> setProcessedTxId;
+    const CPooledCertTxLinkSetByTxHash& idxCertTxLinkHash = setCertRelativesIndex.get<0>();
     const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
     for (auto& i : idxCertTxLinkSeq)
     {
@@ -285,7 +286,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
                 }
                 if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
                 {
-                    return;
+                    break;
                 }
                 vtx.push_back(*static_cast<CTransaction*>(i.ptx));
                 nTotalSize += i.ptx->nSerializeSize;
@@ -300,7 +301,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 
     // process all tx in tx pool by seqnum
-    CPooledCertTxLinkSetByTxHash& idxCertTxLinkHash = setCertRelativesIndex.get<0>();
     for (auto& i : idxTxLinkSeq)
     {
         // skip processed cert related tx
