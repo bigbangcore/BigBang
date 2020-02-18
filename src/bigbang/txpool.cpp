@@ -230,23 +230,24 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     set<uint256> setUnTx;
     nTotalTxFee = 0;
 
+    CPooledCertTxLinkSet setCertRelativesIndex;
     // Collect all cert related tx
-    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (const auto& i : idxTxLinkSeq)
+    const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
+    const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
+    const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
+    for (auto iter = iterBegin; iter != iterEnd; ++iter)
     {
-        if (i.ptx && i.nType == CTransaction::TX_CERT)
+        if (iterBegin->ptx && iterBegin->nType == CTransaction::TX_CERT)
         {
-            setCertRelativesIndex.insert(i);
+            setCertRelativesIndex.insert(*iterBegin);
 
             std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(i, prevLinks);
+            GetAllPrevTxLink(*iterBegin, prevLinks);
             setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
         }
     }
 
     // process all cert related tx by seqnum
-    std::set<uint256> setProcessedTxId;
-    const CPooledCertTxLinkSetByTxHash& idxCertTxLinkHash = setCertRelativesIndex.get<0>();
     const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
     for (auto& i : idxCertTxLinkSeq)
     {
@@ -291,7 +292,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
                 vtx.push_back(*static_cast<CTransaction*>(i.ptx));
                 nTotalSize += i.ptx->nSerializeSize;
                 nTotalTxFee += i.ptx->nTxFee;
-                setProcessedTxId.insert(i.hashTX);
             }
             else
             {
@@ -301,10 +301,11 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 
     // process all tx in tx pool by seqnum
+    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
     for (auto& i : idxTxLinkSeq)
     {
-        // skip processed cert related tx
-        if (setProcessedTxId.find(i.hashTX) != setProcessedTxId.end())
+        // skip cert related tx
+        if (setCertRelativesIndex.find(i.hashTX) != setCertRelativesIndex.end())
         {
             continue;
         }
@@ -354,15 +355,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
             {
                 setUnTx.insert(i.ptx->GetHash());
             }
-        }
-    }
-
-    // Delete processed cert related tx
-    for (const uint256& txid : setProcessedTxId)
-    {
-        if (idxCertTxLinkHash.find(txid) != idxCertTxLinkHash.end())
-        {
-            setCertRelativesIndex.erase(txid);
         }
     }
 }

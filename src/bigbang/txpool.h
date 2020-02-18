@@ -77,33 +77,7 @@ private:
     }
 };
 
-class ComparePooledTxLinkByEnrollTx
-{
-public:
-    bool operator()(const CPooledTxLink& a, const CPooledTxLink& b) const
-    {
-        if (a.nType == CTransaction::TX_CERT || b.nType == CTransaction::TX_CERT)
-        {
-            return GetScore(a) > GetScore(b);
-        }
-        else
-        {
-            return a.nSequenceNumber < b.nSequenceNumber;
-        }
-    }
-
-private:
-    double GetScore(const CPooledTxLink& link) const
-    {
-        return (double)((double)link.nType + (double)(1.0f / (double)(link.nSequenceNumber + 1)));
-    }
-};
-
 struct tx_score
-{
-};
-
-struct enroll_tx_first
 {
 };
 
@@ -114,22 +88,19 @@ typedef boost::multi_index_container<
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
         // sorted by entry sequence
         boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>,
+        // sorted by Tx Type
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint16, &CPooledTxLink::nType>>,
         // sorted by tx score
         boost::multi_index::ordered_non_unique<
             boost::multi_index::tag<tx_score>,
             boost::multi_index::identity<CPooledTxLink>,
-            ComparePooledTxLinkByTxScore>,
-        // sorted by enroll tx first
-        boost::multi_index::ordered_non_unique<
-            boost::multi_index::tag<enroll_tx_first>,
-            boost::multi_index::identity<CPooledTxLink>,
-            ComparePooledTxLinkByEnrollTx>>>
+            ComparePooledTxLinkByTxScore>>>
 
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
-typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxScore;
-typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByEnrollTx;
+typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxType;
+typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByTxScore;
 
 typedef boost::multi_index_container<
     CPooledTxLink,
@@ -273,7 +244,6 @@ private:
 public:
     CPooledTxLinkSet setTxLinkIndex;
     std::map<CTxOutPoint, CSpent> mapSpent;
-    CPooledCertTxLinkSet setCertRelativesIndex;
 };
 
 class CTxPool : public ITxPool
