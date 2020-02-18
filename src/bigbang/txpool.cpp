@@ -202,31 +202,57 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
 void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
 {
     size_t nTotalSize = 0;
+    set<uint256> setUnTx;
     nTotalTxFee = 0;
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
     for (auto const& i : idxTxLinkSeq)
     {
-        if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
+        if (i.ptx)
         {
-            if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+            if (i.ptx->GetTxTime() <= nBlockTime)
             {
-                std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
-                if (it != mapVoteCert.end())
+                if (!setUnTx.empty())
                 {
-                    if (it->second <= 0)
+                    bool fMissPrev = false;
+                    for (const auto& d : i.ptx->vInput)
                     {
+                        if (setUnTx.find(d.prevout.hash) != setUnTx.end())
+                        {
+                            fMissPrev = true;
+                            break;
+                        }
+                    }
+                    if (fMissPrev)
+                    {
+                        setUnTx.insert(i.ptx->GetHash());
                         continue;
                     }
-                    it->second--;
                 }
+                if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+                {
+                    std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
+                    if (it != mapVoteCert.end())
+                    {
+                        if (it->second <= 0)
+                        {
+                            setUnTx.insert(i.ptx->GetHash());
+                            continue;
+                        }
+                        it->second--;
+                    }
+                }
+                if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+                {
+                    break;
+                }
+                vtx.push_back(*static_cast<CTransaction*>(i.ptx));
+                nTotalSize += i.ptx->nSerializeSize;
+                nTotalTxFee += i.ptx->nTxFee;
             }
-            if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+            else
             {
-                break;
+                setUnTx.insert(i.ptx->GetHash());
             }
-            vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-            nTotalSize += i.ptx->nSerializeSize;
-            nTotalTxFee += i.ptx->nTxFee;
         }
     }
 }
