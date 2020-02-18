@@ -200,12 +200,52 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
+{
+    std::deque<CPooledTxLink> queueBFS;
+    queueBFS.push_back(link);
+
+    while (!queueBFS.empty())
+    {
+        const CPooledTxLink& tempLink = queueBFS.front();
+        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
+        {
+            const CTxIn& txin = tempLink.ptx->vInput[i];
+            const uint256& prevHash = txin.prevout.hash;
+            auto iter = setTxLinkIndex.find(prevHash);
+            if (iter != setTxLinkIndex.end())
+            {
+                prevLinks.push_back(*iter);
+                queueBFS.push_back(*iter);
+            }
+        }
+        queueBFS.pop_front();
+    }
+}
+
 void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
     nTotalTxFee = 0;
+
+    (void)nTotalSize;
+
+    std::vector<CPooledTxLink> certRelatives;
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
+    for (CPooledTxLinkSetBySequenceNumber::iterator iter = idxTxLinkSeq.begin(); iter != idxTxLinkSeq.end(); iter++)
+    {
+
+        if (iter->nType == CTransaction::TX_CERT)
+        {
+            certRelatives.push_back(*iter);
+
+            std::vector<CPooledTxLink> prevLinks;
+            GetAllPrevTxLink(*iter, prevLinks);
+            certRelatives.insert(certRelatives.begin(), prevLinks.begin(), prevLinks.end());
+        }
+    }
+
     for (auto& i : idxTxLinkSeq)
     {
         if (i.ptx)
