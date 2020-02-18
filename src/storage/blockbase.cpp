@@ -430,18 +430,28 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     return true;
 }
 
-bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust)
+bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nDelegateWeightRatio)
 {
     if (Exists(hash))
     {
-        StdTrace("BlockBase", "Exist Block: %s", hash.ToString().c_str());
+        StdTrace("BlockBase", "Add new block: Exist Block: %s", hash.ToString().c_str());
         return false;
+    }
+
+    CDelegateContext ctxtDelegate;
+    if (block.IsPrimary())
+    {
+        if (!VerifyDelegateVote(hash, block, nDelegateWeightRatio, ctxtDelegate))
+        {
+            StdError("BlockBase", "Add new block: Verify delegate vote fail, block: %s", hash.ToString().c_str());
+            return false;
+        }
     }
 
     uint32 nFile, nOffset;
     if (!tsBlock.Write(block, nFile, nOffset))
     {
-        StdTrace("BlockBase", "Write block %s failed", hash.ToString().c_str());
+        StdError("BlockBase", "Add new block: write block failed, block: %s", hash.ToString().c_str());
         return false;
     }
     {
@@ -450,13 +460,13 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
-            StdTrace("BlockBase", "AddNewIndex faild: %s", hash.ToString().c_str());
+            StdError("BlockBase", "Add new block: AddNewIndex faild, block: %s", hash.ToString().c_str());
             return false;
         }
 
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
-            StdTrace("BlockBase", "AddNewBlock failed: %s", hash.ToString().c_str());
+            StdError("BlockBase", "Add new block: AddNewBlock failed, block: %s", hash.ToString().c_str());
             //mapIndex.erase(hash);
             RemoveBlockIndex(pIndexNew->GetOriginHash(), hash);
             delete pIndexNew;
@@ -465,9 +475,9 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
 
         if (pIndexNew->IsPrimary())
         {
-            if (!UpdateDelegate(hash, block, CDiskPos(nFile, nOffset)))
+            if (!UpdateDelegate(hash, block, CDiskPos(nFile, nOffset), ctxtDelegate))
             {
-                StdTrace("BlockBase", "UpdateDelegate failed: %s", hash.ToString().c_str());
+                StdTrace("BlockBase", "Add new block: Update delegate failed, block: %s", hash.ToString().c_str());
                 dbBlock.RemoveBlock(hash);
                 //mapIndex.erase(hash);
                 RemoveBlockIndex(pIndexNew->GetOriginHash(), hash);
@@ -479,7 +489,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
         *ppIndexNew = pIndexNew;
     }
 
-    Log("B", "AddNew block,hash=%s", hash.ToString().c_str());
+    Log("B", "AddNew block, hash=%s", hash.ToString().c_str());
     return true;
 }
 
@@ -747,6 +757,11 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                  hash.ToString().c_str());
         return false;
     }
+    for (const auto d : mapVote)
+    {
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapVote: height: %d, dest: %s, vote: %.6f",
+                 height, CAddress(d.first).ToString().c_str(), ValueFromToken(d.second));
+    }
 
     map<CDestination, CDiskPos> mapEnrollTxPos;
     if (!dbBlock.RetrieveEnroll(height, vBlockRange, mapEnrollTxPos))
@@ -754,6 +769,11 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
         StdTrace("BlockBase", "RetrieveAvailDelegate::RetrieveEnroll block %s height %d failed",
                  hash.ToString().c_str(), height);
         return false;
+    }
+    for (const auto d : mapEnrollTxPos)
+    {
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapEnrollTxPos: height: %d, dest: %s",
+                 height, CAddress(d.first).ToString().c_str());
     }
 
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
@@ -1718,6 +1738,51 @@ bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std:
     return true;
 }
 
+bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes)
+{
+    CBlockIndex* pForkLastIndex = nullptr;
+    if (!RetrieveFork(hashGenesis, &pForkLastIndex))
+    {
+        return false;
+    }
+    std::map<CDestination, int64> mapVote;
+    if (!dbBlock.RetrieveDelegate(pForkLastIndex->GetBlockHash(), mapVote))
+    {
+        return false;
+    }
+    nVotes = mapVote[destDelegate];
+    return true;
+}
+
+bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
+{
+    CBlockIndex* pForkLastIndex = nullptr;
+    if (!RetrieveFork(hashGenesis, &pForkLastIndex))
+    {
+        return false;
+    }
+    std::map<CDestination, int64> mapVote;
+    if (!dbBlock.RetrieveDelegate(pForkLastIndex->GetBlockHash(), mapVote))
+    {
+        return false;
+    }
+    for (const auto& d : mapVote)
+    {
+        mapVotes.insert(std::make_pair(d.second, d.first));
+    }
+    if (nCount > 0)
+    {
+        std::size_t nGetVotesCount = mapVotes.size();
+        std::multimap<int64, CDestination>::iterator it = mapVotes.begin();
+        while (it != mapVotes.end() && nGetVotesCount > nCount)
+        {
+            mapVotes.erase(it++);
+            --nGetVotesCount;
+        }
+    }
+    return true;
+}
+
 bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
 {
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
@@ -1750,6 +1815,29 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
                     }
                 }
             }
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination, int64>& mapVote)
+{
+    return dbBlock.RetrieveDelegate(hashBlock, mapVote);
+}
+
+bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, set<CDestination>>& mapEnrollDest)
+{
+    map<int, map<CDestination, CDiskPos>> mapEnrollTxPos;
+    if (!dbBlock.RetrieveEnroll(hashBlock, mapEnrollTxPos))
+    {
+        return false;
+    }
+    for (const auto& d : mapEnrollTxPos)
+    {
+        set<CDestination>& destEnroll = mapEnrollDest[d.first];
+        for (const auto& m : d.second)
+        {
+            destEnroll.insert(m.first);
         }
     }
     return true;
@@ -1911,63 +1999,117 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
     return true;
 }
 
-bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock)
+bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate)
 {
-    StdTrace("CBlockBase", "UpdateDelegate: start, vtx.size: %ld, height: %d, block: %s", block.vtx.size(), block.GetBlockHeight(), hash.GetHex().c_str());
-
-    CDelegateContext ctxtDelegate;
+    StdTrace("CBlockBase", "VerifyDelegateVote: height: %d, block: %s", block.GetBlockHeight(), hash.GetHex().c_str());
 
     map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
     map<int, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
-
     if (!dbBlock.RetrieveDelegate(block.hashPrev, mapDelegate))
     {
-        StdLog("CBlockBase", "UpdateDelegate: RetrieveDelegate fail");
+        StdError("CBlockBase", "Verify delegate vote: RetrieveDelegate fail");
         return false;
+    }
+
+    vector<pair<CDestination, int64>> vDestVote;
+
+    {
+        CTemplateId tid;
+        if (block.txMint.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            vDestVote.push_back(make_pair(block.txMint.sendTo, block.txMint.nAmount));
+        }
     }
 
     CBufStream ss;
     CVarInt var(block.vtx.size());
-    uint32 nOffset = posBlock.nOffset + block.GetTxSerializedOffset()
+    uint32 nOffset = block.GetTxSerializedOffset()
                      + ss.GetSerializeSize(block.txMint)
                      + ss.GetSerializeSize(var);
-
     for (int i = 0; i < block.vtx.size(); i++)
     {
         CTransaction& tx = block.vtx[i];
-        {
-            CTemplateId tid;
-            if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
-            {
-                mapDelegate[tx.sendTo] += tx.nAmount;
-            }
-        }
-
+        CDestination destInDelegateTemplate;
+        CDestination sendToDelegateTemplate;
         CTxContxt& txContxt = block.vTxContxt[i];
+        if (!CTemplate::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
         {
-            CTemplateId tid;
-            if (txContxt.destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
-            {
-                mapDelegate[txContxt.destIn] -= tx.nAmount + tx.nTxFee;
-            }
+            StdLog("CBlockBase", "Verify delegate vote: parse delegate dest fail, destIn: %s, sendTo: %s, block: %s, txid: %s",
+                   CAddress(txContxt.destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str(), hash.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
         }
-
+        if (!sendToDelegateTemplate.IsNull())
+        {
+            vDestVote.push_back(make_pair(sendToDelegateTemplate, tx.nAmount));
+            //mapDelegate[tx.sendTo] += tx.nAmount;
+        }
+        if (!destInDelegateTemplate.IsNull())
+        {
+            vDestVote.push_back(make_pair(destInDelegateTemplate, 0 - (tx.nAmount + tx.nTxFee)));
+            //mapDelegate[txContxt.destIn] -= tx.nAmount + tx.nTxFee;
+        }
         if (tx.nType == CTransaction::TX_CERT)
         {
-            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
-            StdTrace("CBlockBase", "UpdateDelegate: Enroll tx, height: %d, destIn: %s, txid: %s",
-                     GetIndex(block.hashPrev)->GetBlockHeight(), CAddress(txContxt.destIn).ToString().c_str(), tx.GetHash().GetHex().c_str());
+            if (destInDelegateTemplate.IsNull())
+            {
+                StdLog("CBlockBase", "Verify delegate vote: TX_CERT destInDelegate is null, destInDelegate: %s, block: %s, txid: %s",
+                       CAddress(destInDelegateTemplate).ToString().c_str(), hash.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            int64 nDelegateVote = mapDelegate[destInDelegateTemplate];
+            if (nDelegateVote < nDelegateWeightRatio)
+            {
+                StdLog("CBlockBase", "Verify delegate vote: TX_CERT not enough votes, destInDelegate: %s, delegate vote: %.6f, weight ratio: %.6f, txid: %s",
+                       CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nDelegateWeightRatio), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
+            StdTrace("CBlockBase", "VerifyDelegateVote: Enroll cert tx, height: %d, nAmount: %.6f, vote: %.6f, destInDelegate: %s, txid: %s",
+                     GetIndex(block.hashPrev)->GetBlockHeight(), ValueFromToken(tx.nAmount), ValueFromToken(nDelegateVote), CAddress(destInDelegateTemplate).ToString().c_str(), tx.GetHash().GetHex().c_str());
+            //mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
         }
         nOffset += ss.GetSerializeSize(tx);
     }
-
+    for (const auto& d : vDestVote)
+    {
+        mapDelegate[d.first] += d.second;
+        if (d.second > 0)
+        {
+            StdTrace("CBlockBase", "VerifyDelegateVote: sendToDelegate: %s, nAmount: %.6f, AddUp: %.6f",
+                     CAddress(d.first).ToString().c_str(), ValueFromToken(d.second), ValueFromToken(mapDelegate[d.first]));
+        }
+        else
+        {
+            StdTrace("CBlockBase", "VerifyDelegateVote: destInDelegate: %s, nAmount+nTxFee: %.6f, AddUp: %.6f",
+                     CAddress(d.first).ToString().c_str(), ValueFromToken(0 - d.second), ValueFromToken(mapDelegate[d.first]));
+        }
+    }
     {
         for (auto it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
         {
-            StdTrace("CBlockBase", "UpdateDelegate: Delegate dest: %s, token: %ld", CAddress(it->first).ToString().c_str(), it->second);
+            StdTrace("CBlockBase", "VerifyDelegateVote: destDelegate: %s, votes: %.6f",
+                     CAddress(it->first).ToString().c_str(), ValueFromToken(it->second));
         }
     }
-    return dbBlock.UpdateDelegateContext(hash, ctxtDelegate);
+    return true;
+}
+
+bool CBlockBase::UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate)
+{
+    for (auto& dEnrollTx : ctxtDelegate.mapEnrollTx)
+    {
+        for (auto& dDest : dEnrollTx.second)
+        {
+            dDest.second.nFile = posBlock.nFile;
+            dDest.second.nOffset += posBlock.nOffset;
+        }
+    }
+    if (!dbBlock.UpdateDelegateContext(hash, ctxtDelegate))
+    {
+        StdError("BlockBase", "Update delegate context failed, block: %s", hash.ToString().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool CBlockBase::GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent)

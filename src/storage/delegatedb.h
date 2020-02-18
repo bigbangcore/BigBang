@@ -44,6 +44,7 @@ public:
     bool AddNew(const uint256& hashBlock, const CDelegateContext& ctxtDelegate);
     bool Remove(const uint256& hashBlock);
     bool RetrieveDelegatedVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
+    bool RetrieveDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
     bool RetrieveEnrollTx(int height, const std::vector<uint256>& vBlockRange,
                           std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     void Clear();

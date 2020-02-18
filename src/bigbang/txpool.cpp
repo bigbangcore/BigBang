@@ -200,61 +200,61 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
 {
     size_t nTotalSize = 0;
+    set<uint256> setUnTx;
     nTotalTxFee = 0;
-    (void)nTotalSize;
-
-    std::vector<CPooledTxLink> certRelatives;
-
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (CPooledTxLinkSetBySequenceNumber::iterator iter = idxTxLinkSeq.begin(); iter != idxTxLinkSeq.end(); iter++)
+    for (auto& i : idxTxLinkSeq)
     {
-        // if (iter->ptx && iter->ptx->GetTxTime() <= nBlockTime)
-        // {
-        //     if (nTotalSize + iter->ptx->nSerializeSize > nMaxSize)
-        //     {
-        //         break;
-        //     }
-
-        //     vtx.push_back(*static_cast<CTransaction*>(iter->ptx));
-        //     nTotalSize += iter->ptx->nSerializeSize;
-        //     nTotalTxFee += iter->ptx->nTxFee;
-        // }
-
-        if (iter->nType == CTransaction::TX_CERT)
+        if (i.ptx)
         {
-            certRelatives.push_back(*iter);
-
-            std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(*iter, prevLinks);
-            certRelatives.insert(certRelatives.begin(), prevLinks.begin(), prevLinks.end());
-        }
-    }
-}
-
-void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
-{
-    std::deque<CPooledTxLink> queueBFS;
-    queueBFS.push_back(link);
-
-    while (!queueBFS.empty())
-    {
-        const CPooledTxLink& tempLink = queueBFS.front();
-        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
-        {
-            const CTxIn& txin = tempLink.ptx->vInput[i];
-            const uint256& prevHash = txin.prevout.hash;
-            auto iter = setTxLinkIndex.find(prevHash);
-            if (iter != setTxLinkIndex.end())
+            if (i.ptx->GetTxTime() <= nBlockTime)
             {
-                prevLinks.push_back(*iter);
-                queueBFS.push_back(*iter);
+                if (!setUnTx.empty())
+                {
+                    bool fMissPrev = false;
+                    for (const auto& d : i.ptx->vInput)
+                    {
+                        if (setUnTx.find(d.prevout.hash) != setUnTx.end())
+                        {
+                            fMissPrev = true;
+                            break;
+                        }
+                    }
+                    if (fMissPrev)
+                    {
+                        setUnTx.insert(i.ptx->GetHash());
+                        continue;
+                    }
+                }
+                if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+                {
+                    std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
+                    if (it != mapVoteCert.end())
+                    {
+                        if (it->second <= 0)
+                        {
+                            setUnTx.insert(i.ptx->GetHash());
+                            continue;
+                        }
+                        it->second--;
+                    }
+                }
+                if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+                {
+                    break;
+                }
+                vtx.push_back(*static_cast<CTransaction*>(i.ptx));
+                nTotalSize += i.ptx->nSerializeSize;
+                nTotalTxFee += i.ptx->nTxFee;
+            }
+            else
+            {
+                setUnTx.insert(i.ptx->GetHash());
             }
         }
-
-        queueBFS.pop_front();
     }
 }
 
@@ -506,8 +506,24 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
                              vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    CTxPoolView& txView = mapPoolView[hashFork];
-    txView.ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize);
+    map<CDestination, int> mapVoteCert;
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        uint256 hashLastBlock;
+        int nHeight;
+        int64 nTime;
+        if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
+            return;
+        }
+        if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
+            return;
+        }
+    }
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)

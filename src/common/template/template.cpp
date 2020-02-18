@@ -19,6 +19,7 @@
 #include "template.h"
 #include "templateid.h"
 #include "transaction.h"
+#include "vote.h"
 #include "weighted.h"
 
 using namespace std;
@@ -46,6 +47,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    { TEMPLATE_VOTE, new CTemplateVote, "vote" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
@@ -201,10 +203,56 @@ bool CTemplate::IsDestInRecorded(const CDestination& dest)
         const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
         if (pTypeInfo)
         {
-            return (dynamic_cast<CDestInRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
+            return (dynamic_cast<CSendToRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
         }
     }
     return false;
+}
+
+bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
+{
+    std::vector<uint8> vchSubSigOut;
+    bool fSendToVoteTemplate = false;
+    CTemplateId tid;
+    if (sendTo.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            sendToDelegateOut = sendTo;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            CDestination destOwnerTemp;
+            if (!CSendToRecordedTemplate::ParseDest(vchSigIn, sendToDelegateOut, destOwnerTemp, vchSubSigOut))
+            {
+                return false;
+            }
+            fSendToVoteTemplate = true;
+        }
+    }
+    if (!fSendToVoteTemplate)
+    {
+        vchSubSigOut = std::move(vchSigIn);
+    }
+
+    if (destIn.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            destInDelegateOut = destIn;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn, vchSubSigOut);
+            if (ptr == nullptr)
+            {
+                return false;
+            }
+            CDestination destOwnerTemp;
+            boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destInDelegateOut, destOwnerTemp);
+        }
+    }
+    return true;
 }
 
 bool CTemplate::IsLockedCoin(const CDestination& dest)

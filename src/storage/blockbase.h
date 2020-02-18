@@ -208,7 +208,7 @@ public:
     bool Exists(const uint256& hash) const;
     bool ExistsTx(const uint256& txid);
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
-    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
+    bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nDelegateWeightRatio);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
@@ -244,7 +244,11 @@ public:
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
+    bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
+    bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
     bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
+    bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
+    bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -258,7 +262,8 @@ protected:
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
     boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
-    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock);
+    bool VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate);
+    bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate);
     bool GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent);
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
     void ClearCache();

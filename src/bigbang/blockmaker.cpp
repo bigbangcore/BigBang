@@ -275,29 +275,6 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
     pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
-    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        std::set<uint256> setTx;
-        for (const auto& obj : block.vtx)
-        {
-            if (obj.nType == obj.TX_CERT)
-            {
-                setTx.insert(obj.GetHash());
-            }
-        }
-        for (int i = 0; i < block.vtx.size(); ++i)
-        {
-            if (block.vtx[i].nType == block.vtx[i].TX_CERT)
-            {
-                if (setTx.count(block.vtx[i].vInput[0].prevout.hash))
-                {
-                    nTotalTxFee -= block.vtx[i].nTxFee;
-                    block.vtx.erase(block.vtx.begin() + i);
-                    --i;
-                }
-            }
-        }
-    }
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 }
