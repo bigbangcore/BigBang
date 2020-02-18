@@ -460,14 +460,14 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
         return false;
     }
 
-    if (!fCompleted
+    if (!(!fCompleted
           || (pCoreProtocol->ValidateTransaction(tx) == OK
-              && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
+              && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK)))
     {
-        return true;
+        StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
+        return false;
     }
-    StdError("CService", "SignTransaction: ValidateTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
-    return false;
+    return true;
 }
 
 bool CService::HaveTemplate(const CTemplateId& tid)

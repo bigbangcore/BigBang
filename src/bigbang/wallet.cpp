@@ -626,7 +626,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     tx.vInput.reserve(vCoins.size());
     for (const CTxOutPoint& out : vCoins)
     {
-        tx.vInput.emplace_back(CTxIn(out));
+        tx.vInput.push_back(CTxIn(out));
     }
     return true;
 }
