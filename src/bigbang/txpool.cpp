@@ -232,21 +232,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
             certRelatives.insert(certRelatives.begin(), prevLinks.begin(), prevLinks.end());
         }
     }
-
-    // const CPooledTxLinkSetByEnrollTx& TxLinkEnrollTx = setTxLinkIndex.get<enroll_tx_first>();
-    // for (auto const& i : TxLinkEnrollTx)
-    // {
-    //     if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
-    //     {
-    //         if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
-    //         {
-    //             break;
-    //         }
-    //         vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-    //         nTotalSize += i.ptx->nSerializeSize;
-    //         nTotalTxFee += i.ptx->nTxFee;
-    //     }
-    // }
 }
 
 void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
