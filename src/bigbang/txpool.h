@@ -131,6 +131,18 @@ typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
 typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxScore;
 typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByEnrollTx;
 
+typedef boost::multi_index_container<
+    CPooledTxLink,
+    boost::multi_index::indexed_by<
+        // sorted by Tx ID
+        boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+
+    CPooledCertTxLinkSet;
+typedef CPooledCertTxLinkSet::nth_index<0>::type CPooledCertTxLinkSetByTxHash;
+typedef CPooledCertTxLinkSet::nth_index<1>::type CPooledCertTxLinkSetBySequenceNumber;
+
 class CTxPoolView
 {
 public:
@@ -261,6 +273,7 @@ private:
 public:
     CPooledTxLinkSet setTxLinkIndex;
     std::map<CTxOutPoint, CSpent> mapSpent;
+    CPooledCertTxLinkSet setCertRelativesIndex;
 };
 
 class CTxPool : public ITxPool

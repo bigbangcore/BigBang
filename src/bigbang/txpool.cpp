@@ -4,6 +4,7 @@
 
 #include "txpool.h"
 
+#include <algorithm>
 #include <boost/range/adaptor/reversed.hpp>
 #include <deque>
 
@@ -229,25 +230,84 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     set<uint256> setUnTx;
     nTotalTxFee = 0;
 
-    (void)nTotalSize;
-
-    std::vector<CPooledTxLink> certRelatives;
+    // Collect all cert related tx
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (CPooledTxLinkSetBySequenceNumber::iterator iter = idxTxLinkSeq.begin(); iter != idxTxLinkSeq.end(); iter++)
+    for (const auto& i : idxTxLinkSeq)
     {
-
-        if (iter->nType == CTransaction::TX_CERT)
+        if (i.ptx && i.nType == CTransaction::TX_CERT)
         {
-            certRelatives.push_back(*iter);
+            setCertRelativesIndex.insert(i);
 
             std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(*iter, prevLinks);
-            certRelatives.insert(certRelatives.begin(), prevLinks.begin(), prevLinks.end());
+            GetAllPrevTxLink(i, prevLinks);
+            setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
         }
     }
 
+    // process all cert related tx by seqnum
+    std::vector<uint256> vTempTxId;
+    const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
+    for (auto& i : idxCertTxLinkSeq)
+    {
+        if (i.ptx)
+        {
+            if (i.ptx->GetTxTime() <= nBlockTime)
+            {
+                if (!setUnTx.empty())
+                {
+                    bool fMissPrev = false;
+                    for (const auto& d : i.ptx->vInput)
+                    {
+                        if (setUnTx.find(d.prevout.hash) != setUnTx.end())
+                        {
+                            fMissPrev = true;
+                            break;
+                        }
+                    }
+                    if (fMissPrev)
+                    {
+                        setUnTx.insert(i.ptx->GetHash());
+                        continue;
+                    }
+                }
+                if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+                {
+                    std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
+                    if (it != mapVoteCert.end())
+                    {
+                        if (it->second <= 0)
+                        {
+                            setUnTx.insert(i.ptx->GetHash());
+                            continue;
+                        }
+                        it->second--;
+                    }
+                }
+                if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+                {
+                    return;
+                }
+                vtx.push_back(*static_cast<CTransaction*>(i.ptx));
+                nTotalSize += i.ptx->nSerializeSize;
+                nTotalTxFee += i.ptx->nTxFee;
+                vTempTxId.push_back(i.hashTX);
+            }
+            else
+            {
+                setUnTx.insert(i.ptx->GetHash());
+            }
+        }
+    }
+
+    // process all tx in tx pool by seqnum
+    CPooledCertTxLinkSetByTxHash& idxCertTxLinkHash = setCertRelativesIndex.get<0>();
     for (auto& i : idxTxLinkSeq)
     {
+        // skip processed cert related tx
+        if (idxCertTxLinkHash.find(i.hashTX) != idxCertTxLinkHash.end())
+        {
+            continue;
+        }
         if (i.ptx)
         {
             if (i.ptx->GetTxTime() <= nBlockTime)
@@ -294,6 +354,15 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
             {
                 setUnTx.insert(i.ptx->GetHash());
             }
+        }
+    }
+
+    // Delete processed cert related tx
+    for (const uint256& txid : vTempTxId)
+    {
+        if (idxCertTxLinkHash.find(txid) != idxCertTxLinkHash.end())
+        {
+            setCertRelativesIndex.erase(txid);
         }
     }
 }
