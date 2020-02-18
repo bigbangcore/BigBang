@@ -245,7 +245,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 
     // process all cert related tx by seqnum
-    std::vector<uint256> vTempTxId;
+    std::set<uint256> setProcessedTxId;
     const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
     for (auto& i : idxCertTxLinkSeq)
     {
@@ -290,7 +290,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
                 vtx.push_back(*static_cast<CTransaction*>(i.ptx));
                 nTotalSize += i.ptx->nSerializeSize;
                 nTotalTxFee += i.ptx->nTxFee;
-                vTempTxId.push_back(i.hashTX);
+                setProcessedTxId.insert(i.hashTX);
             }
             else
             {
@@ -304,7 +304,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     for (auto& i : idxTxLinkSeq)
     {
         // skip processed cert related tx
-        if (idxCertTxLinkHash.find(i.hashTX) != idxCertTxLinkHash.end())
+        if (setProcessedTxId.find(i.hashTX) != setProcessedTxId.end())
         {
             continue;
         }
@@ -358,7 +358,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 
     // Delete processed cert related tx
-    for (const uint256& txid : vTempTxId)
+    for (const uint256& txid : setProcessedTxId)
     {
         if (idxCertTxLinkHash.find(txid) != idxCertTxLinkHash.end())
         {
