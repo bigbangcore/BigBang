@@ -224,13 +224,63 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
     }
 }
 
+bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx)
+{
+    if (ptx->GetTxTime() <= nBlockTime)
+    {
+        if (!setUnTx.empty())
+        {
+            bool fMissPrev = false;
+            for (const auto& d : ptx->vInput)
+            {
+                if (setUnTx.find(d.prevout.hash) != setUnTx.end())
+                {
+                    fMissPrev = true;
+                    break;
+                }
+            }
+            if (fMissPrev)
+            {
+                setUnTx.insert(ptx->GetHash());
+                return true;
+            }
+        }
+        if (ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+        {
+            std::map<CDestination, int>::iterator it = mapVoteCert.find(ptx->sendTo);
+            if (it != mapVoteCert.end())
+            {
+                if (it->second <= 0)
+                {
+                    setUnTx.insert(ptx->GetHash());
+                    return true;
+                }
+                it->second--;
+            }
+        }
+        if (nTotalSize + ptx->nSerializeSize > nMaxSize)
+        {
+            return false;
+        }
+        vtx.push_back(*static_cast<CTransaction*>(ptx));
+        nTotalSize += ptx->nSerializeSize;
+        nTotalTxFee += ptx->nTxFee;
+    }
+    else
+    {
+        setUnTx.insert(ptx->GetHash());
+    }
+    return true;
+}
+
 void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
+    CPooledCertTxLinkSet setCertRelativesIndex;
     nTotalTxFee = 0;
 
-    CPooledCertTxLinkSet setCertRelativesIndex;
     // Collect all cert related tx
     const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
     const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
@@ -253,49 +303,9 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            if (i.ptx->GetTxTime() <= nBlockTime)
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
             {
-                if (!setUnTx.empty())
-                {
-                    bool fMissPrev = false;
-                    for (const auto& d : i.ptx->vInput)
-                    {
-                        if (setUnTx.find(d.prevout.hash) != setUnTx.end())
-                        {
-                            fMissPrev = true;
-                            break;
-                        }
-                    }
-                    if (fMissPrev)
-                    {
-                        setUnTx.insert(i.ptx->GetHash());
-                        continue;
-                    }
-                }
-                if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
-                {
-                    std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
-                    if (it != mapVoteCert.end())
-                    {
-                        if (it->second <= 0)
-                        {
-                            setUnTx.insert(i.ptx->GetHash());
-                            continue;
-                        }
-                        it->second--;
-                    }
-                }
-                if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
-                {
-                    return;
-                }
-                vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-                nTotalSize += i.ptx->nSerializeSize;
-                nTotalTxFee += i.ptx->nTxFee;
-            }
-            else
-            {
-                setUnTx.insert(i.ptx->GetHash());
+                return;
             }
         }
     }
@@ -311,49 +321,9 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (i.ptx->GetTxTime() <= nBlockTime)
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
             {
-                if (!setUnTx.empty())
-                {
-                    bool fMissPrev = false;
-                    for (const auto& d : i.ptx->vInput)
-                    {
-                        if (setUnTx.find(d.prevout.hash) != setUnTx.end())
-                        {
-                            fMissPrev = true;
-                            break;
-                        }
-                    }
-                    if (fMissPrev)
-                    {
-                        setUnTx.insert(i.ptx->GetHash());
-                        continue;
-                    }
-                }
-                if (i.ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
-                {
-                    std::map<CDestination, int>::iterator it = mapVoteCert.find(i.ptx->sendTo);
-                    if (it != mapVoteCert.end())
-                    {
-                        if (it->second <= 0)
-                        {
-                            setUnTx.insert(i.ptx->GetHash());
-                            continue;
-                        }
-                        it->second--;
-                    }
-                }
-                if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
-                {
-                    break;
-                }
-                vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-                nTotalSize += i.ptx->nSerializeSize;
-                nTotalTxFee += i.ptx->nTxFee;
-            }
-            else
-            {
-                setUnTx.insert(i.ptx->GetHash());
+                return;
             }
         }
     }
