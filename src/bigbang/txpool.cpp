@@ -287,7 +287,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
                 }
                 if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
                 {
-                    break;
+                    return;
                 }
                 vtx.push_back(*static_cast<CTransaction*>(i.ptx));
                 nTotalSize += i.ptx->nSerializeSize;
