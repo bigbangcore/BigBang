@@ -56,11 +56,12 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
 {
     for (std::size_t i = 0; i < change.vTxRemove.size(); i++)
     {
-        const uint256& txid = change.vTxRemove[i].first;
+        const uint256& txid = std::get<0>(change.vTxRemove[i]);
         map<uint256, CDelegateTx>::iterator it = mapTx.find(txid);
         if (it != mapTx.end())
         {
-            for (const CTxIn& txin : change.vTxRemove[i].second)
+            const std::vector<CTxIn>& vTxIn = std::get<1>(change.vTxRemove[i]);
+            for (const CTxIn& txin : vTxIn)
             {
                 map<uint256, CDelegateTx>::iterator mi = mapTx.find(txin.prevout.hash);
                 if (mi != mapTx.end())
@@ -71,13 +72,13 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
             mapTx.erase(it);
         }
     }
-    for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
+    for (map<uint256, std::pair<int, CTransaction>>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
         map<uint256, CDelegateTx>::iterator mi = mapTx.find(txid);
         if (mi != mapTx.end())
         {
-            (*mi).second.nBlockHeight = (*it).second;
+            (*mi).second.nBlockHeight = (*it).second.first;
         }
     }
 

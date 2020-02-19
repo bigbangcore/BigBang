@@ -119,3 +119,26 @@ foreach(link bigbang ${exec_link})
         DESTINATION bin
     )
 endforeach()
+
+add_library(libbigbang ${sources})
+
+target_link_libraries(libbigbang
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${Protobuf_LIBRARIES}
+    ${Readline_LIBRARY}
+    xengine
+    crypto    
+    storage    
+    network
+    # delegate    
+    jsonrpc
+    common
+)

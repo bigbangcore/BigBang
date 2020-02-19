@@ -304,6 +304,7 @@ protected:
     ITxPool* pTxPool;
     IDispatcher* pDispatcher;
     IService* pService;
+    IConsensus* pConsensus;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;
@@ -316,6 +317,9 @@ protected:
     uint32 nTimerPushTx;
     bool fStartIdlePushTxTimer;
     std::set<uint256> setPushTxFork;
+
+    mutable boost::mutex mtxHashAnchorSendTo;
+    std::set<std::pair<uint256, CDestination>> setHashAnchorSendTo;
 };
 
 } // namespace bigbang

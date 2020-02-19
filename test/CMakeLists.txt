@@ -6,6 +6,9 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/bigbang)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc ../src/jsonrpc)
+
 set(sources
     test_big_main.cpp
     test_big.h test_big.cpp
@@ -16,6 +19,8 @@ set(sources
     ipv6_tests.cpp
     crypto_tests.cpp
 )
+
+#set(lib_src ../src/common/destination.h ../src/common/destination.cpp)
 
 add_executable(test_big ${sources})
 
@@ -30,9 +35,11 @@ target_link_libraries(test_big
     OpenSSL::Crypto
     mpvss
     crypto
-    xengine
     common
+    libbigbang
+    xengine
     storage
+    ${Boost_LOG_LIBRARY}
 )
 
 add_executable(test_ctsdb test_big_main.cpp test_big.h test_big.cpp ctsdb_test.cpp)

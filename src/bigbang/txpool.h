@@ -52,22 +52,67 @@ public:
     {
         hashTX = ptx->GetHash();
         nSequenceNumber = ptx->nSequenceNumber;
+        nType = ptx->nType;
     }
 
 public:
     uint256 hashTX;
     uint64 nSequenceNumber;
+    uint16 nType;
     CPooledTx* ptx;
+};
+
+class ComparePooledTxLinkByTxScore
+{
+public:
+    bool operator()(const CPooledTxLink& a, const CPooledTxLink& b) const
+    {
+        return GetScore(a) > GetScore(b);
+    }
+
+private:
+    double GetScore(const CPooledTxLink& link) const
+    {
+        return (double)((double)link.nType + (double)(1.0f / (double)(link.nSequenceNumber + 1)));
+    }
+};
+
+struct tx_score
+{
 };
 
 typedef boost::multi_index_container<
     CPooledTxLink,
     boost::multi_index::indexed_by<
+        // sorted by Tx ID
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>,
+        // sorted by Tx Type
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint16, &CPooledTxLink::nType>>,
+        // sorted by tx score
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<tx_score>,
+            boost::multi_index::identity<CPooledTxLink>,
+            ComparePooledTxLinkByTxScore>>>
+
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
+typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxType;
+typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByTxScore;
+
+typedef boost::multi_index_container<
+    CPooledTxLink,
+    boost::multi_index::indexed_by<
+        // sorted by Tx ID
+        boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+
+    CPooledCertTxLinkSet;
+typedef CPooledCertTxLinkSet::nth_index<0>::type CPooledCertTxLinkSetByTxHash;
+typedef CPooledCertTxLinkSet::nth_index<1>::type CPooledCertTxLinkSetBySequenceNumber;
 
 class CTxPoolView
 {
@@ -192,6 +237,11 @@ public:
     }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert);
+
+private:
+    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
+    bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
+                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
