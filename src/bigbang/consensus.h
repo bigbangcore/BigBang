@@ -98,7 +98,7 @@ public:
     void AddNewTx(const CAssembledTx& tx) override;
     bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;
     bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
-    void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
+    void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot, std::map<CDestination, size_t>& mapBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
 
 protected:

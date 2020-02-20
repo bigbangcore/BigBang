@@ -357,6 +357,12 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus");
+        return false;
+    }
+
     return true;
 }
 
@@ -594,6 +600,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
             return;
         }
     }
+
     mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert);
 }
 
