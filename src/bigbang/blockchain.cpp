@@ -529,11 +529,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
-    int64 nDelegateWeightRatio = (pIndexPrev->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
-    Log("AddNewBlock block chain trust: %s, delegate weight ratio: %.6f", nChainTrust.GetHex().c_str(), ValueFromToken(nDelegateWeightRatio));
+    int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
+    Log("AddNewBlock block chain trust: %s, delegate weight ratio: %.6f", nChainTrust.GetHex().c_str(), ValueFromToken(nMinEnrollAmount));
 
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nDelegateWeightRatio))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nMinEnrollAmount))
     {
         Log("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -674,11 +674,11 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
-    int64 nDelegateWeightRatio = (pIndexPrev->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
 
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nDelegateWeightRatio))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nMinEnrollAmount))
     {
         Log("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -814,13 +814,7 @@ bool CBlockChain::GetBlockDelegateVote(const uint256& hashBlock, map<CDestinatio
 
 int64 CBlockChain::GetDelegateWeightRatio(const uint256& hashBlock)
 {
-    CBlockIndex* pIndex;
-    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
-    {
-        StdLog("CBlockChain", "GetDelegateWeightRatio: RetrieveIndex fail, block: %s", hashBlock.GetHex().c_str());
-        return -1;
-    }
-    return (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    return pCoreProtocol->MinEnrollAmount();
 }
 
 bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDestination, int>& mapVoteCert)
@@ -901,7 +895,7 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
         Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
         return false;
     }
-    int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
 
     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
@@ -914,7 +908,7 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
         pIndex = pIndex->pPrev;
     }
 
-    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nDelegateWeightRatio,
+    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
                                          enrolled.mapWeight, enrolled.mapEnrollData))
     {
         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());

@@ -430,7 +430,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     return true;
 }
 
-bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nDelegateWeightRatio)
+bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nMinEnrollAmount)
 {
     if (Exists(hash))
     {
@@ -441,7 +441,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     CDelegateContext ctxtDelegate;
     if (block.IsPrimary())
     {
-        if (!VerifyDelegateVote(hash, block, nDelegateWeightRatio, ctxtDelegate))
+        if (!VerifyDelegateVote(hash, block, nMinEnrollAmount, ctxtDelegate))
         {
             StdError("BlockBase", "Add new block: Verify delegate vote fail, block: %s", hash.ToString().c_str());
             return false;
@@ -746,7 +746,7 @@ bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int&
 }
 
 bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
-                                       int64 nDelegateWeightRatio,
+                                       int64 nMinEnrollAmount,
                                        map<CDestination, size_t>& mapWeight,
                                        map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
@@ -778,7 +778,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
 
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
-        if ((*it).second >= nDelegateWeightRatio)
+        if ((*it).second >= nMinEnrollAmount)
         {
             const CDestination& dest = (*it).first;
             map<CDestination, CDiskPos>::iterator mi = mapEnrollTxPos.find(dest);
@@ -790,7 +790,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                     StdTrace("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, size_t((*it).second / nDelegateWeightRatio)));
+                mapWeight.insert(make_pair(dest, 1));
                 mapEnrollData.insert(make_pair(dest, tx.vchData));
             }
         }
@@ -2004,7 +2004,7 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
     return true;
 }
 
-bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate)
+bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nMinEnrollAmount, CDelegateContext& ctxtDelegate)
 {
     StdTrace("CBlockBase", "VerifyDelegateVote: height: %d, block: %s", block.GetBlockHeight(), hash.GetHex().c_str());
 
@@ -2062,10 +2062,10 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
                 return false;
             }
             int64 nDelegateVote = mapDelegate[destInDelegateTemplate];
-            if (nDelegateVote < nDelegateWeightRatio)
+            if (nDelegateVote < nMinEnrollAmount)
             {
                 StdLog("CBlockBase", "Verify delegate vote: TX_CERT not enough votes, destInDelegate: %s, delegate vote: %.6f, weight ratio: %.6f, txid: %s",
-                       CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nDelegateWeightRatio), tx.GetHash().GetHex().c_str());
+                       CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nMinEnrollAmount), tx.GetHash().GetHex().c_str());
                 return false;
             }
             mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
