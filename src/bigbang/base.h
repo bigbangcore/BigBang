@@ -56,6 +56,7 @@ public:
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
                                     const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight)
         = 0;
+    virtual int64 MinEnrollAmount() = 0;
 };
 
 class IBlockChain : public xengine::IBase

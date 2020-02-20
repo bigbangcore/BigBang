@@ -32,6 +32,9 @@ static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000;
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000;
+
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
@@ -770,6 +773,11 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
             nTrust >>= 1;
         }
     }
+}
+
+int64 CCoreProtocol::MinEnrollAmount()
+{
+    return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

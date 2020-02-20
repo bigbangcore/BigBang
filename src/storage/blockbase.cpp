@@ -1825,6 +1825,11 @@ bool CBlockBase::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination
     return dbBlock.RetrieveDelegate(hashBlock, mapVote);
 }
 
+bool CBlockBase::GetDelegateEnrollTx(int height, const vector<uint256>& vBlockRange, map<CDestination, CDiskPos>& mapEnrollTxPos)
+{
+    return dbBlock.RetrieveEnroll(height, vBlockRange, mapEnrollTxPos);
+}
+
 bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, set<CDestination>>& mapEnrollDest)
 {
     map<int, map<CDestination, CDiskPos>> mapEnrollTxPos;
