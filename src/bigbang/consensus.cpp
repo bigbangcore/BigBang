@@ -447,9 +447,10 @@ bool CConsensus::AddNewPublish(int nAnchorHeight, const CDestination& destFrom, 
     return delegate.HandlePublish(nPublishTargetHeight, destFrom, vchPublish, fCompleted);
 }
 
-void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, std::map<CDestination, size_t>& mapBallot)
+void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
+    std::map<CDestination, size_t> mapBallot;
     delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
     pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot, nTargetHeight);
 }

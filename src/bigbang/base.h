@@ -170,7 +170,7 @@ public:
     virtual bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
     virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight,
-                              std::vector<CDestination>& vBallot, std::map<CDestination, size_t>& mapBallot)
+                              std::vector<CDestination>& vBallot)
         = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
 };

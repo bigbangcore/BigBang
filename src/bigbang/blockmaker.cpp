@@ -686,8 +686,7 @@ void CBlockMaker::BlockMakerThreadFunc()
                 {
                     if (!cond.timed_wait(lock, toWaitAgree))
                     {
-                        std::map<CDestination, size_t> mapBallot;
-                        pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot, mapBallot);
+                        pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
 
                         Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),

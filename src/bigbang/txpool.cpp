@@ -368,12 +368,6 @@ bool CTxPool::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus");
-        return false;
-    }
-
     return true;
 }
 
@@ -611,10 +605,6 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
             return;
         }
-        uint256 nAgreement;
-        size_t nWeight;
-        std::vector<CDestination> vBallot;
-        pConsensus->GetAgreement(nHeight + 1, nAgreement, nWeight, vBallot, mapBallot);
     }
 
     mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapBallot);
