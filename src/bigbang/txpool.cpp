@@ -225,7 +225,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
 }
 
 bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, size_t>& mapBallot)
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nWeightRatio)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -259,12 +259,12 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
                 it->second--;
             }
         }
-        if (ptx->nType == CTransaction::TX_CERT && !mapBallot.empty())
+        if (ptx->nType == CTransaction::TX_CERT && !mapVote.empty())
         {
-            std::map<CDestination, size_t>::iterator iter = mapBallot.find(ptx->sendTo);
-            if (iter != mapBallot.end())
+            std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
+            if (iter != mapVote.end())
             {
-                if (iter->second <= 0)
+                if (iter->second < nWeightRatio)
                 {
                     return true;
                 }
@@ -285,7 +285,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, size_t>& mapBallot)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nWeightRatio)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
@@ -314,7 +314,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapBallot))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;
             }
@@ -332,7 +332,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapBallot))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;
             }
@@ -589,7 +589,8 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<CDestination, int> mapVoteCert;
-    std::map<CDestination, size_t> mapBallot;
+    std::map<CDestination, int64> mapVote;
+    int64 nWeightRatio = 0;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         uint256 hashLastBlock;
@@ -605,9 +606,17 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
             return;
         }
+
+        if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
+            return;
+        }
+
+        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
     }
 
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapBallot);
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
