@@ -225,7 +225,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
 }
 
 bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx)
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, size_t>& mapBallot)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -259,6 +259,17 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
                 it->second--;
             }
         }
+        if (ptx->nType == CTransaction::TX_CERT && !mapBallot.empty())
+        {
+            std::map<CDestination, size_t>::iterator iter = mapBallot.find(ptx->sendTo);
+            if (iter != mapBallot.end())
+            {
+                if (iter->second <= 0)
+                {
+                    return true;
+                }
+            }
+        }
         if (nTotalSize + ptx->nSerializeSize > nMaxSize)
         {
             return false;
@@ -274,7 +285,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, size_t>& mapBallot)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
@@ -303,7 +314,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapBallot))
             {
                 return;
             }
@@ -321,7 +332,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapBallot))
             {
                 return;
             }
@@ -584,6 +595,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<CDestination, int> mapVoteCert;
+    std::map<CDestination, size_t> mapBallot;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         uint256 hashLastBlock;
@@ -599,9 +611,13 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
             return;
         }
+        uint256 nAgreement;
+        size_t nWeight;
+        std::vector<CDestination> vBallot;
+        pConsensus->GetAgreement(nHeight + 1, nAgreement, nWeight, vBallot, mapBallot);
     }
 
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert);
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapBallot);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
