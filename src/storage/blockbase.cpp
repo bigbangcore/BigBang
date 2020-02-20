@@ -10,6 +10,7 @@
 #include "../bigbang/address.h"
 #include "template/template.h"
 #include "util.h"
+#include "delegatecomm.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -776,6 +777,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                  height, CAddress(d.first).ToString().c_str());
     }
 
+    map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
         if ((*it).second >= nMinEnrollAmount)
@@ -790,10 +792,15 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                     StdTrace("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, 1));
-                mapEnrollData.insert(make_pair(dest, tx.vchData));
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
             }
         }
+    }
+    // first 23 destination sorted by amount and sequence
+    for (auto it = mapSortEnroll.begin(); it != mapSortEnroll.end() && mapWeight.size() < 23; it++)
+    {
+        mapWeight.insert(make_pair(it->second.first, 1));
+        mapEnrollData.insert(make_pair(it->second.first, it->second.second));
     }
     return true;
 }
