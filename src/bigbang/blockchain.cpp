@@ -949,7 +949,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL + 1; i++)
+    for (int i = 0; i < CONSENSUS_INTERVAL; i++)
     {
         pIndex = pIndex->pPrev;
     }
@@ -1077,7 +1077,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 
     const CBlockIndex* pIndex = pIndexPrev;
 
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
     {
         pIndex = pIndex->pPrev;
     }

@@ -1115,7 +1115,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
     }
 
     CBlockIndex* pIndex = pIndexPrev;
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
     {
         if (pIndex == nullptr)
         {
