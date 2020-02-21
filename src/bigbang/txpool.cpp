@@ -266,8 +266,14 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
             {
                 if (iter->second < nWeightRatio)
                 {
+                    setUnTx.insert(ptx->GetHash());
                     return true;
                 }
+            }
+            else
+            {
+                setUnTx.insert(ptx->GetHash());
+                return true;
             }
         }
         if (nTotalSize + ptx->nSerializeSize > nMaxSize)
@@ -614,6 +620,11 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
         }
 
         nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
+        if (nWeightRatio < 0)
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
+            return;
+        }
     }
 
     mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
