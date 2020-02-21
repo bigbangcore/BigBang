@@ -762,9 +762,9 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     size_t nEnrollWeight = 0;
     for (auto& amount : vecAmount)
     {
-        size_t nWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
-        mapBallot[amount.first] = nWeight;
-        nEnrollWeight += nWeight;
+        size_t nDestWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
+        mapBallot[amount.first] = nDestWeight;
+        nEnrollWeight += nDestWeight;
     }
     size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
                          / (nMaxWeight * nMaxWeight);

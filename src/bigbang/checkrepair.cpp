@@ -1171,7 +1171,7 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
     }
 
     if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
-                               enrolled.mapWeight, enrolled.mapEnrollData))
+                               enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -1182,7 +1182,8 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
 bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
                                               int64 nMinEnrollAmount,
                                               map<CDestination, size_t>& mapWeight,
-                                              map<CDestination, vector<unsigned char>>& mapEnrollData)
+                                              map<CDestination, vector<unsigned char>>& mapEnrollData,
+                                              vector<pair<CDestination, int64>>& vecAmount)
 {
     map<CDestination, int64> mapVote;
     if (!objDelegateDB.RetrieveDelegatedVote(hash, mapVote))
@@ -1198,6 +1199,7 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
         return false;
     }
 
+    map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
         if ((*it).second >= nMinEnrollAmount)
@@ -1212,10 +1214,16 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                     StdLog("BlockBase", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, 1));
-                mapEnrollData.insert(make_pair(dest, tx.vchData));
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
             }
         }
+    }
+    // first 23 destination sorted by amount and sequence
+    for (auto it = mapSortEnroll.begin(); it != mapSortEnroll.end() && mapWeight.size() < 23; it++)
+    {
+        mapWeight.insert(make_pair(it->second.first, 1));
+        mapEnrollData.insert(make_pair(it->second.first, it->second.second));
+        vecAmount.push_back(make_pair(it->second.first, it->first.first));
     }
     return true;
 }
