@@ -225,7 +225,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
 }
 
 bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx)
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nWeightRatio)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -259,6 +259,23 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
                 it->second--;
             }
         }
+        if (ptx->nType == CTransaction::TX_CERT && !mapVote.empty())
+        {
+            std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
+            if (iter != mapVote.end())
+            {
+                if (iter->second < nWeightRatio)
+                {
+                    setUnTx.insert(ptx->GetHash());
+                    return true;
+                }
+            }
+            else
+            {
+                setUnTx.insert(ptx->GetHash());
+                return true;
+            }
+        }
         if (nTotalSize + ptx->nSerializeSize > nMaxSize)
         {
             return false;
@@ -274,7 +291,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nWeightRatio)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
@@ -303,7 +320,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;
             }
@@ -321,7 +338,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;
             }
@@ -578,6 +595,8 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<CDestination, int> mapVoteCert;
+    std::map<CDestination, int64> mapVote;
+    int64 nWeightRatio = 0;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         uint256 hashLastBlock;
@@ -593,8 +612,22 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
             return;
         }
+
+        if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
+            return;
+        }
+
+        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
+        if (nWeightRatio < 0)
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
+            return;
+        }
     }
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert);
+
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)

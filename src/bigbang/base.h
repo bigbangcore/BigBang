@@ -6,6 +6,7 @@
 #define BIGBANG_BASE_H
 
 #include <boost/optional.hpp>
+#include <map>
 #include <xengine.h>
 
 #include "address.h"
