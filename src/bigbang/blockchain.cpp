@@ -909,7 +909,7 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
     }
 
     if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
-                                         enrolled.mapWeight, enrolled.mapEnrollData))
+                                         enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
         return false;
@@ -968,11 +968,21 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexRef->GetBlockHeight());
+    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, enrolled.vecAmount, pIndex->GetMoneySupply(), agreement.vBallot, pIndexRef->GetBlockHeight());
 
     cacheAgreement.AddNew(hashBlock, agreement);
 
     return true;
+}
+
+int64 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex) || pIndex == nullptr)
+    {
+        return -1;
+    }
+    return pIndex->GetMoneySupply();
 }
 
 bool CBlockChain::CheckContainer()
@@ -1087,7 +1097,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
         return false;
     }
 
-    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, agreement.vBallot, pIndexPrev->GetBlockHeight() + 1);
+    pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, enrolled.vecAmount, pIndex->GetMoneySupply(), agreement.vBallot, pIndexPrev->GetBlockHeight() + 1);
 
     cacheAgreement.AddNew(hashBlock, agreement);
 

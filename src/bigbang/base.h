@@ -53,8 +53,8 @@ public:
     virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
-                                    const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight)
+    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, std::map<CDestination, size_t> mapBallot, 
+                                    const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, int nBlockHeight)
         = 0;
     virtual int64 MinEnrollAmount() = 0;
 };
@@ -105,6 +105,7 @@ public:
     virtual bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) = 0;
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
+    virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
     const CBasicConfig* Config()
     {
         return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());

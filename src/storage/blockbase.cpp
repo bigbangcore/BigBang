@@ -749,7 +749,8 @@ bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int&
 bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
                                        int64 nMinEnrollAmount,
                                        map<CDestination, size_t>& mapWeight,
-                                       map<CDestination, vector<unsigned char>>& mapEnrollData)
+                                       map<CDestination, vector<unsigned char>>& mapEnrollData,
+                                       vector<pair<CDestination, int64>>& vecAmount)
 {
     map<CDestination, int64> mapVote;
     if (!dbBlock.RetrieveDelegate(hash, mapVote))
@@ -801,6 +802,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     {
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));
+        vecAmount.push_back(make_pair(it->second.first, it->first.first));
     }
     return true;
 }

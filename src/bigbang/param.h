@@ -28,8 +28,6 @@ static const unsigned int PROOF_OF_WORK_DECAY_STEP = BLOCK_TARGET_SPACING;
 static const unsigned int MINT_MATURITY = 120; // 120 blocks about 2 hours
 static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
-static const unsigned int DELEGATE_THRESH = 23;
-
 enum ConsensusMethod
 {
     CM_MPVSS = 0,

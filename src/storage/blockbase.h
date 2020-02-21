@@ -227,7 +227,8 @@ public:
     bool RetrieveAvailDelegate(const uint256& hash, int height, const std::vector<uint256>& vBlockRange,
                                int64 nMinEnrollAmount,
                                std::map<CDestination, std::size_t>& mapWeight,
-                               std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
+                               std::map<CDestination, std::vector<unsigned char>>& mapEnrollData,
+                               std::vector<std::pair<CDestination, int64>>& vecAmount);
     void ListForkIndex(std::multimap<int, CBlockIndex*>& mapForkIndex);
     bool GetBlockView(CBlockView& view);
     bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false);
