@@ -37,6 +37,7 @@
 #include <unistd.h>
 #endif
 
+#include "defs.h"
 #include "common/int-util.h"
 #include "hash-ops.h"
 #include "oaes_lib.h"
@@ -740,8 +741,6 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
     size_t i, j;
     uint64_t *p = NULL;
     oaes_ctx *aes_ctx = NULL;
-    int useAes = !force_software_aes() && check_aes_hw();
-
     static void (*const extra_hashes[4])(const void *, size_t, char *) =
     {
         hash_extra_blake, hash_extra_groestl, hash_extra_jh, hash_extra_skein
@@ -752,47 +751,38 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
         slow_hash_allocate_state();
 
     /* CryptoNight Step 1:  Use Keccak1600 to initialize the 'state' (and 'text') buffers from the data. */
-    if (prehashed) {
-        memcpy(&state.hs, data, length);
-    } else {
-        hash_process(&state.hs, data, length);
-    }
+    hash_process(&state.hs, data, length);
     memcpy(text, state.init, INIT_SIZE_BYTE);
 
     /* CryptoNight Step 2:  Iteratively encrypt the results from Keccak to fill
      * the 2MB large random access buffer.
      */
 
-    if(useAes)
+    aes_expand_key(state.hs.b, expandedKey);
+    for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
     {
-        aes_expand_key(state.hs.b, expandedKey);
-        for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
-        {
-            aes_pseudo_round(text, text, expandedKey, INIT_SIZE_BLK);
-            memcpy(&hp_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
-        }
+      aes_pseudo_round(text, text, expandedKey, INIT_SIZE_BLK);
+      memcpy(&hp_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
+    }
+
+    if (height > HEIGHT_HASH_TX_DATA)
+    {
+	    for (int ii = 0; ii < 2000; ii++) 
+      {
+		    hash_process(&state.hs, (uint8_t*)& state.hs, length);
+	    }
     }
     else
-    {
-        aes_ctx = (oaes_ctx *) oaes_alloc();
-        oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);
-        for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
-        {
-            for(j = 0; j < INIT_SIZE_BLK; j++)
-                aesb_pseudo_round(&text[AES_BLOCK_SIZE * j], &text[AES_BLOCK_SIZE * j], aes_ctx->key->exp_data);
-
-            memcpy(&hp_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
-        }
+    { 
+      for (int ii = 0; ii < 2000; ii++) 
+      {
+		    hash_process(&state.hs, (uint8_t*)& state.hs, 128);
+	    }
     }
 
-#define SHA3_COUNT 2000
-	for (int ii = 0; ii < SHA3_COUNT; ii++) {
-		hash_process(&state.hs, (uint8_t*)& state.hs, 128);
-	}
-
-	VARIANT1_INIT64();
-	VARIANT2_INIT64();
-	VARIANT4_RANDOM_MATH_INIT();
+	  VARIANT1_INIT64();
+	  VARIANT2_INIT64();
+	  VARIANT4_RANDOM_MATH_INIT();
 
     U64(a)[0] = U64(&state.k[0])[0] ^ U64(&state.k[32])[0];
     U64(a)[1] = U64(&state.k[0])[1] ^ U64(&state.k[32])[1];
@@ -808,30 +798,25 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
     _b1 = _mm_load_si128(R128(b) + 1);
     // Two independent versions, one with AES, one without, to ensure that
     // the useAes test is only performed once, not every iteration.
-    if(useAes)
+    for(i = 0; i < ITER / 2; i++)
     {
-        for(i = 0; i < ITER / 2; i++)
+      pre_aes();
+      _c = _mm_aesenc_si128(_c, _a);
+			_c_aes = _c;
+      for (int j = 0; j < 10; j++) 
+      {
+				_c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
+			}
+      if (height <= HEIGHT_HASH_TX_DATA)
+      {
+      	for (int j = 0; j < 17; j++) 
         {
-            pre_aes();
-
-            _c = _mm_aesenc_si128(_c, _a);
-			      _c_aes = _c;
-      		  for (int j = 0; j < 27; j++) {
-				      _c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
-			      }
-			      post_aes();
-			      a[0] ^= U64(&_c_aes)[0];
-			      a[1] ^= U64(&_c_aes)[1];
-        }
-    }
-    else
-    {
-        for(i = 0; i < ITER / 2; i++)
-        {
-            pre_aes();
-            aesb_single_round((uint8_t *) &_c, (uint8_t *) &_c, (uint8_t *) &_a);
-            post_aes();
-        }
+				  _c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
+			  }
+      }
+			post_aes();
+			a[0] ^= U64(&_c_aes)[0];
+			a[1] ^= U64(&_c_aes)[1];
     }
 
     /* CryptoNight Step 4:  Sequentially pass through the mixing buffer and use 10 rounds
@@ -839,27 +824,12 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
      * was originally created with the output of Keccak1600. */
 
     memcpy(text, state.init, INIT_SIZE_BYTE);
-    if(useAes)
+    
+    aes_expand_key(&state.hs.b[32], expandedKey);
+    for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
     {
-        aes_expand_key(&state.hs.b[32], expandedKey);
-        for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
-        {
-            // add the xor to the pseudo round
-            aes_pseudo_round_xor(text, text, expandedKey, &hp_state[i * INIT_SIZE_BYTE], INIT_SIZE_BLK);
-        }
-    }
-    else
-    {
-        oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE);
-        for(i = 0; i < MEMORY / INIT_SIZE_BYTE; i++)
-        {
-            for(j = 0; j < INIT_SIZE_BLK; j++)
-            {
-                xor_blocks(&text[j * AES_BLOCK_SIZE], &hp_state[i * INIT_SIZE_BYTE + j * AES_BLOCK_SIZE]);
-                aesb_pseudo_round(&text[AES_BLOCK_SIZE * j], &text[AES_BLOCK_SIZE * j], aes_ctx->key->exp_data);
-            }
-        }
-        oaes_free((OAES_CTX **) &aes_ctx);
+      // add the xor to the pseudo round
+      aes_pseudo_round_xor(text, text, expandedKey, &hp_state[i * INIT_SIZE_BYTE], INIT_SIZE_BLK);
     }
 
     /* CryptoNight Step 5:  Apply Keccak to the state again, and then
