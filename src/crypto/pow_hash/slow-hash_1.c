@@ -764,21 +764,12 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
       aes_pseudo_round(text, text, expandedKey, INIT_SIZE_BLK);
       memcpy(&hp_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
     }
-
-    if (height > HEIGHT_HASH_TX_DATA)
+    
+    for (int ii = 0; ii < 2000; ii++) 
     {
-	    for (int ii = 0; ii < 2000; ii++) 
-      {
-		    hash_process(&state.hs, (uint8_t*)& state.hs, length);
-	    }
-    }
-    else
-    { 
-      for (int ii = 0; ii < 2000; ii++) 
-      {
-		    hash_process(&state.hs, (uint8_t*)& state.hs, 128);
-	    }
-    }
+		  hash_process(&state.hs, (uint8_t*)& state.hs, 128);
+	  }
+    
 
 	  VARIANT1_INIT64();
 	  VARIANT2_INIT64();
