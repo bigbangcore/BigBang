@@ -807,7 +807,7 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
       {
 				_c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
 			}
-      if (height <= HEIGHT_HASH_TX_DATA)
+      if (height < HEIGHT_HASH_MULTI_SIGNER)
       {
       	for (int j = 0; j < 17; j++) 
         {
