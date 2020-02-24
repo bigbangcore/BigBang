@@ -230,9 +230,9 @@ void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
 //////////////////////////////
 // CForkHeightIndex
 
-void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, const CDestination& destMint)
+void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint)
 {
-    mapHeightIndex[nHeight][hashBlock] = destMint;
+    mapHeightIndex[nHeight][hashBlock] = CBlockHeightIndex(nBlockTimeStamp, destMint);
 }
 
 void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock)
@@ -240,7 +240,7 @@ void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBloc
     mapHeightIndex[nHeight].erase(hashBlock);
 }
 
-map<uint256, CDestination>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
+map<uint256, CBlockHeightIndex>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
 {
     return &(mapHeightIndex[nHeight]);
 }
@@ -1054,7 +1054,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
         }
     }
 
-    UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, CDestination());
+    UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, pIndexNew->nTimeStamp, CDestination());
     return true;
 }
 
@@ -1783,34 +1783,43 @@ bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std:
     return true;
 }
 
-bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
+bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint, uint16 nBlockType,
+                                   uint32 nBlockTimeStamp, uint32 nRefBlockTimeStamp, uint32 nExtendedBlockSpacing)
 {
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
     if (it != mapForkHeightIndex.end())
     {
-        map<uint256, CDestination>* pBlockMint = it->second.GetBlockMintList(height);
+        map<uint256, CBlockHeightIndex>* pBlockMint = it->second.GetBlockMintList(height);
         if (pBlockMint != nullptr)
         {
             for (auto& mt : *pBlockMint)
             {
-                if (mt.second.IsNull())
+                if (mt.second.destMint.IsNull())
                 {
-                    CBlockIndex* pBlockIndex = nullptr;
                     CTransaction tx;
+                    CBlockIndex* pBlockIndex = nullptr;
                     if (RetrieveIndex(mt.first, &pBlockIndex)
+                        && !pBlockIndex->IsVacant()
                         && RetrieveTx(pBlockIndex->txidMint, tx))
                     {
-                        mt.second = tx.sendTo;
-                        if (tx.sendTo == destMint)
+                        mt.second.destMint = tx.sendTo;
+                    }
+                }
+                if (mt.second.destMint == destMint)
+                {
+                    if (nBlockType == CBlock::BLOCK_SUBSIDIARY || nBlockType == CBlock::BLOCK_EXTENDED)
+                    {
+                        if ((nBlockTimeStamp - nRefBlockTimeStamp) / nExtendedBlockSpacing
+                            == (mt.second.nTimeStamp - nRefBlockTimeStamp) / nExtendedBlockSpacing)
                         {
+                            StdTrace("CBlockBase", "VerifyRepeatBlock: subsidiary or extended repeat block, block time: %d, cache block time: %d, ref block time: %d, destMint: %s",
+                                     nBlockTimeStamp, mt.second.nTimeStamp, mt.second.nTimeStamp, CAddress(destMint).ToString().c_str());
                             return false;
                         }
                     }
-                }
-                else
-                {
-                    if (mt.second == destMint)
+                    else
                     {
+                        StdTrace("CBlockBase", "VerifyRepeatBlock: repeat block: %s, destMint: %s", mt.first.GetHex().c_str(), CAddress(destMint).ToString().c_str());
                         return false;
                     }
                 }
@@ -1902,9 +1911,9 @@ CBlockIndex* CBlockBase::GetOriginIndex(const uint256& txidMint) const
     return nullptr;
 }
 
-void CBlockBase::UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, const CDestination& destMint)
+void CBlockBase::UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint)
 {
-    mapForkHeightIndex[hashFork].AddHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, destMint);
+    mapForkHeightIndex[hashFork].AddHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, nBlockTimeStamp, destMint);
 }
 
 void CBlockBase::RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock)
@@ -1945,7 +1954,7 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         pIndexNew->nChainTrust = nChainTrust;
         pIndexNew->nRandBeacon = nRandBeacon;
 
-        UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, block.txMint.sendTo);
+        UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, block.nTimeStamp, block.txMint.sendTo);
     }
     return pIndexNew;
 }
