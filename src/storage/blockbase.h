@@ -181,17 +181,30 @@ protected:
     std::vector<uint256> vTxAddNew;
 };
 
+class CHeightBlock
+{
+public:
+    CHeightBlock()
+      : nTimeStamp(0) {}
+    CHeightBlock(uint32 nTimeStampIn, CDestination destMintIn)
+      : nTimeStamp(nTimeStampIn), destMint(destMintIn) {}
+
+public:
+    uint32 nTimeStamp;
+    CDestination destMint;
+};
+
 class CForkHeightIndex
 {
 public:
     CForkHeightIndex() {}
 
-    void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, const CDestination& destMint);
+    void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint);
     void RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock);
-    std::map<uint256, CDestination>* GetBlockMintList(uint32 nHeight);
+    std::map<uint256, CHeightBlock>* GetBlockMintList(uint32 nHeight);
 
 protected:
-    std::map<uint32, std::map<uint256, CDestination>> mapHeightIndex;
+    std::map<uint32, std::map<uint256, CHeightBlock>> mapHeightIndex;
 };
 
 class CBlockBase
@@ -246,7 +259,8 @@ public:
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
-    bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
+    bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint, uint16 nBlockType,
+                           uint32 nBlockTimeStamp, uint32 nRefBlockTimeStamp, uint32 nExtendedBlockSpacing);
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
     bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
 
@@ -255,7 +269,7 @@ protected:
     CBlockIndex* GetOrCreateIndex(const uint256& hash);
     CBlockIndex* GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, std::vector<CBlockIndex*>& vPath);
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
-    void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, const CDestination& destMint);
+    void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint);
     void RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);

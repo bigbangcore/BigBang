@@ -747,9 +747,40 @@ bool CBlockChain::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>
     return cntrBlock.GetDelegateList(pCoreProtocol->GetGenesisBlockHash(), nCount, mapVotes);
 }
 
-bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
+bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block, const uint256& hashBlockRef)
 {
-    return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);
+    uint32 nRefTimeStamp = 0;
+    if (hashBlockRef != 0 && (block.IsSubsidiary() || block.IsExtended()))
+    {
+        CBlockIndex* pIndexRef;
+        if (!cntrBlock.RetrieveIndex(hashBlockRef, &pIndexRef))
+        {
+            StdLog("CBlockChain", "VerifyRepeatBlock: RetrieveIndex fail, hashBlockRef: %s, block: %s",
+                   hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+            return false;
+        }
+        if (block.IsSubsidiary())
+        {
+            if (block.GetBlockTime() != pIndexRef->GetBlockTime())
+            {
+                StdLog("CBlockChain", "VerifyRepeatBlock: Subsidiary block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
+                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+                return false;
+            }
+        }
+        else
+        {
+            if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
+                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+            {
+                StdLog("CBlockChain", "VerifyRepeatBlock: Extended block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
+                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+                return false;
+            }
+        }
+        nRefTimeStamp = pIndexRef->nTimeStamp;
+    }
+    return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo, block.nType, block.nTimeStamp, nRefTimeStamp, EXTENDED_BLOCK_SPACING);
 }
 
 bool CBlockChain::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination, int64>& mapVote)
