@@ -181,12 +181,12 @@ protected:
     std::vector<uint256> vTxAddNew;
 };
 
-class CHeightBlock
+class CBlockHeightIndex
 {
 public:
-    CHeightBlock()
+    CBlockHeightIndex()
       : nTimeStamp(0) {}
-    CHeightBlock(uint32 nTimeStampIn, CDestination destMintIn)
+    CBlockHeightIndex(uint32 nTimeStampIn, CDestination destMintIn)
       : nTimeStamp(nTimeStampIn), destMint(destMintIn) {}
 
 public:
@@ -201,10 +201,10 @@ public:
 
     void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint);
     void RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock);
-    std::map<uint256, CHeightBlock>* GetBlockMintList(uint32 nHeight);
+    std::map<uint256, CBlockHeightIndex>* GetBlockMintList(uint32 nHeight);
 
 protected:
-    std::map<uint32, std::map<uint256, CHeightBlock>> mapHeightIndex;
+    std::map<uint32, std::map<uint256, CBlockHeightIndex>> mapHeightIndex;
 };
 
 class CBlockBase

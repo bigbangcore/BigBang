@@ -232,7 +232,7 @@ void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
 
 void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint)
 {
-    mapHeightIndex[nHeight][hashBlock] = CHeightBlock(nBlockTimeStamp, destMint);
+    mapHeightIndex[nHeight][hashBlock] = CBlockHeightIndex(nBlockTimeStamp, destMint);
 }
 
 void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock)
@@ -240,7 +240,7 @@ void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBloc
     mapHeightIndex[nHeight].erase(hashBlock);
 }
 
-map<uint256, CHeightBlock>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
+map<uint256, CBlockHeightIndex>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
 {
     return &(mapHeightIndex[nHeight]);
 }
@@ -1789,7 +1789,7 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
     if (it != mapForkHeightIndex.end())
     {
-        map<uint256, CHeightBlock>* pBlockMint = it->second.GetBlockMintList(height);
+        map<uint256, CBlockHeightIndex>* pBlockMint = it->second.GetBlockMintList(height);
         if (pBlockMint != nullptr)
         {
             for (auto& mt : *pBlockMint)
