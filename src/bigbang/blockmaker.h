@@ -86,17 +86,15 @@ protected:
     void ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight);
     void ProcessExtended(const CDelegateAgreement& agreement, const uint256& hashPrimaryBlock,
                          int64 nPrimaryBlockTime, const int32 nPrimaryBlockHeight);
-    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork,
-                              const CBlockMakerProfile& profile, std::size_t nWeight);
+    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, std::size_t nWeight);
     bool CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo);
     void CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                          const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight);
     void CreateExtended(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                        const uint256& hashRefBlock, const std::set<uint256>& setFork,
-                        int nPrimaryBlockHeight, int64 nTime);
-    bool GetAvailableDelegatedProfile(const std::vector<CDestination>& vBallot,
-                                      std::vector<CBlockMakerProfile*>& vProfile);
-    bool GetAvailableExtendedFork(std::set<uint256>& setFork);
+                        const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
+    bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
+    bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
+    void Test();
 
 private:
     enum

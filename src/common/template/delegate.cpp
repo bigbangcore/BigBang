@@ -29,12 +29,10 @@ CTemplateDelegate* CTemplateDelegate::clone() const
 bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    return false;
     if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
-
     setSubDest.clear();
     if (tx.sendTo.GetTemplateId() == nId)
     {
@@ -42,9 +40,8 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
     }
     else
     {
-        setSubDest.insert(tx.sendTo);
+        setSubDest.insert(destOwner);
     }
-
     return true;
 }
 
@@ -60,14 +57,10 @@ bool CTemplateDelegate::BuildVssSignature(const uint256& hash, const vector<uint
     {
         return false;
     }
-
     vchVssSig.clear();
-    xengine::CODataStream ods(vchVssSig, CDestination::DESTINATION_SIZE + vchData.size() + vchDelegateSig.size());
-    //ods << CDestination(nId) << vchData << vchDelegateSig;
-    ods << CDestination(nId);
+    xengine::CODataStream ods(vchVssSig, vchData.size() + vchDelegateSig.size());
     ods.Push(&vchData[0], vchData.size());
     ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
-
     return true;
 }
 
@@ -140,7 +133,7 @@ bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
     else
     {
-        return destTo.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+        return destOwner.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
 }
 

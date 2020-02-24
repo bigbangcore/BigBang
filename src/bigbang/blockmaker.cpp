@@ -123,8 +123,7 @@ bool CBlockMaker::HandleInitialize()
 
     if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
     {
-        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss,
-                                   MintConfig()->keyMpvss);
+        CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
         if (profile.IsValid())
         {
             mapDelegatedProfile.insert(make_pair(profile.GetDestination(), profile));
@@ -200,7 +199,6 @@ void CBlockMaker::HandleHalt()
 
     thrExtendedMaker.Interrupt();
     ThreadExit(thrExtendedMaker);
-
     IBlockMaker::HandleHalt();
 }
 
@@ -208,7 +206,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-/*    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
+    /*    if (eventUpdate.data.nBlockHeight <= nLastBlockHeight)
     {
         return true;
     }*/
@@ -301,29 +299,6 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
     pTxPool->ArrangeBlockTx(hashFork, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
-    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        std::set<uint256> setTx;
-        for (const auto& obj : block.vtx)
-        {
-            if (obj.nType == obj.TX_CERT)
-            {
-                setTx.insert(obj.GetHash());
-            }
-        }
-        for (int i = 0; i < block.vtx.size(); ++i)
-        {
-            if (block.vtx[i].nType == block.vtx[i].TX_CERT)
-            {
-                if (setTx.count(block.vtx[i].vInput[0].prevout.hash))
-                {
-                    nTotalTxFee -= block.vtx[i].nTxFee;
-                    block.vtx.erase(block.vtx.begin() + i);
-                    --i;
-                }
-            }
-        }
-    }
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 }
@@ -418,7 +393,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
 void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight)
 {
-    auto it = mapDelegatedProfile.find(agreement.vBallot[0]);
+    map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(agreement.vBallot[0]);
     if (it != mapDelegatedProfile.end())
     {
         CBlockMakerProfile& profile = (*it).second;
@@ -438,7 +413,7 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
     vector<CBlockMakerProfile*> vProfile;
     set<uint256> setFork;
 
-    if (!GetAvailableDelegatedProfile(agreement.vBallot, vProfile) || !GetAvailableExtendedFork(setFork))
+    if (!GetAvailiableDelegatedProfile(agreement.vBallot, vProfile) || !GetAvailiableExtendedFork(setFork))
     {
         return;
     }
@@ -497,7 +472,7 @@ void CBlockMaker::CreatePiggyback(const CBlockMakerProfile& profile, const CDele
 
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
-    for (auto it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
@@ -620,13 +595,13 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
     return false;
 }
 
-bool CBlockMaker::GetAvailableDelegatedProfile(const vector<CDestination>& vBallot, vector<CBlockMakerProfile*>& vProfile)
+bool CBlockMaker::GetAvailiableDelegatedProfile(const vector<CDestination>& vBallot, vector<CBlockMakerProfile*>& vProfile)
 {
     int nAvailProfile = 0;
     vProfile.reserve(vBallot.size());
     for (const CDestination& dest : vBallot)
     {
-        auto it = mapDelegatedProfile.find(dest);
+        map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(dest);
         if (it != mapDelegatedProfile.end())
         {
             vProfile.push_back(&(*it).second);
@@ -641,11 +616,11 @@ bool CBlockMaker::GetAvailableDelegatedProfile(const vector<CDestination>& vBall
     return (!!nAvailProfile);
 }
 
-bool CBlockMaker::GetAvailableExtendedFork(set<uint256>& setFork)
+bool CBlockMaker::GetAvailiableExtendedFork(set<uint256>& setFork)
 {
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
-    for (auto it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         CProfile profile;
         const uint256& hashFork = (*it).first;
@@ -671,7 +646,8 @@ void CBlockMaker::BlockMakerThreadFunc()
             CAddress(profile.destMint).ToString().c_str(),
             profile.keyMint.GetPubKey().GetHex().c_str());
     }
-    for (auto it = mapDelegatedProfile.begin(); it != mapDelegatedProfile.end(); ++it)
+    for (map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.begin();
+         it != mapDelegatedProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
         Log("Profile [%s] : dest=%s,pubkey=%s\n",
@@ -723,6 +699,33 @@ void CBlockMaker::BlockMakerThreadFunc()
                 hashPrimaryBlock = hashLastBlock;
                 nPrimaryBlockTime = nLastBlockTime;
                 nPrimaryBlockHeight = nLastBlockHeight;
+                int64 nWaitAgreement = nPrimaryBlockTime + WAIT_AGREEMENT_TIME - GetNetTime();
+                if (nWaitAgreement <= 0)
+                {
+                    nWaitAgreement = 1;
+                }
+                boost::system_time const toWaitAgree = boost::get_system_time() + boost::posix_time::seconds(nWaitAgreement);
+                while (hashPrimaryBlock == hashLastBlock && nMakerStatus != MAKER_EXIT)
+                {
+                    if (!cond.timed_wait(lock, toWaitAgree))
+                    {
+                        pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
+                        currentAgreement = agree;
+
+                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
+                            nLastBlockHeight + 1, agree.nWeight,
+                            agree.IsProofOfWork() ? "pow" : "dpos");
+                        break;
+                    }
+                }
+                if (nMakerStatus == MAKER_EXIT)
+                {
+                    break;
+                }
+                if (hashPrimaryBlock != hashLastBlock)
+                {
+                    continue;
+                }
             }
             nMakerStatus = MAKER_RUN;
             agree = currentAgreement;
@@ -736,9 +739,14 @@ void CBlockMaker::BlockMakerThreadFunc()
 
             if (agree.IsProofOfWork())
             {
-                if (CreateProofOfWorkBlock(block) && !DispatchBlock(block))
+                if (CreateProofOfWorkBlock(block))
                 {
-                    nNextStatus = MAKER_RESET;
+                    Errno err = pDispatcher->AddNewBlock(block);
+                    if (err != OK)
+                    {
+                        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
+                        nNextStatus = MAKER_RESET;
+                    }
                 }
             }
             else
@@ -776,7 +784,7 @@ void CBlockMaker::ExtendedMakerThreadFunc()
         hashPrimaryBlock = hashLastBlock;
     }
 
-    Log("Extended block maker started, initial primary block hash = %s\n", hashPrimaryBlock.GetHex().c_str());
+    Log("Extened block maker started, initial primary block hash = %s\n", hashPrimaryBlock.GetHex().c_str());
 
     for (;;)
     {

@@ -4,7 +4,9 @@
 
 #include "txpool.h"
 
+#include <algorithm>
 #include <boost/range/adaptor/reversed.hpp>
+#include <deque>
 
 using namespace std;
 using namespace xengine;
@@ -199,23 +201,147 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize)
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
+{
+    std::deque<CPooledTxLink> queueBFS;
+    queueBFS.push_back(link);
+
+    while (!queueBFS.empty())
+    {
+        const CPooledTxLink& tempLink = queueBFS.front();
+        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
+        {
+            const CTxIn& txin = tempLink.ptx->vInput[i];
+            const uint256& prevHash = txin.prevout.hash;
+            auto iter = setTxLinkIndex.find(prevHash);
+            if (iter != setTxLinkIndex.end())
+            {
+                prevLinks.push_back(*iter);
+                queueBFS.push_back(*iter);
+            }
+        }
+        queueBFS.pop_front();
+    }
+}
+
+bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nWeightRatio)
+{
+    if (ptx->GetTxTime() <= nBlockTime)
+    {
+        if (!setUnTx.empty())
+        {
+            bool fMissPrev = false;
+            for (const auto& d : ptx->vInput)
+            {
+                if (setUnTx.find(d.prevout.hash) != setUnTx.end())
+                {
+                    fMissPrev = true;
+                    break;
+                }
+            }
+            if (fMissPrev)
+            {
+                setUnTx.insert(ptx->GetHash());
+                return true;
+            }
+        }
+        if (ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
+        {
+            std::map<CDestination, int>::iterator it = mapVoteCert.find(ptx->sendTo);
+            if (it != mapVoteCert.end())
+            {
+                if (it->second <= 0)
+                {
+                    setUnTx.insert(ptx->GetHash());
+                    return true;
+                }
+                it->second--;
+            }
+        }
+        if (ptx->nType == CTransaction::TX_CERT && !mapVote.empty())
+        {
+            std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
+            if (iter != mapVote.end())
+            {
+                if (iter->second < nWeightRatio)
+                {
+                    setUnTx.insert(ptx->GetHash());
+                    return true;
+                }
+            }
+            else
+            {
+                setUnTx.insert(ptx->GetHash());
+                return true;
+            }
+        }
+        if (nTotalSize + ptx->nSerializeSize > nMaxSize)
+        {
+            return false;
+        }
+        vtx.push_back(*static_cast<CTransaction*>(ptx));
+        nTotalSize += ptx->nSerializeSize;
+        nTotalTxFee += ptx->nTxFee;
+    }
+    else
+    {
+        setUnTx.insert(ptx->GetHash());
+    }
+    return true;
+}
+
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nWeightRatio)
 {
     size_t nTotalSize = 0;
+    set<uint256> setUnTx;
+    CPooledCertTxLinkSet setCertRelativesIndex;
     nTotalTxFee = 0;
 
-    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
-    for (auto const& i : idxTxLinkSeq)
+    // Collect all cert related tx
+    const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
+    const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
+    const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
+    for (auto iter = iterBegin; iter != iterEnd; ++iter)
     {
-        if (i.ptx && i.ptx->GetTxTime() <= nBlockTime)
+        if (iterBegin->ptx && iterBegin->nType == CTransaction::TX_CERT)
         {
-            if (nTotalSize + i.ptx->nSerializeSize > nMaxSize)
+            setCertRelativesIndex.insert(*iterBegin);
+
+            std::vector<CPooledTxLink> prevLinks;
+            GetAllPrevTxLink(*iterBegin, prevLinks);
+            setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
+        }
+    }
+
+    // process all cert related tx by seqnum
+    const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
+    for (auto& i : idxCertTxLinkSeq)
+    {
+        if (i.ptx)
+        {
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
-                break;
+                return;
             }
-            vtx.push_back(*static_cast<CTransaction*>(i.ptx));
-            nTotalSize += i.ptx->nSerializeSize;
-            nTotalTxFee += i.ptx->nTxFee;
+        }
+    }
+
+    // process all tx in tx pool by seqnum
+    const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
+    for (auto& i : idxTxLinkSeq)
+    {
+        // skip cert related tx
+        if (setCertRelativesIndex.find(i.hashTX) != setCertRelativesIndex.end())
+        {
+            continue;
+        }
+        if (i.ptx)
+        {
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
+            {
+                return;
+            }
         }
     }
 }
@@ -468,8 +594,40 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, size_t n
                              vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    CTxPoolView& txView = mapPoolView[hashFork];
-    txView.ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize);
+    map<CDestination, int> mapVoteCert;
+    std::map<CDestination, int64> mapVote;
+    int64 nWeightRatio = 0;
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        uint256 hashLastBlock;
+        int nHeight;
+        int64 nTime;
+        if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
+            return;
+        }
+        if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
+            return;
+        }
+
+        if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
+            return;
+        }
+
+        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
+        if (nWeightRatio < 0)
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
+            return;
+        }
+    }
+
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
@@ -549,7 +707,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     txView.Remove(txid);
                     mapTx.erase(txid);
-                    change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
+                    change.mapTxUpdate.insert(make_pair(txid, std::make_pair(nBlockHeight, /*nHeight*/ tx)));
                 }
                 else
                 {
@@ -562,13 +720,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             }
             else
             {
-                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
+                change.mapTxUpdate.insert(make_pair(txid, std::make_pair(nBlockHeight, /*nHeight*/ tx)));
             }
         }
         //nHeight++;
     }
 
-    vector<pair<uint256, vector<CTxIn>>> vTxRemove;
+    vector<tuple<uint256, vector<CTxIn>, CTransaction>> vTxRemove;
     //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
     //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
     //for (const CBlockEx& block : vBlockRemove)
@@ -591,13 +749,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     if (spent1 != 0)
                         txView.SetSpent(CTxOutPoint(txid, 1), spent1);
 
-                    change.mapTxUpdate.insert(make_pair(txid, -1));
+                    change.mapTxUpdate.insert(make_pair(txid, std::make_pair(-1, tx)));
                 }
                 else
                 {
                     txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
                     txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
-                    vTxRemove.push_back(make_pair(txid, tx.vInput));
+                    vTxRemove.push_back(make_tuple(txid, tx.vInput, tx));
                 }
             }
         }
@@ -607,7 +765,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             CTxOutPoint outMint(txidMint, 0);
             txView.InvalidateSpent(outMint, viewInvolvedTx);
 
-            vTxRemove.push_back(make_pair(txidMint, block.txMint.vInput));
+            vTxRemove.push_back(make_tuple(txidMint, block.txMint.vInput, block.txMint));
         }
     }
 
@@ -618,7 +776,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         map<uint256, CPooledTx>::iterator it = mapTx.find(txseq.hashTX);
         if (it != mapTx.end())
         {
-            change.vTxRemove.push_back(make_pair(txseq.hashTX, (*it).second.vInput));
+            change.vTxRemove.push_back(make_tuple(txseq.hashTX, (*it).second.vInput, it->second));
             mapTx.erase(it);
         }
     }
