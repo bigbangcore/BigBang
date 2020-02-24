@@ -24,21 +24,21 @@ namespace bigbang
 inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
 {
     if (0 == nVchData)
-    {// size equals zero
+    {
         return nMinFee;
     }
-
-    if (nVchData < 1000)
+    uint32_t multiplier = nVchData / 200;
+    if (nVchData % 200 > 0)
     {
-        return nMinFee + 200 * (nVchData + 200 / 200);
+        multiplier++;
     }
-    else if (nVchData == 1000)
+    if (multiplier > 5)
     {
-        return nMinFee + 200 * 5;
+        return nMinFee + 1000 + (multiplier - 5) * 400;
     }
     else
     {
-        return nMinFee + 200 * 5 + 400 * ((nVchData - 1000) / 200 + 1);
+        return nMinFee + multiplier * 200;
     }
 }
 
