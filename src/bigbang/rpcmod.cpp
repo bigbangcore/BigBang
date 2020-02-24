@@ -1543,30 +1543,20 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
-
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
-
     if (!pService->HaveFork(hashFork))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
+
     vector<unsigned char> vchData;
-    auto strDataTmp = spParam->strData;
-    if (strDataTmp.IsValid())
+    if (spParam->strData.IsValid())
     {
+        auto strDataTmp = spParam->strData;
         if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
             auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
@@ -1576,6 +1566,17 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         {
             vchData = ParseHexString(strDataTmp);
         }
+    }
+
+    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    if (spParam->dTxfee.IsValid())
+    {
+        int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
+        if (nUserTxFee > nTxFee)
+        {
+            nTxFee = nUserTxFee;
+        }
+        StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
     CTransaction txNew;
@@ -1615,6 +1616,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from address");
         }
     }
+
     if (!pService->SignTransaction(txNew, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
@@ -1623,6 +1625,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_WALLET_ERROR, "The signature is not completed");
     }
+
     Errno err = pService->SendTransaction(txNew);
     if (err != OK)
     {
@@ -1658,16 +1661,6 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
-
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
@@ -1684,6 +1677,20 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     {
         vchData = ParseHexString(spParam->strData);
     }
+
+    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    if (spParam->dTxfee.IsValid())
+    {
+        nTxFee = AmountFromValue(spParam->dTxfee);
+
+        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        if (nTxFee < nFee)
+        {
+            nTxFee = nFee;
+        }
+        StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
     CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
