@@ -196,10 +196,12 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetConfig()->fTestNet)
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET; 
     }
     else
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET; 
     }
 
     // modules
