@@ -2182,7 +2182,7 @@ CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param)
     bool fCompleted = true;
     if (!pService->SignRawTransaction(destIn, rawTx, fCompleted))
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
+        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign raw transaction");
     }
 
     CBufStream ssNew;
