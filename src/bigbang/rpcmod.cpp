@@ -251,6 +251,10 @@ CRPCMod::CRPCMod()
         ("importwallet", &CRPCMod::RPCImportWallet)
         //
         ("makeorigin", &CRPCMod::RPCMakeOrigin)
+        //
+        ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
+        //
+        ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -2148,6 +2152,73 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     spResult->strHex = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize());
 
     return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSignRawTransactionWithWalletParam>(param);
+
+    crypto::CPubKey pubkey;
+    pubkey.SetHex(spParam->strPubkey);
+    CDestination destIn(pubkey);
+    if (destIn.IsTemplate())
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Not a pubkey used to sign");
+    }
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
+    }
+
+    bool fCompleted = true;
+    if (!pService->SignRawTransaction(destIn, rawTx, fCompleted))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
+    }
+
+    CBufStream ssNew;
+    ssNew << rawTx;
+
+    auto spResult = MakeCSignTransactionResultPtr();
+    spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
+    spResult->fCompleted = fCompleted;
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSendRawTransactionParam>(param);
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
+    }
+
+    Errno err = pService->SendRawTransaction(rawTx);
+    if (err != OK)
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
+                                                      + ErrorString(err));
+    }
+
+    return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
 }
 
 /* Util */

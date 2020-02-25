@@ -137,8 +137,9 @@ void CTemplateWeighted::BuildTemplateData()
     os << nRequired << mapPubKeyWeight;
 }
 
-bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
+bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor,
+                                          const CDestination& destTo, const vector<uint8>& vchSig,
+                                          const int32 nForkHeight, bool& fCompleted) const
 {
     set<uint256> setPubKey;
     for (const auto& keyweight : mapPubKeyWeight)

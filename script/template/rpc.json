@@ -626,6 +626,10 @@
         "request": {
             "type": "object",
             "content": {
+                "pubkey": {
+                    "type": "string",
+                    "desc": "hex string of pubkey used to sign raw transaction"
+                },
                 "txdata": {
                     "type": "string",
                     "desc": "raw transaction data(hex string)"
