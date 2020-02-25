@@ -614,6 +614,86 @@
             }
         ]
     },
+    "signrawtransactionwithwallet": {
+        "type": "command",
+        "name": "SignRawTransactionWithWallet",
+        "introduction": "Sign a raw transaction with wallet",
+        "desc": [
+            "Return json object with signature:",
+            "  hex : raw transaction with signature(s) (hex-encoded string)",
+            "  completed : true if transaction has a completed set of signature (false if not)"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "raw transaction data(hex string)"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "signature",
+            "content": {
+                "hex": {
+                    "type": "string",
+                    "desc": "hex string of transaction data"
+                },
+                "completed": {
+                    "type": "bool",
+                    "desc": "transaction completed or not"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli signrawtransactionwithwallet 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400",
+                "response": "{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signrawtransactionwithwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}"
+        ]
+    },
+    "sendrawtransaction": {
+        "type": "command",
+        "name": "SendRawTransaction",
+        "desc": "Submit raw transaction (serialized, hex-encoded) with offline signature to current node and broadcast it to p2p network.",
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "hex string of transaction binary data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "data",
+            "desc": "txid: hash of transaction raw data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli sendrawtransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03",
+                "response": "0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6"
+            },
+            {
+                "request": "curl -d '{\"id\":9,\"method\":\"sendrawtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":9,\"jsonrpc\":\"2.0\",\"result\":\"0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
+        ]
+    },
     "getpeercount": {
         "type": "command",
         "name": "GetPeerCount",
