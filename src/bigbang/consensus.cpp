@@ -327,10 +327,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
         }
 
-        int height;
-        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
-        pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
+        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
 
         nBlockHeight++;
     }
@@ -415,11 +412,9 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                 routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
             }
             routine.mapPublishData = result.mapPublishData;
+
+            routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
         }
-        int height;
-        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
-        pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
     }
 }
 

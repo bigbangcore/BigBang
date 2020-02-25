@@ -618,7 +618,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
     }
     else if (nChannel == PROTO_CHN_DELEGATE)
     {
-        int hashAnchor;
+        uint256 hashAnchor;
         ssPayload >> hashAnchor;
         switch (nCommand)
         {
