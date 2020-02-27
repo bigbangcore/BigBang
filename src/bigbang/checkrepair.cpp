@@ -1152,7 +1152,7 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
     }
 
     // TODO: int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
-    int64 nMinEnrollAmount = 10000000;
+    int64 nMinEnrollAmount = 10000000 * COIN;
     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
         return true;

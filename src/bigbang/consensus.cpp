@@ -385,12 +385,12 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                         StdTrace("CConsensus", "PrimaryUpdate: mapDelegateVote find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
                         continue;
                     }
-                    if (dt->second < nDelegateWeightRatio)
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
+                    // if (dt->second < nDelegateWeightRatio)
+                    // {
+                    //     StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
+                    //              ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
+                    //     continue;
+                    // }
                     CTransaction tx;
                     if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), hash, 0, (*it).second))
                     {
@@ -400,6 +400,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                     }
                 }
             }
+            StdTrace("CConsensus", "result.mapDistributeData size: %llu", result.mapDistributeData.size());
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
                  it != result.mapDistributeData.end(); ++it)
             {
@@ -407,6 +408,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             }
             routine.mapDistributeData = result.mapDistributeData;
 
+            StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
                  it != result.mapPublishData.end(); ++it)
             {
@@ -449,18 +451,20 @@ bool CConsensus::AddNewPublish(int nAnchorHeight, const CDestination& destFrom, 
 
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
-    boost::unique_lock<boost::mutex> lock(mutex);
-    
-    uint256 hashBlock;
-    pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight, hashBlock);
-    CDelegateEnrolled enrolled;
-    pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled);
+    if (nTargetHeight >= CONSENSUS_INTERVAL)
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        uint256 hashBlock;
+        pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_INTERVAL, hashBlock);
+        CDelegateEnrolled enrolled;
+        pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled);
 
-    int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
-    
-    map<CDestination, size_t> mapBallot;
-    delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
-    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+        map<CDestination, size_t> mapBallot;
+        delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
+        Log("sht ------ GetAgreement elegate.GetAgreement hashBlock: %s  mapBallot: %d, enrolled.vecAmount: %d", hashBlock.ToString().c_str(), mapBallot.size(), enrolled.vecAmount.size());
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+    }
 }
 
 void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)

@@ -43,6 +43,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
             if (!VerifySignature(delegateData)
                 || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
             {
+                StdError("sht", "+++++ VerifySignature(delegateData): %d, Collect: %d", VerifySignature(delegateData), witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted));
                 return false;
             }
         }

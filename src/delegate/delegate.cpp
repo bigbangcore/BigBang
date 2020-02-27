@@ -173,7 +173,7 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const CDestination& destFrom
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
         std::stringstream ss;
-        ss << "Accept height:" << nTargetHeight << " time:" << (t1 - t0).ticks() << " ret:" << ret;
+        ss << "Accept height:" << nTargetHeight << "ret: " << (int)ret << " time:" << (t1 - t0).ticks() << " ret:" << ret;
         xengine::StdDebug("CDelegate", ss.str().c_str());
 
         return ret;
@@ -200,7 +200,7 @@ bool CDelegate::HandlePublish(int nTargetHeight, const CDestination& destFrom,
         auto t1 = boost::posix_time::microsec_clock::universal_time();
 
         std::stringstream ss;
-        ss << "Collect height:" << nTargetHeight << " time:" << (t1 - t0).ticks();
+        ss << "Collect height:" << nTargetHeight << "ret: " << (int)ret << " time:" << (t1 - t0).ticks();
         xengine::StdDebug("CDelegate", ss.str().c_str());
 
         return ret;

@@ -461,6 +461,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 return err;
             }
         }
+            Log("................................. tx: %s, type: %u", txid.ToString().c_str(), tx.nType);
         // check enroll tx
         if (tx.nType == CTransaction::TX_CERT)
         {
@@ -897,12 +898,12 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
     }
     int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
 
-    if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
+    if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
     {
         return true;
     }
     vector<uint256> vBlockRange;
-    for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
+    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
     {
         vBlockRange.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pPrev;
