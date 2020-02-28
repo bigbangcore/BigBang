@@ -1115,7 +1115,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
     }
 
     CBlockIndex* pIndex = pIndexPrev;
-    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
+    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
     {
         if (pIndex == nullptr)
         {
@@ -1219,7 +1219,7 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
         }
     }
     // first 23 destination sorted by amount and sequence
-    for (auto it = mapSortEnroll.begin(); it != mapSortEnroll.end() && mapWeight.size() < 23; it++)
+    for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
     {
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));

@@ -805,7 +805,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     //              CAddress(d.second.first).ToString().c_str(), d.first.first, xengine::ToHexString(d.second.second).c_str());
     // }
     // first 23 destination sorted by amount and sequence
-    for (auto it = mapSortEnroll.begin(); it != mapSortEnroll.end() && mapWeight.size() < 23; it++)
+    for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
     {
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));

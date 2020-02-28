@@ -441,7 +441,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
-    map<pair<CDestination, uint256>, uint256> mapEnrollTx;
+    // map<pair<CDestination, uint256>, uint256> mapEnrollTx;
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -461,60 +461,60 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 return err;
             }
         }
-            Log("................................. tx: %s, type: %u", txid.ToString().c_str(), tx.nType);
+        
         // check enroll tx
-        if (tx.nType == CTransaction::TX_CERT)
-        {
-            // check outdated
-            uint32 nEnrollInterval = block.GetBlockHeight() - CBlock::GetBlockHeight(tx.hashAnchor);
-            if (nEnrollInterval > CONSENSUS_ENROLL_INTERVAL)
-            {
-                Log("AddNewBlock block %s delegate cert tx outdate, txid: %s, anchor: %s", hash.ToString().c_str(), txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
+        // if (tx.nType == CTransaction::TX_CERT)
+        // {
+        //     // check outdated
+        //     uint32 nEnrollInterval = block.GetBlockHeight() - CBlock::GetBlockHeightByHash(tx.hashAnchor);
+        //     if (nEnrollInterval > CONSENSUS_ENROLL_INTERVAL)
+        //     {
+        //         Log("AddNewBlock block %s delegate cert tx outdate, txid: %s, anchor: %s", hash.ToString().c_str(), txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
 
-            // check amount
-            map<CDestination, int64> mapVote;
-            if (!cntrBlock.GetBlockDelegateVote(tx.hashAnchor, mapVote))
-            {
-                Log("AddNewBlock Get block %s delegate vote error, txid: %s, anchor: %s", hash.ToString().c_str(), txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
-            auto voteIt = mapVote.find(tx.sendTo);
-            if (voteIt == mapVote.end() || voteIt->second < pCoreProtocol->MinEnrollAmount())
-            {
-                Log("AddNewBlock enroll amount is less than the minimum: %d, txid: %s, amount: %d", pCoreProtocol->MinEnrollAmount(), txid.ToString().c_str(), voteIt == mapVote.end() ? 0 : voteIt->second);
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
+        //     // check amount
+        //     map<CDestination, int64> mapVote;
+        //     if (!cntrBlock.GetBlockDelegateVote(tx.hashAnchor, mapVote))
+        //     {
+        //         Log("AddNewBlock Get block %s delegate vote error, txid: %s, anchor: %s", hash.ToString().c_str(), txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
+        //     auto voteIt = mapVote.find(tx.sendTo);
+        //     if (voteIt == mapVote.end() || voteIt->second < pCoreProtocol->MinEnrollAmount())
+        //     {
+        //         Log("AddNewBlock enroll amount is less than the minimum: %d, txid: %s, amount: %d", pCoreProtocol->MinEnrollAmount(), txid.ToString().c_str(), voteIt == mapVote.end() ? 0 : voteIt->second);
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
 
-            // check repeat
-            auto enrollTxIt = mapEnrollTx.find(make_pair(tx.sendTo, tx.hashAnchor));
-            if (enrollTxIt != mapEnrollTx.end())
-            {
-                Log("AddNewBlock enroll tx repeat, dest: %s, txid1: %s, txid2:%s", tx.sendTo.ToString().c_str(), txid.ToString().c_str(), enrollTxIt->second.ToString().c_str());
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
-            vector<uint256> vBlockRange;
-            CBlockIndex* pIndex = pIndexPrev;
-            for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL - 1 && i < nEnrollInterval; i++)
-            {
-                vBlockRange.push_back(pIndex->GetBlockHash());
-                pIndex = pIndex->pPrev;
-            }
-            map<CDestination, storage::CDiskPos> mapEnrollTxPos;
-            if (!cntrBlock.GetDelegateEnrollTx(CBlock::GetBlockHeight(tx.hashAnchor), vBlockRange, mapEnrollTxPos))
-            {
-                Log("AddNewBlock get enroll tx error, txid: %s, anchor: %s", txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
-            if (mapEnrollTxPos.find(tx.sendTo) != mapEnrollTxPos.end())
-            {
-                Log("AddNewBlock enroll tx exist, txid: %s, anchor: %s", txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
-                return ERR_BLOCK_TRANSACTIONS_INVALID;
-            }
+        //     // check repeat
+        //     auto enrollTxIt = mapEnrollTx.find(make_pair(tx.sendTo, tx.hashAnchor));
+        //     if (enrollTxIt != mapEnrollTx.end())
+        //     {
+        //         Log("AddNewBlock enroll tx repeat, dest: %s, txid1: %s, txid2:%s", tx.sendTo.ToString().c_str(), txid.ToString().c_str(), enrollTxIt->second.ToString().c_str());
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
+        //     vector<uint256> vBlockRange;
+        //     CBlockIndex* pIndex = pIndexPrev;
+        //     for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL - 1 && i < nEnrollInterval; i++)
+        //     {
+        //         vBlockRange.push_back(pIndex->GetBlockHash());
+        //         pIndex = pIndex->pPrev;
+        //     }
+        //     map<CDestination, storage::CDiskPos> mapEnrollTxPos;
+        //     if (!cntrBlock.GetDelegateEnrollTx(CBlock::GetBlockHeightByHash(tx.hashAnchor), vBlockRange, mapEnrollTxPos))
+        //     {
+        //         Log("AddNewBlock get enroll tx error, txid: %s, anchor: %s", txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
+        //     if (mapEnrollTxPos.find(tx.sendTo) != mapEnrollTxPos.end())
+        //     {
+        //         Log("AddNewBlock enroll tx exist, txid: %s, anchor: %s", txid.ToString().c_str(), tx.hashAnchor.ToString().c_str());
+        //         return ERR_BLOCK_TRANSACTIONS_INVALID;
+        //     }
 
-            mapEnrollTx.insert(make_pair(make_pair(tx.sendTo, tx.hashAnchor), txid));
-        }
+        //     mapEnrollTx.insert(make_pair(make_pair(tx.sendTo, tx.hashAnchor), txid));
+        // }
 
         vTxContxt.push_back(txContxt);
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
@@ -883,7 +883,7 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
 
 bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 {
-    // Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeight(hashBlock), hashBlock.ToString().c_str());
+    // Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeightByHash(hashBlock), hashBlock.ToString().c_str());
     enrolled.Clear();
 
     if (cacheEnrolled.Retrieve(hashBlock, enrolled))
@@ -910,7 +910,7 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
         pIndex = pIndex->pPrev;
     }
 
-    if (!cntrBlock.RetrieveAvailDelegate(pIndex->GetBlockHash(), pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
+    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
                                          enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());

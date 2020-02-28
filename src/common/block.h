@@ -107,10 +107,6 @@ public:
     {
         return (int64)nTimeStamp;
     }
-    static uint32 GetBlockHeight(const uint256& hash)
-    {
-        return hash.Get32(7);
-    }
     uint32 GetBlockHeight() const
     {
         if (IsGenesis())
