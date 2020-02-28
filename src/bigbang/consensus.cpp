@@ -156,7 +156,12 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     tx.sendTo = destDelegate;
     tx.nAmount = 0;
     tx.nTxFee = nTxFee;
-    tx.vchData = vchData;
+    //tx.vchData = vchData;
+    {
+        CODataStream os(tx.vchData, sizeof(int) + vchData.size());
+        os << nBlockHeight;
+        os.Push(&vchData[0], vchData.size());
+    }
 
     int64 nValueIn = 0;
     for (map<CTxOutPoint, CDelegateTx*>::iterator it = mapUnspent.begin(); it != mapUnspent.end(); ++it)

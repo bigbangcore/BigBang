@@ -846,7 +846,7 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
         pIndex = pIndex->pPrev;
     }
 
-    int nMaxCertCount = CONSENSUS_ENROLL_INTERVAL;
+    int nMaxCertCount = CONSENSUS_ENROLL_INTERVAL + 2;
     if (nMaxCertCount > pLastIndex->GetBlockHeight())
     {
         nMaxCertCount = pLastIndex->GetBlockHeight();

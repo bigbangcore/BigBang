@@ -1208,11 +1208,19 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                 CTransaction tx;
                 if (!objTsBlock.Read(tx, (*mi).second))
                 {
-                    StdLog("BlockBase", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
+                    StdLog("check", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
                     return false;
                 }
                 mapWeight.insert(make_pair(dest, size_t((*it).second / nDelegateWeightRatio)));
-                mapEnrollData.insert(make_pair(dest, tx.vchData));
+
+                if (tx.vchData.size() <= sizeof(int))
+                {
+                    StdLog("check", "RetrieveAvailDelegate: tx.vchData error, txid: %s", tx.GetHash().ToString().c_str());
+                    return false;
+                }
+                std::vector<uint8> vchCertData;
+                vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
+                mapEnrollData.insert(make_pair(dest, vchCertData));
             }
         }
     }
