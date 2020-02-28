@@ -18,6 +18,8 @@ namespace delegate
 #define CONSENSUS_ENROLL_INTERVAL 6     //30
 #define CONSENSUS_INTERVAL (CONSENSUS_DISTRIBUTE_INTERVAL + CONSENSUS_ENROLL_INTERVAL + 1)
 
+#define MAX_DELEGATE_THRESH (3) //(23)
+
 /* 
    Consensus phase:
 

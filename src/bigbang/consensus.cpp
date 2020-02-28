@@ -400,6 +400,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                     }
                 }
             }
+            StdTrace("CConsensus", "result.mapDistributeData size: %llu", result.mapDistributeData.size());
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
                  it != result.mapDistributeData.end(); ++it)
             {
@@ -407,6 +408,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             }
             routine.mapDistributeData = result.mapDistributeData;
 
+            StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
                  it != result.mapPublishData.end(); ++it)
             {
@@ -449,10 +451,26 @@ bool CConsensus::AddNewPublish(int nAnchorHeight, const CDestination& destFrom, 
 
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
-    boost::unique_lock<boost::mutex> lock(mutex);
-    map<CDestination, size_t> mapBallot;
-    delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
-    pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, vBallot, nTargetHeight);
+    if (nTargetHeight >= CONSENSUS_INTERVAL)
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        uint256 hashBlock;
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1, hashBlock))
+        {
+            Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
+        }
+        CDelegateEnrolled enrolled;
+        if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        {
+            Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+        }
+        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+
+        map<CDestination, size_t> mapBallot;
+        delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
+        Log("GetAgreement delegate.GetAgreement hashBlock: %s, mapBallot: %d, enrolled.vecAmount: %d", hashBlock.ToString().c_str(), mapBallot.size(), enrolled.vecAmount.size());
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+    }
 }
 
 void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)

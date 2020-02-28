@@ -1151,7 +1151,8 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
         return false;
     }
 
-    int64 nDelegateWeightRatio = (pIndex->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
+    // TODO: int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
+    int64 nMinEnrollAmount = 10000000 * COIN;
     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
         return true;
@@ -1169,8 +1170,8 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
         pIndex = pIndex->pPrev;
     }
 
-    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nDelegateWeightRatio,
-                               enrolled.mapWeight, enrolled.mapEnrollData))
+    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
+                               enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -1179,9 +1180,10 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
 }
 
 bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
-                                              int64 nDelegateWeightRatio,
+                                              int64 nMinEnrollAmount,
                                               map<CDestination, size_t>& mapWeight,
-                                              map<CDestination, vector<unsigned char>>& mapEnrollData)
+                                              map<CDestination, vector<unsigned char>>& mapEnrollData,
+                                              vector<pair<CDestination, int64>>& vecAmount)
 {
     map<CDestination, int64> mapVote;
     if (!objDelegateDB.RetrieveDelegatedVote(hash, mapVote))
@@ -1197,9 +1199,10 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
         return false;
     }
 
+    map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
-        if ((*it).second >= nDelegateWeightRatio)
+        if ((*it).second >= nMinEnrollAmount)
         {
             const CDestination& dest = (*it).first;
             map<CDestination, CDiskPos>::iterator mi = mapEnrollTxPos.find(dest);
@@ -1211,10 +1214,16 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                     StdLog("BlockBase", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, size_t((*it).second / nDelegateWeightRatio)));
-                mapEnrollData.insert(make_pair(dest, tx.vchData));
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
             }
         }
+    }
+    // first 23 destination sorted by amount and sequence
+    for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
+    {
+        mapWeight.insert(make_pair(it->second.first, 1));
+        mapEnrollData.insert(make_pair(it->second.first, it->second.second));
+        vecAmount.push_back(make_pair(it->second.first, it->first.first));
     }
     return true;
 }
