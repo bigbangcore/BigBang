@@ -883,7 +883,7 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
 
 bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 {
-    Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeight(hashBlock), hashBlock.ToString().c_str());
+    // Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeight(hashBlock), hashBlock.ToString().c_str());
     enrolled.Clear();
 
     if (cacheEnrolled.Retrieve(hashBlock, enrolled))
