@@ -369,20 +369,15 @@ void CMPSecretShare::Signature(const uint256& hash, uint256& nR, uint256& nS)
 
 bool CMPSecretShare::VerifySignature(const uint256& nIdentFrom, const uint256& hash, const uint256& nR, const uint256& nS)
 {
-    StdWarn("sht", "----- CMPSecretShare::VerifySignature nIdentFrom: %s, nIdent: %s, hash: %s, nR: %s, nS: %s", 
-        nIdentFrom.ToString().c_str(), nIdent.ToString().c_str(), hash.ToString().c_str(), nR.ToString().c_str(), nS.ToString().c_str());
     if (nIdentFrom == nIdent)
     {
-        StdWarn("sht", "----- CMPSecretShare::VerifySignature myBox.VerifySignature(hash, nR, nS): %d", myBox.VerifySignature(hash, nR, nS));
         return myBox.VerifySignature(hash, nR, nS);
     }
     map<uint256, CMPParticipant>::iterator it = mapParticipant.find(nIdentFrom);
     if (it == mapParticipant.end())
     {
-        StdWarn("sht", "----- CMPSecretShare::VerifySignature no mapParticipant size: %llu", mapParticipant.size());
         return false;
     }
     CMPParticipant& participant = (*it).second;
-        StdWarn("sht", "----- CMPSecretShare::VerifySignature participant.sBox.VerifySignature(hash, nR, nS): %d", participant.sBox.VerifySignature(hash, nR, nS));
     return participant.sBox.VerifySignature(hash, nR, nS);
 }

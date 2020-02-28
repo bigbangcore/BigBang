@@ -264,7 +264,6 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
             std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
             if (iter != mapVote.end())
             {
-                StdTrace("sht", "iter->second: %lld < nWeightRatio: %lld", iter->second, nWeightRatio);
                 if (iter->second < nWeightRatio)
                 {
                     setUnTx.insert(ptx->GetHash());

@@ -455,14 +455,17 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         uint256 hashBlock;
-        pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_INTERVAL, hashBlock);
+        pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1, hashBlock);
         CDelegateEnrolled enrolled;
         pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled);
 
-        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+        uint256 hashAnchor;
+        pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_INTERVAL, hashAnchor);
+        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashAnchor);
+
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
-        Log("sht ------ GetAgreement elegate.GetAgreement hashBlock: %s  mapBallot: %d, enrolled.vecAmount: %d", hashBlock.ToString().c_str(), mapBallot.size(), enrolled.vecAmount.size());
+        Log("GetAgreement delegate.GetAgreement hashBlock: %s, hashAnchor: %s mapBallot: %d, enrolled.vecAmount: %d", hashBlock.ToString().c_str(), hashAnchor.ToString().c_str(), mapBallot.size(), enrolled.vecAmount.size());
         pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
     }
 }

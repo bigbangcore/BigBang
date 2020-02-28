@@ -883,6 +883,7 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
 
 bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 {
+    Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeight(hashBlock), hashBlock.ToString().c_str());
     enrolled.Clear();
 
     if (cacheEnrolled.Retrieve(hashBlock, enrolled))
@@ -898,18 +899,18 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
     }
     int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
 
-    if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
+    if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
         return true;
     }
     vector<uint256> vBlockRange;
-    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
+    for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
     {
         vBlockRange.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pPrev;
     }
 
-    if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
+    if (!cntrBlock.RetrieveAvailDelegate(pIndex->GetBlockHash(), pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
                                          enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         Log("GetBlockDelegateEnrolled : Retrieve Avail Delegate Error: %s \n", hashBlock.ToString().c_str());
@@ -950,7 +951,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    for (int i = 0; i < CONSENSUS_INTERVAL; i++)
+    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL + 1; i++)
     {
         pIndex = pIndex->pPrev;
     }
@@ -1078,7 +1079,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 
     const CBlockIndex* pIndex = pIndexPrev;
 
-    for (int i = 0; i < CONSENSUS_INTERVAL - 1; i++)
+    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
     {
         pIndex = pIndex->pPrev;
     }

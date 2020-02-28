@@ -781,6 +781,8 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapVote dest: %s, amount: %llu, minAmount: %llu, txpos find: %d",
+                 it->first.ToString().c_str(), it->second, nMinEnrollAmount, mapEnrollTxPos.find(it->first) == mapEnrollTxPos.end());
         if ((*it).second >= nMinEnrollAmount)
         {
             const CDestination& dest = (*it).first;
@@ -796,6 +798,11 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
             }
         }
+    }
+    for (const auto d : mapSortEnroll)
+    {
+        StdTrace("BlockBase", "RetrieveAvailDelegate mapSortEnroll dest: %s, amount: %llu, data: %s",
+                 CAddress(d.second.first).ToString().c_str(), d.first.first, xengine::ToHexString(d.second.second).c_str());
     }
     // first 23 destination sorted by amount and sequence
     for (auto it = mapSortEnroll.begin(); it != mapSortEnroll.end() && mapWeight.size() < 23; it++)
