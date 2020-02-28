@@ -39,7 +39,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
-static const int64 BBCP_TOKEN_INIT = 100000000;
+static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
 #else
@@ -743,7 +743,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 #endif
 }
 
-void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, map<CDestination, size_t> mapBallot, 
+void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, map<CDestination, size_t> mapBallot,
                                        const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, int nBlockHeight)
 {
     if (vecAmount.size() != mapBallot.size())
@@ -805,7 +805,7 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
         }
     }
     StdTrace("Core", "vBallot size: %lu", vBallot.size());
-    for (auto& ballot: vBallot)
+    for (auto& ballot : vBallot)
     {
         StdTrace("Core", "Get delegated ballot sequence dest: %s", ballot.ToString().c_str());
     }
