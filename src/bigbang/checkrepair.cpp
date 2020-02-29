@@ -1214,7 +1214,6 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                     StdLog("check", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, size_t((*it).second / nMinEnrollAmount)));
 
                 if (tx.vchData.size() <= sizeof(int))
                 {
@@ -1223,7 +1222,8 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                 }
                 std::vector<uint8> vchCertData;
                 vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
-                mapEnrollData.insert(make_pair(dest, vchCertData));
+
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, vchCertData)));
             }
         }
     }

@@ -792,10 +792,9 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 CTransaction tx;
                 if (!tsBlock.Read(tx, (*mi).second))
                 {
-                    // StdTrace("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
+                    StdLog("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapWeight.insert(make_pair(dest, size_t((*it).second / nMinEnrollAmount)));
 
                 if (tx.vchData.size() <= sizeof(int))
                 {
@@ -804,7 +803,8 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 }
                 std::vector<uint8> vchCertData;
                 vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
-                mapEnrollData.insert(make_pair(dest, vchCertData));
+
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, vchCertData)));
             }
         }
     }
@@ -819,6 +819,11 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));
         vecAmount.push_back(make_pair(it->second.first, it->first.first));
+    }
+    for (const auto d : vecAmount)
+    {
+        StdTrace("BlockBase", "RetrieveAvailDelegate: dest: %s, amount: %.6f",
+                 CAddress(d.first).ToString().c_str(), ValueFromToken(d.second));
     }
     return true;
 }

@@ -461,7 +461,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 return err;
             }
         }
-        
+
         // check enroll tx
         // if (tx.nType == CTransaction::TX_CERT)
         // {
@@ -530,11 +530,10 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
-    int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
-    Log("AddNewBlock block chain trust: %s, delegate weight ratio: %.6f", nChainTrust.GetHex().c_str(), ValueFromToken(nMinEnrollAmount));
+    StdTrace("BlockChain", "AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
 
     CBlockIndex* pIndexNew;
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nMinEnrollAmount))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, pCoreProtocol->MinEnrollAmount()))
     {
         Log("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -675,11 +674,10 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
-    int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
 
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
-    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nMinEnrollAmount))
+    if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, pCoreProtocol->MinEnrollAmount()))
     {
         Log("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
