@@ -156,7 +156,12 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
     tx.sendTo = destDelegate;
     tx.nAmount = 0;
     tx.nTxFee = nTxFee;
-    tx.vchData = vchData;
+    //tx.vchData = vchData;
+    {
+        CODataStream os(tx.vchData, sizeof(int) + vchData.size());
+        os << nBlockHeight;
+        os.Push(&vchData[0], vchData.size());
+    }
 
     int64 nValueIn = 0;
     for (map<CTxOutPoint, CDelegateTx*>::iterator it = mapUnspent.begin(); it != mapUnspent.end(); ++it)
@@ -458,18 +463,32 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1, hashBlock))
         {
             Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
+            return;
         }
         CDelegateEnrolled enrolled;
         if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
         {
             Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+            return;
         }
         int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+        if (nMoneySupply < 0)
+        {
+            Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+            return;
+        }
 
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
-        Log("GetAgreement delegate.GetAgreement hashBlock: %s, mapBallot: %d, enrolled.vecAmount: %d", hashBlock.ToString().c_str(), mapBallot.size(), enrolled.vecAmount.size());
-        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+
+        if (nAgreement != 0 && mapBallot.size() > 0)
+        {
+            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+        }
+        else
+        {
+            StdTrace("CConsensus", "Get agreement: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
+        }
     }
 }
 

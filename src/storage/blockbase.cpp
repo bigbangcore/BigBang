@@ -8,9 +8,9 @@
 #include <cstdio>
 
 #include "../bigbang/address.h"
+#include "delegatecomm.h"
 #include "template/template.h"
 #include "util.h"
-#include "delegatecomm.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -792,10 +792,19 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 CTransaction tx;
                 if (!tsBlock.Read(tx, (*mi).second))
                 {
-                    // StdTrace("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
+                    StdLog("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
+
+                if (tx.vchData.size() <= sizeof(int))
+                {
+                    StdLog("CBlockBase", "RetrieveAvailDelegate: tx.vchData error, txid: %s", tx.GetHash().ToString().c_str());
+                    return false;
+                }
+                std::vector<uint8> vchCertData;
+                vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
+
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, vchCertData)));
             }
         }
     }
@@ -810,6 +819,11 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));
         vecAmount.push_back(make_pair(it->second.first, it->first.first));
+    }
+    for (const auto d : vecAmount)
+    {
+        StdTrace("BlockBase", "RetrieveAvailDelegate: dest: %s, amount: %.6f",
+                 CAddress(d.first).ToString().c_str(), ValueFromToken(d.second));
     }
     return true;
 }
@@ -2093,9 +2107,22 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
                        CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nMinEnrollAmount), tx.GetHash().GetHex().c_str());
                 return false;
             }
-            mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
-            StdTrace("CBlockBase", "VerifyDelegateVote: Enroll cert tx, height: %d, nAmount: %.6f, vote: %.6f, destInDelegate: %s, txid: %s",
-                     GetIndex(block.hashPrev)->GetBlockHeight(), ValueFromToken(tx.nAmount), ValueFromToken(nDelegateVote), CAddress(destInDelegateTemplate).ToString().c_str(), tx.GetHash().GetHex().c_str());
+
+            int nCertAnchorHeight = 0;
+            try
+            {
+                CIDataStream is(tx.vchData);
+                is >> nCertAnchorHeight;
+            }
+            catch (...)
+            {
+                StdLog("CBlockBase", "Verify delegate vote: TX_CERT vchData error, destInDelegate: %s, delegate vote: %.6f, weight ratio: %.6f, txid: %s",
+                       CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nMinEnrollAmount), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            mapEnrollTx[nCertAnchorHeight].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
+            StdTrace("CBlockBase", "VerifyDelegateVote: Enroll cert tx, anchor height: %d, nAmount: %.6f, vote: %.6f, destInDelegate: %s, txid: %s",
+                     nCertAnchorHeight, ValueFromToken(tx.nAmount), ValueFromToken(nDelegateVote), CAddress(destInDelegateTemplate).ToString().c_str(), tx.GetHash().GetHex().c_str());
             //mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(txContxt.destIn, CDiskPos(posBlock.nFile, nOffset)));
         }
         nOffset += ss.GetSerializeSize(tx);

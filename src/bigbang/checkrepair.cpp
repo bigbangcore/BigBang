@@ -1211,10 +1211,19 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
                 CTransaction tx;
                 if (!objTsBlock.Read(tx, (*mi).second))
                 {
-                    StdLog("BlockBase", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
+                    StdLog("check", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
                     return false;
                 }
-                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, tx.vchData)));
+
+                if (tx.vchData.size() <= sizeof(int))
+                {
+                    StdLog("check", "RetrieveAvailDelegate: tx.vchData error, txid: %s", tx.GetHash().ToString().c_str());
+                    return false;
+                }
+                std::vector<uint8> vchCertData;
+                vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
+
+                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, vchCertData)));
             }
         }
     }
