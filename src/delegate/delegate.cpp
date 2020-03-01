@@ -12,7 +12,6 @@ namespace bigbang
 namespace delegate
 {
 
-#define MAX_DELEGATE_THRESH (50)
 //////////////////////////////
 // CDelegate
 
@@ -202,8 +201,8 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const CDestination& destFrom
         bool ret = vote.Accept(destFrom, vchDistributeData);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::StdDebug("CDelegate", "HandleDistribute: Accept target height: %d, time: %ld us, Setup block: [%d] %s, Distribute block: [%d] %s",
-                          nTargetHeight, (t1 - t0).ticks(), vote.blockHash.Get32(7), vote.blockHash.GetHex().c_str(),
+        xengine::StdDebug("CDelegate", "HandleDistribute: Accept target height: %d, time: %ld us, ret: %s, Setup block: [%d] %s, Distribute block: [%d] %s",
+                          nTargetHeight, (t1 - t0).ticks(), (ret ? "true" : "false"), vote.blockHash.Get32(7), vote.blockHash.GetHex().c_str(),
                           vote.hashDistributeBlock.Get32(7), vote.hashDistributeBlock.GetHex().c_str());
         return ret;
     }
@@ -228,8 +227,9 @@ bool CDelegate::HandlePublish(int nTargetHeight, const CDestination& destFrom,
         bool ret = vote.Collect(destFrom, vchPublishData, fCompleted);
 
         auto t1 = boost::posix_time::microsec_clock::universal_time();
-        xengine::StdDebug("CDelegate", "HandlePublish : Collect target height: %d, time: %ld us, Setup block: [%d] %s, Publish block: [%d] %s",
-                          nTargetHeight, (t1 - t0).ticks(), vote.blockHash.Get32(7), vote.blockHash.GetHex().c_str(),
+
+        xengine::StdDebug("CDelegate", "HandlePublish : Collect target height: %d, time: %ld us, ret: %s, Setup block: [%d] %s, Publish block: [%d] %s",
+                          nTargetHeight, (t1 - t0).ticks(), (ret ? "true" : "false"), vote.blockHash.Get32(7), vote.blockHash.GetHex().c_str(),
                           vote.hashPublishBlock.Get32(7), vote.hashPublishBlock.GetHex().c_str());
         return ret;
     }

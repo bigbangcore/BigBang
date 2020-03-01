@@ -32,6 +32,12 @@ static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN; //30000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
+
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
@@ -737,39 +743,77 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 #endif
 }
 
-void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight,
-                                       const map<CDestination, size_t>& mapBallot, vector<CDestination>& vBallot, int nBlockHeight)
+void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, map<CDestination, size_t> mapBallot,
+                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, int nBlockHeight)
 {
+    if (vecAmount.size() != mapBallot.size())
+    {
+        StdError("Core", "Get delegated ballot dest ballot size %llu is not equal amount size %llu", mapBallot.size(), vecAmount.size());
+    }
+
     vBallot.clear();
+
+    if (nMoneySupply < 0)
+    {
+        return;
+    }
 
     int nSelected = 0;
     for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
     {
         nSelected ^= *p;
     }
-    size_t nWeightWork = ((DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight))
-                         / (DELEGATE_THRESH * DELEGATE_THRESH);
-    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %d, nRandomWork: %lu, nWeightDelegate: %lu, nWeightWork: %lu",
-             nSelected, (nWeightWork * 256 / (nWeightWork + nWeight)), nWeight, nWeightWork);
-    if (nSelected >= nWeightWork * 256 / (nWeightWork + nWeight))
+    size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
+    size_t nEnrollWeight = 0;
+    for (auto& amount : vecAmount)
     {
-        size_t nTrust = nWeight;
+        size_t nDestWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
+        mapBallot[amount.first] = nDestWeight;
+        nEnrollWeight += nDestWeight;
+    }
+    StdTrace("Core", "Get delegated ballot dest count is %llu", mapBallot.size());
+    for (size_t i = 0; i < vecAmount.size(); i++)
+    {
+        StdTrace("Core", "Get delegated ballot dest: %s, amount: %lld, weight: %llu", vecAmount[i].first.ToString().c_str(), vecAmount[i].second, mapBallot[vecAmount[i].first]);
+    }
+
+    size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
+                         / (nMaxWeight * nMaxWeight);
+    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
+             nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
+    if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
+    {
+        size_t nTrust = mapBallot.size();
+        size_t total = nEnrollWeight;
+        set<CDestination> setMaker;
         for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
         {
             nSelected += *p;
-            size_t n = nSelected % nWeight;
+            size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
             for (map<CDestination, size_t>::const_iterator it = mapBallot.begin(); it != mapBallot.end(); ++it)
             {
-                if (n < (*it).second)
+                if (n < it->second)
                 {
-                    vBallot.push_back((*it).first);
+                    vBallot.push_back(it->first);
+                    total -= it->second;
+                    mapBallot.erase(it);
                     break;
                 }
                 n -= (*it).second;
             }
-            nTrust >>= 1;
+            --nTrust;
         }
     }
+    StdTrace("Core", "vBallot size: %lu", vBallot.size());
+    for (auto& ballot : vBallot)
+    {
+        StdTrace("Core", "Get delegated ballot sequence dest: %s", ballot.ToString().c_str());
+    }
+}
+
+int64 CCoreProtocol::MinEnrollAmount()
+{
+    return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

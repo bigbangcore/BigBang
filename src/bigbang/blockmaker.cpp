@@ -689,9 +689,14 @@ void CBlockMaker::BlockMakerThreadFunc()
                         pConsensus->GetAgreement(nLastBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
                         currentAgreement = agree;
 
-                        Log("GetAgreement : %s at height=%d, weight=%lu, consensus: %s.", agree.nAgreement.GetHex().c_str(),
-                            nLastBlockHeight + 1, agree.nWeight,
-                            agree.IsProofOfWork() ? "pow" : "dpos");
+                        if (agree.IsProofOfWork())
+                        {
+                            Log("GetAgreement: height: %d, consensus: pow", nLastBlockHeight + 1);
+                        }
+                        else
+                        {
+                            Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", nLastBlockHeight + 1, CAddress(agree.vBallot[0]).ToString().c_str());
+                        }
                         break;
                     }
                 }

@@ -169,11 +169,13 @@ public:
     {
         mapWeight.clear();
         mapEnrollData.clear();
+        vecAmount.clear();
     }
 
 public:
     std::map<CDestination, std::size_t> mapWeight;
     std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
+    std::vector<std::pair<CDestination, int64>> vecAmount;
 };
 
 class CDelegateAgreement
