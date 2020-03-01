@@ -150,7 +150,7 @@ public:
     void Clear();
     void Update(int nStartHeight,
                 const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
+                const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                 const std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
     uint64 GetDistributeBitmap(const uint256& hashAnchor);
     uint64 GetPublishBitmap(const uint256& hashAnchor);
@@ -178,7 +178,7 @@ public:
     ~CDelegatedChannel();
     void PrimaryUpdate(int nStartHeight,
                        const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                       const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
+                       const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                        const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) override;
 
 protected:

@@ -54,6 +54,7 @@ public:
 protected:
     std::set<CDestination> setDelegate;
     std::map<int, CDelegateVote> mapVote;
+    std::map<uint256, CDelegateVote> mapDistributeVote;
 };
 
 } // namespace delegate

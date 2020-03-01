@@ -44,9 +44,10 @@ void CDelegatedChannelChain::Clear()
 
 void CDelegatedChannelChain::Update(int nStartHeight,
                                     const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
-                                    const map<CDestination, vector<unsigned char>>& mapDistributeData,
+                                    const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
                                     const map<CDestination, vector<unsigned char>>& mapPublishData)
 {
+    StdTrace("CDelegatedChannelChain", "Update: nLastBlockHeight: %d, nStartHeight: %d", nLastBlockHeight, nStartHeight);
     if (nLastBlockHeight < nStartHeight)
     {
         Clear();
@@ -68,18 +69,31 @@ void CDelegatedChannelChain::Update(int nStartHeight,
         for (map<CDestination, size_t>::const_iterator it = vEnrolledWeight[i].second.begin();
              it != vEnrolledWeight[i].second.end(); ++it)
         {
+            StdTrace("CDelegatedChannelChain", "Update: vEnrolledWeight, dest: %s, vote: %ld",
+                     CAddress((*it).first).ToString().c_str(), it->second);
             data.vEnrolled.push_back((*it).first);
         }
         listBlockHash.push_front(hash);
+        StdTrace("CDelegatedChannelChain", "Update: vEnrolledWeight, nLastBlockHeight: %d, chain height: %d, block: %s, vEnrolled.size: %ld",
+                 nLastBlockHeight, hash.Get32(7), hash.GetHex().c_str(), data.vEnrolled.size());
         ++nLastBlockHeight;
+    }
+
+    for (size_t i = 0; i < vDistributeData.size(); i++)
+    {
+        const uint256& hash = vDistributeData[i].first;
+        CDelegatedChannelChainData& data = mapChainData[hash];
+        data.mapDistributeData.insert(vDistributeData[i].second.begin(), vDistributeData[i].second.end());
     }
 
     if (!listBlockHash.empty())
     {
         const uint256& hash = listBlockHash.front();
         CDelegatedChannelChainData& data = mapChainData[hash];
-        data.mapDistributeData.insert(mapDistributeData.begin(), mapDistributeData.end());
+        //data.mapDistributeData.insert(mapDistributeData.begin(), mapDistributeData.end());
         data.mapPublishData.insert(mapPublishData.begin(), mapPublishData.end());
+        StdTrace("CDelegatedChannelChain", "Update: Distribute and Publish data, chain height: %d, block: %s, mapPublishData.size: %ld",
+                 hash.Get32(7), hash.GetHex().c_str(), mapPublishData.size());
     }
 
     while (listBlockHash.size() > CONSENSUS_DISTRIBUTE_INTERVAL + 1)
@@ -458,14 +472,14 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
 
 void CDelegatedChannel::PrimaryUpdate(int nStartHeight,
                                       const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
-                                      const map<CDestination, vector<unsigned char>>& mapDistributeData,
+                                      const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
                                       const map<CDestination, vector<unsigned char>>& mapPublishData)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
-    dataChain.Update(nStartHeight, vEnrolledWeight, mapDistributeData, mapPublishData);
+    dataChain.Update(nStartHeight, vEnrolledWeight, vDistributeData, mapPublishData);
 
-    if (!mapDistributeData.empty() || !mapPublishData.empty())
+    if (!vDistributeData.empty() || !mapPublishData.empty())
     {
         BroadcastBulletin(true);
     }

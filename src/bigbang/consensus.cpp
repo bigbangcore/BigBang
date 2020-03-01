@@ -313,11 +313,10 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         (*it).second.ChangeTxSet(change);
     }
 
-    int nBlockHeight = nStartHeight + 1;
-
-    for (int i = update.vBlockAddNew.size() - 1; i > 0; i--)
+    /*for (int i = update.vBlockAddNew.size() - 1; i > 0; i--)
     {
         uint256 hash = update.vBlockAddNew[i].GetHash();
+        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
 
         CDelegateEnrolled enrolled;
 
@@ -328,13 +327,13 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         }
 
         routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+    }*/
 
-        nBlockHeight++;
-    }
-
-    if (!update.vBlockAddNew.empty())
+    //if (!update.vBlockAddNew.empty())
+    for (int i = update.vBlockAddNew.size() - 1; i >= 0; i--)
     {
-        uint256 hash = update.vBlockAddNew[0].GetHash();
+        uint256 hash = update.vBlockAddNew[i].GetHash();
+        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
 
         CDelegateEnrolled enrolled;
         if (!pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
@@ -345,9 +344,6 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
-
-            int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-            int nPublishTargetHeight = nBlockHeight + 1;
 
             std::map<CDestination, int64> mapDelegateVote;
             int64 nDelegateWeightRatio = pBlockChain->GetDelegateWeightRatio(hash);
@@ -397,21 +393,28 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                     }
                 }
             }
+
+            int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
+            int nPublishTargetHeight = nBlockHeight + 1;
+
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
                  it != result.mapDistributeData.end(); ++it)
             {
                 delegate.HandleDistribute(nDistributeTargetHeight, (*it).first, (*it).second);
             }
-            routine.mapDistributeData = result.mapDistributeData;
+            routine.vDistributeData.push_back(make_pair(hash, result.mapDistributeData));
 
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
-                 it != result.mapPublishData.end(); ++it)
+            if (i == 0)
             {
-                bool fCompleted = false;
-                delegate.HandlePublish(nPublishTargetHeight, (*it).first, (*it).second, fCompleted);
-                routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
+                for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
+                     it != result.mapPublishData.end(); ++it)
+                {
+                    bool fCompleted = false;
+                    delegate.HandlePublish(nPublishTargetHeight, (*it).first, (*it).second, fCompleted);
+                    routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
+                }
+                routine.mapPublishData = result.mapPublishData;
             }
-            routine.mapPublishData = result.mapPublishData;
 
             routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
         }

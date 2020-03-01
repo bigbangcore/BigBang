@@ -288,7 +288,12 @@ bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination
     int nHeight;
     if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
+        StdTrace("CDispatcher", "AddNewDistribute: GetBlockLocation success, nHeight: %d, hashAnchor: [%d] %s", nHeight, hashAnchor.Get32(7), hashAnchor.GetHex().c_str());
         return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
+    }
+    else
+    {
+        StdError("CDispatcher", "AddNewDistribute: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
     }
     return false;
 }
@@ -299,7 +304,12 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
     int nHeight;
     if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
+        StdTrace("CDispatcher", "AddNewPublish: GetBlockLocation success, nHeight: %d, hashAnchor: [%d] %s", nHeight, hashAnchor.Get32(7), hashAnchor.GetHex().c_str());
         return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
+    }
+    else
+    {
+        StdError("CDispatcher", "AddNewPublish: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
     }
     return false;
 }
@@ -320,7 +330,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData, routineDelegate.mapPublishData);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {
