@@ -377,6 +377,7 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     return OK;
 }
 
+// CDispatcher::AddNewBlock调用，非Origin Block
 Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 {
     uint256 hash = block.GetHash();
@@ -613,6 +614,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     else
     {
         // 如果不是独立的Fork，就获得Parent Fork关联的BlockView     独立与否，就在于与父分支有没有关联
+        // 在获得与只关联的View的过程中，View的中的Tx是需要删除和新增的，相当于拿到前序Block的View的最新状态
         if (!cntrBlock.GetBlockView(block.hashPrev, view, false))
         {
             Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
@@ -643,15 +645,17 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     Log("AddNew Origin Block : %s ", hash.ToString().c_str());
     Log("    %s", pIndexNew->ToString().c_str());
 
+    // 以最新的Origin Block更新并提交对应的Block View
     if (!cntrBlock.CommitBlockView(view, pIndexNew))
     {
         Log("AddNewOrigin Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-
+    // 该Origin Block是当前最新的，把该Index转成Update对象(最新高度，最新BlockHash，时间戳等)
     update = CBlockChainUpdate(pIndexNew);
+    // 把当前最新Block View的Tx Update写入Update对象
     view.GetTxUpdated(update.setTxUpdate);
-    update.vBlockAddNew.push_back(blockex);
+    update.vBlockAddNew.push_back(blockex); // 该Origin Block是新增的，加入Update的BlockAddNew中
 
     return OK;
 }

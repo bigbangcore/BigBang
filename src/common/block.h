@@ -231,6 +231,7 @@ inline std::string GetBlockTypeStr(uint16 nType, uint16 nMintType)
     return str;
 }
 
+// Block Index(前序，后续，版本，类型，Trust，PoW证明难度，文件以及偏移等)
 class CBlockIndex
 {
 public:

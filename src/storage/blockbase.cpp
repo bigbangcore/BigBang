@@ -441,6 +441,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     CDelegateContext ctxtDelegate;
     if (block.IsPrimary())
     {
+        // 如果是主链的Block就校验DelegateVote，拿到Delegate(包括mapDelegate投票金额表等信息)
         if (!VerifyDelegateVote(hash, block, nDelegateWeightRatio, ctxtDelegate))
         {
             StdError("BlockBase", "Add new block: Verify delegate vote fail, block: %s", hash.ToString().c_str());
@@ -449,6 +450,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     }
 
     uint32 nFile, nOffset;
+    // 把Block写入Block文件，并拿到该Block的文件和偏移信息
     if (!tsBlock.Write(block, nFile, nOffset))
     {
         StdError("BlockBase", "Add new block: write block failed, block: %s", hash.ToString().c_str());
@@ -457,6 +459,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
     {
         CWriteLock wlock(rwAccess);
 
+        // 根据Block的Hash和Block，文件偏移创建该Block的Index
         CBlockIndex* pIndexNew = AddNewIndex(hash, block, nFile, nOffset, nChainTrust);
         if (pIndexNew == nullptr)
         {
@@ -464,6 +467,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
             return false;
         }
 
+        // Block Index入KV数据库
         if (!dbBlock.AddNewBlock(CBlockOutline(pIndexNew)))
         {
             StdError("BlockBase", "Add new block: AddNewBlock failed, block: %s", hash.ToString().c_str());
@@ -475,6 +479,7 @@ bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIn
 
         if (pIndexNew->IsPrimary())
         {
+            // 如果是主链Block，那么就更新Delegate，并把Delegate信息写入Delegate KV数据库
             if (!UpdateDelegate(hash, block, CDiskPos(nFile, nOffset), ctxtDelegate))
             {
                 StdTrace("BlockBase", "Add new block: Update delegate failed, block: %s", hash.ToString().c_str());
@@ -959,6 +964,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
 
     if (hashFork == view.GetForkHash())
     {
+        // 非Origin Block走这里，只要得到对应的BlockView就行了
         if (!view.IsCommittable())
         {
             StdTrace("BlockBase", "CommitBlockView Is not COmmitable");
@@ -968,12 +974,14 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
     else
     {
+        // Origin Block的Index走这里
         CProfile profile;
         if (!LoadForkProfile(pIndexNew->pOrigin, profile))
         {
             StdTrace("BlockBase", "CommitBlockView::LoadForkProfile %s block failed", pIndexNew->pOrigin->GetBlockHash().ToString().c_str());
             return false;
         }
+        // 加载该Fork的各种信息(Unspent,Tx Index)
         if (!dbBlock.AddNewFork(hashFork))
         {
             StdTrace("BlockBase", "CommitBlockView::AddNewFork %s  failed", hashFork.ToString().c_str());
@@ -983,6 +991,7 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
 
     vector<pair<uint256, CTxIndex>> vTxNew;
+    // 获得当前最新Block与BlockView最后一个Block之间的Tx列表(mint tx ,打包的Tx)
     if (!GetTxNewIndex(view, pIndexNew, vTxNew))
     {
         StdTrace("BlockBase", "CommitBlockView::GetTxNewIndex view failed");
@@ -2004,12 +2013,14 @@ bool CBlockBase::LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& prof
     return true;
 }
 
+// 校验BLock的DelegateVote，并获得Delegate信息
 bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nDelegateWeightRatio, CDelegateContext& ctxtDelegate)
 {
     StdTrace("CBlockBase", "VerifyDelegateVote: height: %d, block: %s", block.GetBlockHeight(), hash.GetHex().c_str());
 
     map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
     map<int, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
+    // 拿到上一个Block的mapDelegateVote并写入输出参数Delegate
     if (!dbBlock.RetrieveDelegate(block.hashPrev, mapDelegate))
     {
         StdError("CBlockBase", "Verify delegate vote: RetrieveDelegate fail");
@@ -2020,6 +2031,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
 
     {
         CTemplateId tid;
+        // 记录该Block的mint tx到MDelegate模板地址的投票金额
         if (block.txMint.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
         {
             vDestVote.push_back(make_pair(block.txMint.sendTo, block.txMint.nAmount));
@@ -2031,23 +2043,27 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
     uint32 nOffset = block.GetTxSerializedOffset()
                      + ss.GetSerializeSize(block.txMint)
                      + ss.GetSerializeSize(var);
+    // 处理主链Block中打包的所有Tx
     for (int i = 0; i < block.vtx.size(); i++)
     {
         CTransaction& tx = block.vtx[i];
         CDestination destInDelegateTemplate;
         CDestination sendToDelegateTemplate;
         CTxContxt& txContxt = block.vTxContxt[i];
+        // 从打包Tx的输入和输出中获得转入Delegate模板地址和转出Delegate模板地址,如果Tx转入和转出都不是模板地址那么返回true，继续往下走
         if (!CTemplate::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
         {
             StdLog("CBlockBase", "Verify delegate vote: parse delegate dest fail, destIn: %s, sendTo: %s, block: %s, txid: %s",
                    CAddress(txContxt.destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str(), hash.GetHex().c_str(), tx.GetHash().GetHex().c_str());
             return false;
         }
+        // 记录Tx转入到Delegate模板地址的投票金额
         if (!sendToDelegateTemplate.IsNull())
         {
             vDestVote.push_back(make_pair(sendToDelegateTemplate, tx.nAmount));
             //mapDelegate[tx.sendTo] += tx.nAmount;
         }
+        // 记录Tx从Delegate模板地址转出的投票金额，所以这里是负数
         if (!destInDelegateTemplate.IsNull())
         {
             vDestVote.push_back(make_pair(destInDelegateTemplate, 0 - (tx.nAmount + tx.nTxFee)));
@@ -2061,6 +2077,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
                        CAddress(destInDelegateTemplate).ToString().c_str(), hash.GetHex().c_str(), tx.GetHash().GetHex().c_str());
                 return false;
             }
+            // 从前序Block拿到的投票表，在表中查找该Delgate模板地址的投票数是否合格
             int64 nDelegateVote = mapDelegate[destInDelegateTemplate];
             if (nDelegateVote < nDelegateWeightRatio)
             {
@@ -2068,6 +2085,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
                        CAddress(destInDelegateTemplate).ToString().c_str(), ValueFromToken(nDelegateVote), ValueFromToken(nDelegateWeightRatio), tx.GetHash().GetHex().c_str());
                 return false;
             }
+            // 前序Block高度的，Delegate模板地址作为转入，还有磁盘偏移，这些信息作为输出参数mapEnroll
             mapEnrollTx[GetIndex(block.hashPrev)->GetBlockHeight()].insert(make_pair(destInDelegateTemplate, CDiskPos(0, nOffset)));
             StdTrace("CBlockBase", "VerifyDelegateVote: Enroll cert tx, height: %d, nAmount: %.6f, vote: %.6f, destInDelegate: %s, txid: %s",
                      GetIndex(block.hashPrev)->GetBlockHeight(), ValueFromToken(tx.nAmount), ValueFromToken(nDelegateVote), CAddress(destInDelegateTemplate).ToString().c_str(), tx.GetHash().GetHex().c_str());
@@ -2075,6 +2093,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
         }
         nOffset += ss.GetSerializeSize(tx);
     }
+    // 目标Delegate模板地址的投票金额进行叠加（有负数），以得到正确投票结果
     for (const auto& d : vDestVote)
     {
         mapDelegate[d.first] += d.second;
@@ -2122,6 +2141,7 @@ bool CBlockBase::GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut
     return dbBlock.RetrieveTxUnspent(fork, out, unspent);
 }
 
+// 获得当前最新Block与BlockView最后一个Block之间的Tx列表(mint tx ,打包的Tx)
 bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<pair<uint256, CTxIndex>>& vTxNew)
 {
     vector<CBlockIndex*> vPath;

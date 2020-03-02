@@ -209,6 +209,7 @@ bool CTemplate::IsDestInRecorded(const CDestination& dest)
     return false;
 }
 
+// 从转入和转出地址中鉴别是否是Delegate模板地址，并提取出来
 bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
 {
     std::vector<uint8> vchSubSigOut;
@@ -222,7 +223,9 @@ bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination
         }
         else if (tid.GetType() == TEMPLATE_VOTE)
         {
+            // 如果是转出是转到Vote模板的
             CDestination destOwnerTemp;
+            // 从Tx的vchSigIn字段中解析出SendToDelegate字段和Owner地址，其余的剩余就是vchSubSigOut
             if (!CSendToRecordedTemplate::ParseDest(vchSigIn, sendToDelegateOut, destOwnerTemp, vchSubSigOut))
             {
                 return false;
@@ -243,6 +246,7 @@ bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination
         }
         else if (tid.GetType() == TEMPLATE_VOTE)
         {
+            // 如果转入地址是Vote模板转的，那么就从转入地址Tx的vchSigIn构造模板，是否构造失败
             CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn, vchSubSigOut);
             if (ptr == nullptr)
             {
