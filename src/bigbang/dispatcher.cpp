@@ -145,6 +145,7 @@ void CDispatcher::HandleHalt()
 {
 }
 
+// 接收CNetChannel过来的Block，并带着对端节点的nonce
 Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 {
     Errno err = OK;
@@ -157,6 +158,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CBlockChainUpdate updateBlockChain;
     if (!block.IsOrigin())
     {
+        // 非Fork的其他Block
         err = pBlockChain->AddNewBlock(block, updateBlockChain);
         if (err == OK && !block.IsVacant())
         {
@@ -172,6 +174,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
     else
     {
+        // Fork的第一个Block
         err = pBlockChain->AddNewOrigin(block, updateBlockChain);
     }
 
@@ -292,6 +295,7 @@ bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest,
     return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
 }
 
+// CDispacther::AddNewBlock调用，当是主链的块的时候才调用，此时主链块已经入库
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
     if (!strCmd.empty())

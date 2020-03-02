@@ -546,6 +546,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
+// 添加Fork的第一个Block入库，因为是Origin类型的
 Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 {
     uint256 hash = block.GetHash();
@@ -557,6 +558,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return ERR_ALREADY_HAVE;
     }
 
+    // 主要是校验Block，比如Block签名，Block时间，其中的交易，以及Merkle Hash之类的
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
@@ -564,6 +566,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return err;
     }
 
+    // 获取Origin Block的上一个Block的 Index，相当于是父分支的分叉点的Block
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
@@ -571,12 +574,14 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
+    // 获取Origin Block的父分支的信息(名称，版本，挖矿奖励，交易费用等)
     CProfile parent;
     if (!cntrBlock.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
     {
         Log("AddNewOrigin Retrieve parent profile Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+    // 根据该Origin Block拿到并校验该Fork的信息
     CProfile profile;
     err = pCoreProtocol->ValidateOrigin(block, parent, profile);
     if (err != OK)
@@ -585,6 +590,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return err;
     }
 
+    // 根据Fork的名称查找本地是否有同名的Fork，不支持同名Fork，有同名就报错
     CBlockIndex* pIndexDuplicated;
     if (cntrBlock.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
@@ -597,6 +603,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     if (profile.IsIsolated())
     {
+        // 如果是独立的Fork，就获得与该Fork关联的已初始化完成的Block View
         if (!cntrBlock.GetBlockView(view))
         {
             Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
@@ -605,6 +612,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     }
     else
     {
+        // 如果不是独立的Fork，就获得Parent Fork关联的BlockView     独立与否，就在于与父分支有没有关联
         if (!cntrBlock.GetBlockView(block.hashPrev, view, false))
         {
             Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
@@ -612,17 +620,20 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         }
     }
 
+    // 挖矿奖励Tx有效就添加进Fork关联的BlockView中
     if (block.txMint.nAmount != 0)
     {
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
     // Get block trust
+    // 获取当前Origin Block的Trust值，并需要其Parent Fork分叉点Block的Index，Origin Block的Trust值是0
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev);
     int64 nDelegateWeightRatio = (pIndexPrev->GetMoneySupply() + DELEGATE_THRESH - 1) / DELEGATE_THRESH;
 
     CBlockIndex* pIndexNew;
     CBlockEx blockex(block);
+    // 正式将该Origin Block入库，并获得该Block的Index
     if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, nDelegateWeightRatio))
     {
         Log("AddNewOrigin Storage AddNew Error : %s ", hash.ToString().c_str());

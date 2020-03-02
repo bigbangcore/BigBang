@@ -253,6 +253,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
     return OK;
 }
 
+// // 主要是校验Block，比如Block签名，Block时间，其中的交易，以及Merkle Hash之类的
 Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context
@@ -324,8 +325,10 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     return OK;
 }
 
+// 根据该Origin Block拿到并校验该Fork的信息，当然校验部分是通过父分支的信息校验的
 Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile)
 {
+    // 通过Origin Block的vchProof解码出该Fork的信息(名称，版本，挖矿奖励等)
     if (!forkProfile.Load(block.vchProof))
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "load profile error\n");
@@ -336,6 +339,7 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     }
     if (parentProfile.IsPrivate())
     {
+        // 父分支是私有的就进行权限校验，大部分情况暂时考虑public的情况
         if (!forkProfile.IsPrivate() || parentProfile.destOwner != forkProfile.destOwner)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "permission denied");
@@ -579,6 +583,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
 uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
+    // 创世块和Vacant Block的Trust值都是0
     if (block.IsGenesis())
     {
         return uint64(0);

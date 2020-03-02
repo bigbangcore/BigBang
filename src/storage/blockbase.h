@@ -111,6 +111,7 @@ protected:
     CBlockIndex* pIndexOrigin;
 };
 
+// BlockView描述某个分支的UTXO，交易，交易变更删除等状况
 class CBlockView
 {
 public:

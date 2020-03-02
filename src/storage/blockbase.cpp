@@ -819,6 +819,7 @@ bool CBlockBase::GetBlockView(CBlockView& view)
     return true;
 }
 
+// 获取某个Block所在Fork关联的BlockView
 bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable)
 {
     CBlockIndex* pIndex = nullptr;
@@ -827,6 +828,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
     {
         CReadLock rlock(rwAccess);
+        // 取得某个Block的Index
         pIndex = GetIndex(hash);
         if (pIndex == nullptr)
         {
@@ -834,6 +836,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
             return false;
         }
 
+        // 取得某个Block所在Fork的Origin ，通过Origin hash 获取Fork指针
         hashOrigin = pIndex->GetOriginHash();
         spFork = GetFork(hashOrigin);
         if (spFork == nullptr)
@@ -843,10 +846,12 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         }
     }
 
+    // 通过Fork指针和Fork origin hash 初始化对应BlockView结构
     view.Initialize(this, spFork, hashOrigin, fCommitable);
 
     {
         CReadLock rlock(rwAccess);
+        // 该Fork当前最后一个Block的Index
         CBlockIndex* pForkLast = spFork->GetLast();
 
         vector<CBlockIndex*> vPath;
