@@ -286,7 +286,7 @@ bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination
 {
     uint256 hashFork;
     int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
     {
         StdError("CDispatcher", "AddNewDistribute: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
         return false;
@@ -304,7 +304,7 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
 {
     uint256 hashFork;
     int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
     {
         StdError("CDispatcher", "AddNewPublish: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
         return false;
