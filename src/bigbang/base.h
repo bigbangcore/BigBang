@@ -53,7 +53,7 @@ public:
     virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, std::map<CDestination, size_t> mapBallot, 
+    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, std::map<CDestination, size_t> mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, int nBlockHeight)
         = 0;
     virtual int64 MinEnrollAmount() = 0;
@@ -169,11 +169,9 @@ public:
     }
     virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
-    virtual bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
-    virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
-    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight,
-                              std::vector<CDestination>& vBallot)
-        = 0;
+    virtual bool AddNewDistribute(int nAnchorHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
+    virtual bool AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
+    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
 };
 

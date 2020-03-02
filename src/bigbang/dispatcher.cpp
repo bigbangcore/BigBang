@@ -286,32 +286,36 @@ bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination
 {
     uint256 hashFork;
     int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        StdTrace("CDispatcher", "AddNewDistribute: GetBlockLocation success, nHeight: %d, hashAnchor: [%d] %s", nHeight, hashAnchor.Get32(7), hashAnchor.GetHex().c_str());
-        return pConsensus->AddNewDistribute(nHeight, dest, vchDistribute);
-    }
-    else
+    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
     {
         StdError("CDispatcher", "AddNewDistribute: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
+        return false;
     }
-    return false;
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        StdError("CDispatcher", "AddNewDistribute: fork error, hashAnchor: %s, hashFork: %s",
+                 hashAnchor.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    return pConsensus->AddNewDistribute(nHeight, hashAnchor, dest, vchDistribute);
 }
 
 bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
     uint256 hashFork;
     int nHeight;
-    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight) && hashFork == pCoreProtocol->GetGenesisBlockHash())
-    {
-        StdTrace("CDispatcher", "AddNewPublish: GetBlockLocation success, nHeight: %d, hashAnchor: [%d] %s", nHeight, hashAnchor.Get32(7), hashAnchor.GetHex().c_str());
-        return pConsensus->AddNewPublish(nHeight, dest, vchPublish);
-    }
-    else
+    if (pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
     {
         StdError("CDispatcher", "AddNewPublish: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
+        return false;
     }
-    return false;
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        StdError("CDispatcher", "AddNewPublish: fork error, hashAnchor: %s, hashFork: %s",
+                 hashAnchor.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    return pConsensus->AddNewPublish(nHeight, hashAnchor, dest, vchPublish);
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)

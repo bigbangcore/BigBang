@@ -42,13 +42,13 @@ public:
 
     void Evolve(int nBlockHeight, const std::map<CDestination, std::size_t>& mapWeight,
                 const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData,
-                CDelegateEvolveResult& result, const uint256& block_hash);
+                CDelegateEvolveResult& result, const uint256& hashBlock);
     void Rollback(int nBlockHeightFrom, int nBlockHeightTo);
-    bool HandleDistribute(int nTargetHeight, const CDestination& destFrom,
+    bool HandleDistribute(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
                           const std::vector<unsigned char>& vchDistributeData);
-    bool HandlePublish(int nTargetHeight, const CDestination& destFrom,
+    bool HandlePublish(int nTargetHeight, const uint256& hashPublishAnchor, const CDestination& destFrom,
                        const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
-    void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
+    void GetAgreement(int nTargetHeight, const uint256& hashDistributeAnchor, uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof);
 
 protected:
