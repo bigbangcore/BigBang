@@ -18,13 +18,14 @@ set(sources
     mpvss_tests.cpp
     ipv6_tests.cpp
     crypto_tests.cpp
+    delegate_tests.cpp
 )
 
 #set(lib_src ../src/common/destination.h ../src/common/destination.cpp)
 
 add_executable(test_big ${sources})
 
-include_directories(../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss)
+include_directories(../src/bigbang ../src/xengine ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -34,6 +35,7 @@ target_link_libraries(test_big
     OpenSSL::SSL
     OpenSSL::Crypto
     mpvss
+    delegate
     crypto
     common
     libbigbang
