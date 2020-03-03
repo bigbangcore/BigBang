@@ -707,7 +707,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     txView.Remove(txid);
                     mapTx.erase(txid);
-                    change.mapTxUpdate.insert(make_pair(txid, std::make_pair(nBlockHeight, /*nHeight*/ tx)));
+                    change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
                 else
                 {
@@ -720,13 +720,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             }
             else
             {
-                change.mapTxUpdate.insert(make_pair(txid, std::make_pair(nBlockHeight, /*nHeight*/ tx)));
+                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
             }
         }
         //nHeight++;
     }
 
-    vector<tuple<uint256, vector<CTxIn>, CTransaction>> vTxRemove;
+    vector<pair<uint256, vector<CTxIn>>> vTxRemove;
     //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
     //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
     //for (const CBlockEx& block : vBlockRemove)
@@ -749,13 +749,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     if (spent1 != 0)
                         txView.SetSpent(CTxOutPoint(txid, 1), spent1);
 
-                    change.mapTxUpdate.insert(make_pair(txid, std::make_pair(-1, tx)));
+                    change.mapTxUpdate.insert(make_pair(txid, -1));
                 }
                 else
                 {
                     txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
                     txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
-                    vTxRemove.push_back(make_tuple(txid, tx.vInput, tx));
+                    vTxRemove.push_back(make_pair(txid, tx.vInput));
                 }
             }
         }
@@ -765,7 +765,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             CTxOutPoint outMint(txidMint, 0);
             txView.InvalidateSpent(outMint, viewInvolvedTx);
 
-            vTxRemove.push_back(make_tuple(txidMint, block.txMint.vInput, block.txMint));
+            vTxRemove.push_back(make_pair(txidMint, block.txMint.vInput));
         }
     }
 
@@ -776,7 +776,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         map<uint256, CPooledTx>::iterator it = mapTx.find(txseq.hashTX);
         if (it != mapTx.end())
         {
-            change.vTxRemove.push_back(make_tuple(txseq.hashTX, (*it).second.vInput, it->second));
+            change.vTxRemove.push_back(make_pair(txseq.hashTX, (*it).second.vInput));
             mapTx.erase(it);
         }
     }
