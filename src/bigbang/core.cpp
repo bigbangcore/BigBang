@@ -259,7 +259,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
     return OK;
 }
 
-// // 主要是校验Block，比如Block签名，Block时间，其中的交易，以及Merkle Hash之类的
+// 主要是校验Block，比如Block签名，Block时间，其中的交易，以及Merkle Hash之类的
 Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context

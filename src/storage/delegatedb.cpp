@@ -96,6 +96,7 @@ bool CDelegateDB::RetrieveDelegatedEnrollTx(const uint256& hashBlock, std::map<i
     return true;
 }
 
+// 遍历Enroll期间的所有Block hash，以查找到Enroll 高度（第一个Enroll Block高度）的Enroll Tx的磁盘位置
 bool CDelegateDB::RetrieveEnrollTx(int height, const vector<uint256>& vBlockRange,
                                    map<CDestination, CDiskPos>& mapEnrollTxPos)
 {

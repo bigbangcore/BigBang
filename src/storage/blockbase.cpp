@@ -751,6 +751,7 @@ bool CBlockBase::RetrieveTxLocation(const uint256& txid, uint256& hashFork, int&
     return true;
 }
 
+// 给定ENroll阶段的开始Block height和结尾Blockhash，还有Enroll期间所有Block hash拿到Enroll结果
 bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
                                        int64 nMinEnrollAmount,
                                        map<CDestination, size_t>& mapWeight,
@@ -758,6 +759,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                                        vector<pair<CDestination, int64>>& vecAmount)
 {
     map<CDestination, int64> mapVote;
+    // 通过Enroll结尾的Blockhash来获取Enroll期间各个Delegate模板地址上的Vote
     if (!dbBlock.RetrieveDelegate(hash, mapVote))
     {
         StdTrace("BlockBase", "RetrieveAvailDelegate::RetrieveDelegate %s block failed",
@@ -771,6 +773,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     // }
 
     map<CDestination, CDiskPos> mapEnrollTxPos;
+    // 超照Enroll 高度的Enroll期间所有Enroll Tx的磁盘位置
     if (!dbBlock.RetrieveEnroll(height, vBlockRange, mapEnrollTxPos))
     {
         StdTrace("BlockBase", "RetrieveAvailDelegate::RetrieveEnroll block %s height %d failed",
@@ -784,23 +787,27 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     // }
 
     map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
+    // 把达标的Enroll期间的所有Delegate模板地址的Enroll Data根据对应的投票金额排序
     for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
     {
         // StdTrace("BlockBase", "RetrieveAvailDelegate mapVote dest: %s, amount: %llu, minAmount: %llu, txpos find: %d",
         //          CAddress(it->first).ToString().c_str(), it->second, nMinEnrollAmount, mapEnrollTxPos.find(it->first) == mapEnrollTxPos.end());
+        //每个Delegate模板地址 至少要达到最少Enroll的金额才可以，不然忽略
         if ((*it).second >= nMinEnrollAmount)
         {
             const CDestination& dest = (*it).first;
             map<CDestination, CDiskPos>::iterator mi = mapEnrollTxPos.find(dest);
+            // 一个Delegate模板地址在一个Enroll期间内，只有一个对应的Cert Tx，所以找到Cert Tx磁盘地址
             if (mi != mapEnrollTxPos.end())
             {
                 CTransaction tx;
+                // 读取对应Delegate模板地址的Enroll Tx
                 if (!tsBlock.Read(tx, (*mi).second))
                 {
                     StdLog("BlockBase", "RetrieveAvailDelegate::Read %s tx failed", tx.GetHash().ToString().c_str());
                     return false;
                 }
-
+                // Enroll Tx的vchDAta字段前4个字节是锚定高度，int类型，至少字段要大于int 4字节
                 if (tx.vchData.size() <= sizeof(int))
                 {
                     StdLog("CBlockBase", "RetrieveAvailDelegate: tx.vchData error, txid: %s", tx.GetHash().ToString().c_str());
@@ -819,8 +826,10 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
     //              CAddress(d.second.first).ToString().c_str(), d.first.first, xengine::ToHexString(d.second.second).c_str());
     // }
     // first 23 destination sorted by amount and sequence
+    // Delegate模板地址的投票金额由大到小遍历处理，最大23个
     for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
     {
+        // 把weight，Enroll Data，和投票金额都加入输出参数里，一一对应
         mapWeight.insert(make_pair(it->second.first, 1));
         mapEnrollData.insert(make_pair(it->second.first, it->second.second));
         vecAmount.push_back(make_pair(it->second.first, it->first.first));

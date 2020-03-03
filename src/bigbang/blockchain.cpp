@@ -389,14 +389,16 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_ALREADY_HAVE;
     }
 
+    // 主要是校验Block，比如Block签名，Block时间，其中的交易，以及Merkle Hash之类的
     err = pCoreProtocol->ValidateBlock(block);
     if (err != OK)
     {
         Log("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
-        return err;
+      return err;
     }
 
     CBlockIndex* pIndexPrev;
+    // 拿到前序Block的Index，该前序不可能在Parent Fork上
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
         Log("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
@@ -406,6 +408,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     int64 nReward;
     CDelegateAgreement agreement;
     CBlockIndex* pIndexRef = nullptr;
+    // 校验Block（类型，挖矿奖励，Cert Tx的计数，共识结果等等）
     err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, &pIndexRef);
     if (err != OK)
     {
@@ -925,35 +928,38 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
     return true;
 }
 
+// 从Enroll阶段完毕的Block拿Enroll结果
 bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled)
 {
     // Log("CBlockChain::GetBlockDelegateEnrolled enter .... height: %d, hashBlock: %s", CBlock::GetBlockHeightByHash(hashBlock), hashBlock.ToString().c_str());
     enrolled.Clear();
-
+    // 先从缓存里拿Enroll结果，拿到就可以正常返回
     if (cacheEnrolled.Retrieve(hashBlock, enrolled))
     {
         return true;
     }
 
     CBlockIndex* pIndex;
+    // 拿到Enroll完毕的Block Index
     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
     {
         Log("GetBlockDelegateEnrolled : Retrieve block Index Error: %s \n", hashBlock.ToString().c_str());
         return false;
     }
     int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
-
+    // 这个Enroll完毕的点显然要大于ENROLL时间区块段，不然相当于还没登记，正常返回
     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
         return true;
     }
     vector<uint256> vBlockRange;
+    // 遍历到Enroll阶段开始的Index，并且把Enroll阶段的所有Blockhash倒序列存放
     for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
     {
         vBlockRange.push_back(pIndex->GetBlockHash());
         pIndex = pIndex->pPrev;
     }
-
+    // 最终通过Enroll最后的Blockhash和Enroll开始的Block height拿到Enroll的结果（mapWeight权重，mapEnrollData）
     if (!cntrBlock.RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
                                          enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
@@ -969,12 +975,12 @@ bool CBlockChain::GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEn
 bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement)
 {
     agreement.Clear();
-
+    // 从缓存里查，查到共识结果就返回
     if (cacheAgreement.Retrieve(hashBlock, agreement))
     {
         return true;
     }
-
+    // 拿到当前Block的Index
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
     {
@@ -982,30 +988,33 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
     CBlockIndex* pIndexRef = pIndex;
-
+    // 如果同步过来的Block还没有共识的高度区间高，那么就没有共识结果，暂时返回true，没必要往下查
     if (pIndex->GetBlockHeight() < CONSENSUS_INTERVAL)
     {
         return true;
     }
 
     CBlock block;
+    // 通过Index拿到这个Block数据
     if (!cntrBlock.Retrieve(pIndex, block))
     {
         Log("GetBlockDelegateAgreement : Retrieve block Error: %s \n", hashBlock.ToString().c_str());
         return false;
     }
-
+    // 如果当前Block为target block 那么向前遍历Distribute + 1的长度就是Enroll阶段完毕的点
     for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL + 1; i++)
     {
         pIndex = pIndex->pPrev;
     }
 
     CDelegateEnrolled enrolled;
+    // 通过Enrolled完毕的Index拿到Enroll结果（mapWeight权重，mapEnrollData，vecVoteAmount投票金额）
     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
     {
         return false;
     }
 
+    // 由Enroll的结果生成Verifier对象，通过该对象从当前target block中解码并校验出Agreement对象的部分字段(nWeight,nAgreement)还有mapBallot表
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
@@ -1014,6 +1023,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
+    // 这一步主要是拿到Agreement对象的vBallot，里面对随机信标进行随机数计算，共识结果
     pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, enrolled.vecAmount, pIndex->GetMoneySupply(), agreement.vBallot, pIndexRef->GetBlockHeight());
 
     cacheAgreement.AddNew(hashBlock, agreement);
@@ -1150,10 +1160,12 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     return true;
 }
 
+// 校验Block 主要是Block的类型等
 Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
                                int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef)
 {
     nReward = 0;
+    // Block一定是非Origin的
     if (block.IsOrigin())
     {
         return ERR_BLOCK_INVALID_FORK;
@@ -1161,16 +1173,19 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
     if (block.IsPrimary())
     {
+        // 主链的Block走这里，前序Block也肯定是主块，不然就报错
         if (!pIndexPrev->IsPrimary())
         {
             return ERR_BLOCK_INVALID_FORK;
         }
 
+        //校验Block打包的Cert Tx的count与前序Block的count是否超出 
         if (!VerifyBlockCertTx(block))
         {
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
+        // 获得以该Block维target block的的DelegateAgreement（共识结果） 这步主要是校验了，这个Block同步过来肯定共识结果要是能获得的 
         if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
@@ -1195,6 +1210,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         }
         else*/
         {
+            // PoW或DPoS共识结果就用相应的函数校验结果 
             if (agreement.IsProofOfWork())
             {
                 return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
@@ -1264,6 +1280,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 {
     std::map<CDestination, int> mapBlockCert;
+    // 统计打包进Block的Cert Tx发送到不同Delegate模板地址的CERT交易个数
     for (const auto& d : block.vtx)
     {
         if (d.nType == CTransaction::TX_CERT)
@@ -1273,6 +1290,7 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
     }
     if (!mapBlockCert.empty())
     {
+        // 与前序Block的模板地址Cert交易个数的表做对比，如果比前序Block的tx个数大，那么就是错误的
         std::map<CDestination, int> mapVoteCert;
         if (GetDelegateCertTxCount(block.hashPrev, mapVoteCert))
         {
