@@ -2150,7 +2150,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
         }
         nOffset += ss.GetSerializeSize(tx);
     }
-    // 目标Delegate模板地址的投票金额进行叠加（有负数），以得到正确投票结果
+    // 目标Delegate模板地址的投票金额进行叠加（有负数），以得到正确投票结果,该结果输出到Delegate对象
     for (const auto& d : vDestVote)
     {
         mapDelegate[d.first] += d.second;
