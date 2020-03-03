@@ -1202,7 +1202,7 @@ bool CWallet::SynchronizeTxSet(const CTxSetChange& change)
 
     for (std::size_t i = 0; i < change.vTxRemove.size(); i++)
     {
-        const uint256& txid = std::get<0>(change.vTxRemove[i]);
+        const uint256& txid = change.vTxRemove[i].first;
         std::shared_ptr<CWalletTx> spWalletTx = LoadWalletTx(txid);
         if (spWalletTx != nullptr)
         {
@@ -1212,13 +1212,13 @@ bool CWallet::SynchronizeTxSet(const CTxSetChange& change)
         }
     }
 
-    for (map<uint256, pair<int, CTransaction>>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
+    for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
         std::shared_ptr<CWalletTx> spWalletTx = LoadWalletTx(txid);
         if (spWalletTx != nullptr)
         {
-            spWalletTx->nBlockHeight = (*it).second.first;
+            spWalletTx->nBlockHeight = (*it).second;
             vWalletTx.push_back(*spWalletTx);
         }
     }
