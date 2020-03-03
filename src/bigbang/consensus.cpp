@@ -481,14 +481,7 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
 
-        if (nAgreement != 0 && mapBallot.size() > 0)
-        {
-            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
-        }
-        else
-        {
-            StdTrace("CConsensus", "Get agreement: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
-        }
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
     }
 }
 
