@@ -205,12 +205,14 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return ERR_SYS_DATABASE_ERROR;
     }
 
+    // 普通Block向P2P广播Block Inv
     if (!block.IsOrigin() && !block.IsVacant())
     {
         pNetChannel->BroadcastBlockInv(updateBlockChain.hashFork, block.GetHash());
         pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
     }
 
+    // 这个暂时没用
     pService->NotifyBlockChainUpdate(updateBlockChain);
 
     if (!block.IsVacant())
