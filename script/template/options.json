@@ -9,6 +9,14 @@
             "desc": "Use the test network"
         },
         {
+            "name": "nNodeCat",
+            "type": "int",
+            "opt": "nodecat",
+            "default": 0,
+            "format": "-nodecat=<cat>",
+            "desc": "Identify node category: 0 - BBCNODE; 1 - FORKNODE; 2 - DPOSNODE, 0 by default"
+        },
+        {
             "name": "fWallet",
             "type": "bool",
             "opt": "wallet",
