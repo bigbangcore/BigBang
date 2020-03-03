@@ -67,17 +67,29 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
                 if (mi != mapTx.end())
                 {
                     mapUnspent.insert(make_pair(txin.prevout, &(*mi).second));
+                    StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: add unspent: [%d] %s",
+                             txin.prevout.n, txin.prevout.hash.GetHex().c_str());
                 }
             }
+
+            mapUnspent.erase(CTxOutPoint(txid, 0));
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: erase unspent: [0] %s", txid.GetHex().c_str());
+
+            mapUnspent.erase(CTxOutPoint(txid, 1));
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: erase unspent: [1] %s", txid.GetHex().c_str());
+
             mapTx.erase(it);
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: txid: %s", txid.GetHex().c_str());
         }
     }
+
     for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
         map<uint256, CDelegateTx>::iterator mi = mapTx.find(txid);
         if (mi != mapTx.end())
         {
+            StdTrace("CDelegateContext", "ChangeTxSet: Update tx: txid: %s", txid.GetHex().c_str());
             (*mi).second.nBlockHeight = (*it).second;
         }
     }
@@ -120,6 +132,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             mapUnspent.erase(txin.prevout);
         }
     }*/
+
     bool fAddTx = false;
     if (tx.sendTo == destDelegate)
     {
@@ -128,11 +141,13 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         delegateTx = CDelegateTx(tx);
         fAddTx = true;
         mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
+        StdTrace("CDelegateContext", "AddNewTx: sendto and unspent: [0] %s", txid.GetHex().c_str());
     }
     if (tx.destIn == destDelegate)
     {
         for (const CTxIn& txin : tx.vInput)
         {
+            StdTrace("CDelegateContext", "AddNewTx: destIn erase unspent: [%d] %s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             mapUnspent.erase(txin.prevout);
         }
         uint256 txid = tx.GetHash();
@@ -142,6 +157,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         if (delegateTx.nChange != 0)
         {
             mapUnspent.insert(make_pair(CTxOutPoint(txid, 1), &delegateTx));
+            StdTrace("CDelegateContext", "AddNewTx: destIn add unspent: [1] %s", txid.GetHex().c_str());
         }
     }
 }
@@ -170,10 +186,12 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         CDelegateTx* pTx = (*it).second;
         if (pTx->IsLocked(txout.n, nBlockHeight))
         {
+            StdTrace("CDelegateContext", "BuildEnrollTx: IsLocked, nBlockHeight: %d", nBlockHeight);
             continue;
         }
         if (pTx->GetTxTime() > tx.GetTxTime())
         {
+            StdTrace("CDelegateContext", "BuildEnrollTx: pTx->GetTxTime: %ld > tx.GetTxTime: %ld", pTx->GetTxTime(), tx.GetTxTime());
             continue;
         }
         tx.vInput.push_back(CTxIn(txout));
@@ -182,6 +200,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         {
             break;
         }*/
+        StdTrace("CDelegateContext", "BuildEnrollTx: add unspent: [%d] %s", txout.n, txout.hash.GetHex().c_str());
         if (tx.vInput.size() >= MAX_TX_INPUT_COUNT)
         {
             break;
