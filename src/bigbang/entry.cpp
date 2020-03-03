@@ -91,10 +91,16 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
-    // check node category
-    if (config.GetConfig()->nNodeCat < 0 || config.GetConfig()->nNodeCat > 2)
+    // list config if in debug mode
+    if (config.GetConfig()->fDebug)
     {
-        cerr << "Node Category should be 0(BBCNODE), 1(FORKNODE) or 2(DPOSNODE) but it is " << config.GetConfig()->nNodeCat << "\n";
+        config.ListConfig();
+    }
+
+    // check node category
+    if (config.GetConfig()->nCatOfNode < 0 || config.GetConfig()->nCatOfNode > 2)
+    {
+        cerr << "Node Category should be 0(BBCNODE), 1(FORKNODE) or 2(DPOSNODE) but it is " << config.GetConfig()->nCatOfNode << "\n";
         return false;
     }
 
@@ -103,12 +109,6 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     {
         PurgeStorage();
         return false;
-    }
-
-    // list config if in debug mode
-    if (config.GetConfig()->fDebug)
-    {
-        config.ListConfig();
     }
 
     // check log size
