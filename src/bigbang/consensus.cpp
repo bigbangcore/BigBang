@@ -56,11 +56,11 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
 {
     for (std::size_t i = 0; i < change.vTxRemove.size(); i++)
     {
-        const uint256& txid = std::get<0>(change.vTxRemove[i]);
+        const uint256& txid = change.vTxRemove[i].first;
         map<uint256, CDelegateTx>::iterator it = mapTx.find(txid);
         if (it != mapTx.end())
         {
-            const std::vector<CTxIn>& vTxIn = std::get<1>(change.vTxRemove[i]);
+            const std::vector<CTxIn>& vTxIn = change.vTxRemove[i].second;
             for (const CTxIn& txin : vTxIn)
             {
                 map<uint256, CDelegateTx>::iterator mi = mapTx.find(txin.prevout.hash);
@@ -72,13 +72,13 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
             mapTx.erase(it);
         }
     }
-    for (map<uint256, std::pair<int, CTransaction>>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
+    for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
         map<uint256, CDelegateTx>::iterator mi = mapTx.find(txid);
         if (mi != mapTx.end())
         {
-            (*mi).second.nBlockHeight = (*it).second.first;
+            (*mi).second.nBlockHeight = (*it).second;
         }
     }
 
@@ -481,14 +481,7 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
 
-        if (nAgreement != 0 && mapBallot.size() > 0)
-        {
-            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
-        }
-        else
-        {
-            StdTrace("CConsensus", "Get agreement: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
-        }
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
     }
 }
 
