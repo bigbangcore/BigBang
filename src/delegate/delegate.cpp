@@ -50,7 +50,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
     const int nTarget = nBlockHeight + CONSENSUS_INTERVAL;
     const int nEnrollEnd = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
     const int nPublish = nBlockHeight + 1;
-    const int nDelete = nBlockHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1;
+    const int nDelete = nBlockHeight - CONSENSUS_INTERVAL;
 
     result.Clear();
 
@@ -116,11 +116,6 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             it->second.hashDistributeBlock = hashBlock;
             CDelegateVote& vote = mapDistributeVote[hashBlock];
             vote = it->second;
-            if (vote.is_enroll)
-            {
-                StdError("CDelegate", "Evolve Enroll: already enroll, target height: %d", nEnrollEnd);
-                break;
-            }
 
             auto t0 = boost::posix_time::microsec_clock::universal_time();
 
@@ -170,7 +165,13 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                          nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str());
                 break;
             }
-
+            if (vote.hashPublishBlock != 0 && vote.hashPublishBlock != hashBlock)
+            {
+                StdLog("CDelegate", "Evolve Publish: hash public block, target height: %d, distribute block: [%d] %s, old public: %s, new public: %s",
+                       nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str(),
+                       vote.hashPublishBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                vote.is_public = false;
+            }
             if (vote.is_public)
             {
                 StdError("CDelegate", "Evolve Publish: already public, target height: %d, distribute block: [%d] %s",
