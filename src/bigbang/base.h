@@ -169,11 +169,9 @@ public:
     }
     virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
-    virtual bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
-    virtual bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
-    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight,
-                              std::vector<CDestination>& vBallot)
-        = 0;
+    virtual bool AddNewDistribute(int nAnchorHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
+    virtual bool AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
+    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
 };
 
@@ -244,10 +242,10 @@ public:
       : IBase("dispatcher") {}
     virtual Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) = 0;
     virtual Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) = 0;
-    virtual bool AddNewDistribute(const int& hashAnchor, const CDestination& dest,
+    virtual bool AddNewDistribute(const uint256& hashAnchor, const CDestination& dest,
                                   const std::vector<unsigned char>& vchDistribute)
         = 0;
-    virtual bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
+    virtual bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                                const std::vector<unsigned char>& vchPublish)
         = 0;
 };

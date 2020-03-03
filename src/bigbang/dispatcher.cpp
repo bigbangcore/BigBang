@@ -282,14 +282,40 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     return OK;
 }
 
-bool CDispatcher::AddNewDistribute(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
+bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    uint256 hashFork;
+    int nHeight;
+    if (!pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
+    {
+        StdError("CDispatcher", "AddNewDistribute: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
+        return false;
+    }
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        StdError("CDispatcher", "AddNewDistribute: fork error, hashAnchor: %s, hashFork: %s",
+                 hashAnchor.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    return pConsensus->AddNewDistribute(nHeight, hashAnchor, dest, vchDistribute);
 }
 
-bool CDispatcher::AddNewPublish(const int& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
+bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    uint256 hashFork;
+    int nHeight;
+    if (!pBlockChain->GetBlockLocation(hashAnchor, hashFork, nHeight))
+    {
+        StdError("CDispatcher", "AddNewPublish: GetBlockLocation fail, hashAnchor: %s", hashAnchor.GetHex().c_str());
+        return false;
+    }
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        StdError("CDispatcher", "AddNewPublish: fork error, hashAnchor: %s, hashFork: %s",
+                 hashAnchor.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    return pConsensus->AddNewPublish(nHeight, hashAnchor, dest, vchPublish);
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
@@ -308,7 +334,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.mapDistributeData, routineDelegate.mapPublishData);
+                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData, routineDelegate.mapPublishData);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {
