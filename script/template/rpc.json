@@ -192,10 +192,6 @@
                         "type": "string",
                         "desc": "customer"
                     },
-                    "height_begin": {
-                        "type": "int",
-                        "desc": "height_begin"
-                    },
                     "height_exec": {
                         "type": "int",
                         "desc": "height_exec"
@@ -351,10 +347,6 @@
                     "customer": {
                         "type": "string",
                         "desc": "customer"
-                    },
-                    "height_begin": {
-                        "type": "int",
-                        "desc": "height_begin"
                     },
                     "height_exec": {
                         "type": "int",

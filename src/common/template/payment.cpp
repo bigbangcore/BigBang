@@ -27,7 +27,6 @@ using namespace bigbang::crypto;
 CTemplatePayment::CTemplatePayment(
     const CDestination& business,
     const CDestination& customer,
-    uint32 height_begin,
     uint32 height_exec,
     uint64 amount,
     uint64 pledge,
@@ -35,7 +34,6 @@ CTemplatePayment::CTemplatePayment(
   : CTemplate(TEMPLATE_PAYMENT),
     m_business(business),
     m_customer(customer),
-    m_height_begin(height_begin),
     m_height_exec(height_exec),
     m_amount(amount),
     m_pledge(pledge),
@@ -43,7 +41,7 @@ CTemplatePayment::CTemplatePayment(
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_begin << m_height_exec << m_amount << m_pledge << m_height_end;
+    os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_exec << m_amount << m_pledge << m_height_end;
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(vchData.data(), vchData.size()));
 }
 
@@ -51,19 +49,18 @@ CTemplatePayment::CTemplatePayment(const std::vector<unsigned char>& vchDataIn)
   : CTemplate(TEMPLATE_PAYMENT)
 {
     xengine::CIDataStream is(vchDataIn);
-    is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_begin >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
+    is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
     vchData.assign(vchDataIn.begin(), vchDataIn.begin() + DataLen);
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(vchData.data(), vchData.size()));
 }
 
 CTemplatePayment::CTemplatePayment(const CDestination& business,
                                     const CDestination& customer,
-                                    uint32 height_begin,
                                     uint32 height_exec,
                                     uint32 height_end,
                                     uint64 amount,
                                     uint64 pledge)
-  : CTemplate(TEMPLATE_PAYMENT), m_business(business), m_customer(customer), m_height_begin(height_begin), m_height_exec(height_exec),m_height_end(height_end), m_amount(amount),m_pledge(pledge)
+  : CTemplate(TEMPLATE_PAYMENT), m_business(business), m_customer(customer), m_height_exec(height_exec),m_height_end(height_end), m_amount(amount),m_pledge(pledge)
 {
 }
 
@@ -77,7 +74,6 @@ void CTemplatePayment::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDe
     obj.payment.strBusiness = m_business.ToString();
     obj.payment.strCustomer = m_customer.ToString();
 
-    obj.payment.nHeight_Begin = m_height_begin;
     obj.payment.nHeight_Exec = m_height_exec;
     obj.payment.nHeight_End = m_height_end;
     obj.payment.nAmount = m_amount;
@@ -95,7 +91,7 @@ bool CTemplatePayment::ValidateParam() const
     {
         return false;
     }
-    if (m_height_begin > m_height_exec || m_height_exec > m_height_end || m_amount == 0)
+    if (m_height_exec > m_height_end || m_amount == 0)
     {
         return false;
     }
@@ -138,7 +134,7 @@ bool CTemplatePayment::SetTemplateData(const vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_begin >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
+        is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
     }
     catch (exception& e)
     {
@@ -164,7 +160,6 @@ bool CTemplatePayment::SetTemplateData(const bigbang::rpc::CTemplateRequest& obj
     m_business = business;
     m_customer = customer;
 
-    m_height_begin = obj.payment.nHeight_Begin;
     m_height_exec = obj.payment.nHeight_Exec;
     m_height_end = obj.payment.nHeight_End;
     
@@ -177,8 +172,9 @@ void CTemplatePayment::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_begin << m_height_exec << m_amount << m_pledge << m_height_end;
+    os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_exec << m_amount << m_pledge << m_height_end;
 }
+
 
 bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
@@ -187,6 +183,36 @@ bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& has
     return true;
 }
 
+bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement)
+{
+    if (height >= m_height_exec)
+    {
+        if (tx.sendTo == m_business)
+        {
+            return tx.nAmount + tx.nTxFee == m_amount;
+        }
+        if (tx.sendTo == m_customer)
+        {
+            return tx.nAmount + tx.nTxFee == m_pledge;
+        }
+        return false;
+    }
+    else
+    {
+        if (tx.nAmount + tx.nTxFee != m_amount + m_pledge)
+        {
+            return false;
+        }
+        uint32 n = nAgreement.Get32() % mapVotes.size();
+        std::vector<CDestination> votes;
+        for (const auto& d : mapVotes)
+        {
+            votes.push_back(d.second);
+        }
+        return votes[n] == tx.sendTo;
+    }
+    return true;
+}
 
 bool CTemplatePayment::VerifySignature(const uint256& hash, const std::vector<uint8>& vchSig, int height, const uint256& fork)
 {

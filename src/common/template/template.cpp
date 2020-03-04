@@ -174,7 +174,6 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
     {
         return false;
     }
-
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
     return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }

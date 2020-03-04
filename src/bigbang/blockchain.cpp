@@ -796,27 +796,19 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
-bool CBlockChain::ListDelegatePayment(uint32 height, CDestination& sendTo)
+bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes)
 {
     std::vector<uint256> vBlockHash;
     if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), height, vBlockHash) || vBlockHash.size() == 0)
     {
         return false;
     }
-    std::multimap<int64, CDestination> mapVotes;
     cntrBlock.GetDelegatePaymentList(vBlockHash[0], mapVotes);
-    CBlock block;
     if (!GetBlock(vBlockHash[0],block))
     {
         return false;
     }
-    uint32 n = bigbang::crypto::CryptoHash(block.vchProof[0],block.vchProof.size()).Get32() % mapVotes.size();
-    std::vector<CDestination> votes;
-    for (const auto& d : mapVotes)
-    {
-        votes.push_back(d.second);
-    }
-    return votes[n] == sendTo;
+    return true;
 }
 
 bool CBlockChain::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)

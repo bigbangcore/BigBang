@@ -15,6 +15,7 @@
 #include "stream/datastream.h"
 #include "templateid.h"
 #include "util.h"
+#include "xengine.h"
 
 class CSpendableTemplate
 {
@@ -196,6 +197,14 @@ protected:
     // Verify transaction signature by concrete template.
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                    const std::vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const = 0;
+
+
+    // Verify transaction signature by concrete template.
+    bool VerifyTxSignature(const CTransaction& tx, 
+                            xengine::CDocker* p_docker,
+                            const std::vector<uint8>& vchSig, 
+                            const int32 nHeight, 
+                            bool& fCompleted);// const = 0;
 
 protected:
     uint16 nType;

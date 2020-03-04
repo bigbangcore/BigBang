@@ -9,6 +9,8 @@
 #include "../common/template/exchange.h"
 #include "../common/template/mint.h"
 #include "../common/template/vote.h"
+#include "../common/template/payment.h"
+
 #include "address.h"
 #include "wallet.h"
 
@@ -93,6 +95,33 @@ static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 
 namespace bigbang
 {
+class CTemplateVerify
+{
+    public:
+        CTemplateVerify(uint32 height,CDestination *destIn, CTransaction *tx, const std::vector<uint8> &vchSig, xengine::CDocker* pDocker)
+        {
+            m_height = height;
+            m_destIn = destIn;
+            m_tx = tx;
+            m_docker = pDocker;
+        }
+
+        bool operator()(CTemplate *p)
+        {
+            if (p->GetTemplateType() == TEMPLATE_PAYMENT)
+            {
+                CTemplatePayment *a = dynamic_cast<CTemplatePayment*>(p);
+                std::cout << a->m_amount;
+            }
+            return true;
+        }
+    private:
+        uint32 m_height;
+        CDestination* m_destIn;
+        CTransaction* m_tx;
+        xengine::CDocker* m_docker;
+};
+
 ///////////////////////////////
 // CCoreProtocol
 
@@ -569,13 +598,22 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        //IBlockChain* pBlockChain = nullptr;
-        //std::multimap<int64, CDestination> mapVotes;
-        //pBlockChain->ListDelegatePayment(10,mapVotes);
-        //if (tx.sendTo != mapVotes.begin()->second)
-        //{
-        //    return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "sendTo is error \n");
-        //}
+        auto template_p = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
+        CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(template_p.get());
+        if (nForkHeight >= payment->m_height_exec)
+        {
+            IBlockChain* pBlockChain = nullptr;
+            GetObject("blockchain", pBlockChain);
+            CBlock block;
+            std::multimap<int64, CDestination> mapVotes;
+            pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);
+            CProofOfSecretShare dpos;
+            dpos.Load(block.vchProof);
+            if (!payment->VerifyTransaction(tx,nForkHeight,mapVotes,dpos.nAgreement))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            }
+        }
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin

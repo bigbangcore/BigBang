@@ -59,7 +59,7 @@ public:
     int64 GetDelegateWeightRatio(const uint256& hashBlock) override;
     bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) override;
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
-    bool ListDelegatePayment(uint32 height, CDestination& sendTo);// override;
+    bool ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes) override;
 
 protected:
     bool HandleInitialize() override;
