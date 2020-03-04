@@ -417,7 +417,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
+    // 新Block入库之前拿到前序Block关联的的Fork的BlockView，在View中进行长短链切换，并且BlockView是可提交的
+    if (!cntrBlock.GetBlockiew(block.hashPrev, view, !block.IsOrigin()))
     {
         Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;

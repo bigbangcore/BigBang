@@ -863,7 +863,7 @@ bool CBlockBase::GetBlockView(CBlockView& view)
     return true;
 }
 
-// 获取某个Block所在Fork关联的BlockView
+// 获取某个Block所在Fork关联的BlockView,并在View中做了回滚操作
 bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable)
 {
     CBlockIndex* pIndex = nullptr;
@@ -872,7 +872,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
     {
         CReadLock rlock(rwAccess);
-        // 取得某个Block的Index
+        // 取得特定Block的Index
         pIndex = GetIndex(hash);
         if (pIndex == nullptr)
         {
@@ -898,11 +898,14 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         // 该Fork当前最后一个Block的Index
         CBlockIndex* pForkLast = spFork->GetLast();
 
-        vector<CBlockIndex*> vPath;
+        vector<CBlockIndex*> vPath; 
+        // 得到某个Block（前序）与Fork最后一个Block之间差了多少个分叉Block，差的分叉Block序列用vPath输出，最后返回分叉点的Index指针
+        // 主要是为了长短链切换
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
 
         uint16 nBlockRemoved = 0;
         uint16 nTxRemoved = 0;
+        // 老的分叉（短链）需要回滚掉，比如Tx删除
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
@@ -936,6 +939,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 ++nTxRemoved;
             }
         }
+        // 从分叉点到短链尾端的Block数量，也就是回滚BLock数量
         if (nBlockRemoved > 0)
         {
             StdTrace("BlockBase",
@@ -945,6 +949,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
         uint16 nBlockAdded = 0;
         uint16 nTxAdded = 0;
+        // 新链（长链）的序列逆序遍历（高度从低到高）增加BLock和Tx 到View中
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
@@ -974,6 +979,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 ++nTxAdded;
             }
         }
+        // 从分叉点到长链尾端的Block数量
         if (vPath.size() > 0)
         {
             StdTrace("BlockBase",
@@ -1932,6 +1938,7 @@ CBlockIndex* CBlockBase::GetOrCreateIndex(const uint256& hash)
     return ((*mi).second);
 }
 
+// 得到pIndex与pIndexRef之间差了多少个分叉Block，差的分叉Block序列用vPath输出，最后返回分叉点的Index指针
 CBlockIndex* CBlockBase::GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, vector<CBlockIndex*>& vPath)
 {
     vPath.clear();
