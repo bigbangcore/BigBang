@@ -1661,6 +1661,14 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from address");
         }
     }
+
+    if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        txNew.vchSig.clear();
+        CODataStream ds(txNew.vchSig);
+        ds << pService->GetForkHeight(hashFork);
+    }
+
     if (!pService->SignTransaction(txNew, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");

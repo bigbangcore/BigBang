@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "core.h"
+#include "base.h"
 
 #include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
@@ -564,6 +565,17 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+    }
+
+    if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        //IBlockChain* pBlockChain = nullptr;
+        //std::multimap<int64, CDestination> mapVotes;
+        //pBlockChain->ListDelegatePayment(10,mapVotes);
+        //if (tx.sendTo != mapVotes.begin()->second)
+        //{
+        //    return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "sendTo is error \n");
+        //}
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
