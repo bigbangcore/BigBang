@@ -75,17 +75,48 @@ endif()
 
 # For the paho_mqtt_c module
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-add_subdirectory(src)
 
 # --- Default library ---
 
 if(PAHO_BUILD_SHARED)
-    set(PAHO_CPP_LIB paho-mqttpp3)
+    set(PAHO_CPP_LIB mqtt-shared)
     message(STATUS "shared......" ${PAHO_BUILD_SHARED})
     #set(PAHO_CPP_LIB paho-mqttpp3-static)
 else()
-    set(PAHO_CPP_LIB paho-mqttpp3-static)
     message(STATUS "static......")
+    set(PAHO_CPP_LIB mqtt)
+    ## --- Library dependencies ---
+    find_package(PahoMqttC REQUIRED)
+    set (THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    set(sources
+            src/async_client.cpp
+            src/client.cpp
+            src/disconnect_options.cpp
+            src/iclient_persistence.cpp
+            src/message.cpp
+            src/properties.cpp
+            src/response_options.cpp
+            src/ssl_options.cpp
+            src/string_collection.cpp
+            src/subscribe_options.cpp
+            src/token.cpp
+            src/topic.cpp
+            src/connect_options.cpp
+            src/will_options.cpp
+            )
+    add_library(mqtt ${sources})
+    include_directories(./src/mqtt ${PAHO_MQTT_C_INCLUDE_DIRS})
+    target_link_libraries(mqtt
+            PRIVATE ${LIBS_SYSTEM}
+            PUBLIC PahoMqttC::PahoMqttC Threads::Threads
+            ${PAHO_MQTT_C_LIBRARIES}
+            )
+
+    target_include_directories(mqtt PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<INSTALL_INTERFACE:include>
+            )
 endif()
 
 ## --- Packaging settings ---
@@ -97,5 +128,7 @@ elseif(UNIX)
 endif()
 
 include(CPack)
-add_subdirectory(cmake)
+#add_subdirectory(cmake)
+
+
 

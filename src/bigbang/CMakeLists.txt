@@ -104,6 +104,7 @@ target_link_libraries(bigbang
     # delegate    
     jsonrpc
     common
+        mqtt
 )
 
 # create symbol link
