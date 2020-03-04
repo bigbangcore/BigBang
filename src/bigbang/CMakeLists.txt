@@ -47,6 +47,7 @@ set(src
     wallet.cpp          wallet.h
     blockchain.cpp      blockchain.h
     forkmanager.cpp     forkmanager.h
+    cmqcluster.cpp      cmqcluster.h
     datastat.cpp        datastat.h
     checkrepair.cpp     checkrepair.h
     event.h
