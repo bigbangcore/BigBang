@@ -32,6 +32,7 @@ public:
     void Shutdown();
     void Accept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted);
     void Connect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected);
+    void ConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected);
     void Read(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted);
     void ReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted);
     void Write(CBufStream& ssSend, CallBackFunc fnCompleted);
@@ -46,6 +47,7 @@ protected:
     virtual bool IsSocketOpen() = 0;
     virtual void AsyncAccept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted) = 0;
     virtual void AsyncConnect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) = 0;
+    virtual void AsyncConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) = 0;
     virtual void AsyncRead(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted) = 0;
     virtual void AsyncReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted) = 0;
     virtual void AsyncWrite(CBufStream& ssSend, CallBackFunc fnCompleted) = 0;
@@ -65,6 +67,7 @@ public:
 protected:
     void AsyncAccept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted) override;
     void AsyncConnect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) override;
+    void AsyncConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) override;
     void AsyncRead(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted) override;
     void AsyncReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted) override;
     void AsyncWrite(CBufStream& ssSend, CallBackFunc fnCompleted) override;
@@ -88,6 +91,7 @@ public:
 protected:
     void AsyncAccept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted);
     void AsyncConnect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected);
+    void AsyncConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) override;
     void AsyncRead(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted);
     void AsyncReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted);
     void AsyncWrite(CBufStream& ssSend, CallBackFunc fnCompleted);

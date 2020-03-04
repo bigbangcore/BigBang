@@ -14,7 +14,7 @@ namespace bigbang
 class CDelegatedDataIdent
 {
 public:
-    CDelegatedDataIdent(const int& hashAnchorIn = uint64(0), uint32 nInvTypeIn = 0,
+    CDelegatedDataIdent(const uint256& hashAnchorIn = uint64(0), uint32 nInvTypeIn = 0,
                         const CDestination& destDelegatedIn = CDestination())
       : hashAnchor(hashAnchorIn), nInvType(nInvTypeIn), destDelegated(destDelegatedIn)
     {
@@ -32,7 +32,7 @@ public:
     }
 
 public:
-    int hashAnchor;
+    uint256 hashAnchor;
     uint32 nInvType;
     CDestination destDelegated;
 };
@@ -44,7 +44,7 @@ public:
       : CDataPeer<CDelegatedDataIdent>(nNonceIn), hashAnchor(uint64(0)), bmDistribute(0), bmPublish(0)
     {
     }
-    void Renew(const int& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
+    void Renew(const uint256& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
     {
         hashAnchor = hashAnchorIn;
         bmDistribute = bulletin.bmDistribute;
@@ -56,7 +56,7 @@ public:
             mapDistributeBitmap.insert(std::make_pair(bulletin.vBitmap[i].hashAnchor, bulletin.vBitmap[i].bitmap));
         }
     }
-    void Update(const int& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
+    void Update(const uint256& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
     {
         if (hashAnchor == hashAnchorIn)
         {
@@ -65,7 +65,7 @@ public:
         }
         else
         {
-            std::map<int, uint64>::iterator it = mapDistributeBitmap.find(hashAnchorIn);
+            std::map<uint256, uint64>::iterator it = mapDistributeBitmap.find(hashAnchorIn);
             if (it != mapDistributeBitmap.end())
             {
                 (*it).second |= bulletin.bmDistribute;
@@ -73,14 +73,14 @@ public:
         }
         for (std::size_t i = 0; i < bulletin.vBitmap.size(); ++i)
         {
-            std::map<int, uint64>::iterator it = mapDistributeBitmap.find(bulletin.vBitmap[i].hashAnchor);
+            std::map<uint256, uint64>::iterator it = mapDistributeBitmap.find(bulletin.vBitmap[i].hashAnchor);
             if (it != mapDistributeBitmap.end())
             {
                 (*it).second |= bulletin.vBitmap[i].bitmap;
             }
         }
     }
-    bool HaveUnknown(const int& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
+    bool HaveUnknown(const uint256& hashAnchorIn, const network::CEventPeerDelegatedBulletin& bulletin)
     {
         if (hashAnchorIn == hashAnchor && (bulletin.bmDistribute | bmDistribute) == bmDistribute
             && (bulletin.bmPublish | bmPublish) == bmPublish)
@@ -101,10 +101,10 @@ public:
     }
 
 public:
-    int hashAnchor;
+    uint256 hashAnchor;
     uint64 bmDistribute;
     uint64 bmPublish;
-    std::map<int, uint64> mapDistributeBitmap;
+    std::map<uint256, uint64> mapDistributeBitmap;
 };
 
 class CDelegatedChannelChainData
@@ -143,31 +143,31 @@ public:
     {
         Clear();
     }
-    std::list<int>& GetHashList()
+    std::list<uint256>& GetHashList()
     {
         return listBlockHash;
     }
     void Clear();
     void Update(int nStartHeight,
-                const std::vector<std::pair<int, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
+                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
+                const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                 const std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
-    uint64 GetDistributeBitmap(const int& hashAnchor);
-    uint64 GetPublishBitmap(const int& hashAnchor);
-    void GetDistribute(const int& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
-    void GetPublish(const int& hashAnchor, uint64 bmPublish, std::set<CDestination>& setDestination);
-    void AskForDistribute(const int& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
-    void AskForPublish(const int& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
-    bool GetDistributeData(const int& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
-    bool GetPublishData(const int& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
-    bool IsOutOfDistributeRange(const int& hashAnchor) const;
-    bool IsOutOfPublishRange(const int& hashAnchor) const;
-    bool InsertDistributeData(const int& hashAnchor, const CDestination& dest, const std::vector<unsigned char>& vchData);
-    bool InsertPublishData(const int& hashAnchor, const CDestination& dest, const std::vector<unsigned char>& vchData);
+    uint64 GetDistributeBitmap(const uint256& hashAnchor);
+    uint64 GetPublishBitmap(const uint256& hashAnchor);
+    void GetDistribute(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
+    void GetPublish(const uint256& hashAnchor, uint64 bmPublish, std::set<CDestination>& setDestination);
+    void AskForDistribute(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
+    void AskForPublish(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
+    bool GetDistributeData(const uint256& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
+    bool GetPublishData(const uint256& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
+    bool IsOutOfDistributeRange(const uint256& hashAnchor) const;
+    bool IsOutOfPublishRange(const uint256& hashAnchor) const;
+    bool InsertDistributeData(const uint256& hashAnchor, const CDestination& dest, const std::vector<unsigned char>& vchData);
+    bool InsertPublishData(const uint256& hashAnchor, const CDestination& dest, const std::vector<unsigned char>& vchData);
 
 public:
-    std::map<int, CDelegatedChannelChainData> mapChainData;
-    std::list<int> listBlockHash;
+    std::map<uint256, CDelegatedChannelChainData> mapChainData;
+    std::list<uint256> listBlockHash;
     int nLastBlockHeight;
 };
 
@@ -177,8 +177,8 @@ public:
     CDelegatedChannel();
     ~CDelegatedChannel();
     void PrimaryUpdate(int nStartHeight,
-                       const std::vector<std::pair<int, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                       const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
+                       const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
+                       const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                        const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) override;
 
 protected:
@@ -196,8 +196,8 @@ protected:
 
     void BroadcastBulletin(bool fForced = false);
     bool DispatchGetDelegated();
-    void AddPeerKnownDistrubute(uint64 nNonce, const int& hashAnchor, uint64 bmDistrubute);
-    void AddPeerKnownPublish(uint64 nNonce, const int& hashAnchor, uint64 bmPublish);
+    void AddPeerKnownDistrubute(uint64 nNonce, const uint256& hashAnchor, uint64 bmDistrubute);
+    void AddPeerKnownPublish(uint64 nNonce, const uint256& hashAnchor, uint64 bmPublish);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason);
     void PushBulletinTimerFunc(uint32 nTimerId);
     void PushBulletin();

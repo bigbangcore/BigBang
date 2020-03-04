@@ -148,10 +148,10 @@ public:
 class CDelegateRoutine
 {
 public:
-    std::vector<std::pair<int, std::map<CDestination, size_t>>> vEnrolledWeight;
+    std::vector<std::pair<uint256, std::map<CDestination, size_t>>> vEnrolledWeight;
 
     std::vector<CTransaction> vEnrollTx;
-    std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
+    std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>> vDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
     bool fPublishCompleted;
 

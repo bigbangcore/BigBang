@@ -67,17 +67,29 @@ void CDelegateContext::ChangeTxSet(const CTxSetChange& change)
                 if (mi != mapTx.end())
                 {
                     mapUnspent.insert(make_pair(txin.prevout, &(*mi).second));
+                    StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: add unspent: [%d] %s",
+                             txin.prevout.n, txin.prevout.hash.GetHex().c_str());
                 }
             }
+
+            mapUnspent.erase(CTxOutPoint(txid, 0));
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: erase unspent: [0] %s", txid.GetHex().c_str());
+
+            mapUnspent.erase(CTxOutPoint(txid, 1));
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: erase unspent: [1] %s", txid.GetHex().c_str());
+
             mapTx.erase(it);
+            StdTrace("CDelegateContext", "ChangeTxSet: Remove tx: txid: %s", txid.GetHex().c_str());
         }
     }
+
     for (map<uint256, int>::const_iterator it = change.mapTxUpdate.begin(); it != change.mapTxUpdate.end(); ++it)
     {
         const uint256& txid = (*it).first;
         map<uint256, CDelegateTx>::iterator mi = mapTx.find(txid);
         if (mi != mapTx.end())
         {
+            StdTrace("CDelegateContext", "ChangeTxSet: Update tx: txid: %s", txid.GetHex().c_str());
             (*mi).second.nBlockHeight = (*it).second;
         }
     }
@@ -120,6 +132,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
             mapUnspent.erase(txin.prevout);
         }
     }*/
+
     bool fAddTx = false;
     if (tx.sendTo == destDelegate)
     {
@@ -128,11 +141,13 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         delegateTx = CDelegateTx(tx);
         fAddTx = true;
         mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
+        StdTrace("CDelegateContext", "AddNewTx: sendto and unspent: [0] %s", txid.GetHex().c_str());
     }
     if (tx.destIn == destDelegate)
     {
         for (const CTxIn& txin : tx.vInput)
         {
+            StdTrace("CDelegateContext", "AddNewTx: destIn erase unspent: [%d] %s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             mapUnspent.erase(txin.prevout);
         }
         uint256 txid = tx.GetHash();
@@ -142,6 +157,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         if (delegateTx.nChange != 0)
         {
             mapUnspent.insert(make_pair(CTxOutPoint(txid, 1), &delegateTx));
+            StdTrace("CDelegateContext", "AddNewTx: destIn add unspent: [1] %s", txid.GetHex().c_str());
         }
     }
 }
@@ -170,10 +186,12 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         CDelegateTx* pTx = (*it).second;
         if (pTx->IsLocked(txout.n, nBlockHeight))
         {
+            StdTrace("CDelegateContext", "BuildEnrollTx: IsLocked, nBlockHeight: %d", nBlockHeight);
             continue;
         }
         if (pTx->GetTxTime() > tx.GetTxTime())
         {
+            StdTrace("CDelegateContext", "BuildEnrollTx: pTx->GetTxTime: %ld > tx.GetTxTime: %ld", pTx->GetTxTime(), tx.GetTxTime());
             continue;
         }
         tx.vInput.push_back(CTxIn(txout));
@@ -182,6 +200,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         {
             break;
         }*/
+        StdTrace("CDelegateContext", "BuildEnrollTx: add unspent: [%d] %s", txout.n, txout.hash.GetHex().c_str());
         if (tx.vInput.size() >= MAX_TX_INPUT_COUNT)
         {
             break;
@@ -318,11 +337,10 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         (*it).second.ChangeTxSet(change);
     }
 
-    int nBlockHeight = nStartHeight + 1;
-
-    for (int i = update.vBlockAddNew.size() - 1; i > 0; i--)
+    /*for (int i = update.vBlockAddNew.size() - 1; i > 0; i--)
     {
         uint256 hash = update.vBlockAddNew[i].GetHash();
+        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
 
         CDelegateEnrolled enrolled;
 
@@ -332,17 +350,14 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
         }
 
-        int height;
-        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
-        pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
+        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+    }*/
 
-        nBlockHeight++;
-    }
-
-    if (!update.vBlockAddNew.empty())
+    //if (!update.vBlockAddNew.empty())
+    for (int i = update.vBlockAddNew.size() - 1; i >= 0; i--)
     {
-        uint256 hash = update.vBlockAddNew[0].GetHash();
+        uint256 hash = update.vBlockAddNew[i].GetHash();
+        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
 
         CDelegateEnrolled enrolled;
         if (!pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
@@ -353,9 +368,6 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
-
-            int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-            int nPublishTargetHeight = nBlockHeight + 1;
 
             std::map<CDestination, int64> mapDelegateVote;
             int64 nDelegateWeightRatio = pBlockChain->GetDelegateWeightRatio(hash);
@@ -405,28 +417,33 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                     }
                 }
             }
+
+            int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
+            int nPublishTargetHeight = nBlockHeight + 1;
+
             StdTrace("CConsensus", "result.mapDistributeData size: %llu", result.mapDistributeData.size());
             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
                  it != result.mapDistributeData.end(); ++it)
             {
-                delegate.HandleDistribute(nDistributeTargetHeight, (*it).first, (*it).second);
+                delegate.HandleDistribute(nDistributeTargetHeight, hash, (*it).first, (*it).second);
             }
-            routine.mapDistributeData = result.mapDistributeData;
+            routine.vDistributeData.push_back(make_pair(hash, result.mapDistributeData));
 
-            StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
-                 it != result.mapPublishData.end(); ++it)
+            if (i == 0)
             {
-                bool fCompleted = false;
-                delegate.HandlePublish(nPublishTargetHeight, (*it).first, (*it).second, fCompleted);
-                routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
+                StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
+                for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
+                     it != result.mapPublishData.end(); ++it)
+                {
+                    bool fCompleted = false;
+                    delegate.HandlePublish(nPublishTargetHeight, hash, (*it).first, (*it).second, fCompleted);
+                    routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
+                }
+                routine.mapPublishData = result.mapPublishData;
             }
-            routine.mapPublishData = result.mapPublishData;
+
+            routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
         }
-        int height;
-        uint256 fork = pCoreProtocol->GetGenesisBlockHash();
-        pBlockChain->GetBlockLocation(hash, fork, height);
-        routine.vEnrolledWeight.push_back(make_pair(height, enrolled.mapWeight));
     }
 }
 
@@ -439,19 +456,19 @@ void CConsensus::AddNewTx(const CAssembledTx& tx)
     }
 }
 
-bool CConsensus::AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const vector<unsigned char>& vchDistribute)
+bool CConsensus::AddNewDistribute(int nAnchorHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom, const vector<unsigned char>& vchDistribute)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
     int nDistributeTargetHeight = nAnchorHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-    return delegate.HandleDistribute(nDistributeTargetHeight, destFrom, vchDistribute);
+    return delegate.HandleDistribute(nDistributeTargetHeight, hashDistributeAnchor, destFrom, vchDistribute);
 }
 
-bool CConsensus::AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const vector<unsigned char>& vchPublish)
+bool CConsensus::AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnchor, const CDestination& destFrom, const vector<unsigned char>& vchPublish)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
     int nPublishTargetHeight = nAnchorHeight + 1;
     bool fCompleted = false;
-    return delegate.HandlePublish(nPublishTargetHeight, destFrom, vchPublish, fCompleted);
+    return delegate.HandlePublish(nPublishTargetHeight, hashPublishAnchor, destFrom, vchPublish, fCompleted);
 }
 
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
@@ -479,7 +496,7 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         }
 
         map<CDestination, size_t> mapBallot;
-        delegate.GetAgreement(nTargetHeight, nAgreement, nWeight, mapBallot);
+        delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
         pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
     }

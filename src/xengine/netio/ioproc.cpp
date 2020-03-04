@@ -240,9 +240,19 @@ bool CIOProc::Connect(const tcp::endpoint& epRemote, int64 nTimeout)
     return ioOutBound.ConnectTo(epRemote, nTimeout);
 }
 
+bool CIOProc::ConnectByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, int64 nTimeout)
+{
+    return ioOutBound.ConnectToByBindAddress(epLocal, epRemote, nTimeout);
+}
+
 bool CIOProc::SSLConnect(const tcp::endpoint& epRemote, int64 nTimeout, const CIOSSLOption& optSSL)
 {
     return ioSSLOutBound.ConnectTo(epRemote, nTimeout, optSSL);
+}
+
+bool CIOProc::SSLConnectByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, int64 nTimeout, const CIOSSLOption& optSSL)
+{
+    return ioSSLOutBound.ConnectToByBindAddress(epLocal, epRemote, nTimeout, optSSL);
 }
 
 size_t CIOProc::GetOutBoundIdleCount()
