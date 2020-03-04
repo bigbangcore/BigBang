@@ -42,13 +42,31 @@ bool CNetwork::HandleInitialize()
     CPeerNetConfig config;
     if (NetworkConfig()->fListen || NetworkConfig()->fListen4)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
-                                                 NetworkConfig()->nMaxInBounds));
+        if (NetworkConfig()->strListenAddressv4.empty())
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+        }
+        else
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(boost::asio::ip::address::from_string(NetworkConfig()->strListenAddressv4), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+            config.strSocketBindLocalIpV4 = NetworkConfig()->strListenAddressv4;
+        }
     }
     if (NetworkConfig()->fListen || NetworkConfig()->fListen6)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
-                                                 NetworkConfig()->nMaxInBounds));
+        if (NetworkConfig()->strListenAddressv6.empty())
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+        }
+        else
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(boost::asio::ip::address::from_string(NetworkConfig()->strListenAddressv6), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+            config.strSocketBindLocalIpV6 = NetworkConfig()->strListenAddressv6;
+        }
     }
     config.nMaxOutBounds = NetworkConfig()->nMaxOutBounds;
     config.nPortDefault = (NetworkConfig()->fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);

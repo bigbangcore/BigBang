@@ -98,6 +98,12 @@ void CIOClient::Connect(const tcp::endpoint& epRemote, CallBackConn fnConnected)
     AsyncConnect(epRemote, fnConnected);
 }
 
+void CIOClient::ConnectByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, CallBackConn fnConnected)
+{
+    ++nRefCount;
+    AsyncConnectByBindAddress(epLocal, epRemote, fnConnected);
+}
+
 void CIOClient::Read(CBufStream& ssRecv, size_t nLength, CallBackFunc fnCompleted)
 {
     ++nRefCount;
@@ -156,6 +162,22 @@ void CSocketClient::AsyncAccept(tcp::acceptor& acceptor, CallBackConn fnAccepted
 
 void CSocketClient::AsyncConnect(const tcp::endpoint& epRemote, CallBackConn fnConnected)
 {
+    sockClient.async_connect(epRemote, boost::bind(&CSocketClient::HandleConnCompleted, this,
+                                                   fnConnected, boost::asio::placeholders::error));
+}
+
+void CSocketClient::AsyncConnectByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, CallBackConn fnConnected)
+{
+    if (epLocal.address().is_v4())
+    {
+        sockClient.open(boost::asio::ip::tcp::v4());
+        sockClient.bind(epLocal);
+    }
+    else if (epLocal.address().is_v6())
+    {
+        sockClient.open(boost::asio::ip::tcp::v6());
+        sockClient.bind(epLocal);
+    }
     sockClient.async_connect(epRemote, boost::bind(&CSocketClient::HandleConnCompleted, this,
                                                    fnConnected, boost::asio::placeholders::error));
 }
@@ -242,6 +264,24 @@ void CSSLClient::AsyncAccept(tcp::acceptor& acceptor, CallBackConn fnAccepted)
 
 void CSSLClient::AsyncConnect(const tcp::endpoint& epRemote, CallBackConn fnConnected)
 {
+    sslClient.lowest_layer().async_connect(epRemote,
+                                           boost::bind(&CSSLClient::HandleConnected, this, fnConnected,
+                                                       boost::asio::ssl::stream_base::client,
+                                                       boost::asio::placeholders::error));
+}
+
+void CSSLClient::AsyncConnectByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, CallBackConn fnConnected)
+{
+    if (epLocal.address().is_v4())
+    {
+        sslClient.lowest_layer().open(boost::asio::ip::tcp::v4());
+        sslClient.lowest_layer().bind(epLocal);
+    }
+    else if (epLocal.address().is_v6())
+    {
+        sslClient.lowest_layer().open(boost::asio::ip::tcp::v6());
+        sslClient.lowest_layer().bind(epLocal);
+    }
     sslClient.lowest_layer().async_connect(epRemote,
                                            boost::bind(&CSSLClient::HandleConnected, this, fnConnected,
                                                        boost::asio::ssl::stream_base::client,
