@@ -485,7 +485,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     return OK;
 }
 
-Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork)
+Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput,
+                                       int nForkHeight, const uint256& fork)
 {
     CDestination destIn = vPrevOutput[0].destTo;
     int64 nValueIn = 0;

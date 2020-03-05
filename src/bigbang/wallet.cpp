@@ -1400,7 +1400,7 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
 
 bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig)
 {
-    map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
+    auto it = mapKeyStore.find(pubkey);
     if (it == mapKeyStore.end())
     {
         StdError("CWallet", "SignPubKey: find privkey fail, pubkey: %s", pubkey.GetHex().c_str());
@@ -1427,7 +1427,7 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     bool fSigned = false;
     for (auto& pubkey : setPubKey)
     {
-        map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
+        auto it = mapKeyStore.find(pubkey);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
             if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
@@ -1444,7 +1444,9 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     return fSigned;
 }
 
-bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
+bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx,
+                              const uint256& hash, vector<uint8>& vchSig,
+                              const int32 nForkHeight, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {
