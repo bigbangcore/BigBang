@@ -201,10 +201,10 @@ bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& has
 
 bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement,int64 nValueIn)
 {
-    //if (height <= m_height_exec + 30)
-    //{
-    //    return false;
-    //}
+    if (height <= m_height_exec + 30)
+    {
+        return false;
+    }
     if (tx.vInput.size() != 1)
     {
         return false;
