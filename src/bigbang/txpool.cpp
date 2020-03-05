@@ -304,12 +304,12 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
     for (auto iter = iterBegin; iter != iterEnd; ++iter)
     {
-        if (iterBegin->ptx && iterBegin->nType == CTransaction::TX_CERT)
+        if (iter->ptx && iter->nType == CTransaction::TX_CERT)
         {
-            setCertRelativesIndex.insert(*iterBegin);
+            setCertRelativesIndex.insert(*iter);
 
             std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(*iterBegin, prevLinks);
+            GetAllPrevTxLink(*iter, prevLinks);
             setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
         }
     }
@@ -320,6 +320,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
+            StdTrace("TxPoolView", "Cert tx related tx, tx seqnum: %d, type: %d, tx hash: %s",i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
             if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;
