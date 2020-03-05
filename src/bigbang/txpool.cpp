@@ -320,7 +320,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            StdTrace("TxPoolView", "Cert tx related tx, tx seqnum: %d, type: %d, tx hash: %s",i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
+            StdDebug("CTxPoolView", "Cert tx related tx, tx seqnum: %d, type: %d, tx hash: %s", i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
             if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
             {
                 return;

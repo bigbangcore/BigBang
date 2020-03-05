@@ -210,7 +210,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     //}
     //
 
-    StdTrace("BlockMaker", "Interrupted: %s, currentAgreement: %s, UpdateMintType: %s, hashLastBlock: %s",Interrupted() ? "true" : "false", 
+    StdDebug("BlockMaker", "Interrupted: %s, currentAgreement: %s, UpdateMintType: %s, hashLastBlock: %s",Interrupted() ? "true" : "false", 
           currentAgreement.IsProofOfWork() ? "pow" : "dpos", hashLastBlock.ToString().c_str());
 
     if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
