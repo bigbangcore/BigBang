@@ -575,8 +575,11 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(template_p.get());
         if (nForkHeight >= payment->m_height_exec)
         {
-            IBlockChain* pBlockChain = nullptr;
-            GetObject("blockchain", pBlockChain);
+            static IBlockChain* pBlockChain = nullptr;
+            if (pBlockChain == nullptr)
+            {
+                GetObject("blockchain", pBlockChain);
+            }
             CBlock block;
             std::multimap<int64, CDestination> mapVotes;
             pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);

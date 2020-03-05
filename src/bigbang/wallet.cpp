@@ -584,8 +584,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(tempPtr.get());
             if (nForkHeight < payment->m_height_end && nForkHeight >= payment->m_height_exec)
             {
-                IBlockChain* pBlockChain = nullptr;
-                GetObject("blockchain", pBlockChain);
                 CBlock block;
                 std::multimap<int64, CDestination> mapVotes;
                 pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);
