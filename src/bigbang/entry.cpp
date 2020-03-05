@@ -27,6 +27,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "mqcluster.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -400,6 +401,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::MQCLUSTER:
+        {
+            if (!AttachModule(new CMQCluster()))
             {
                 return false;
             }

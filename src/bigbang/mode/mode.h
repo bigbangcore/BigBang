@@ -171,6 +171,7 @@ public:
                 EModuleType::HTTPSERVER,
                 EModuleType::RPCMODE,
                 EModuleType::BLOCKMAKER,
+                EModuleType::MQCLUSTER,
                 EModuleType::DATASTAT } },
             { EModeType::CONSOLE,
               { EModuleType::HTTPGET,

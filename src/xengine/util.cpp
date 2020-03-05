@@ -223,7 +223,7 @@ void StdTrace(const char* pszName, const char* pszFormat, ...)
         ss << arg_buffer;
         std::string str = ss.str();
 
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str())
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
@@ -241,7 +241,7 @@ void StdDebug(const char* pszName, const char* pszFormat, ...)
         ss << arg_buffer;
         std::string str = ss.str();
 
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str())
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, debug) << str;
     }
 }
@@ -259,7 +259,7 @@ void StdLog(const char* pszName, const char* pszFormat, ...)
         ss << arg_buffer;
         std::string str = ss.str();
 
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str())
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, info) << str;
     }
 }
@@ -277,7 +277,7 @@ void StdWarn(const char* pszName, const char* pszFormat, ...)
         ss << arg_buffer;
         std::string str = ss.str();
 
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str())
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, warn) << str;
     }
 }
@@ -295,7 +295,7 @@ void StdError(const char* pszName, const char* pszFormat, ...)
         ss << arg_buffer;
         std::string str = ss.str();
 
-        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str());
+        BOOST_LOG_SCOPED_THREAD_TAG("ThreadName", GetThreadName().c_str())
         BOOST_LOG_CHANNEL_SEV(lg::get(), pszName, error) << str;
     }
 }

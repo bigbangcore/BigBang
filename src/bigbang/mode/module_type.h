@@ -29,6 +29,7 @@ enum class EModuleType
     CONSENSUS,        // CConsensus
     FORKMANAGER,      // CForkManager
     DATASTAT,         // CDataStat
+    MQCLUSTER,        // CMQCluster
 };
 
 } // namespace bigbang
