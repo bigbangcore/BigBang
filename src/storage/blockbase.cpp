@@ -1795,6 +1795,13 @@ bool CBlockBase::GetDelegatePaymentList(const uint256& block_hash, std::multimap
     {
         mapVotes.insert(std::make_pair(d.second, d.first));
     }
+    std::size_t nGetVotesCount = mapVotes.size();
+    std::multimap<int64, CDestination>::iterator it = mapVotes.begin();
+    while (it != mapVotes.end() && nGetVotesCount > 23)
+    {
+        mapVotes.erase(it++);
+        --nGetVotesCount;
+    }
     return true;
 }
 
