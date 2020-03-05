@@ -99,6 +99,10 @@ bool CTemplatePayment::ValidateParam() const
     {
         return false;
     }
+    if (m_height_exec > m_height_end + 30)
+    {
+        return false;
+    }
     return true;
 }
 
@@ -201,6 +205,10 @@ bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,s
     //{
     //    return false;
     //}
+    if (tx.vInput.size() != 1)
+    {
+        return false;
+    }
     if (height < m_height_end && height >= m_height_exec)
     {
         if (tx.nAmount + tx.nTxFee != m_amount + m_pledge)

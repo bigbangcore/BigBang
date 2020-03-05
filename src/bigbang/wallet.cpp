@@ -599,6 +599,18 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             }
         }
     }
+    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
+    {
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
+        {
+            CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(tempPtr.get());
+            if (tx.nAmount != (payment->m_amount + payment->m_pledge))
+            {
+                return false;
+            }
+        }
+    }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
     {
