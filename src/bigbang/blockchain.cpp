@@ -429,6 +429,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
+    //把Block转换到BLockEx，为了拿到TxContxt列表，也就是vTx对应的详细信息 
     CBlockEx blockex(block);
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
 
