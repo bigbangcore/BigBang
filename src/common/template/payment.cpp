@@ -95,6 +95,10 @@ bool CTemplatePayment::ValidateParam() const
     {
         return false;
     }
+    if (m_pledge == m_amount)
+    {
+        return false;
+    }
     return true;
 }
 
@@ -102,10 +106,11 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
     uint32 height;
+    int64 nValueIn;
     xengine::CIDataStream ds(tx.vchSig);
     try
     {
-        ds >> height;
+        ds >> height >> nValueIn;
     }
     catch (const std::exception& e)
     {
@@ -117,13 +122,20 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
     {
         return false;
     }
-    if (height >= m_height_end)
-    {
-        setSubDest.insert(m_business);
-    }
-    else
+    if (height < m_height_end && height >= m_height_exec)
     {
         setSubDest.insert(m_customer);
+    }
+    else if (height >= m_height_end)
+    {
+        if (nValueIn == m_amount)
+        {
+            setSubDest.insert(m_business);
+        }
+        else if (nValueIn ==  m_pledge)
+        {
+            setSubDest.insert(m_customer);
+        }
     }
     return true;
 }
@@ -183,21 +195,13 @@ bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& has
     return true;
 }
 
-bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement)
+bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement,int64 nValueIn)
 {
-    if (height >= m_height_exec)
+    if (height <= m_height_exec + 30)
     {
-        if (tx.sendTo == m_business)
-        {
-            return tx.nAmount + tx.nTxFee == m_amount;
-        }
-        if (tx.sendTo == m_customer)
-        {
-            return tx.nAmount + tx.nTxFee == m_pledge;
-        }
         return false;
     }
-    else
+    if (height < m_height_end && height >= m_height_exec)
     {
         if (tx.nAmount + tx.nTxFee != m_amount + m_pledge)
         {
@@ -211,20 +215,32 @@ bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,s
         }
         return votes[n] == tx.sendTo;
     }
-    return true;
+    else if (height >= m_height_exec)
+    {
+        if (tx.sendTo == m_business && (nValueIn == m_amount + m_pledge || nValueIn == m_amount))
+        {
+            return tx.nAmount + tx.nTxFee == m_amount;
+        }
+        if (tx.sendTo == m_customer && (nValueIn == m_amount + m_pledge || nValueIn == m_pledge))
+        {
+            return tx.nAmount + tx.nTxFee == m_pledge;
+        }
+        return false;
+    }
+    return false;
 }
 
 bool CTemplatePayment::VerifySignature(const uint256& hash, const std::vector<uint8>& vchSig, int height, const uint256& fork)
 {
     std::vector<unsigned char> sig;
     sig.assign(vchSig.begin() + DataLen, vchSig.end());
-    if (height >= m_height_end)
-    {
-        return m_business.GetPubKey().Verify(hash, sig);
-    }
-    else if (height < m_height_end && height > m_height_exec)
+    if (height < m_height_end && height >= m_height_exec)
     {
         return m_customer.GetPubKey().Verify(hash, sig);
+    }
+    else if (height >= m_height_end)
+    {
+        return m_business.GetPubKey().Verify(hash, sig);
     }
     return false;
 }

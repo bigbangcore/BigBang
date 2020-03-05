@@ -45,7 +45,8 @@ public:
     bool VerifyTransaction(const CTransaction& tx,
                             uint32 height,
                             std::multimap<int64, CDestination> &mapVotes,
-                            const uint256 &nAgreement);
+                            const uint256 &nAgreement,
+                            int64 nValueIn);
 
 protected:
     virtual bool ValidateParam() const;

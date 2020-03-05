@@ -10,6 +10,7 @@
 #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/vote.h"
+#include "template/payment.h"
 
 using namespace std;
 using namespace xengine;
@@ -574,6 +575,31 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             return false;
         }
         fDestInRecorded = true;
+    }
+    if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
+    {
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
+        {
+            CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(tempPtr.get());
+            if (nForkHeight < payment->m_height_end && nForkHeight >= payment->m_height_exec)
+            {
+                IBlockChain* pBlockChain = nullptr;
+                GetObject("blockchain", pBlockChain);
+                CBlock block;
+                std::multimap<int64, CDestination> mapVotes;
+                pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);
+                CProofOfSecretShare dpos;
+                dpos.Load(block.vchProof);
+                uint32 n = dpos.nAgreement.Get32() % mapVotes.size();
+                std::vector<CDestination> votes;
+                for (const auto& d : mapVotes)
+                {
+                    votes.push_back(d.second);
+                }
+                tx.sendTo = votes[n];
+            }
+        }
     }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())

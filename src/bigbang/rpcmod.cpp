@@ -1666,7 +1666,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         txNew.vchSig.clear();
         CODataStream ds(txNew.vchSig);
-        ds << pService->GetForkHeight(hashFork);
+        ds << pService->GetForkHeight(hashFork) << (txNew.nTxFee + txNew.nAmount);
     }
 
     if (!pService->SignTransaction(txNew, fCompleted))

@@ -95,33 +95,6 @@ static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 
 namespace bigbang
 {
-class CTemplateVerify
-{
-    public:
-        CTemplateVerify(uint32 height,CDestination *destIn, CTransaction *tx, const std::vector<uint8> &vchSig, xengine::CDocker* pDocker)
-        {
-            m_height = height;
-            m_destIn = destIn;
-            m_tx = tx;
-            m_docker = pDocker;
-        }
-
-        bool operator()(CTemplate *p)
-        {
-            if (p->GetTemplateType() == TEMPLATE_PAYMENT)
-            {
-                CTemplatePayment *a = dynamic_cast<CTemplatePayment*>(p);
-                std::cout << a->m_amount;
-            }
-            return true;
-        }
-    private:
-        uint32 m_height;
-        CDestination* m_destIn;
-        CTransaction* m_tx;
-        xengine::CDocker* m_docker;
-};
-
 ///////////////////////////////
 // CCoreProtocol
 
@@ -609,10 +582,14 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
             pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);
             CProofOfSecretShare dpos;
             dpos.Load(block.vchProof);
-            if (!payment->VerifyTransaction(tx,nForkHeight,mapVotes,dpos.nAgreement))
+            if (!payment->VerifyTransaction(tx,nForkHeight,mapVotes,dpos.nAgreement,nValueIn))
             {
                 return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
             }
+        }
+        else
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
         }
     }
 
