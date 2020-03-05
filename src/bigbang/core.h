@@ -72,6 +72,7 @@ public:
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
     int nProofOfWorkAdjustCount;
+    int64 nDelegateProofOfStakeEnrollMinimumAmount;
 };
 
 } // namespace bigbang
