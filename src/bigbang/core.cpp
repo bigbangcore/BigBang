@@ -10,7 +10,6 @@
 #include "../common/template/mint.h"
 #include "../common/template/vote.h"
 #include "../common/template/payment.h"
-
 #include "address.h"
 #include "wallet.h"
 
