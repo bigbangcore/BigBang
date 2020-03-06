@@ -20,11 +20,11 @@ namespace mode_impl
  * Combination of inheriting all need config class.
  */
 template <typename... U>
-class CCombinConfig : virtual public std::enable_if<std::is_base_of<CBasicConfig, U>::value, U>::type...
+class CCombineConfig : virtual public std::enable_if<std::is_base_of<CBasicConfig, U>::value, U>::type...
 {
 public:
-    CCombinConfig() {}
-    virtual ~CCombinConfig() {}
+    CCombineConfig() {}
+    virtual ~CCombineConfig() {}
 
     virtual bool PostLoad()
     {
@@ -51,7 +51,7 @@ public:
 };
 
 template <>
-class CCombinConfig<> : virtual public CCombinConfig<CBasicConfig>
+class CCombineConfig<> : virtual public CCombineConfig<CBasicConfig>
 {
 };
 
