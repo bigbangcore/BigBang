@@ -408,7 +408,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::MQCLUSTER:
         {
-            if (!AttachModule(new CMQCluster()))
+            if (!AttachModule(new CMQCluster(config.GetConfig()->nCatOfNode)))
             {
                 return false;
             }

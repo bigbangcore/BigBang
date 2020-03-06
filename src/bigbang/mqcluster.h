@@ -22,9 +22,9 @@ public:
 
 class CMQCluster : public IMQCluster
 {
-    enum NODE_TYPE {BBCNODE, FORKNODE, DPOSNODE};
+    enum class NODE_CATEGORY : char {BBCNODE = 0, FORKNODE, DPOSNODE};
 public:
-    CMQCluster();
+    CMQCluster(int catNodeIn);
     ~CMQCluster() = default;
 
 protected:
@@ -50,12 +50,15 @@ protected:
     xengine::CThread thrMqttClient;
 
 private:
-    void Publish();
-    //bool Publish();
+    bool ConnectBroker();
+    bool Publish();
+    bool Subscribe();
+    bool DisconnectBroker();
     void MqttThreadFunc();
     bool fAuth;
     bool fAbort;
     string clientID;
+    NODE_CATEGORY catNode;
 };
 
 } // namespace bigbang
