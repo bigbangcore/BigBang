@@ -54,7 +54,6 @@ set(src
     base.h
     struct.h
     param.h
-    storage.h
     version.h
     mqevent.h
 )
