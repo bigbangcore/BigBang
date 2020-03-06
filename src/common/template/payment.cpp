@@ -24,21 +24,15 @@ using namespace bigbang::crypto;
 //////////////////////////////
 // CTemplatePayment
 
-CTemplatePayment::CTemplatePayment(
-    const CDestination& business,
-    const CDestination& customer,
-    uint32 height_exec,
-    uint64 amount,
-    uint64 pledge,
-    uint32 height_end)
-  : CTemplate(TEMPLATE_PAYMENT),
-    m_business(business),
-    m_customer(customer),
-    m_height_exec(height_exec),
-    m_amount(amount),
-    m_pledge(pledge),
-    m_height_end(height_end)
+CTemplatePayment::CTemplatePayment()
+  : CTemplate(TEMPLATE_PAYMENT)
 {
+    m_business = CDestination();
+    m_customer = CDestination();
+    m_height_exec = 0;
+    m_height_end = 0;
+    m_amount = 0;
+    m_pledge = 0;
     vchData.clear();
     CODataStream os(vchData);
     os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_exec << m_amount << m_pledge << m_height_end;
@@ -52,16 +46,6 @@ CTemplatePayment::CTemplatePayment(const std::vector<unsigned char>& vchDataIn)
     is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
     vchData.assign(vchDataIn.begin(), vchDataIn.begin() + DataLen);
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(vchData.data(), vchData.size()));
-}
-
-CTemplatePayment::CTemplatePayment(const CDestination& business,
-                                    const CDestination& customer,
-                                    uint32 height_exec,
-                                    uint32 height_end,
-                                    uint64 amount,
-                                    uint64 pledge)
-  : CTemplate(TEMPLATE_PAYMENT), m_business(business), m_customer(customer), m_height_exec(height_exec),m_height_end(height_end), m_amount(amount),m_pledge(pledge)
-{
 }
 
 CTemplatePayment* CTemplatePayment::clone() const
@@ -87,7 +71,7 @@ const CTemplatePaymentPtr CTemplatePayment::CreateTemplatePtr(CTemplatePayment* 
 
 bool CTemplatePayment::ValidateParam() const
 {
-    if (!m_business.IsPubKey() || !m_business.IsPubKey())
+    if (!m_business.IsPubKey() || !m_customer.IsPubKey())
     {
         return false;
     }

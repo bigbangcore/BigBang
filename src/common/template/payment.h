@@ -17,21 +17,22 @@ public:
     static const CTemplatePaymentPtr CreateTemplatePtr(CTemplatePayment* ptr);
 
 public:
-    CTemplatePayment(
+    CTemplatePayment(/*
         const CDestination& business,
         const CDestination& customer,
         uint32 height_exec,
         uint64 amount,
         uint64 pledge,
-        uint32 height_end);
+        uint32 height_end*/);
 
     CTemplatePayment(const std::vector<unsigned char>& vchDataIn);
+    /*
     CTemplatePayment(const CDestination& business = CDestination(),
                     const CDestination& customer = CDestination(),
                     uint32 height_exec = 0,
                     uint32 height_end = 0,
                     uint64 amount = 0,
-                    uint64 pledge = 0);
+                    uint64 pledge = 0);*/
 
     virtual CTemplatePayment* clone() const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
