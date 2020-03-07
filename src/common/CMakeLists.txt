@@ -17,6 +17,7 @@ set(template
     template/delegate.h     template/delegate.cpp 
     template/exchange.h     template/exchange.cpp 
     template/vote.h         template/vote.cpp 
+    template/payment.h      template/payment.cpp 
 )
 
 set(sources

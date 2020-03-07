@@ -796,6 +796,21 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
+bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes)
+{
+    std::vector<uint256> vBlockHash;
+    if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), height, vBlockHash) || vBlockHash.size() == 0)
+    {
+        return false;
+    }
+    cntrBlock.GetDelegatePaymentList(vBlockHash[0], mapVotes);
+    if (!GetBlock(vBlockHash[0],block))
+    {
+        return false;
+    }
+    return true;
+}
+
 bool CBlockChain::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
 {
     return cntrBlock.GetDelegateList(pCoreProtocol->GetGenesisBlockHash(), nCount, mapVotes);

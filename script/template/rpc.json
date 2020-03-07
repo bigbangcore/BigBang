@@ -178,6 +178,37 @@
                         "desc": "fork_s hash"
                     }
                 }
+            },
+            "payment": {
+                "type": "object",
+                "desc": "a payment template",
+                "condition": "type=payment",
+                "content": {
+                    "business": {
+                        "type": "string",
+                        "desc": "business"
+                    },
+                    "customer": {
+                        "type": "string",
+                        "desc": "customer"
+                    },
+                    "height_exec": {
+                        "type": "int",
+                        "desc": "height_exec"
+                    },
+                    "height_end": {
+                        "type": "int",
+                        "desc": "height_end"
+                    },
+                    "amount": {
+                        "type": "int",
+                        "desc": "amount"
+                    },
+                    "pledge": {
+                        "type": "int",
+                        "desc": "pledge"
+                    }
+                }
             }
         }
     },
@@ -301,6 +332,37 @@
                     "fork_s": {
                         "type": "string",
                         "desc": "fork s"
+                    }
+                }
+            },
+            "payment": {
+                "type": "object",
+                "desc": "a payment template",
+                "condition": "type=payment",
+                "content": {
+                    "business": {
+                        "type": "string",
+                        "desc": "business"
+                    },
+                    "customer": {
+                        "type": "string",
+                        "desc": "customer"
+                    },
+                    "height_exec": {
+                        "type": "int",
+                        "desc": "height_exec"
+                    },
+                    "height_end": {
+                        "type": "int",
+                        "desc": "height_end"
+                    },
+                    "amount": {
+                        "type": "int",
+                        "desc": "amount"
+                    },
+                    "pledge": {
+                        "type": "int",
+                        "desc": "pledge"
                     }
                 }
             },

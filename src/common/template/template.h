@@ -15,6 +15,7 @@
 #include "stream/datastream.h"
 #include "templateid.h"
 #include "util.h"
+#include "xengine.h"
 
 class CSpendableTemplate
 {
@@ -69,6 +70,7 @@ enum TemplateType
     TEMPLATE_DELEGATE,
     TEMPLATE_EXCHANGE,
     TEMPLATE_VOTE,
+    TEMPLATE_PAYMENT,
     TEMPLATE_MAX
 };
 
