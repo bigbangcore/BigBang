@@ -130,7 +130,6 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
 
 bool CTemplatePayment::SetTemplateData(const vector<uint8>& vchDataIn)
 {
-    
     CIDataStream is(vchDataIn);
     try
     {
@@ -175,7 +174,6 @@ void CTemplatePayment::BuildTemplateData()
     os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_exec << m_amount << m_pledge << m_height_end;
 }
 
-
 bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
@@ -185,7 +183,7 @@ bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& has
 
 bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement,int64 nValueIn)
 {
-    if (height <= m_height_exec + 30)
+    if (height <= m_height_exec + SafeHeight)
     {
         return false;
     }

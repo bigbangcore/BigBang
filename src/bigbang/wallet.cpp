@@ -597,6 +597,14 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
                 }
                 tx.sendTo = votes[n];
             }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
         }
     }
     if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
@@ -610,6 +618,11 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
                 return false;
             }
         }
+        else
+        {
+            return false;
+        }
+        
     }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())

@@ -17,22 +17,9 @@ public:
     static const CTemplatePaymentPtr CreateTemplatePtr(CTemplatePayment* ptr);
 
 public:
-    CTemplatePayment(/*
-        const CDestination& business,
-        const CDestination& customer,
-        uint32 height_exec,
-        uint64 amount,
-        uint64 pledge,
-        uint32 height_end*/);
+    CTemplatePayment();
 
     CTemplatePayment(const std::vector<unsigned char>& vchDataIn);
-    /*
-    CTemplatePayment(const CDestination& business = CDestination(),
-                    const CDestination& customer = CDestination(),
-                    uint32 height_exec = 0,
-                    uint32 height_end = 0,
-                    uint64 amount = 0,
-                    uint64 pledge = 0);*/
 
     virtual CTemplatePayment* clone() const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
@@ -64,6 +51,7 @@ public:
     uint64 m_amount;
     uint64 m_pledge;
     uint32 m_height_end;
+    static const int SafeHeight = 30;
     static const int DataLen = sizeof(m_business) + sizeof(m_customer) + sizeof(m_height_exec) + sizeof(m_amount) + sizeof(m_pledge) + sizeof(m_height_end);
 };
 
