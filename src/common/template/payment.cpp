@@ -53,17 +53,6 @@ CTemplatePayment* CTemplatePayment::clone() const
     return new CTemplatePayment(*this);
 }
 
-void CTemplatePayment::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const
-{
-    obj.payment.strBusiness = m_business.ToString();
-    obj.payment.strCustomer = m_customer.ToString();
-
-    obj.payment.nHeight_Exec = m_height_exec;
-    obj.payment.nHeight_End = m_height_end;
-    obj.payment.nAmount = m_amount;
-    obj.payment.nPledge = m_pledge;
-}
-
 const CTemplatePaymentPtr CTemplatePayment::CreateTemplatePtr(CTemplatePayment* ptr)
 {
     return boost::dynamic_pointer_cast<CTemplatePayment>(CTemplate::CreateTemplatePtr(ptr));
@@ -83,7 +72,7 @@ bool CTemplatePayment::ValidateParam() const
     {
         return false;
     }
-    if (m_height_exec > m_height_end + 30)
+    if ((m_height_exec + SafeHeight) > m_height_end)
     {
         return false;
     }
@@ -110,11 +99,15 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
     {
         return false;
     }
-    if (height < m_height_end && height >= m_height_exec)
+    if (height < (m_height_exec + SafeHeight))
+    {
+        return false;
+    }
+    else if (height < m_height_end)
     {
         setSubDest.insert(m_customer);
     }
-    else if (height >= m_height_end)
+    else
     {
         if (nValueIn == m_amount || nValueIn == (m_amount + m_pledge))
         {
@@ -124,21 +117,10 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
         {
             setSubDest.insert(m_customer);
         }
-    }
-    return true;
-}
-
-bool CTemplatePayment::SetTemplateData(const vector<uint8>& vchDataIn)
-{
-    CIDataStream is(vchDataIn);
-    try
-    {
-        is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
-    }
-    catch (exception& e)
-    {
-        StdError(__PRETTY_FUNCTION__, e.what());
-        return false;
+        else
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -167,6 +149,17 @@ bool CTemplatePayment::SetTemplateData(const bigbang::rpc::CTemplateRequest& obj
     return true;
 }
 
+void CTemplatePayment::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const
+{
+    obj.payment.strBusiness = m_business.ToString();
+    obj.payment.strCustomer = m_customer.ToString();
+
+    obj.payment.nHeight_Exec = m_height_exec;
+    obj.payment.nHeight_End = m_height_end;
+    obj.payment.nAmount = m_amount;
+    obj.payment.nPledge = m_pledge;
+}
+
 void CTemplatePayment::BuildTemplateData()
 {
     vchData.clear();
@@ -174,24 +167,63 @@ void CTemplatePayment::BuildTemplateData()
     os << m_business.prefix << m_business.data << m_customer.prefix << m_customer.data << m_height_exec << m_amount << m_pledge << m_height_end;
 }
 
+bool CTemplatePayment::SetTemplateData(const vector<uint8>& vchDataIn)
+{
+    CIDataStream is(vchDataIn);
+    try
+    {
+        is >> m_business.prefix >> m_business.data >> m_customer.prefix >> m_customer.data >> m_height_exec >> m_amount >> m_pledge >> m_height_end;
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
 bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    fCompleted = true;
-    return true;
+    if (nForkHeight < (m_height_exec + SafeHeight))
+    {
+        return false;
+    }
+    else if (nForkHeight < m_height_end)
+    {
+        fCompleted = m_customer.GetPubKey().Verify(hash, vchSig);
+        return fCompleted;
+    }
+    else
+    {
+        if (destTo == m_business)
+        {
+            fCompleted = m_business.GetPubKey().Verify(hash, vchSig);
+            return fCompleted;
+        }
+        else if (destTo == m_customer)
+        {
+            fCompleted = m_customer.GetPubKey().Verify(hash, vchSig);
+            return fCompleted;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }
 
 bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement,int64 nValueIn)
 {
-    if (height <= m_height_exec + SafeHeight)
-    {
-        return false;
-    }
     if (tx.vInput.size() != 1)
     {
         return false;
     }
-    if (height < m_height_end && height >= m_height_exec)
+    if (height < (m_height_exec + SafeHeight))
+    {
+        return false;
+    }
+    else if (height < m_height_end)
     {
         if (tx.nAmount + tx.nTxFee != m_amount + m_pledge)
         {
@@ -205,7 +237,7 @@ bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,s
         }
         return votes[n] == tx.sendTo;
     }
-    else if (height >= m_height_exec)
+    else
     {
         if (tx.sendTo == m_business && (nValueIn == m_amount + m_pledge || nValueIn == m_amount))
         {
@@ -217,20 +249,4 @@ bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,s
         }
         return false;
     }
-    return false;
-}
-
-bool CTemplatePayment::VerifySignature(const uint256& hash, const std::vector<uint8>& vchSig, int height, const uint256& fork)
-{
-    std::vector<unsigned char> sig;
-    sig.assign(vchSig.begin() + DataLen, vchSig.end());
-    if (height < m_height_end && height >= m_height_exec)
-    {
-        return m_customer.GetPubKey().Verify(hash, sig);
-    }
-    else if (height >= m_height_end)
-    {
-        return m_business.GetPubKey().Verify(hash, sig);
-    }
-    return false;
 }

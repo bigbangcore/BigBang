@@ -28,8 +28,6 @@ public:
     virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
 
-    bool VerifySignature(const uint256& hash, const std::vector<uint8>& vchSig, int height, const uint256& fork);
-
     bool VerifyTransaction(const CTransaction& tx,
                             uint32 height,
                             std::multimap<int64, CDestination> &mapVotes,

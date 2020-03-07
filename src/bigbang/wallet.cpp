@@ -581,12 +581,15 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         CTemplatePtr tempPtr = GetTemplate(tid);
         if (tempPtr != nullptr)
         {
-            CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(tempPtr.get());
-            if (nForkHeight < payment->m_height_end && nForkHeight >= payment->m_height_exec)
+            auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(tempPtr);
+            if (nForkHeight < payment->m_height_end && nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
             {
                 CBlock block;
                 std::multimap<int64, CDestination> mapVotes;
-                pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes);
+                if (!pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes))
+                {
+                    return false;
+                }
                 CProofOfSecretShare dpos;
                 dpos.Load(block.vchProof);
                 uint32 n = dpos.nAgreement.Get32() % mapVotes.size();
@@ -596,10 +599,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
                     votes.push_back(d.second);
                 }
                 tx.sendTo = votes[n];
-            }
-            else
-            {
-                return false;
             }
         }
         else
@@ -612,7 +611,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         CTemplatePtr tempPtr = GetTemplate(tid);
         if (tempPtr != nullptr)
         {
-            CTemplatePayment* payment = dynamic_cast<CTemplatePayment*>(tempPtr.get());
+            auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(tempPtr);
             if (tx.nAmount != (payment->m_amount + payment->m_pledge))
             {
                 return false;
@@ -622,7 +621,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         {
             return false;
         }
-        
     }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())

@@ -504,13 +504,13 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     }*/
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto template_p = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
-        if (template_p == nullptr)
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
+        if (templatePtr == nullptr)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
         }
-        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(template_p);
-        if (nForkHeight >= payment->m_height_exec)
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
         {
             CBlock block;
             std::multimap<int64, CDestination> mapVotes;
@@ -601,13 +601,13 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto template_p = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
-        if (template_p == nullptr)
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
+        if (templatePtr == nullptr)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
         }
-        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(template_p);
-        if (nForkHeight >= payment->m_height_exec)
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
         {
             CBlock block;
             std::multimap<int64, CDestination> mapVotes;
