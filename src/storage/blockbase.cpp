@@ -493,6 +493,22 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
     return true;
 }
 
+bool CBlockBase::AddNewForkNode(const CForkNode& forkNode)
+{
+    if (!dbBlock.AddNewForkNode(forkNode))
+    {
+        Error("F", "Failed to addnew forknode in %s", forkNode.forkNodeID.c_str());
+        return false;
+    }
+    Log("F", "AddNew forknode,cliID=%s with %n forks", forkNode.forkNodeID.c_str(),
+            forkNode.vecOwnedForks.size());
+    for (const auto& i : forkNode.vecOwnedForks)
+    {
+        Log("F", "AddNew forknode with fork [%s]", i.ToString().c_str());
+    }
+    return true;
+}
+
 bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
 {
     block.SetNull();

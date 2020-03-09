@@ -13,6 +13,7 @@
 #include "transaction.h"
 #include "txindexdb.h"
 #include "unspentdb.h"
+#include "mqdb.h"
 
 namespace bigbang
 {
@@ -47,6 +48,7 @@ public:
     bool RetrieveDelegate(const uint256& hash, std::map<CDestination, int64>& mapDelegate);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
+    bool AddNewForkNode(const CForkNode& forkNode);
 
 protected:
     bool LoadFork();
@@ -57,6 +59,7 @@ protected:
     CTxIndexDB dbTxIndex;
     CUnspentDB dbUnspent;
     CDelegateDB dbDelegate;
+    CForkNodeDB dbForkNode;
 };
 
 } // namespace storage

@@ -108,10 +108,15 @@ bool CMQCluster::HandleInvoke()
 
 void CMQCluster::HandleHalt()
 {
+    if (NODE_CATEGORY::BBCNODE == catNode)
+    {
+        Log("CMQCluster::HandleHalt(): bbc node so go passby");
+        return;
+    }
+
     IIOModule::HandleHalt();
 
     condMQ.notify_all();
-
     if (thrMqttClient.IsRunning())
     {
         thrMqttClient.Interrupt();

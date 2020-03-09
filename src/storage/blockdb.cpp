@@ -51,6 +51,11 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData)
         return false;
     }
 
+    if (!dbForkNode.Initialize(pathData))
+    {
+        return false;
+    }
+
     return LoadFork();
 }
 
@@ -61,6 +66,7 @@ void CBlockDB::Deinitialize()
     dbTxIndex.Deinitialize();
     dbBlockIndex.Deinitialize();
     dbFork.Deinitialize();
+    dbForkNode.Deinitialize();
 }
 
 bool CBlockDB::RemoveAll()
@@ -70,6 +76,7 @@ bool CBlockDB::RemoveAll()
     dbTxIndex.Clear();
     dbBlockIndex.Clear();
     dbFork.Clear();
+    dbForkNode.Clear();
 
     return true;
 }
@@ -242,6 +249,11 @@ bool CBlockDB::LoadFork()
         }
     }
     return true;
+}
+
+bool CBlockDB::AddNewForkNode(const CForkNode& forkNode)
+{
+    return dbForkNode.AddNewForkNode(forkNode);
 }
 
 } // namespace storage
