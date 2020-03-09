@@ -18,6 +18,7 @@
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
+#include "mqdb.h"
 
 using namespace std;
 using namespace xengine;
@@ -265,6 +266,8 @@ CRPCMod::CRPCMod()
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
+        //
+        ("enrollforknode", &CRPCMod::RPCEnrollForkNode)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -2392,6 +2395,36 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 
     spResult->dTotal = dTotal;
 
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCEnrollForkNode(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CEnrollForkNodeParam>(param);
+    std::vector<std::string> vFork = spParam->vecForks;
+    std::string id = spParam->strClientid;
+
+    std::vector<uint256> forks;
+    for (const auto& i : vFork)
+    {
+        uint256 fork;
+        if (fork.SetHex(i) != i.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork hash");
+        }
+        forks.emplace_back(fork);
+    }
+    storage::CForkNode node;
+    node.forkNodeID = std::move(id);
+    node.vecOwnedForks = std::move(forks);
+
+    if(OK != pService->AddForkNode(node))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Enroll fork node failed");
+    }
+
+    auto spResult = MakeCEnrollForkNodeResultPtr();
+    spResult->fRetflag = true;
     return spResult;
 }
 

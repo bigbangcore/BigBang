@@ -500,7 +500,7 @@ bool CBlockBase::AddNewForkNode(const CForkNode& forkNode)
         Error("F", "Failed to addnew forknode in %s", forkNode.forkNodeID.c_str());
         return false;
     }
-    Log("F", "AddNew forknode,cliID=%s with %n forks", forkNode.forkNodeID.c_str(),
+    Log("F", "AddNew forknode,cliID=%s with %d forks", forkNode.forkNodeID.c_str(),
             forkNode.vecOwnedForks.size());
     for (const auto& i : forkNode.vecOwnedForks)
     {

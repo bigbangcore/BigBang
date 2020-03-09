@@ -641,6 +641,15 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
+Errno CBlockChain::AddNewForkNode(const storage::CForkNode& node)
+{
+    if (!cntrBlock.AddNewForkNode(node))
+    {
+        return FAILED;
+    }
+    return OK;
+}
+
 // uint320 GetBlockTrust() const
 // {
 //     if (IsVacant() && vchProof.empty())

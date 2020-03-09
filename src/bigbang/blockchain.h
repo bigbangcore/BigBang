@@ -44,6 +44,7 @@ public:
     Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
     Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
+    Errno AddNewForkNode(const storage::CForkNode& node) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
     bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) override;

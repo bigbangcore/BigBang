@@ -43,7 +43,11 @@ void CForkNodeDB::Deinitialize()
 
 bool CForkNodeDB::AddNewForkNode(const CForkNode& cli)
 {
-    return Write(cli.forkNodeID, cli.vecOwnedForks, true);  //overwrite
+    vector<CForkNode> nodes;
+    ListForkNode(nodes);
+    bool ret = Write(cli.forkNodeID, cli.vecOwnedForks, true);  //overwrite
+    ListForkNode(nodes);
+    return ret;
 }
 
 bool CForkNodeDB::RemoveForkNode(const string& cliID)
@@ -70,8 +74,13 @@ bool CForkNodeDB::ListForkNode(std::vector<CForkNode>& vCli)
     {
         CForkNode node;
         node.forkNodeID = it.first;
+        cout << node.forkNodeID << endl;
         node.vecOwnedForks = it.second;
         vCli.emplace_back(node);
+        for (const auto& i : node.vecOwnedForks)
+        {
+            cout << "the fork is:" << i.ToString() << endl;
+        }
     }
     return true;
 }

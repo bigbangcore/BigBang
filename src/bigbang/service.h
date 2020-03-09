@@ -6,6 +6,7 @@
 #define BIGBANG_SERVICE_H
 
 #include "base.h"
+#include "mqdb.h"
 #include "network.h"
 #include "xengine.h"
 
@@ -80,6 +81,7 @@ public:
                      crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
     bool GetTxSender(const uint256& txid, CAddress& sender) override;
+    bool AddForkNode(const storage::CForkNode& node) override;
 
 protected:
     bool HandleInitialize() override;

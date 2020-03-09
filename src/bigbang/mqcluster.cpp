@@ -239,7 +239,7 @@ bool CMQCluster::Publish()
         conntok->wait();
         cout << "  ...OK" << endl;
 
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 1; ++i)
         {
             cout << "\nSending message" << to_string(i) << "..." << endl;
             delivery_action_listener deliveryListener;
@@ -295,7 +295,7 @@ void CMQCluster::MqttThreadFunc()
     //publish topics
     while (!fAbort)
     {
-        boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(30);
+        boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(300);
         {
             boost::unique_lock<boost::mutex> lock(mutex);
             while (!fAbort)

@@ -638,6 +638,47 @@
             }
         ]
     },
+    "enrollforknode": {
+        "type": "command",
+        "name": "EnrollForkNode",
+        "desc": "Enroll fork node info for MQ communication on both sides of dpos and fork nodes.",
+        "request": {
+            "type": "object",
+            "content": {
+                "clientid" :
+                {
+                    "type": "string",
+                    "desc": "client id"
+                },
+                "forks" :
+                {
+                    "type" : "array",
+                    "content" : {
+                        "fork" :
+                        {
+                            "type" : "string",
+                            "dest" : "fork hash"
+                        }
+                    }
+                }
+            }
+        },
+        "response": {
+            "type": "bool",
+            "name": "retflag",
+            "desc": "successful or not"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli enrollforknode forknode01 '[\"575f2041770496489120bb102d9dd55f5e75b0c4aa528d5762b92b59acd6d939\",\"6236d780f9f743707d57b3feb19d21c8a867577f5e83c163774222bb7ef8d8cb\",\"7c6a6aba05cec77a998c19649ee1fa0e29c7b5246d0e3a6501ee1d4d81dd73ea\"]'",
+                "response": "true"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"enrollforknode\",\"jsonrpc\":\"2.0\",\"params\":{[\"575f2041770496489120bb102d9dd55f5e75b0c4aa528d5762b92b59acd6d939\",\"6236d780f9f743707d57b3feb19d21c8a867577f5e83c163774222bb7ef8d8cb\",\"7c6a6aba05cec77a998c19649ee1fa0e29c7b5246d0e3a6501ee1d4d81dd73ea\"]}}' http://127.0.0.1:9902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":true}"
+            }
+        ]
+    },
     "listpeer": {
         "type": "command",
         "name": "ListPeer",

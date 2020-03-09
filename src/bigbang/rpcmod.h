@@ -125,6 +125,7 @@ private:
     rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCListUnspent(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCEnrollForkNode(rpc::CRPCParamPtr param);
     /* Mint */
     rpc::CRPCResultPtr RPCGetWork(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSubmitWork(rpc::CRPCParamPtr param);
