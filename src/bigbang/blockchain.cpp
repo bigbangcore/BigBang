@@ -650,6 +650,16 @@ Errno CBlockChain::AddNewForkNode(const storage::CForkNode& node)
     return OK;
 }
 
+bool CBlockChain::ListForkNode(std::vector<storage::CForkNode>& nodes)
+{
+    if (!cntrBlock.ListForkNode(nodes))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 // uint320 GetBlockTrust() const
 // {
 //     if (IsVacant() && vchProof.empty())

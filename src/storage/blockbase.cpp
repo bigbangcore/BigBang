@@ -509,6 +509,25 @@ bool CBlockBase::AddNewForkNode(const CForkNode& forkNode)
     return true;
 }
 
+bool CBlockBase::ListForkNode(std::vector<storage::CForkNode>& nodes)
+{
+    if (!dbBlock.ListForkNode(nodes))
+    {
+        Error("F", "Failed to list forknode");
+        return false;
+    }
+    Log("F", "List forknode successfully");
+    for (const auto& node : nodes)
+    {
+        for (const auto& fork : node.vecOwnedForks)
+        {
+            Log("F", "forknode client ID [%s] : fork [%s]",
+                node.forkNodeID.c_str(), fork.ToString().c_str());
+        }
+    }
+    return true;
+}
+
 bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
 {
     block.SetNull();

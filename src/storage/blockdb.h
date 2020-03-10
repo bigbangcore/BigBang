@@ -49,6 +49,7 @@ public:
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool AddNewForkNode(const CForkNode& forkNode);
+    bool ListForkNode(std::vector<CForkNode>& nodes);
 
 protected:
     bool LoadFork();

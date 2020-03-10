@@ -256,5 +256,10 @@ bool CBlockDB::AddNewForkNode(const CForkNode& forkNode)
     return dbForkNode.AddNewForkNode(forkNode);
 }
 
+bool CBlockDB::ListForkNode(std::vector<CForkNode>& nodes)
+{
+    return dbForkNode.ListForkNode(nodes);
+}
+
 } // namespace storage
 } // namespace bigbang
