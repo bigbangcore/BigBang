@@ -210,11 +210,20 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     //}
     //
 
-    StdDebug("BlockMaker", "Interrupted: %s, currentAgreement: %s, UpdateMintType: %d, hashLastBlock: %s", Interrupted() ? "true" : "false",
-             currentAgreement.IsProofOfWork() ? "pow" : "dpos", eventUpdate.data.nMintType, hashLastBlock.ToString().c_str());
-
     if (Interrupted() || currentAgreement.IsProofOfWork() || (eventUpdate.data.nMintType == CTransaction::TX_STAKE))
     {
+
+        static int count = 0;
+        count++;
+        if (count == 40)
+        {
+            count = 0;
+            StdDebug("BlockMaker", "Fuck 40: Interrupted: %s, currentAgreement: %s, UpdateMintType: %d, hashLastBlock: %s, lastBlockHeight: %d lastWeight: %d",
+                     Interrupted() ? "true" : "false", currentAgreement.IsProofOfWork() ? "pow" : "dpos",
+                     eventUpdate.data.nMintType, hashLastBlock.ToString().c_str(), eventUpdate.data.nBlockHeight, eventUpdate.data.nWeight);
+            return true;
+        }
+
         nMakerStatus = MAKER_RESET;
         hashLastBlock = eventUpdate.data.hashBlock;
         nLastBlockTime = eventUpdate.data.nBlockTime;
@@ -222,6 +231,12 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
         nLastAgreement = eventUpdate.data.nAgreement;
         nLastWeight = eventUpdate.data.nWeight;
         cond.notify_all();
+    }
+    else
+    {
+        StdDebug("BlockMaker", "Fuck: Interrupted: %s, currentAgreement: %s, UpdateMintType: %d, hashLastBlock: %s, lastBlockHeight: %d, lastWeight: %d",
+                 Interrupted() ? "true" : "false", currentAgreement.IsProofOfWork() ? "pow" : "dpos",
+                 eventUpdate.data.nMintType, hashLastBlock.ToString().c_str(), eventUpdate.data.nBlockHeight, eventUpdate.data.nWeight);
     }
 
     return true;
