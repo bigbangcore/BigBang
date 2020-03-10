@@ -394,7 +394,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     if (err != OK)
     {
         Log("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
-      return err;
+        return err;
     }
 
     CBlockIndex* pIndexPrev;
@@ -429,7 +429,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
-    //把Block转换到BLockEx，为了拿到TxContxt列表，也就是vTx对应的详细信息 
+    //把Block转换到BLockEx，为了拿到TxContxt列表，也就是vTx对应的详细信息
     CBlockEx blockex(block);
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
 
@@ -440,18 +440,20 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     int nForkHeight;
     if (block.nType == block.BLOCK_EXTENDED)
     {
-        nForkHeight = pIndexPrev->nHeight;
+        nForkHeight = pIndexPrev->nHeight; //子块不增加所属Fork的高度
     }
     else
     {
-        nForkHeight = pIndexPrev->nHeight + 1;
+        nForkHeight = pIndexPrev->nHeight + 1; // 其他块才增加所属Fork的高度
     }
 
     // map<pair<CDestination, uint256>, uint256> mapEnrollTx;
+    // 处理当前Block里打包好的所有交易(校验Tx)
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
         CTxContxt txContxt;
+        // 从BlockView中拿到Tx对应的TxContxt上下文信息 （此时View的数据没有入库Commit）
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
         {
@@ -816,7 +818,7 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
-bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes)
+bool CBlockChain::ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes)
 {
     std::vector<uint256> vBlockHash;
     if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), height, vBlockHash) || vBlockHash.size() == 0)
@@ -824,7 +826,7 @@ bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<
         return false;
     }
     cntrBlock.GetDelegatePaymentList(vBlockHash[0], mapVotes);
-    if (!GetBlock(vBlockHash[0],block))
+    if (!GetBlock(vBlockHash[0], block))
     {
         return false;
     }
@@ -1082,6 +1084,7 @@ bool CBlockChain::InsertGenesisBlock(CBlock& block)
     return cntrBlock.Initiate(block.GetHash(), block, nChainTrust);
 }
 
+// 从BlockView中拿到Tx对应的TxContxt上下文信息
 Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
 {
     txContxt.SetNull();
@@ -1196,13 +1199,13 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_INVALID_FORK;
         }
 
-        //校验Block打包的Cert Tx的count与前序Block的count是否超出 
+        //校验Block打包的Cert Tx的count与前序Block的count是否超出
         if (!VerifyBlockCertTx(block))
         {
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
-        // 获得以该Block维target block的的DelegateAgreement（共识结果） 这步主要是校验了，这个Block同步过来肯定共识结果要是能获得的 
+        // 获得以该Block维target block的的DelegateAgreement（共识结果） 这步主要是校验了，这个Block同步过来肯定共识结果要是能获得的
         if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
@@ -1227,7 +1230,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         }
         else*/
         {
-            // PoW或DPoS共识结果就用相应的函数校验结果 
+            // PoW或DPoS共识结果就用相应的函数校验结果
             if (agreement.IsProofOfWork())
             {
                 return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
