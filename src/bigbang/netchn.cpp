@@ -1231,10 +1231,14 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             {
                 if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock, hashBlockRef))
                 {
-                    StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, type: %s, block: %s",
-                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock),
-                           GetBlockTypeStr(pBlock->nType, pBlock->txMint.nType).c_str(), hashBlock.GetHex().c_str());
-                    sched.SetRepeatBlock(nNonceSender, hashBlock, *pBlock);
+                    StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, block: %s",
+                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    if (!sched.SetRepeatBlock(nNonceSender, hashBlock))
+                    {
+                        StdLog("NetChannel", "NetChannel AddNewBlock: Generate multiple repeat blocks, peer: %s, height: %d, block: %s",
+                               GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                        setMisbehavePeer.insert(nNonceSender);
+                    }
                     return;
                 }
             }

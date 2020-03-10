@@ -73,6 +73,9 @@ protected:
     const std::string FileName(uint32 nFile);
     bool GetFilePath(uint32 nFile, std::string& strPath);
     bool GetLastFilePath(uint32& nFile, std::string& strPath);
+    bool RemoveFollowUpFile(uint32 nBeginFile);
+    bool TruncateFile(const std::string& pathFile, uint32 nOffset);
+    bool RepairFile(uint32 nFile, uint32 nOffset);
 
 protected:
     enum
@@ -233,7 +236,7 @@ public:
         return true;
     }
     template <typename T>
-    bool WalkThrough(CTSWalker<T>& walker, uint32& nLastFileRet, uint32& nLastPosRet)
+    bool WalkThrough(CTSWalker<T>& walker, uint32& nLastFileRet, uint32& nLastPosRet, bool fRepairFile)
     {
         bool fRet = true;
         uint32 nFile = 1;
@@ -245,13 +248,20 @@ public:
         while (GetFilePath(nFile, pathFile) && fRet)
         {
             nLastFileRet = nFile;
+            bool fFileDataError = false;
             try
             {
                 xengine::CFileStream fs(pathFile.c_str());
                 fs.Seek(0);
                 nOffset = 0;
-
-                while (!fs.IsEOF() && fRet)
+                std::size_t nFileSize = fs.GetSize();
+                if (nFileSize > MAX_FILE_SIZE)
+                {
+                    xengine::StdError("TimeSeriesCached", "WalkThrough: File size error, nFile: %d, size: %lu", nFile, nFileSize);
+                    fFileDataError = true;
+                    break;
+                }
+                while (!fs.IsEOF() && fRet && nOffset < (uint32)nFileSize)
                 {
                     uint32 nMagic, nSize;
                     T t;
@@ -261,21 +271,59 @@ public:
                     }
                     catch (std::exception& e)
                     {
+                        xengine::StdError("TimeSeriesCached", "WalkThrough: Read error, nFile: %d, msg: %s", nFile, e.what());
+                        fFileDataError = true;
                         break;
                     }
-                    if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize
-                        || !walker.Walk(t, nFile, nOffset + 8))
+                    if (nMagic != nMagicNum || (fs.GetCurPos() - nOffset - 8 != nSize))
                     {
+                        if (nMagic != nMagicNum)
+                        {
+                            xengine::StdError("TimeSeriesCached", "WalkThrough: nMagic error, nFile: %d, nMagic=%x, right magic: %x",
+                                              nFile, nMagic, nMagicNum);
+                        }
+                        if (fs.GetCurPos() - nOffset - 8 != nSize)
+                        {
+                            xengine::StdError("TimeSeriesCached", "WalkThrough: read size error, nFile: %d, GetCurPos: %lu, nOffset: %d, nSize: %d",
+                                              nFile, fs.GetCurPos(), nOffset, nSize);
+                        }
+                        fFileDataError = true;
+                        break;
+                    }
+                    if (!walker.Walk(t, nFile, nOffset + 8))
+                    {
+                        xengine::StdLog("TimeSeriesCached", "WalkThrough: Walk fail");
                         fRet = false;
                         break;
                     }
                     nOffset = fs.GetCurPos();
                 }
+                if (fRet && !fFileDataError)
+                {
+                    if (nOffset != (uint32)nFileSize)
+                    {
+                        xengine::StdLog("TimeSeriesCached", "WalkThrough: nOffset error, nOffset: %d, nFileSize: %lu", nOffset, nFileSize);
+                    }
+                }
             }
             catch (std::exception& e)
             {
-                xengine::StdError(__PRETTY_FUNCTION__, e.what());
+                xengine::StdError("TimeSeriesCached", "WalkThrough: catch error, nFile: %d, msg: %s", nFile, e.what());
                 fRet = false;
+                break;
+            }
+            if (fFileDataError)
+            {
+                if (fRepairFile)
+                {
+                    if (!RepairFile(nFile, nOffset))
+                    {
+                        xengine::StdError("TimeSeriesCached", "WalkThrough: RepairFile fail");
+                        fRet = false;
+                    }
+                    xengine::StdLog("TimeSeriesCached", "WalkThrough: RepairFile success");
+                }
+                break;
             }
             nFile++;
         }
@@ -300,7 +348,6 @@ public:
         {
             return false;
         }
-
         return true;
     }
 

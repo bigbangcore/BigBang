@@ -29,6 +29,7 @@ class CInvPeer
         CUInt256List listKnown;
         std::set<uint256> setAssigned;
         int64 nNextGetBlocksTime;
+        std::map<uint32, std::set<uint256>> mapRepeat;
     };
 
 public:
@@ -79,6 +80,19 @@ public:
         CUInt256ByValue& idxByValue = listKnown.get<1>();
         idxByValue.erase(inv.nHash);
         GetAssigned(inv.nType).erase(inv.nHash);
+        if (inv.nType == network::CInv::MSG_BLOCK)
+        {
+            std::map<uint32, std::set<uint256>>& mapData = invKnown[network::CInv::MSG_BLOCK - network::CInv::MSG_TX].mapRepeat;
+            std::map<uint32, std::set<uint256>>::iterator it = mapData.find(CBlock::GetBlockHeightByHash(inv.nHash));
+            if (it != mapData.end())
+            {
+                it->second.erase(inv.nHash);
+                if (it->second.empty())
+                {
+                    mapData.erase(it);
+                }
+            }
+        }
     }
     bool KnownInvExists(const network::CInv& inv)
     {
@@ -148,6 +162,16 @@ public:
     {
         return (GetTime() >= invKnown[network::CInv::MSG_BLOCK - network::CInv::MSG_TX].nNextGetBlocksTime);
     }
+    int64 AddRepeatBlock(const uint256& hash)
+    {
+        if (KnownInvExists(network::CInv(network::CInv::MSG_BLOCK, hash)))
+        {
+            std::set<uint256>& setHash = invKnown[network::CInv::MSG_BLOCK - network::CInv::MSG_TX].mapRepeat[CBlock::GetBlockHeightByHash(hash)];
+            setHash.insert(hash);
+            return setHash.size();
+        }
+        return 0;
+    }
 
 public:
     CInvPeerState invKnown[2];
@@ -203,7 +227,8 @@ public:
         MAX_REGETDATA_COUNT = 10,
         MAX_INV_WAIT_TIME = 3600,
         MAX_OBJ_WAIT_TIME = 7200,
-        MAX_REPEAT_BLOCK_TIME = 180
+        MAX_REPEAT_BLOCK_TIME = 180,
+        MAX_REPEAT_BLOCK_COUNT = 4
     };
 
 public:
@@ -232,7 +257,7 @@ public:
     int GetLocatorInvBlockHash(uint64 nPeerNonce, uint256& hashBlock);
     void SetLocatorInvBlockHash(uint64 nPeerNonce, int nHeight, const uint256& hashBlock, const uint256& hashNext);
     void SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime);
-    bool SetRepeatBlock(uint64 nNonce, const uint256& hash, const CBlock& block);
+    bool SetRepeatBlock(uint64 nNonce, const uint256& hash);
     bool IsRepeatBlock(const uint256& hash);
 
 protected:
