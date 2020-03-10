@@ -89,16 +89,16 @@ public:
     ~CSSLClient();
 
 protected:
-    void AsyncAccept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted);
-    void AsyncConnect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected);
+    void AsyncAccept(boost::asio::ip::tcp::acceptor& acceptor, CallBackConn fnAccepted) override;
+    void AsyncConnect(const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) override;
     void AsyncConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, CallBackConn fnConnected) override;
-    void AsyncRead(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted);
-    void AsyncReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted);
-    void AsyncWrite(CBufStream& ssSend, CallBackFunc fnCompleted);
-    const boost::asio::ip::tcp::endpoint SocketGetRemote();
-    const boost::asio::ip::tcp::endpoint SocketGetLocal();
-    void CloseSocket();
-    bool IsSocketOpen();
+    void AsyncRead(CBufStream& ssRecv, std::size_t nLength, CallBackFunc fnCompleted) override;
+    void AsyncReadUntil(CBufStream& ssRecv, const std::string& delim, CallBackFunc fnCompleted) override;
+    void AsyncWrite(CBufStream& ssSend, CallBackFunc fnCompleted) override;
+    const boost::asio::ip::tcp::endpoint SocketGetRemote() override;
+    const boost::asio::ip::tcp::endpoint SocketGetLocal() override;
+    void CloseSocket() override;
+    bool IsSocketOpen() override;
     void HandleConnected(CallBackConn fnHandshaked,
                          boost::asio::ssl::stream_base::handshake_type type,
                          const boost::system::error_code& err);
