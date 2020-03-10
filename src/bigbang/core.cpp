@@ -855,26 +855,26 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
              nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
     {
-        size_t nTrust = mapSelectBallot.size();
+        // size_t nTrust = mapSelectBallot.size();
         size_t total = nEnrollWeight;
-        set<CDestination> setMaker;
-        for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        // set<CDestination> setMaker;
+        // for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        // {
+        //     nSelected += *p;
+        size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
+        for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
         {
-            nSelected += *p;
-            size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
-            for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
+            if (n < it->second)
             {
-                if (n < it->second)
-                {
-                    vBallot.push_back(it->first);
-                    total -= it->second;
-                    mapSelectBallot.erase(it);
-                    break;
-                }
-                n -= (*it).second;
+                vBallot.push_back(it->first);
+                // total -= it->second;
+                // mapSelectBallot.erase(it);
+                break;
             }
-            --nTrust;
+            n -= (*it).second;
         }
+        //     --nTrust;
+        // }
     }
 
     StdTrace("Core", "vBallot size: %lu", vBallot.size());
