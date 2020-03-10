@@ -74,6 +74,7 @@ protected:
     void RandGeneretor(uint256& r);
 };
 
+// 一段共识过程中的一个快照，也就是对应到某个高度，block hash下的共识快照
 class CDelegateVote
 {
 public:

@@ -373,6 +373,7 @@ bool CBlockMaker::CreateProofOfWorkBlock(CBlock& block)
 
 void CBlockMaker::ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight)
 {
+    // 查看共识结果得到的Delegate地址列表中的第一个出块的节点是不是本地节点它自己，如果有就出Block，这也印证了该项目的DPoS共识是一个高度一轮共识
     map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(agreement.vBallot[0]);
     if (it != mapDelegatedProfile.end())
     {

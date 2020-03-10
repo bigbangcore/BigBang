@@ -471,23 +471,27 @@ bool CConsensus::AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnch
     return delegate.HandlePublish(nPublishTargetHeight, hashPublishAnchor, destFrom, vchPublish, fCompleted);
 }
 
+// 获得目标高度的共识结果(nAgreement nWeight vBallot)
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
     if (nTargetHeight >= CONSENSUS_INTERVAL)
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         uint256 hashBlock;
+        // 获得Enrolled完成以后的高度Block的Hash（同时也是Distribute阶段开始的Block hash），是为了拿Enroll结果
         if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1, hashBlock))
         {
             Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
             return;
         }
         CDelegateEnrolled enrolled;
+        // 通过Enroll完毕的Block hash拿到Enroll结果(各个Delegate模板地址上的权重和金额)
         if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
         {
             Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
             return;
         }
+        // 得到Enrolled完毕后Mint奖励的累加值
         int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
         if (nMoneySupply < 0)
         {
@@ -496,8 +500,9 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         }
 
         map<CDestination, size_t> mapBallot;
+        // 拿到目标高度的共识结果(nWeight是各个Delegate模板地址的权重累加，mapBallot是各个模板地址对应的权重)
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
-
+        // 主要是通过共识结果拿到vBallot，即一个共识后的Delegate地址列表，列表的第一个地址就是出TargetHeight高度块的Delegate地址
         pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
     }
 }

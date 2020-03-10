@@ -141,10 +141,10 @@ void CDelegateVote::Publish(map<CDestination, vector<unsigned char>>& mapPublish
 void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
                            const map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
-    // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s", 
-    //     mapWeight.size(), 
+    // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s",
+    //     mapWeight.size(),
     //     mapWeight.size() > 0 ? mapWeight.begin()->first.ToString().c_str() : "...",
-    //     mapWeight.size() > 0 ? mapWeight.begin()->second : 0, 
+    //     mapWeight.size() > 0 ? mapWeight.begin()->second : 0,
     //     mapEnrollData.size(),
     //     mapEnrollData.size() > 0 ? mapEnrollData.begin()->first.ToString().c_str() : "...",
     //     mapEnrollData.size() > 0 ? xengine::ToHexString(mapEnrollData.begin()->second).c_str() : "...");
@@ -192,7 +192,7 @@ bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned c
         is >> delegateData;
         if (delegateData.nIdentFrom != DestToIdentUInt256(destFrom) || !VerifySignature(delegateData))
         {
-            // StdWarn("vote", "CDelegateVote::Accept error ............... delegateData.nIdentFrom: %s, DestToIdentUInt256(destFrom): %s, VerifySignature(delegateData): %d", 
+            // StdWarn("vote", "CDelegateVote::Accept error ............... delegateData.nIdentFrom: %s, DestToIdentUInt256(destFrom): %s, VerifySignature(delegateData): %d",
             //     delegateData.nIdentFrom.ToString().c_str(), DestToIdentUInt256(destFrom).ToString().c_str(), VerifySignature(delegateData));
             return false;
         }
@@ -249,6 +249,7 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
     return false;
 }
 
+// 从快照中拿到共识结果(nWeight其实是各个Delegate模板地址权重的累加值，mapBallot是各个Delegate地址对应的权重)
 void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDestination, size_t>& mapBallot)
 {
     nAgreement = 0;

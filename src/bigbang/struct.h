@@ -172,9 +172,9 @@ public:
     }
 
 public:
-    std::map<CDestination, std::size_t> mapWeight;
-    std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
-    std::vector<std::pair<CDestination, int64>> vecAmount;
+    std::map<CDestination, std::size_t> mapWeight;                    // Delegate各个模板地址的Enroll权重
+    std::map<CDestination, std::vector<unsigned char>> mapEnrollData; // Delegate各个模板地址的Enroll Data
+    std::vector<std::pair<CDestination, int64>> vecAmount;            // Delegate各个模板地址的Enroll金额
 };
 
 class CDelegateAgreement

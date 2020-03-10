@@ -294,29 +294,34 @@ bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashPublishAncho
     return ret;
 }
 
+// 通过目标高度，Disribute阶段开始的hash，拿到共识结果
 void CDelegate::GetAgreement(int nTargetHeight, const uint256& hashDistributeAnchor, uint256& nAgreement, size_t& nWeight, map<CDestination, size_t>& mapBallot)
 {
     nAgreement = 0;
     nWeight = 0;
 
+    // 拿到目标高度的共识快照
     map<int, CDelegateVote>::iterator it = mapVote.find(nTargetHeight);
     if (it == mapVote.end())
     {
         StdError("CDelegate", "Get agreement: find target height fail, height: %d", nTargetHeight);
         return;
     }
+    // 目标高度的共识快照中的Distribute阶段的开始block hash肯定要有效，不然报错
     const uint256& hashDistribute = it->second.hashDistributeBlock;
     if (hashDistribute == 0)
     {
         StdError("CDelegate", "Get agreement: hashDistributeBlock is null, target height: %d", nTargetHeight);
         return;
     }
+    // Distribute开始的hash有效时候还要看是否与预期的hash相等
     if (hashDistribute != hashDistributeAnchor)
     {
         StdError("CDelegate", "Get agreement: hashDistributeBlock error, target height: %d, local distribute: %s, anchor distribute: %s",
                  nTargetHeight, hashDistribute.GetHex().c_str(), hashDistributeAnchor.GetHex().c_str());
         return;
     }
+    // 拿到Distribute阶段开始的hash所对应的共识快照
     map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(hashDistribute);
     if (mt == mapDistributeVote.end())
     {
@@ -324,6 +329,7 @@ void CDelegate::GetAgreement(int nTargetHeight, const uint256& hashDistributeAnc
         return;
     }
 
+    // Distribute开始，也就是拿到Enrolled完毕的结果(需要Reconstruct出来)，
     auto t0 = boost::posix_time::microsec_clock::universal_time();
     mt->second.GetAgreement(nAgreement, nWeight, mapBallot);
     auto t1 = boost::posix_time::microsec_clock::universal_time();
