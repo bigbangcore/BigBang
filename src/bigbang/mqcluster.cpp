@@ -25,7 +25,8 @@ CMQCluster::CMQCluster(int catNodeIn)
     pBlockChain(nullptr),
     pService(nullptr),
     fAuth(false),
-    fAbort(false)
+    fAbort(false),
+    srvAddr("tcp://localhost:1883")
 {
     switch (catNodeIn)
     {
@@ -99,7 +100,13 @@ bool CMQCluster::HandleInvoke()
         return true;
     }
 
-    if (!ThreadDelayStart(thrMqttClient))
+    if (!pBlockChain->ListForkNode(vForkNode))
+    {
+        Log("CMQCluster::HandleInvoke(): list fork node failed");
+        return false;
+    }
+
+    if (!ThreadStart(thrMqttClient))
     {
         return false;
     }
@@ -204,82 +211,77 @@ public:
     }
 };
 
-bool CMQCluster::ConnectBroker()
+bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 {
-    return true;
-}
-
-bool CMQCluster::Publish()
-{
-    const std::string SERVER_ADDRESS{ "tcp://localhost:1883" };
     const string TOPIC{ "Cluster01/dpos/SyncBlockReq" };
     const char* PAYLOAD = "Request for secure main block chain for BBC.";
-    const char* LWT_PAYLOAD = "Last will and testament.";
 
-    string address = SERVER_ADDRESS;
+    static mqtt::async_client client(srvAddr, clientID);
 
-    cout << "Initializing for server '" << address << "'..." << endl;
-    mqtt::async_client client(address, clientID);
-
-    callback cb;
-    client.set_callback(cb);
-
-    mqtt::connect_options conopts;
-    mqtt::message willmsg(TOPIC, LWT_PAYLOAD, 1, true);
-    mqtt::will_options will(willmsg);
-    conopts.set_will(will);
-
-    cout << "  ...OK" << endl;
+    static callback cb;
 
     try
     {
-        cout << "\nConnecting..." << endl;
-        mqtt::token_ptr conntok = client.connect(conopts);
-        cout << "Waiting for the connection..." << endl;
-        conntok->wait();
-        cout << "  ...OK" << endl;
-
-        for (int i = 0; i < 1; ++i)
+        static mqtt::token_ptr conntok;
+        switch (action)
         {
-            cout << "\nSending message" << to_string(i) << "..." << endl;
-            delivery_action_listener deliveryListener;
-            mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
-            client.publish(pubmsg, nullptr, deliveryListener);
+        case MQ_CLI_ACTION::CONN:
+        {
+            cout << "Initializing for server '" << srvAddr << "'..." << endl;
+            client.set_callback(cb);
+            cout << "  ...OK" << endl;
 
-            while (!deliveryListener.is_done())
-            {
-                this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-            cout << "OK" << endl;
+            cout << "\nConnecting..." << endl;
+            conntok = client.connect();
+            cout << "Waiting for the connection..." << endl;
+            conntok->wait();
+            cout << "  ...OK" << endl;
+            break;
         }
+        case MQ_CLI_ACTION::SUB:
+        {
+            break;
+        }
+        case MQ_CLI_ACTION::PUB:
+        {
+            for (int i = 0; i < 3; ++i)
+            {
+                cout << "\nSending message" << to_string(i) << "..." << endl;
+                delivery_action_listener deliveryListener;
+                mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
+                client.publish(pubmsg, nullptr, deliveryListener);
 
-        // Double check that there are no pending tokens
+                while (!deliveryListener.is_done())
+                {
+                    this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+                cout << "OK" << endl;
+            }
+            break;
+        }
+        case MQ_CLI_ACTION::DISCONN:
+        {
+            // Double check that there are no pending tokens
 
-        auto toks = client.get_pending_delivery_tokens();
-        if (!toks.empty())
-            cout << "Error: There are pending delivery tokens!" << endl;
+            auto toks = client.get_pending_delivery_tokens();
+            if (!toks.empty())
+                cout << "Error: There are pending delivery tokens!" << endl;
 
-        // Disconnect
-        cout << "\nDisconnecting..." << endl;
-        conntok = client.disconnect();
-        conntok->wait();
-        cout << "  ...OK" << endl;
+            // Disconnect
+            cout << "\nDisconnecting..." << endl;
+            conntok = client.disconnect();
+            conntok->wait();
+            cout << "  ...OK" << endl;
+            break;
+        }
+        }
     }
     catch (const mqtt::exception& exc)
     {
         cerr << exc.what() << endl;
         return false;
     }
-    return true;
-}
 
-bool CMQCluster::Subscribe()
-{
-    return true;
-}
-
-bool CMQCluster::DisconnectBroker()
-{
     return true;
 }
 
@@ -287,15 +289,16 @@ void CMQCluster::MqttThreadFunc()
 {
     Log("entering thread function of MQTT");
     //establish connection
-    ;
+    ClientAgent(MQ_CLI_ACTION::CONN);
 
     //subscribe topics
-    Subscribe();
+    ClientAgent(MQ_CLI_ACTION::SUB);
 
     //publish topics
     while (!fAbort)
     {
-        boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(300);
+        boost::system_time const timeout = boost::get_system_time()
+                                           + boost::posix_time::seconds(30);
         {
             boost::unique_lock<boost::mutex> lock(mutex);
             while (!fAbort)
@@ -306,12 +309,12 @@ void CMQCluster::MqttThreadFunc()
                 }
             }
         }
-        Publish();
+        ClientAgent(MQ_CLI_ACTION::PUB);
         Log("thread function of MQTT: go through an iteration");
     }
 
     //disconnect to broker
-    ;
+    ClientAgent(MQ_CLI_ACTION::DISCONN);
 
     Log("exiting thread function of MQTT");
 }
