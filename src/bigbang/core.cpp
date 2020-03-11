@@ -19,7 +19,7 @@ using namespace xengine;
 
 //#define BBCP_SET_TOKEN_DISTRIBUTION
 
-static const int64 MAX_CLOCK_DRIFT = 10 * 60;
+static const int64 MAX_CLOCK_DRIFT = 20;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
