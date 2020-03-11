@@ -123,6 +123,8 @@ void CMQCluster::HandleHalt()
 
     IIOModule::HandleHalt();
 
+    fAbort = true;
+
     condMQ.notify_all();
     if (thrMqttClient.IsRunning())
     {
@@ -146,68 +148,153 @@ bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
     return true;
 }
 
-class callback : public virtual mqtt::callback
+bool CMQCluster::LogEvent(const string& info)
 {
+    cout << "callback to CMQCluster when MQ-EVENT" << info << endl;
+    Log("CMQCluster::LogMQEvent[%s]", info.c_str());
+    return true;
+}
+
+class action_listener : public virtual mqtt::iaction_listener
+{
+    std::string name_;
+
+    void on_failure(const mqtt::token& tok) override
+    {
+        std::cout << name_ << " failure";
+        if (tok.get_message_id() != 0)
+            std::cout << " for token: [" << tok.get_message_id() << "]" << std::endl;
+        std::cout << std::endl;
+    }
+
+    void on_success(const mqtt::token& tok) override
+    {
+        std::cout << name_ << " success";
+        if (tok.get_message_id() != 0)
+            std::cout << " for token: [" << tok.get_message_id() << "]" << std::endl;
+        auto top = tok.get_topics();
+        if (top && !top->empty())
+            std::cout << "\ttoken topic: '" << (*top)[0] << "', ..." << std::endl;
+        std::cout << std::endl;
+    }
+
 public:
+    action_listener(const std::string& name)
+      : name_(name) {}
+};
+
+const int RETRY_ATTEMPTS = 3;
+class callback :
+  public virtual mqtt::callback,
+  public virtual mqtt::iaction_listener
+{
+    mqtt::async_client& cli_;
+    mqtt::connect_options& connOpts_;
+    CMQCluster& cluster_;
+    uint8 retry_;
+    action_listener subListener_;
+
+public:
+    callback(mqtt::async_client& cli, mqtt::connect_options& connOpts, CMQCluster& clusterIn)
+      : cli_(cli), connOpts_(connOpts), cluster_(clusterIn), retry_(0), subListener_("sublistener") {}
+
+    void reconnect()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        try
+        {
+            cli_.connect(connOpts_, nullptr, *this);
+            cluster_.LogEvent("[reconnect...]");
+        }
+        catch (const mqtt::exception& exc)
+        {
+            cerr << "Error: " << exc.what() << std::endl;
+            exit(1);
+        }
+        cluster_.LogEvent("[reconnected]");
+    }
+
+    void on_failure(const mqtt::token& tok) override
+    {
+        cout << "\tListener failure for token: [multiple]"
+             << tok.get_message_id() << endl;
+        cluster_.LogEvent("[on_failure]");
+        if (++retry_ > RETRY_ATTEMPTS)
+        {
+            exit(1);
+        }
+        reconnect();
+    }
+
+    void on_success(const mqtt::token& tok) override
+    {
+        cout << "\tListener success for token: [multiple]"
+             << tok.get_message_id() << endl;
+        cluster_.LogEvent("[on_success]");
+    }
+
     void connected(const string& cause) override
     {
-        cout << "\nConnection connected" << endl;
+        cout << "\nConnection success" << endl;
         if (!cause.empty())
+        {
             cout << "\tcause: " << cause << endl;
+        }
+        cluster_.LogEvent("[connected]");
+        if (CMQCluster::NODE_CATEGORY::FORKNODE == cluster_.catNode)
+        {
+            string TOPIC = "Cluster01/" + cluster_.clientID + "/SyncBlockResp";
+            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+                 << "\tfor client " << cluster_.clientID
+                 << " using QoS" << CMQCluster::QOS1 << endl;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            TOPIC = "Cluster01/DPOSNODE/UpdateBlock";
+            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+                 << "\tfor client " << cluster_.clientID
+                 << " using QoS" << CMQCluster::QOS1 << endl;
+        }
+        else if (CMQCluster::NODE_CATEGORY::DPOSNODE == cluster_.catNode)
+        {
+            const string TOPIC{ "Cluster01/+/SyncBlockReq" };
+            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+                 << "\tfor client " << cluster_.clientID
+                 << " using QoS" << CMQCluster::QOS1 << endl;
+        }
+        cout << endl;
+        cluster_.LogEvent("[subscribed]");
+        cout << endl;
     }
 
     void connection_lost(const string& cause) override
     {
         cout << "\nConnection lost" << endl;
         if (!cause.empty())
+        {
             cout << "\tcause: " << cause << endl;
+        }
+        cluster_.LogEvent("[connection_lost]");
+        retry_ = 0;
+        reconnect();
+    }
+
+    void message_arrived(mqtt::const_message_ptr msg) override
+    {
+        cout << "Message arrived" << endl;
+        cout << "\ttopic: '" << msg->get_topic() << "'" << endl;
+        cout << "\tpayload: '" << msg->to_string() << "'\n"
+                  << endl;
+        cluster_.LogEvent("[message_arrived]");
     }
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override
     {
         cout << "\tDelivery complete for token: "
              << (tok ? tok->get_message_id() : -1) << endl;
-    }
-};
-
-class action_listener : public virtual mqtt::iaction_listener
-{
-protected:
-    void on_failure(const mqtt::token& tok) override
-    {
-        cout << "\tListener failure for token: "
-             << tok.get_message_id() << endl;
-    }
-
-    void on_success(const mqtt::token& tok) override
-    {
-        cout << "\tListener success for token: "
-             << tok.get_message_id() << endl;
-    }
-};
-
-class delivery_action_listener : public action_listener
-{
-    atomic<bool> done_;
-
-    void on_failure(const mqtt::token& tok) override
-    {
-        action_listener::on_failure(tok);
-        done_ = true;
-    }
-
-    void on_success(const mqtt::token& tok) override
-    {
-        action_listener::on_success(tok);
-        done_ = true;
-    }
-
-public:
-    delivery_action_listener()
-      : done_(false) {}
-    bool is_done() const
-    {
-        return done_;
+        cluster_.LogEvent("[delivery_complete]");
     }
 };
 
@@ -216,13 +303,19 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
     const string TOPIC{ "Cluster01/dpos/SyncBlockReq" };
     const char* PAYLOAD = "Request for secure main block chain for BBC.";
 
-    static mqtt::async_client client(srvAddr, clientID);
-
-    static callback cb;
-
     try
     {
+        static mqtt::async_client client(srvAddr, clientID);
+
+        static mqtt::connect_options connOpts;
+        connOpts.set_keep_alive_interval(20);
+        connOpts.set_clean_session(true);
+
         static mqtt::token_ptr conntok;
+        static mqtt::delivery_token_ptr delitok;
+
+        static callback cb(client, connOpts, *this);
+
         switch (action)
         {
         case MQ_CLI_ACTION::CONN:
@@ -247,14 +340,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
             for (int i = 0; i < 3; ++i)
             {
                 cout << "\nSending message" << to_string(i) << "..." << endl;
-                delivery_action_listener deliveryListener;
-                mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
-                client.publish(pubmsg, nullptr, deliveryListener);
 
-                while (!deliveryListener.is_done())
-                {
-                    this_thread::sleep_for(std::chrono::milliseconds(100));
-                }
+                mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
+                pubmsg->set_qos(QOS1);
+                delitok = client.publish(pubmsg, nullptr, cb);
+                delitok->wait_for(100);
+
                 cout << "OK" << endl;
             }
             break;
@@ -298,7 +389,7 @@ void CMQCluster::MqttThreadFunc()
     while (!fAbort)
     {
         boost::system_time const timeout = boost::get_system_time()
-                                           + boost::posix_time::seconds(30);
+                                           + boost::posix_time::seconds(10);
         {
             boost::unique_lock<boost::mutex> lock(mutex);
             while (!fAbort)

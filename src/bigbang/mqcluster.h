@@ -98,6 +98,8 @@ public:
 
 class CMQCluster : public IMQCluster
 {
+    friend class callback;
+
     enum class NODE_CATEGORY : char {
         BBCNODE = 0,
         FORKNODE,
@@ -109,10 +111,17 @@ class CMQCluster : public IMQCluster
         PUB,
         DISCONN
     };
+    enum {
+        QOS0 = 0,
+        QOS1,
+        QOS2
+    };
 
 public:
     CMQCluster(int catNodeIn);
     ~CMQCluster() = default;
+
+    bool LogEvent(const std::string& info);
 
 protected:
     bool HandleInitialize() override;
