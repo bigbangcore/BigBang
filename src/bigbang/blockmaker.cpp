@@ -401,11 +401,11 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
         return;
     }
 
-    int64 nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING * ((GetNetTime() - nPrimaryBlockTime + (EXTENDED_BLOCK_SPACING - 1)) / EXTENDED_BLOCK_SPACING);
-    if (nTime < nPrimaryBlockTime + EXTENDED_BLOCK_SPACING)
-    {
-        nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING;
-    }
+    // int64 nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING * ((GetNetTime() - nPrimaryBlockTime + (EXTENDED_BLOCK_SPACING - 1)) / EXTENDED_BLOCK_SPACING);
+    // if (nTime < nPrimaryBlockTime + EXTENDED_BLOCK_SPACING)
+    // {
+    int64 nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING;
+    // }
     while (nTime - nPrimaryBlockTime < BLOCK_TARGET_SPACING)
     {
         int nIndex = (nTime - nPrimaryBlockTime) / EXTENDED_BLOCK_SPACING;
@@ -489,8 +489,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
         uint256 hashLastBlock;
         int nLastBlockHeight;
         int64 nLastBlockTime;
-        if (pTxPool->Count(hashFork)
-            && pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastBlockTime)
+        if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastBlockTime)
             && nPrimaryBlockHeight == nLastBlockHeight
             && nLastBlockTime < nTime)
         {
@@ -508,7 +507,7 @@ void CBlockMaker::CreateExtended(const CBlockMakerProfile& profile, const CDeleg
             txMint.nAmount = 0;
 
             ArrangeBlockTx(block, hashFork, profile);
-            if (!block.vtx.empty() && SignBlock(block, profile))
+            if (SignBlock(block, profile))
             {
                 DispatchBlock(block);
             }
