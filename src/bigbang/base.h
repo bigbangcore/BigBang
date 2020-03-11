@@ -106,6 +106,8 @@ public:
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
+    virtual bool ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes) = 0;
+
     const CBasicConfig* Config()
     {
         return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
@@ -316,6 +318,8 @@ public:
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
+    virtual bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
+    virtual Errno SendRawTransaction(CTransaction& tx) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,

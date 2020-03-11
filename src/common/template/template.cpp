@@ -20,6 +20,7 @@
 #include "templateid.h"
 #include "transaction.h"
 #include "vote.h"
+#include "payment.h"
 #include "weighted.h"
 
 using namespace std;
@@ -48,6 +49,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
     { TEMPLATE_VOTE, new CTemplateVote, "vote" },
+    { TEMPLATE_PAYMENT, new CTemplatePayment, "payment" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
@@ -172,7 +174,6 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
     {
         return false;
     }
-
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
     return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }
@@ -313,8 +314,10 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
-                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig, bool& fCompleted) const
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor,
+                                 const CDestination& destTo, const int32 nForkHeight,
+                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig,
+                                 bool& fCompleted) const
 {
     vchSig = vchData;
     if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))

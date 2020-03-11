@@ -7,6 +7,7 @@
 #include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
 #include "../common/template/mint.h"
+#include "../common/template/payment.h"
 #include "../common/template/vote.h"
 #include "address.h"
 #include "wallet.h"
@@ -102,6 +103,7 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    pBlockChain = nullptr;
 }
 
 CCoreProtocol::~CCoreProtocol()
@@ -113,6 +115,10 @@ bool CCoreProtocol::HandleInitialize()
     CBlock block;
     GetGenesisBlock(block);
     hashGenesisBlock = block.GetHash();
+    if (!GetObject("blockchain", pBlockChain))
+    {
+        return false;
+    }
     return true;
 }
 
@@ -233,7 +239,8 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 
     if (!MoneyRange(tx.nTxFee)
         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-        || (tx.nType == CTransaction::TX_TOKEN && tx.nTxFee < MIN_TX_FEE))
+        || (tx.nType == CTransaction::TX_TOKEN
+            && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), MIN_TX_FEE)))
     {
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
     }
@@ -496,6 +503,33 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         vchSig = tx.vchSig;
     }*/
+    if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        if (templatePtr == nullptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+        }
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
+        {
+            CBlock block;
+            std::multimap<int64, CDestination> mapVotes;
+            CProofOfSecretShare dpos;
+            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            }
+            if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            }
+        }
+        else
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        }
+    }
     if (!VerifyDestRecorded(tx, vchSig))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
@@ -507,7 +541,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     return OK;
 }
 
-Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork)
+Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput,
+                                       int nForkHeight, const uint256& fork)
 {
     CDestination destIn = vPrevOutput[0].destTo;
     int64 nValueIn = 0;
@@ -564,6 +599,34 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+    }
+
+    if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        if (templatePtr == nullptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+        }
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
+        {
+            CBlock block;
+            std::multimap<int64, CDestination> mapVotes;
+            CProofOfSecretShare dpos;
+            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            }
+            if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            }
+        }
+        else
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        }
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin

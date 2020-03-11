@@ -1784,6 +1784,27 @@ bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDe
     return true;
 }
 
+bool CBlockBase::GetDelegatePaymentList(const uint256& block_hash, std::multimap<int64, CDestination>& mapVotes)
+{
+    std::map<CDestination, int64> mapVote;
+    if (!dbBlock.RetrieveDelegate(block_hash, mapVote))
+    {
+        return false;
+    }
+    for (const auto& d : mapVote)
+    {
+        mapVotes.insert(std::make_pair(d.second, d.first));
+    }
+    std::size_t nGetVotesCount = mapVotes.size();
+    std::multimap<int64, CDestination>::iterator it = mapVotes.begin();
+    while (it != mapVotes.end() && nGetVotesCount > 23)
+    {
+        mapVotes.erase(it++);
+        --nGetVotesCount;
+    }
+    return true;
+}
+
 bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
 {
     CBlockIndex* pForkLastIndex = nullptr;

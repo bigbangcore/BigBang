@@ -10,6 +10,7 @@
 #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/vote.h"
+#include "template/payment.h"
 
 using namespace std;
 using namespace xengine;
@@ -575,6 +576,52 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
         fDestInRecorded = true;
     }
+    if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
+    {
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
+        {
+            auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(tempPtr);
+            if (nForkHeight < payment->m_height_end && nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
+            {
+                CBlock block;
+                std::multimap<int64, CDestination> mapVotes;
+                if (!pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes))
+                {
+                    return false;
+                }
+                CProofOfSecretShare dpos;
+                dpos.Load(block.vchProof);
+                uint32 n = dpos.nAgreement.Get32() % mapVotes.size();
+                std::vector<CDestination> votes;
+                for (const auto& d : mapVotes)
+                {
+                    votes.push_back(d.second);
+                }
+                tx.sendTo = votes[n];
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
+    {
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
+        {
+            auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(tempPtr);
+            if (tx.nAmount != (payment->m_amount + payment->m_pledge))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
     /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
     {
@@ -648,7 +695,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     tx.vInput.reserve(vCoins.size());
     for (const CTxOutPoint& out : vCoins)
     {
-        tx.vInput.push_back(CTxIn(out));
+        tx.vInput.emplace_back(CTxIn(out));
     }
     return true;
 }
@@ -1422,7 +1469,7 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
 
 bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig)
 {
-    map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
+    auto it = mapKeyStore.find(pubkey);
     if (it == mapKeyStore.end())
     {
         StdError("CWallet", "SignPubKey: find privkey fail, pubkey: %s", pubkey.GetHex().c_str());
@@ -1449,7 +1496,7 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     bool fSigned = false;
     for (auto& pubkey : setPubKey)
     {
-        map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(pubkey);
+        auto it = mapKeyStore.find(pubkey);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
             if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
@@ -1466,7 +1513,9 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     return fSigned;
 }
 
-bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
+bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx,
+                              const uint256& hash, vector<uint8>& vchSig,
+                              const int32 nForkHeight, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {

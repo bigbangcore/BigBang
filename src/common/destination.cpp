@@ -141,8 +141,9 @@ const CTemplateId CDestination::GetTemplateId() const
     return (prefix == PREFIX_TEMPLATE) ? CTemplateId(data) : CTemplateId(uint64(0));
 }
 
-bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                     const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
+bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor,
+                                     const CDestination& destTo, const std::vector<uint8>& vchSig,
+                                     const int32 nForkHeight, bool& fCompleted) const
 {
     if (IsPubKey())
     {

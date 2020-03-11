@@ -51,6 +51,7 @@ protected:
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
+    IBlockChain* pBlockChain;
 };
 
 class CTestNetCoreProtocol : public CCoreProtocol
