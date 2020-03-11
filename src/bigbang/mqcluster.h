@@ -100,6 +100,8 @@ class CMQCluster : public IMQCluster
 {
     friend class callback;
 
+    typedef std::shared_ptr<CBufStream> CBufferPtr;
+
     enum class NODE_CATEGORY : char {
         BBCNODE = 0,
         FORKNODE,
@@ -146,15 +148,26 @@ protected:
     xengine::CThread thrMqttClient;
 
 private:
+    bool PostBlockRequest();
+    bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
     bool ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
     bool fAuth;
     bool fAbort;
     string srvAddr;
     string clientID;
+    string topicReqBlk;
     NODE_CATEGORY catNode;
-    std::vector<storage::CForkNode> vForkNode;
+//    std::vector<storage::CForkNode> vForkNode;
+    std::map<string, std::vector<uint256>> mapForkNode;
     std::map<uint32, storage::CForkNode> mapActiveForkNode;
+
+    boost::mutex mtxSend;
+    boost::condition_variable condSend;
+    std::deque<std::pair<std::string, CBufferPtr>> deqSendBuff; //topic vs. payload
+    boost::shared_mutex rwRecv;
+    boost::condition_variable condRecv;
+    std::deque<std::pair<std::string, xengine::CBufStream>> deqRecvBuff; //topic vs. payload
 };
 
 } // namespace bigbang

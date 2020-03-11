@@ -100,10 +100,31 @@ bool CMQCluster::HandleInvoke()
         return true;
     }
 
-    if (!pBlockChain->ListForkNode(vForkNode))
+    std::vector<storage::CForkNode> nodes;
+    if (!pBlockChain->ListForkNode(nodes))
     {
         Log("CMQCluster::HandleInvoke(): list fork node failed");
         return false;
+    }
+    for (const auto& node : nodes)
+    {
+        mapForkNode.insert(make_pair(node.forkNodeID, node.vecOwnedForks));
+        cout << "fork node of MQ: " << node.forkNodeID << endl;
+        for (const auto& fork : node.vecOwnedForks)
+        {
+            cout << "the fork producing subsidiary: " << fork.ToString() << endl;
+            Log("CMQCluster::HandleInvoke(): list fork node [%s] fork [%s]",
+                node.forkNodeID.c_str(), fork.ToString().c_str());
+        }
+    }
+
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
+        if (mapForkNode.size() != 1 || !PostBlockRequest())
+        {
+            return false;
+        }
     }
 
     if (!ThreadStart(thrMqttClient))
@@ -152,6 +173,48 @@ bool CMQCluster::LogEvent(const string& info)
 {
     cout << "callback to CMQCluster when MQ-EVENT" << info << endl;
     Log("CMQCluster::LogMQEvent[%s]", info.c_str());
+    return true;
+}
+
+bool CMQCluster::PostBlockRequest()
+{
+    uint256 hash;
+    int height;
+    int64 ts;
+    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hash, height, ts))
+    {
+        return false;
+    }
+
+    CSyncBlockRequest req;
+    req.ipAddr = 16777343; //127.0.0.1
+    req.ipAddr = 1111638320;
+    req.forkNodeIdLen = clientID.size();
+    req.forkNodeId = clientID;
+    auto enroll = mapForkNode.begin();
+    req.forkNum = (*enroll).second.size();
+    req.forkList = (*enroll).second;
+    req.lastHeight = height;
+    req.lastHash = hash;
+    req.tsRequest = ts;
+    req.nonce = 1;
+
+    CBufferPtr spSS(new CBufStream);
+    *spSS.get() << req;
+
+    AppendSendQueue(topicReqBlk, spSS);
+    return true;
+}
+
+bool CMQCluster::AppendSendQueue(const std::string& topic,
+                                 CBufferPtr payload)
+{
+    {
+        boost::unique_lock<boost::mutex> lock(mtxSend);
+        deqSendBuff.emplace_back(make_pair(topic, payload));
+    }
+    condSend.notify_all();
+
     return true;
 }
 
@@ -286,7 +349,7 @@ public:
         cout << "Message arrived" << endl;
         cout << "\ttopic: '" << msg->get_topic() << "'" << endl;
         cout << "\tpayload: '" << msg->to_string() << "'\n"
-                  << endl;
+             << endl;
         cluster_.LogEvent("[message_arrived]");
     }
 
@@ -301,7 +364,7 @@ public:
 bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 {
     const string TOPIC{ "Cluster01/dpos/SyncBlockReq" };
-    const char* PAYLOAD = "Request for secure main block chain for BBC.";
+    //    const char* PAYLOAD = "Request for secure main block chain for BBC.";
 
     try
     {
@@ -337,16 +400,19 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
-            for (int i = 0; i < 3; ++i)
+            while (!deqSendBuff.empty())
             {
-                cout << "\nSending message" << to_string(i) << "..." << endl;
+                pair<string, CBufferPtr> buf = deqSendBuff.front();
+                cout << "\nSending message to [" << buf.first << "]..." << endl;
+                buf.second->Dump();
 
-                mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
+                mqtt::message_ptr pubmsg = mqtt::make_message(buf.first, buf.second->GetData());
                 pubmsg->set_qos(QOS1);
                 delitok = client.publish(pubmsg, nullptr, cb);
                 delitok->wait_for(100);
-
                 cout << "OK" << endl;
+
+                deqSendBuff.pop_front();
             }
             break;
         }
@@ -388,20 +454,15 @@ void CMQCluster::MqttThreadFunc()
     //publish topics
     while (!fAbort)
     {
-        boost::system_time const timeout = boost::get_system_time()
-                                           + boost::posix_time::seconds(10);
         {
-            boost::unique_lock<boost::mutex> lock(mutex);
+            boost::unique_lock<boost::mutex> lock(mtxSend);
             while (!fAbort)
             {
-                if (!condMQ.timed_wait(lock, timeout))
-                {
-                    break;
-                }
+                ClientAgent(MQ_CLI_ACTION::PUB);
+                Log("thread function of MQTT: go through an iteration");
+                condSend.wait(lock);
             }
         }
-        ClientAgent(MQ_CLI_ACTION::PUB);
-        Log("thread function of MQTT: go through an iteration");
     }
 
     //disconnect to broker

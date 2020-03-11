@@ -74,13 +74,8 @@ bool CForkNodeDB::ListForkNode(std::vector<CForkNode>& vCli)
     {
         CForkNode node;
         node.forkNodeID = it.first;
-        cout << node.forkNodeID << endl;
         node.vecOwnedForks = it.second;
         vCli.emplace_back(node);
-        for (const auto& i : node.vecOwnedForks)
-        {
-            cout << "the fork is:" << i.ToString() << endl;
-        }
     }
     return true;
 }
