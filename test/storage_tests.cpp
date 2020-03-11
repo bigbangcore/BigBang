@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(timewalk)
     uint32 nLastFileRet = 0;
     uint32 nLastPosRet = 0;
     CMyBlockWalker walker;
-    if (!tsBlock.WalkThrough(walker, nLastFileRet, nLastPosRet))
+    if (!tsBlock.WalkThrough(walker, nLastFileRet, nLastPosRet, false))
     {
         printf("%s  WalkThrough fail\n", GetLocalTime().c_str());
         return;
