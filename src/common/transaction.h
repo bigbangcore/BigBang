@@ -220,6 +220,7 @@ protected:
     }
 };
 
+// Tx的输出(目标地址，金额，还有锁定高度等)
 class CTxOut
 {
     friend class xengine::CStream;
@@ -365,6 +366,7 @@ protected:
     }
 };
 
+// Tx输入上下文(金额，锁定高度，Tx时间)
 class CTxInContxt
 {
     friend class xengine::CStream;
@@ -402,6 +404,7 @@ protected:
     }
 };
 
+// Tx所对应的上下文信息(前序Tx的输出转账地址，前序Tx的输出对应的输入)
 class CTxContxt
 {
     friend class xengine::CStream;

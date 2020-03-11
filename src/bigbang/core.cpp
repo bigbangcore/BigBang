@@ -461,27 +461,34 @@ Errno CCoreProtocol::VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev)
     return OK;
 }
 
+// 校验Block中的tx(前序时间，与花费费用是否合理，模板，from地址签名是否合法)
 Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork)
 {
+    // 因为Tx中没有from地址，只有sendTo地址。destIn就是from地址
     const CDestination& destIn = txContxt.destIn;
     int64 nValueIn = 0;
+    // 处理该Tx的所有前序Tx对应的输入
     for (const CTxInContxt& inctxt : txContxt.vin)
     {
+        // 前序Tx的时间不能大于后续Tx的时间戳
         if (inctxt.nTxTime > tx.nTimeStamp)
         {
             return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
         }
+        // 前序Tx的输出作为的输入被锁定了，那么上链的Tx就有问题，所以报错
         if (inctxt.IsLocked(pIndexPrev->GetBlockHeight()))
         {
             return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
         }
+        // 前序Tx输出金额的累加就是该后续交易可以的花费的金额
         nValueIn += inctxt.nAmount;
     }
-
+    // 输入金额是否合法
     if (!MoneyRange(nValueIn))
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
     }
+    // 如果Tx交易费用和该Tx实际想要花费的金额之和，前序输入余额，那么肯定是报错。
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
@@ -506,6 +513,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         vchSig = tx.vchSig;
     }*/
+    // 金额nValueIn转入到电商模板地址的Tx
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT,tx.vchSig);
@@ -533,10 +541,12 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
         }
     }
+    // 主要是校验模板的一些地址和vchSig
     if (!VerifyDestRecorded(tx, vchSig))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
+    // 校验Tx from地址的签名是否合法
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");

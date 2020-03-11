@@ -431,6 +431,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     //把Block转换到BLockEx，为了拿到TxContxt列表，也就是vTx对应的详细信息
     CBlockEx blockex(block);
+    // 此时vTxContxt是空的
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
 
     int64 nTotalFee = 0;
@@ -460,8 +461,10 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
+        // tx不在TxPool中意味着tx一定要正确上链才能校验Tx
         if (!pTxPool->Exists(txid))
         {
+            // 校验Block中的tx(前序时间，与花费费用是否合理，模板，from地址签名是否合法)
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
             if (err != OK)
             {
@@ -523,7 +526,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
         //     mapEnrollTx.insert(make_pair(make_pair(tx.sendTo, tx.hashAnchor), txid));
         // }
-
+        
+        // 把tx对应的上下文信息保存到BlockEx中，以增加信息字段vTxContxt
         vTxContxt.push_back(txContxt);
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
 
@@ -1088,6 +1092,7 @@ bool CBlockChain::InsertGenesisBlock(CBlock& block)
 Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx, CTxContxt& txContxt)
 {
     txContxt.SetNull();
+    // 从Tx的输入查找到View中的前序Tx输出
     for (const CTxIn& txin : tx.vInput)
     {
         CTxOut output;
@@ -1096,16 +1101,19 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
             Log("GetTxContxt: RetrieveUnspent fail, prevout: [%d]:%s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             return ERR_MISSING_PREV;
         }
+        // 前序Tx的输出转账地址就是后续Tx的转入地址
         if (txContxt.destIn.IsNull())
         {
             txContxt.destIn = output.destTo;
         }
         else if (txContxt.destIn != output.destTo)
         {
+            // 如果不等于，肯定报错
             Log("GetTxContxt: destIn error, destIn: %s, destTo: %s",
                 txContxt.destIn.ToString().c_str(), output.destTo.ToString().c_str());
             return ERR_TRANSACTION_INVALID;
         }
+        // 前序Tx的输出作为后续Tx的输入
         txContxt.vin.push_back(CTxInContxt(output));
     }
     return OK;
