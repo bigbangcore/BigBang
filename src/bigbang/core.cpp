@@ -1025,6 +1025,7 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
         nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     }
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
+    nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
 }
 
 } // namespace bigbang
