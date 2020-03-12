@@ -421,6 +421,7 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     return OK;
 }
 
+// 主要是校验支链各个块(支链主块，子块的时间戳和时间间隔)
 Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                       const CDelegateAgreement& agreement)
 {
@@ -431,6 +432,7 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
 
     if (!block.IsExtended())
     {
+        // 支链主块一定要和对应的主链主块同时出，时间戳不一致就是错误的
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
@@ -438,13 +440,14 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     }
     else
     {
+        // 支链的子块时间戳一定要大于其根据主链的主块出的，因为2s一个子块，但是不能超过60s
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
         }
     }
-
+    // 根据子块与参考信标的Block的时间差算出子块的顺序下标，可以根据顺序下表知道是那个Delegate地址出的子块
     int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
     if (block.txMint.sendTo != agreement.GetBallot(nIndex))
     {

@@ -146,20 +146,25 @@ bool CBlockView::RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent)
     return true;
 }
 
+// 向BlockView中添加新增Block的tx(修改对应的Tx的Unspent)
 void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn, int64 nValueIn)
 {
+    // BlockView中当前tx表
     mapTx[txid] = tx;
+    // 新增的TxID
     vTxAddNew.push_back(txid);
-
+    // 既然是Block中的tx，那么tx的前序输出的Unspent应该被标记为已花费，也就是Unspent disable无效
     for (int i = 0; i < tx.vInput.size(); i++)
     {
         mapUnspent[tx.vInput[i].prevout].Disable();
     }
     CTxOut output0(tx);
+    // 该Tx的输出到to地址，正常未花费(amount)，标记为unspent
     if (!output0.IsNull())
     {
         mapUnspent[CTxOutPoint(txid, 0)].Enable(output0);
     }
+    // 该Tx的输出到自身from地址，也就是找零(nValueIn - amount - txfee)，标记为unspent
     CTxOut output1(tx, destIn, nValueIn);
     if (!output1.IsNull())
     {
@@ -167,15 +172,20 @@ void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDesti
     }
 }
 
+// 从BlockView中删除Tx(修改对应的Tx Unspent)
 void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt)
 {
+    // tx表对应的tx置空
     mapTx[txid].SetNull();
+    // 删除的tx id添加到删除列表中
     vTxRemove.push_back(txid);
+    // 既然是删除，那么tx的前序输出标记为未被花费
     for (int i = 0; i < tx.vInput.size(); i++)
     {
         const CTxInContxt& in = txContxt.vin[i];
         mapUnspent[tx.vInput[i].prevout].Enable(CTxOut(txContxt.destIn, in.nAmount, in.nTxTime, in.nLockUntil));
     }
+    // 该Tx的输出to的地址的花费和找零标记维已消费
     mapUnspent[CTxOutPoint(txid, 0)].Disable();
     mapUnspent[CTxOutPoint(txid, 1)].Disable();
 }

@@ -174,12 +174,12 @@ public:
 protected:
     CBlockBase* pBlockBase;
     boost::shared_ptr<CBlockFork> spFork;
-    uint256 hashFork;
+    uint256 hashFork;// 当前BlockView关联的分支ID
     bool fCommittable;
-    std::map<uint256, CTransaction> mapTx;
-    std::map<CTxOutPoint, CUnspent> mapUnspent;
-    std::vector<uint256> vTxRemove;
-    std::vector<uint256> vTxAddNew;
+    std::map<uint256, CTransaction> mapTx; // 当前BlockView中的tx表
+    std::map<CTxOutPoint, CUnspent> mapUnspent; // 当前BlockView中Tx的Unspent表
+    std::vector<uint256> vTxRemove; // 当前BlockView中删除的txid
+    std::vector<uint256> vTxAddNew; // 当前BlockView中新增Block打包的txid
 };
 
 class CBlockHeightIndex

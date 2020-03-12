@@ -418,7 +418,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     storage::CBlockView view;
     // 新Block入库之前拿到前序Block关联的的Fork的BlockView，在View中进行长短链切换，并且BlockView是可提交的
-    if (!cntrBlock.GetBlockiew(block.hashPrev, view, !block.IsOrigin()))
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
         Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -426,6 +426,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     if (!block.IsVacant())
     {
+        // 添加挖矿交易进BlockView
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
 
@@ -529,11 +530,12 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         
         // 把tx对应的上下文信息保存到BlockEx中，以增加信息字段vTxContxt
         vTxContxt.push_back(txContxt);
+        // 添加新增打包好的tx到BlockView中
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
-
+        // 累加各个交易费
         nTotalFee += tx.nTxFee;
     }
-
+    // 挖矿奖励不能大于总打包交易费和奖励值
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
         Log("AddNewBlock Mint tx amount invalid : (%ld > %ld + %ld ", block.txMint.nAmount, nTotalFee, nReward);
@@ -764,6 +766,7 @@ bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& 
     return true;
 }
 
+// 拿到对应Block的奖励
 bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
@@ -773,12 +776,14 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         return false;
     }
 
+    // 主链块有20的奖励
     if (pIndexPrev->IsPrimary())
     {
         nReward = pCoreProtocol->GetPrimaryMintWorkReward(pIndexPrev);
     }
     else
     {
+        // 因为支链主块的奖励是创建分支的时候配置的，所以要拿到分支对应的Profile的奖励字段，进行计算实际的奖励
         CProfile profile;
         if (!GetForkProfile(pIndexPrev->GetOriginHash(), profile))
         {
@@ -1101,14 +1106,14 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
             Log("GetTxContxt: RetrieveUnspent fail, prevout: [%d]:%s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             return ERR_MISSING_PREV;
         }
-        // 前序Tx的输出转账地址就是后续Tx的转入地址
+        // 前序Tx的输出转账地址就是后续Tx的转入地址，也就是后续该Tx的from地址
         if (txContxt.destIn.IsNull())
         {
             txContxt.destIn = output.destTo;
         }
         else if (txContxt.destIn != output.destTo)
         {
-            // 如果不等于，肯定报错
+            // 如果不等于，肯定报错，也就是from地址必须一样
             Log("GetTxContxt: destIn error, destIn: %s, destTo: %s",
                 txContxt.destIn.ToString().c_str(), output.destTo.ToString().c_str());
             return ERR_TRANSACTION_INVALID;
@@ -1219,6 +1224,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
+        // 得到前序Block的奖励
         if (!GetBlockMintReward(block.hashPrev, nReward))
         {
             return ERR_BLOCK_COINBASE_INVALID;
@@ -1256,21 +1262,25 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_INVALID_FORK;
         }
 
+        // 拿到支链主块共识结果的证明
         CProofOfPiggyback proof;
         proof.Load(block.vchProof);
 
         CDelegateAgreement agreement;
+        // 通过支链主块的证明拿到共识结果，hashRefBlock是支链主块参考引用主链主块的证明
         if (!GetBlockDelegateAgreement(proof.hashRefBlock, agreement))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
+        // 支链主块的共识要与解码出来的一致，而且一定要是DPoS出的
         if (agreement.nAgreement != proof.nAgreement || agreement.nWeight != proof.nWeight
             || agreement.IsProofOfWork())
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
+        // 拿到该支链主块共识结果对应的主块的BlockIndex作为输出参数
         if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
@@ -1278,6 +1288,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
         if (block.IsExtended())
         {
+            // 如果是子块就校验前序Block的共识结果，只有前序（支链主块）才是它的依据
             CBlock blockPrev;
             if (!cntrBlock.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
             {
@@ -1299,7 +1310,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
         }
-
+        // 校验支链的块
         return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
     return OK;
