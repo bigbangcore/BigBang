@@ -21,6 +21,10 @@ public:
     std::string forkNodeID;
     std::vector<uint256> vecOwnedForks;
 
+public:
+    CForkNode(std::string id = std::string(), std::vector<uint256> forks = std::vector<uint256>())
+    : forkNodeID(id), vecOwnedForks(forks) {}
+
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)

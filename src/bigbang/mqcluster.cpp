@@ -75,6 +75,12 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("dispatcher", pDispatcher))
+    {
+        Error("Failed to request dispatcher\n");
+        return false;
+    }
+
     if (!GetObject("service", pService))
     {
         Error("Failed to request service");
@@ -89,6 +95,7 @@ void CMQCluster::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
+    pDispatcher = nullptr;
     pService = nullptr;
 }
 
@@ -218,6 +225,166 @@ bool CMQCluster::AppendSendQueue(const std::string& topic,
     return true;
 }
 
+void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
+{
+    payload.Dump();
+
+    switch (catNode)
+    {
+    case NODE_CATEGORY::BBCNODE:
+        Error("CMQCluster::OnReceiveMessage(): bbc node should not come here!");
+        return;
+    case NODE_CATEGORY::FORKNODE:
+    {
+        if (topicRbBlk != topic)
+        {//respond to request block of main chain
+            //unpack payload
+            CSyncBlockResponse resp;
+            try
+            {
+                payload >> resp;
+            }
+            catch (exception& e)
+            {
+                StdError(__PRETTY_FUNCTION__, e.what());
+                Error("CMQCluster::OnReceiveMessage(): failed to unpack respond msg");
+                return;
+            }
+
+            //check if this msg is just for me
+            //if (topicReqBlk != clientID)
+
+            //validate this coming block
+            if (!pCoreProtocol->ValidateBlock(resp.block))
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to validate block");
+                return;
+            }
+
+            //notify to add new block
+            Errno err = pDispatcher->AddNewBlock(resp.block);
+            if (err != OK)
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to validate block (%d) : %s\n", err, ErrorString(err));
+                return;
+            }
+            lastHeightResp = resp.height;
+
+            //iterate to retrieve next one
+            if (!PostBlockRequest())
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to post request");
+                return;
+            }
+        }
+        else
+        {//roll back blocks on main chain
+            //unpack payload
+            CRollbackBlock rb;
+            try
+            {
+                payload >> rb;
+            }
+            catch (exception& e)
+            {
+                StdError(__PRETTY_FUNCTION__, e.what());
+                Error("CMQCluster::OnReceiveMessage(): failed to unpack rollback msg");
+                return;
+            }
+
+        }
+        break;
+    }
+    case NODE_CATEGORY::DPOSNODE:
+    {
+        //unpack payload
+        CSyncBlockRequest req;
+        try
+        {
+            payload >> req;
+        }
+        catch (exception& e)
+        {
+            StdError(__PRETTY_FUNCTION__, e.what());
+            Error("CMQCluster::OnReceiveMessage(): failed to unpack request msg");
+            return;
+        }
+
+        //check if requesting fork node has been enrolled
+        auto node = mapForkNode.find(req.forkNodeId);
+        if (node == mapForkNode.end())
+        {
+            Error("CMQCluster::OnReceiveMessage(): requesting fork node has not enrolled yet");
+            return;
+        }
+        //check if requesting fork node matches the corresponding one enrolled
+        if (node->second.size() != req.forkNum)
+        {
+            Error("CMQCluster::OnReceiveMessage(): requesting fork node number does not match");
+            return;
+        }
+        for (const auto& fork : req.forkList)
+        {
+            auto pos = find(node->second.begin(), node->second.end(), fork);
+            if (pos == node->second.end())
+            {
+                Error("CMQCluster::OnReceiveMessage(): requesting fork node detailed forks does not match");
+                return;
+            }
+        }
+
+        //add this requesting fork node to active list
+        mapActiveForkNode[req.ipAddr] = storage::CForkNode(req.forkNodeId, req.forkList);
+
+        //processing request from fork node
+        //check height and hash are matched
+        uint256 hash;
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
+        {
+            Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match");
+            return;
+        }
+        if (hash != req.lastHash)
+        {
+            Error("CMQCluster::OnReceiveMessage(): height and hash do not match");
+            return;
+        }
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
+        {
+            Error("CMQCluster::OnReceiveMessage(): failed to get next block hash");
+            return;
+        }
+        CBlockEx block;
+        if (!pBlockChain->GetBlockEx(hash, block))
+        {
+            Error("CMQCluster::OnReceiveMessage(): failed to get next block");
+            return;
+        }
+
+        //reply block requested
+        CSyncBlockResponse resp;
+        resp.height = req.lastHeight + 1;
+        resp.hash = hash;
+        resp.isBest = resp.height < pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash())
+                          ? 0
+                          : 1;
+        resp.blockSize = xengine::GetSerializeSize(block);
+        resp.block = move(block);
+
+        CBufferPtr spSS(new CBufStream);
+        *spSS.get() << resp;
+        string topicRsp = "Cluster01/" + req.forkNodeId + "/SyncBlockResp";
+        {
+            boost::unique_lock<boost::mutex> lock(mtxSend);
+            deqSendBuff.emplace_back(make_pair(topicRsp, spSS));
+        }
+        condSend.notify_all();
+
+        break;
+    }
+    }
+}
+
 class action_listener : public virtual mqtt::iaction_listener
 {
     std::string name_;
@@ -272,6 +439,7 @@ public:
         catch (const mqtt::exception& exc)
         {
             cerr << "Error: " << exc.what() << std::endl;
+            cluster_.LogEvent("[on_reconnect_ERROR!]");
             exit(1);
         }
         cluster_.LogEvent("[reconnected]");
@@ -284,6 +452,7 @@ public:
         cluster_.LogEvent("[on_failure]");
         if (++retry_ > RETRY_ATTEMPTS)
         {
+            cluster_.LogEvent("[on_retry_FAILURE!]");
             exit(1);
         }
         reconnect();
@@ -306,24 +475,24 @@ public:
         cluster_.LogEvent("[connected]");
         if (CMQCluster::NODE_CATEGORY::FORKNODE == cluster_.catNode)
         {
-            string TOPIC = "Cluster01/" + cluster_.clientID + "/SyncBlockResp";
-            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+            cluster_.topicRespBlk = "Cluster01/" + cluster_.clientID + "/SyncBlockResp";
+            cli_.subscribe(cluster_.topicRespBlk, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << cluster_.topicRespBlk << "'\n"
                  << "\tfor client " << cluster_.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            TOPIC = "Cluster01/DPOSNODE/UpdateBlock";
-            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+            cluster_.topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+            cli_.subscribe(cluster_.topicRbBlk, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << cluster_.topicRbBlk << "'\n"
                  << "\tfor client " << cluster_.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == cluster_.catNode)
         {
-            const string TOPIC{ "Cluster01/+/SyncBlockReq" };
-            cli_.subscribe(TOPIC, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << TOPIC << "'\n"
+            cluster_.topicReqBlk = "Cluster01/+/SyncBlockReq";
+            cli_.subscribe(cluster_.topicReqBlk, CMQCluster::QOS1, nullptr, subListener_);
+            cout << "\nSubscribing to topic '" << cluster_.topicReqBlk << "'\n"
                  << "\tfor client " << cluster_.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
@@ -351,6 +520,9 @@ public:
         cout << "\tpayload: '" << msg->to_string() << "'\n"
              << endl;
         cluster_.LogEvent("[message_arrived]");
+        xengine::CBufStream ss;
+        ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
+        cluster_.OnReceiveMessage(msg->get_topic(), ss);
     }
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override
@@ -406,6 +578,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 mqtt::message_ptr pubmsg = mqtt::make_message(
                     buf.first, buf.second->GetData(), buf.second->GetSize());
                 pubmsg->set_qos(QOS1);
+                pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                 delitok = client.publish(pubmsg, nullptr, cb);
                 delitok->wait_for(100);
                 cout << "_._._OK" << endl;

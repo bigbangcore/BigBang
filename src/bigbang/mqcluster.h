@@ -141,6 +141,7 @@ protected:
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
+    IDispatcher* pDispatcher;
     IService* pService;
 
     boost::mutex mutex;
@@ -150,6 +151,7 @@ protected:
 private:
     bool PostBlockRequest();
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
+    void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     bool ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
     bool fAuth;
@@ -157,6 +159,8 @@ private:
     string srvAddr;
     string clientID;
     string topicReqBlk;
+    string topicRespBlk;
+    string topicRbBlk;
     NODE_CATEGORY catNode;
 //    std::vector<storage::CForkNode> vForkNode;
     std::map<string, std::vector<uint256>> mapForkNode;
@@ -168,6 +172,8 @@ private:
     boost::shared_mutex rwRecv;
     boost::condition_variable condRecv;
     std::deque<std::pair<std::string, xengine::CBufStream>> deqRecvBuff; //topic vs. payload
+
+    std::atomic<int> lastHeightResp;
 };
 
 } // namespace bigbang
