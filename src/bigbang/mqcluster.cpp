@@ -187,7 +187,7 @@ bool CMQCluster::PostBlockRequest()
     }
 
     CSyncBlockRequest req;
-    req.ipAddr = 16777343; //127.0.0.1
+//    req.ipAddr = 16777343; //127.0.0.1
     req.ipAddr = 1111638320;
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
@@ -400,20 +400,71 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
+/*            {
+                CSyncBlockRequest req;
+                req.ipAddr = 1111638320;
+                CBufStream ss;
+                ss << req;
+                ss.Dump();
+                string topic = "Cluster01/dpos/SyncBlockReq";
+                delitok = client.publish(topic, ss.GetData(), ss.GetSize(), QOS1, false, nullptr, cb);
+                delitok->wait_for(1000);
+                cout << "_._._OK" << endl;
+            }*/
             while (!deqSendBuff.empty())
             {
                 pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
-                buf.second->Dump();
+//                buf.second->Dump();
 
-                mqtt::message_ptr pubmsg = mqtt::make_message(buf.first, buf.second->GetData());
+                mqtt::message_ptr pubmsg = mqtt::make_message(buf.first, buf.second->GetData(), buf.second->GetSize());
                 pubmsg->set_qos(QOS1);
-                delitok = client.publish(pubmsg, nullptr, cb);
-                delitok->wait_for(100);
-                cout << "OK" << endl;
+                string s = pubmsg->to_string();
+
+                if (buf.first == topicReqBlk)
+                {
+                    CSyncBlockRequest req;
+                    *(buf.second).get() >> req;
+                    req.ipAddr = 1111638320;
+                    CBufStream ss;
+                    ss << req;
+                    ss.Dump();
+                    string topic = "Cluster01/dpos/SyncBlockReq";//buf.first;
+                    delitok = client.publish(topic, ss.GetData(), ss.GetSize(), QOS1, false, nullptr, cb);
+                    delitok->wait_for(1000);
+                    cout << "_._._OK" << endl;
+                }
+
+//                mqtt::message msg(buf.first, buf.second->GetData(), buf.second->GetSize(), QOS1, false);
+//                delitok = client.publish(buf.first, buf.second->GetData(), buf.second->GetSize(), QOS1, false, nullptr, cb);
+//                delitok = client.publish(pubmsg, nullptr, cb);
+//                delitok->wait_for(100);
+//                cout << "___OK" << endl;
 
                 deqSendBuff.pop_front();
             }
+/*            for (int i = 0; i < 1; ++i)
+            {
+                cout << "\nSending message" << to_string(i) << "..." << endl;
+
+                CSyncBlockRequest blkreq;
+                blkreq.ipAddr = 2037340495;
+                CBufStream ss;
+                ss << blkreq;
+
+                ss.Dump();
+
+                mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, ss.GetData(), ss.GetSize());
+                //mqtt::message_ptr pubmsg = mqtt::make_message(TOPIC, PAYLOAD);
+
+                pubmsg->set_qos(QOS1);
+                string s = pubmsg->to_string();
+                delitok = client.publish(pubmsg, nullptr, cb);
+                delitok->wait_for(1000);
+
+                cout << "___OK" << endl;
+            }
+*/
             break;
         }
         case MQ_CLI_ACTION::DISCONN:
