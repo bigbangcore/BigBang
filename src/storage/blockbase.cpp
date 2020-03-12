@@ -441,6 +441,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
     return true;
 }
 
+// Block入库落盘
 bool CBlockBase::AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nMinEnrollAmount)
 {
     if (Exists(hash))
@@ -2022,6 +2023,7 @@ void CBlockBase::RemoveBlockIndex(const uint256& hashFork, const uint256& hashBl
     mapIndex.erase(hashBlock);
 }
 
+// 根据Block，文件偏移，和Block的Trust等信息创建Block Index
 CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust)
 {
     CBlockIndex* pIndexNew = new CBlockIndex(block, nFile, nOffset);

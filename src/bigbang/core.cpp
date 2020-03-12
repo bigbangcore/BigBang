@@ -661,9 +661,10 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
+// 拿到当前Block对应的Trust值，返回值uint256表示一个大数
 uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
-    // 创世块和Vacant Block的Trust值都是0
+    // 创世块和Vacant Block，OriginBlock的Trust值都是0
     if (block.IsGenesis())
     {
         return uint64(0);
@@ -672,11 +673,16 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
     {
         return uint64(0);
     }
+    else if (block.IsOrigin())
+    {
+        return uint64(0);
+    }
     else if (block.IsPrimary())
     {
         if (block.IsProofOfWork())
         {
             // PoW difficulty = 2 ^ nBits
+            // PoW块的难度值越大，Trust值就越高
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
             uint256 v(1);
@@ -685,6 +691,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
         else if (pIndexPrev != nullptr)
         {
             // Get the last PoW block nAlgo
+            // 如果当前Block不是PoW，那么就获得前序PoW块的PoW难度，用其难度的位移算Trust值，也就是说DPoS的Trust值是其Agreement的权重*(2^nBit)
             int nAlgo;
             const CBlockIndex* pIndex = pIndexPrev;
             while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
@@ -723,12 +730,9 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             return uint64(0);
         }
     }
-    else if (block.IsOrigin())
-    {
-        return uint64(0);
-    }
     else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
     {
+        // 支链的主块和子块与主链的nChainTrust保持一致，如果主链块有前序，那么是当前与前序之差
         if (pIndexRef->pPrev == nullptr)
         {
             StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());

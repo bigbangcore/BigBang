@@ -542,11 +542,12 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
-    // Get block trust
+    // 拿到当前Block对应的Trust值，用uint256表示Trust值，此时不是hash
     uint256 nChainTrust = pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
     StdTrace("BlockChain", "AddNewBlock block chain trust: %s", nChainTrust.GetHex().c_str());
 
     CBlockIndex* pIndexNew;
+    // 新增的Block入库落盘并拿到该Block的Index
     if (!cntrBlock.AddNew(hash, blockex, &pIndexNew, nChainTrust, pCoreProtocol->MinEnrollAmount()))
     {
         Log("AddNewBlock Storage AddNew Error : %s ", hash.ToString().c_str());
@@ -555,6 +556,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
     CBlockIndex* pIndexFork = nullptr;
+    // 新增的Block的Trust
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
