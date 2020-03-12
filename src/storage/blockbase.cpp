@@ -2026,9 +2026,9 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
 
         CVarInt var(block.vtx.size());
         nOffset += ss.GetSerializeSize(var);
-        for (int i = 0; i < block.vtx.size(); i++)
+        for (int j = 0; j < block.vtx.size(); j++)
         {
-            CTransaction& tx = block.vtx[i];
+            CTransaction& tx = block.vtx[j];
             uint256 txid = tx.GetHash();
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
             vTxNew.push_back(make_pair(txid, txIndex));
