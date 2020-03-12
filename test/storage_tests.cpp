@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(filetest)
             }
             catch (std::exception& e)
             {
-                printf("error: %s\n", e.what());
+                BOOST_ERROR("error: " << e.what());
                 break;
             }
             if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize)
@@ -86,22 +86,14 @@ public:
 BOOST_AUTO_TEST_CASE(timewalk)
 {
     CTimeSeriesCached tsBlock;
-    if (!tsBlock.Initialize(path("./.bigbang") / "block", BLOCKFILE_PREFIX))
-    {
-        printf("Initialize fail\n");
-        return;
-    }
+    BOOST_CHECK(tsBlock.Initialize(path("./.bigbang") / "block", BLOCKFILE_PREFIX));
 
     printf("%s  WalkThrough start....\n", GetLocalTime().c_str());
 
     uint32 nLastFileRet = 0;
     uint32 nLastPosRet = 0;
     CMyBlockWalker walker;
-    if (!tsBlock.WalkThrough(walker, nLastFileRet, nLastPosRet, false))
-    {
-        printf("%s  WalkThrough fail\n", GetLocalTime().c_str());
-        return;
-    }
+    BOOST_CHECK(tsBlock.WalkThrough(walker, nLastFileRet, nLastPosRet, false));
     printf("%s  WalkThrough success, count: %d\n", GetLocalTime().c_str(), walker.nBlockCount);
 }
 
@@ -167,7 +159,7 @@ BOOST_AUTO_TEST_CASE(fileread)
         }
         catch (std::exception& e)
         {
-            printf("error: %s\n", e.what());
+            BOOST_ERROR("error: " << e.what());
             break;
         }
         nBlockCount++;
