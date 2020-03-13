@@ -8,6 +8,8 @@
 #include "base.h"
 #include "txpooldata.h"
 
+#define CACHE_HEIGHT_INTERVAL 23
+
 namespace bigbang
 {
 
@@ -252,10 +254,10 @@ public:
 class CTxCache
 {
 public: 
-    explicit CTxCache(size_t nMaxSizeIn = 0) 
-        : nMaxSize(nMaxSizeIn){}
+    explicit CTxCache(size_t nHeightIntervalIn = 0) 
+        : nHeightInterval(nHeightIntervalIn){}
     explicit CTxCache(const CTxCache& cache)
-        : nMaxSize(cache.nMaxSize), mapCache(cache.mapCache){}
+        : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache){}
     bool Exists(const uint256& hash)
     {
         return mapCache.count(hash) > 0;
@@ -263,11 +265,24 @@ public:
     void AddNew(const uint256& hash, const std::vector<CTransaction>& vtxIn)
     {
         mapCache[hash] = vtxIn;
-        if (mapCache.size() > nMaxSize)
+        
+        const uint256& highestHash = mapCache.rbegin()->first;
+        uint32 upperHeight = CBlock::GetBlockHeightByHash(highestHash);
+        uint32 lowerHeight = upperHeight - (nHeightInterval - 1);
+
+        for(auto iter = mapCache.begin(); iter != mapCache.end(); ) 
         {
-            auto iterMinHeight = mapCache.begin(); 
-            Remove(iterMinHeight->first);
-        }   
+            uint32 height = CBlock::GetBlockHeightByHash(iter->first);
+            if (height < lowerHeight) 
+            {
+                iter = mapCache.erase(iter);
+            } 
+            else 
+            {
+                ++iter;
+            }
+        }
+
     }
     bool Retrieve(const uint256& hash, std::vector<CTransaction>& vtx)
     {
@@ -287,7 +302,7 @@ public:
         mapCache.clear();
     }
 private:
-    size_t nMaxSize;
+    size_t nHeightInterval;
     std::map<uint256, std::vector<CTransaction>> mapCache;
 };
 
