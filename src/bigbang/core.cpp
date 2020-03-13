@@ -405,8 +405,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                                  const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING
-        || block.GetBlockTime() >= pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING * 3 / 2)
+    if (block.GetBlockTime() != pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING)
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
     }

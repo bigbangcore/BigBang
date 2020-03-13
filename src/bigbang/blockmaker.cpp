@@ -16,7 +16,7 @@ using namespace std;
 using namespace xengine;
 
 #define INITIAL_HASH_RATE (8)
-#define WAIT_AGREEMENT_TIME (BLOCK_TARGET_SPACING / 2)
+#define WAIT_AGREEMENT_TIME (BLOCK_TARGET_SPACING - 5)
 #define WAIT_NEWBLOCK_TIME (BLOCK_TARGET_SPACING + 5)
 
 namespace bigbang
@@ -401,11 +401,7 @@ void CBlockMaker::ProcessExtended(const CDelegateAgreement& agreement,
         return;
     }
 
-    // int64 nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING * ((GetNetTime() - nPrimaryBlockTime + (EXTENDED_BLOCK_SPACING - 1)) / EXTENDED_BLOCK_SPACING);
-    // if (nTime < nPrimaryBlockTime + EXTENDED_BLOCK_SPACING)
-    // {
     int64 nTime = nPrimaryBlockTime + EXTENDED_BLOCK_SPACING;
-    // }
     while (nTime - nPrimaryBlockTime < BLOCK_TARGET_SPACING)
     {
         int nIndex = (nTime - nPrimaryBlockTime) / EXTENDED_BLOCK_SPACING;
