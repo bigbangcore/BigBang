@@ -278,8 +278,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 {
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
-    uint256 hashPrev;
-    pTxPool->ArrangeBlockTx(hashFork, hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee, true);
+    pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee);
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 }

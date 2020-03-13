@@ -592,84 +592,81 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 }
 
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, size_t nMaxSize,
-                             vector<CTransaction>& vtx, int64& nTotalTxFee, bool fFromCache)
+                             vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
-    if (fFromCache)
+    
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    if(mapTxCache.find(hashFork) == mapTxCache.end())
     {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        if(mapTxCache.find(hashFork) == mapTxCache.end())
-        {
-            StdError("CTxPool", "ArrangeBlockTx: find hashFork fail: %s", hashFork.ToString().c_str());
-            return;
-        }
-
-        auto& cache = mapTxCache[hashFork];
-        if (!cache.Exists(hashPrev))
-        {
-            StdError("CTxPool", "ArrangeBlockTx: hashPrev does not exist: %s", hashPrev.ToString().c_str());
-            return;
-        }
-        
-        std::vector<CTransaction> vCacheTx;
-        if(!cache.Retrieve(hashPrev, vCacheTx))
-        {
-            StdError("CTxPool", "ArrangeBlockTx: Retrieve hashPrev failed: %s", hashPrev.ToString().c_str());
-            return;
-        }
-
-        nTotalTxFee = 0;
-        size_t currentSize = 0;
-        for(const auto& tx : vCacheTx)
-        {
-            size_t nSerializeSize = xengine::GetSerializeSize(tx);
-            currentSize += nSerializeSize;
-            if(currentSize <= nMaxSize)
-            {
-                nTotalTxFee += tx.nTxFee;
-                vtx.push_back(tx);
-            }
-        }
-
+        StdError("CTxPool", "ArrangeBlockTx: find hashFork fail: %s", hashFork.ToString().c_str());
+        return;
     }
-    else
+
+    auto& cache = mapTxCache[hashFork];
+    if (!cache.Exists(hashPrev))
     {
-        map<CDestination, int> mapVoteCert;
-        std::map<CDestination, int64> mapVote;
-        int64 nWeightRatio = 0;
-        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-        {
-            uint256 hashLastBlock;
-            int nHeight;
-            int64 nTime;
-            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
-            {
-                StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
-                return;
-            }
-            if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
-            {
-                StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
-                return;
-            }
-
-            if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
-            {
-                StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
-                return;
-            }
-
-            nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
-            if (nWeightRatio < 0)
-            {
-                StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
-                return;
-            }
-        }
-
-        mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
+        StdError("CTxPool", "ArrangeBlockTx: hashPrev does not exist: %s", hashPrev.ToString().c_str());
+        return;
     }
     
-    
+    std::vector<CTransaction> vCacheTx;
+    if(!cache.Retrieve(hashPrev, vCacheTx))
+    {
+        StdError("CTxPool", "ArrangeBlockTx: Retrieve hashPrev failed: %s", hashPrev.ToString().c_str());
+        return;
+    }
+
+    nTotalTxFee = 0;
+    size_t currentSize = 0;
+    for(const auto& tx : vCacheTx)
+    {
+        size_t nSerializeSize = xengine::GetSerializeSize(tx);
+        currentSize += nSerializeSize;
+        if(currentSize <= nMaxSize)
+        {
+            nTotalTxFee += tx.nTxFee;
+            vtx.push_back(tx);
+        }
+    }
+}
+
+void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+                        std::vector<CTransaction>& vtx, int64& nTotalTxFee)
+{
+    map<CDestination, int> mapVoteCert;
+    std::map<CDestination, int64> mapVote;
+    int64 nWeightRatio = 0;
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        uint256 hashLastBlock;
+        int nHeight;
+        int64 nTime;
+        if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
+            return;
+        }
+        if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
+            return;
+        }
+
+        if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
+            return;
+        }
+
+        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
+        if (nWeightRatio < 0)
+        {
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
+            return;
+        }
+    }
+
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
@@ -834,7 +831,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             std::vector<CTransaction> vtx;
             int64 nTotalFee = 0;
-            ArrangeBlockTx(update.hashFork, uint256(), block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee, false);
+            ArrangeBlockTx(update.hashFork, block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
             cache.AddNew(block.GetHash(), vtx);
         }
     }
@@ -847,7 +844,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             std::vector<CTransaction> vtx;
             int64 nTotalFee = 0;
-            ArrangeBlockTx(update.hashFork, uint256(), block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee, false);
+            ArrangeBlockTx(update.hashFork, block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
             cache.AddNew(block.GetHash(), vtx);
         }
 

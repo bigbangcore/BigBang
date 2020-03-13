@@ -133,7 +133,7 @@ public:
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual void ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
-                                std::vector<CTransaction>& vtx, int64& nTotalTxFee, bool fFromCache)
+                                std::vector<CTransaction>& vtx, int64& nTotalTxFee)
         = 0;
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
     virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
