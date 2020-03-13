@@ -5,6 +5,7 @@
 #include "consensus.h"
 
 #include "address.h"
+#include "block.h"
 #include "template/delegate.h"
 
 using namespace std;
@@ -429,17 +430,18 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             }
             routine.vDistributeData.push_back(make_pair(hash, result.mapDistributeData));
 
-            if (i == 0)
+            if (i == 0 && result.mapPublishData.size() > 0)
             {
                 StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
                 for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
                      it != result.mapPublishData.end(); ++it)
                 {
                     bool fCompleted = false;
-                    delegate.HandlePublish(nPublishTargetHeight, hash, (*it).first, (*it).second, fCompleted);
+                    delegate.HandlePublish(nPublishTargetHeight, result.hashDistributeOfPublish, (*it).first, (*it).second, fCompleted);
                     routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
                 }
                 routine.mapPublishData = result.mapPublishData;
+                routine.hashDistributeOfPublish = result.hashDistributeOfPublish;
             }
 
             routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
@@ -456,19 +458,19 @@ void CConsensus::AddNewTx(const CAssembledTx& tx)
     }
 }
 
-bool CConsensus::AddNewDistribute(int nAnchorHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom, const vector<unsigned char>& vchDistribute)
+bool CConsensus::AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const vector<unsigned char>& vchDistribute)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
-    int nDistributeTargetHeight = nAnchorHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-    return delegate.HandleDistribute(nDistributeTargetHeight, hashDistributeAnchor, destFrom, vchDistribute);
+    int nTargetHeight = CBlock::GetBlockHeightByHash(hashDistributeAnchor) + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
+    return delegate.HandleDistribute(nTargetHeight, hashDistributeAnchor, destFrom, vchDistribute);
 }
 
-bool CConsensus::AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnchor, const CDestination& destFrom, const vector<unsigned char>& vchPublish)
+bool CConsensus::AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const vector<unsigned char>& vchPublish)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
-    int nPublishTargetHeight = nAnchorHeight + 1;
+    int nTargetHeight = CBlock::GetBlockHeightByHash(hashDistributeAnchor) + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
     bool fCompleted = false;
-    return delegate.HandlePublish(nPublishTargetHeight, hashPublishAnchor, destFrom, vchPublish, fCompleted);
+    return delegate.HandlePublish(nTargetHeight, hashDistributeAnchor, destFrom, vchPublish, fCompleted);
 }
 
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)

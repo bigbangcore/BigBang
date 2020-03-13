@@ -28,6 +28,7 @@ public:
     std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
     std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    uint256 hashDistributeOfPublish;
 };
 
 class CDelegate
@@ -46,7 +47,7 @@ public:
     void Rollback(int nBlockHeightFrom, int nBlockHeightTo);
     bool HandleDistribute(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
                           const std::vector<unsigned char>& vchDistributeData);
-    bool HandlePublish(int nTargetHeight, const uint256& hashPublishAnchor, const CDestination& destFrom,
+    bool HandlePublish(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
                        const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
     void GetAgreement(int nTargetHeight, const uint256& hashDistributeAnchor, uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof);
