@@ -603,17 +603,16 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
 
     auto& cache = mapTxCache[hashFork];
-    uint32 nHeight = CBlock::GetBlockHeightByHash(hashPrev);
-    if (!cache.Exists(nHeight))
+    if (!cache.Exists(hashPrev))
     {
         std::vector<CTransaction> vecTx;
         int64 tempTotalTxFee = 0;
         ArrangeBlockTx(hashFork, nBlockTime, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
-        cache.AddNew(nHeight, vecTx);
+        cache.AddNew(hashPrev, vecTx);
     }
     
     std::vector<CTransaction> vCacheTx;
-    cache.Retrieve(nHeight, vCacheTx);
+    cache.Retrieve(hashPrev, vCacheTx);
 
     nTotalTxFee = 0;
     size_t currentSize = 0;
@@ -629,6 +628,8 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
         nTotalTxFee += tx.nTxFee;
         vtx.push_back(tx);
     }
+
+    cache.Remove(hashPrev);
 }
 
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
@@ -825,7 +826,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     // ArrangeBlockTx to cache
     if (mapTxCache.find(update.hashFork) == mapTxCache.end())
     {
-        mapTxCache.insert(std::make_pair(update.hashFork, CTxHeightCache(23)));
+        mapTxCache.insert(std::make_pair(update.hashFork, CTxCache(23)));
         
         std::vector<CTransaction> vtx;
         int64 nTotalFee = 0;
@@ -833,7 +834,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
         auto& cache = mapTxCache[update.hashFork];
-        cache.AddNew(lastBlockEx.GetBlockHeight(), vtx);
+        cache.AddNew(lastBlockEx.GetHash(), vtx);
         
     }
     else
@@ -844,7 +845,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
         auto& cache = mapTxCache[update.hashFork];
-        cache.AddNew(lastBlockEx.GetBlockHeight(), vtx);
+        cache.AddNew(lastBlockEx.GetHash(), vtx);
 
     }
     

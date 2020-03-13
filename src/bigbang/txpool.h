@@ -249,45 +249,46 @@ public:
     std::map<CTxOutPoint, CSpent> mapSpent;
 };
 
-class CTxHeightCache
+class CTxCache
 {
 public: 
-    explicit CTxHeightCache(size_t nMaxSizeIn = 0) 
+    explicit CTxCache(size_t nMaxSizeIn = 0) 
         : nMaxSize(nMaxSizeIn){}
-    explicit CTxHeightCache(const CTxHeightCache& cache)
-        : nMaxSize(cache.nMaxSize), mapCacheByHeight(cache.mapCacheByHeight){}
-    bool Exists(uint32 height)
+    explicit CTxCache(const CTxCache& cache)
+        : nMaxSize(cache.nMaxSize), mapCache(cache.mapCache){}
+    bool Exists(const uint256& hash)
     {
-        return mapCacheByHeight.count(height) > 0;
+        return mapCache.count(hash) > 0;
     }
-    void AddNew(uint32 height, const std::vector<CTransaction>& vtxIn)
+    void AddNew(const uint256& hash, const std::vector<CTransaction>& vtxIn)
     {
-        mapCacheByHeight[height] = vtxIn;
-        if (mapCacheByHeight.size() > nMaxSize)
+        mapCache[hash] = vtxIn;
+        if (mapCache.size() > nMaxSize)
         {
-            mapCacheByHeight.erase(mapCacheByHeight.begin());
+            auto iterMinHeight = mapCache.begin(); 
+            Remove(iterMinHeight->first);
         }   
     }
-    bool Retrieve(uint32 height, std::vector<CTransaction>& vtx)
+    bool Retrieve(const uint256& hash, std::vector<CTransaction>& vtx)
     {
-        if(mapCacheByHeight.find(height) != mapCacheByHeight.end())
+        if(mapCache.find(hash) != mapCache.end())
         {
-            vtx = mapCacheByHeight[height];
+            vtx = mapCache[hash];
             return true;
         }
         return false;
     }
-    void Remove(uint32 height)
+    void Remove(const uint256& hash)
     {
-        mapCacheByHeight.erase(height);
+        mapCache.erase(hash);
     }
     void Clear()
     {
-        mapCacheByHeight.clear();
+        mapCache.clear();
     }
 private:
     size_t nMaxSize;
-    std::map<uint32, std::vector<CTransaction>> mapCacheByHeight;
+    std::map<uint256, std::vector<CTransaction>> mapCache;
 };
 
 class CTxPool : public ITxPool
@@ -335,7 +336,7 @@ protected:
     std::map<uint256, CTxPoolView> mapPoolView;
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
-    std::map<uint256, CTxHeightCache> mapTxCache;
+    std::map<uint256, CTxCache> mapTxCache;
 };
 
 } // namespace bigbang
