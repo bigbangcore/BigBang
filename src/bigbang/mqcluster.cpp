@@ -354,8 +354,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Error("CMQCluster::OnReceiveMessage(): failed to get next block hash");
             return;
         }
-        CBlockEx block;
-        if (!pBlockChain->GetBlockEx(hash, block))
+        CBlock block;
+        if (!pBlockChain->GetBlock(hash, block))
         {
             Error("CMQCluster::OnReceiveMessage(): failed to get next block");
             return;

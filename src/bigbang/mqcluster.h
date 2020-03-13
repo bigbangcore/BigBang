@@ -53,7 +53,7 @@ public:
     uint256 hash;
     uint8 isBest;
     int32 blockSize;
-    CBlockEx block;
+    CBlock block;
 
 protected:
     template <typename O>
