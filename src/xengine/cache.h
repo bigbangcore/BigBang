@@ -41,7 +41,6 @@ class CCache
 public:
     CCache(std::size_t nMaxCountIn = 0)
       : nMaxCount(nMaxCountIn) {}
-    CCache(const CCache& cache) : nMaxCount(cache.nMaxCount) {}
     bool Exists(const K& key) const
     {
         CReadLock rlock(rwAccess);

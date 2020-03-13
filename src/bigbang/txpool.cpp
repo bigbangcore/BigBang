@@ -603,18 +603,17 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
 
     auto& cache = mapTxCache[hashFork];
-    if (!cache.Exists(hashPrev))
+    uint32 nHeight = CBlock::GetBlockHeightByHash(hashPrev);
+    if (!cache.Exists(nHeight))
     {
-        StdError("CTxPool", "ArrangeBlockTx: hashPrev does not exist: %s", hashPrev.ToString().c_str());
-        return;
+        std::vector<CTransaction> vecTx;
+        int64 tempTotalTxFee = 0;
+        ArrangeBlockTx(hashFork, nBlockTime, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
+        cache.AddNew(nHeight, vecTx);
     }
     
     std::vector<CTransaction> vCacheTx;
-    if(!cache.Retrieve(hashPrev, vCacheTx))
-    {
-        StdError("CTxPool", "ArrangeBlockTx: Retrieve hashPrev failed: %s", hashPrev.ToString().c_str());
-        return;
-    }
+    cache.Retrieve(nHeight, vCacheTx);
 
     nTotalTxFee = 0;
     size_t currentSize = 0;
@@ -622,11 +621,13 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     {
         size_t nSerializeSize = xengine::GetSerializeSize(tx);
         currentSize += nSerializeSize;
-        if(currentSize <= nMaxSize)
+        if(currentSize > nMaxSize)
         {
-            nTotalTxFee += tx.nTxFee;
-            vtx.push_back(tx);
+            break;
         }
+
+        nTotalTxFee += tx.nTxFee;
+        vtx.push_back(tx);
     }
 }
 
@@ -824,38 +825,26 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     // ArrangeBlockTx to cache
     if (mapTxCache.find(update.hashFork) == mapTxCache.end())
     {
-        mapTxCache.insert(std::make_pair(update.hashFork, CCache<uint256, std::vector<CTransaction>>(25)));
+        mapTxCache.insert(std::make_pair(update.hashFork, CTxHeightCache(23)));
+        
+        std::vector<CTransaction> vtx;
+        int64 nTotalFee = 0;
+        const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
+        ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
+
         auto& cache = mapTxCache[update.hashFork];
-        // AddNew
-        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-        {
-            std::vector<CTransaction> vtx;
-            int64 nTotalFee = 0;
-            ArrangeBlockTx(update.hashFork, block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
-            cache.AddNew(block.GetHash(), vtx);
-        }
+        cache.AddNew(lastBlockEx.GetBlockHeight(), vtx);
+        
     }
     else
     {
+        std::vector<CTransaction> vtx;
+        int64 nTotalFee = 0;
+        const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
+        ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
+
         auto& cache = mapTxCache[update.hashFork];
-
-        // Add New
-        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-        {
-            std::vector<CTransaction> vtx;
-            int64 nTotalFee = 0;
-            ArrangeBlockTx(update.hashFork, block.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
-            cache.AddNew(block.GetHash(), vtx);
-        }
-
-         // roll back
-        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
-        {
-            if(cache.Exists(block.GetHash()))
-            {
-                cache.Remove(block.GetHash());
-            }
-        }
+        cache.AddNew(lastBlockEx.GetBlockHeight(), vtx);
 
     }
     

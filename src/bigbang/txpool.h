@@ -249,6 +249,47 @@ public:
     std::map<CTxOutPoint, CSpent> mapSpent;
 };
 
+class CTxHeightCache
+{
+public: 
+    explicit CTxHeightCache(size_t nMaxSizeIn = 0) 
+        : nMaxSize(nMaxSizeIn){}
+    explicit CTxHeightCache(const CTxHeightCache& cache)
+        : nMaxSize(cache.nMaxSize), mapCacheByHeight(cache.mapCacheByHeight){}
+    bool Exists(uint32 height)
+    {
+        return mapCacheByHeight.count(height) > 0;
+    }
+    void AddNew(uint32 height, const std::vector<CTransaction>& vtxIn)
+    {
+        mapCacheByHeight[height] = vtxIn;
+        if (mapCacheByHeight.size() > nMaxSize)
+        {
+            mapCacheByHeight.erase(mapCacheByHeight.begin());
+        }   
+    }
+    bool Retrieve(uint32 height, std::vector<CTransaction>& vtx)
+    {
+        if(mapCacheByHeight.find(height) != mapCacheByHeight.end())
+        {
+            vtx = mapCacheByHeight[height];
+            return true;
+        }
+        return false;
+    }
+    void Remove(uint32 height)
+    {
+        mapCacheByHeight.erase(height);
+    }
+    void Clear()
+    {
+        mapCacheByHeight.clear();
+    }
+private:
+    size_t nMaxSize;
+    std::map<uint32, std::vector<CTransaction>> mapCacheByHeight;
+};
+
 class CTxPool : public ITxPool
 {
 public:
@@ -294,7 +335,7 @@ protected:
     std::map<uint256, CTxPoolView> mapPoolView;
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
-    std::map<uint256, xengine::CCache<uint256, std::vector<CTransaction>>> mapTxCache;
+    std::map<uint256, CTxHeightCache> mapTxCache;
 };
 
 } // namespace bigbang
