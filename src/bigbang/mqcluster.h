@@ -132,7 +132,7 @@ protected:
     void HandleHalt() override;
 
     bool HandleEvent(CEventMQSyncBlock& eventMqSyncBlock) override;
-    bool HandleEvent(CEventMQUpdateBlock& eventMqUpdateBlock) override;
+    bool HandleEvent(CEventMQChainUpdate& eventMqUpdateChain) override;
     bool HandleEvent(CEventMQAgreement& eventMqAgreement) override;
 
     bool IsAuthenticated() override;
@@ -149,8 +149,9 @@ protected:
     xengine::CThread thrMqttClient;
 
 private:
-    bool PostBlockRequest();
+    bool PostBlockRequest(int syncHeight = -1);
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
+    void RequestBlockTimerFunc(uint32 nTimer);
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     bool ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
@@ -174,6 +175,7 @@ private:
     std::deque<std::pair<std::string, xengine::CBufStream>> deqRecvBuff; //topic vs. payload
 
     std::atomic<int> lastHeightResp;
+    uint32 nReqBlkTimerID;
 };
 
 } // namespace bigbang

@@ -32,6 +32,7 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pMqcluster = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -106,6 +107,17 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
+
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (2 == nNodeCat)
+    {
+        if (!GetObject("mqcluster", pMqcluster))
+        {
+            Error("Failed to request mqcluster");
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -122,6 +134,7 @@ void CDispatcher::HandleDeinitialize()
     pNetChannel = nullptr;
     // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pMqcluster = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -348,6 +361,31 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     // SyncForkHeight(updateBlockChain.nLastBlockHeight);
+
+    if (2 == nNodeCat && !updateBlockChain.vBlockRemove.empty())
+    {
+        CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
+        if (pMqChainUpdate != nullptr)
+        {
+            pMqChainUpdate->data.shortLen = updateBlockChain.vBlockRemove.size();
+            pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
+            bool fFirst = true;
+            for (const auto& rb : updateBlockChain.vBlockRemove)
+            {
+                if (fFirst)
+                {
+                    pMqChainUpdate->data.triHeight = rb.GetBlockHeight() - 1;
+                    pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
+                                              pMqChainUpdate->data.triHeight,
+                                              pMqChainUpdate->data.triHash);
+                    fFirst = false;
+                }
+                pMqChainUpdate->data.vShort.push_back(rb.GetHash());
+            }
+
+            pMqcluster->PostEvent(pMqChainUpdate);
+        }
+    }
 }
 
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)

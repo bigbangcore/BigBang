@@ -26,7 +26,8 @@ CMQCluster::CMQCluster(int catNodeIn)
     pService(nullptr),
     fAuth(false),
     fAbort(false),
-    srvAddr("tcp://localhost:1883")
+    srvAddr("tcp://localhost:1883"),
+    nReqBlkTimerID(0)
 {
     switch (catNodeIn)
     {
@@ -128,8 +129,14 @@ bool CMQCluster::HandleInvoke()
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-        if (mapForkNode.size() != 1 || !PostBlockRequest())
+        if (mapForkNode.size() != 1)
         {
+            Error("CMQCluster::HandleHalt(): fork node should have one single enrollment");
+            return false;
+        }
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::HandleHalt(): failed to post requesting block");
             return false;
         }
     }
@@ -166,8 +173,31 @@ bool CMQCluster::HandleEvent(CEventMQSyncBlock& eventMqSyncBlock)
     return true;
 }
 
-bool CMQCluster::HandleEvent(CEventMQUpdateBlock& eventMqUpdateBlock)
+bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 {
+    CMqRollbackUpdate& update = eventMqUpdateChain.data;
+
+    if (catNode != NODE_CATEGORY::DPOSNODE)
+    {
+        Error("CMQCluster::HandleEvent(): only dpos fork should receive this kind of event");
+        return false;
+    }
+
+    CRollbackBlock rbc;
+    rbc.rbHeight = update.triHeight;
+    rbc.rbHash = update.triHash;
+    rbc.rbSize = update.shortLen;
+    rbc.hashList = update.vShort;
+
+    CBufferPtr spRBC(new CBufStream);
+    *spRBC.get() << rbc;
+
+    {
+        boost::unique_lock<boost::mutex> lock(mtxSend);
+        deqSendBuff.emplace_back(make_pair(topicRbBlk, spRBC));
+    }
+    condSend.notify_all();
+
     return true;
 }
 
@@ -183,14 +213,33 @@ bool CMQCluster::LogEvent(const string& info)
     return true;
 }
 
-bool CMQCluster::PostBlockRequest()
+bool CMQCluster::PostBlockRequest(int syncHeight)
 {
+    if (mapForkNode.empty() || mapForkNode.size() > 1)
+    {
+        Error("CMQCluster::PostBlockRequest(): enrollment is incorrect for fork node");
+        return false;
+    }
+
     uint256 hash;
     int height;
-    int64 ts;
-    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hash, height, ts))
+    if (-1 == syncHeight)
     {
-        return false;
+        int64 ts;
+        if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hash, height, ts))
+        {
+            Error("CMQCluster::PostBlockRequest(): failed to get last block");
+            return false;
+        }
+    }
+    else
+    {
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), syncHeight, hash))
+        {
+            Error("CMQCluster::PostBlockRequest(): failed to get specific block");
+            return false;
+        }
+        height = syncHeight;
     }
 
     CSyncBlockRequest req;
@@ -203,7 +252,7 @@ bool CMQCluster::PostBlockRequest()
     req.forkList = (*enroll).second;
     req.lastHeight = height;
     req.lastHash = hash;
-    req.tsRequest = ts;
+    req.tsRequest = GetTime();
     req.nonce = 1;
 
     CBufferPtr spSS(new CBufStream);
@@ -225,6 +274,19 @@ bool CMQCluster::AppendSendQueue(const std::string& topic,
     return true;
 }
 
+void CMQCluster::RequestBlockTimerFunc(uint32 nTimer)
+{
+    if (nReqBlkTimerID == nTimer)
+    {
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::RequestBlockTimerFunc(): failed to post request");
+        }
+        nReqBlkTimerID = SetTimer(1000 * 60,
+                                  boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+    }
+}
+
 void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 {
     payload.Dump();
@@ -237,7 +299,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
     case NODE_CATEGORY::FORKNODE:
     {
         if (topicRbBlk != topic)
-        {//respond to request block of main chain
+        { //respond to request block of main chain
             //unpack payload
             CSyncBlockResponse resp;
             try
@@ -271,14 +333,28 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             lastHeightResp = resp.height;
 
             //iterate to retrieve next one
-            if (!PostBlockRequest())
+
+            if (resp.isBest)
+            {//when reaching best height, send request by timer
+                nReqBlkTimerID = SetTimer(1000 * 60,
+                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+            }
+            else
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to post request");
-                return;
+                if (0 != nReqBlkTimerID)
+                {
+                    CancelTimer(nReqBlkTimerID);
+                    nReqBlkTimerID = 0;
+                }
+                if (!PostBlockRequest(lastHeightResp))
+                {
+                    Error("CMQCluster::OnReceiveMessage(): failed to post request");
+                    return;
+                }
             }
         }
         else
-        {//roll back blocks on main chain
+        { //roll back blocks on main chain
             //unpack payload
             CRollbackBlock rb;
             try
@@ -292,7 +368,56 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
 
+            if (rb.rbHeight < lastHeightResp)
+            {
+                //check hard fork point
+                uint256 hash;
+                if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight, hash))
+                {
+                    Error("CMQCluster::OnReceiveMessage(): failed to get hard fork block hash");
+                    return;
+                }
+                bool fMatch = true;
+                int nSync = rb.rbHeight - 1;
+                if (hash != rb.rbHash)
+                {
+                    Log("CMQCluster::OnReceiveMessage(): hard fork block hash does not match");
+                    fMatch = false;
+                }
+
+                //check blocks in rollback
+                if (fMatch)
+                {
+                    for (int i = 0; i < rb.rbSize; ++i)
+                    {
+                        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight + i + 1, hash))
+                        {
+                            Error("CMQCluster::OnReceiveMessage(): failed to get rollback block hash");
+                            return;
+                        }
+                        if (hash == rb.hashList[i])
+                        {
+                            Log("CMQCluster::OnReceiveMessage(): fork node has not been rolled back yet");
+                            fMatch = false;
+                            break;
+                        }
+                        ++nSync;
+                    }
+                }
+
+                //re-request from hard fork point to sync the best chain
+                if (!fMatch)
+                {
+                    lastHeightResp = nSync;
+                    if (!PostBlockRequest(lastHeightResp))
+                    {
+                        Error("CMQCluster::OnReceiveMessage(): failed to post request");
+                        return;
+                    }
+                }
+            }
         }
+
         break;
     }
     case NODE_CATEGORY::DPOSNODE:
@@ -439,8 +564,7 @@ public:
         catch (const mqtt::exception& exc)
         {
             cerr << "Error: " << exc.what() << std::endl;
-            cluster_.LogEvent("[on_reconnect_ERROR!]");
-            exit(1);
+            cluster_.Error("[MQTT_reconnect_ERROR!]");
         }
         cluster_.LogEvent("[reconnected]");
     }
@@ -452,8 +576,7 @@ public:
         cluster_.LogEvent("[on_failure]");
         if (++retry_ > RETRY_ATTEMPTS)
         {
-            cluster_.LogEvent("[on_retry_FAILURE!]");
-            exit(1);
+            cluster_.Error("[MQTT_retry_to_reconnect_FAILURE!]");
         }
         reconnect();
     }

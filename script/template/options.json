@@ -9,6 +9,14 @@
             "desc": "Use the test network"
         },
         {
+            "name": "nCatOfNode",
+            "type": "int",
+            "opt": "catofnode",
+            "default": 0,
+            "format": "-catofnode=<cat>",
+            "desc": "Identify node category: 0 - BBCNODE; 1 - FORKNODE; 2 - DPOSNODE, 0 by default"
+        },
+        {
             "name": "fWallet",
             "type": "bool",
             "opt": "wallet",
@@ -55,14 +63,6 @@
             "default": "",
             "format": "-blocknotify",
             "desc": "Execute command when the best block changes (%s in cmd is replaced by block hash)"
-        },
-        {
-            "name": "nCatOfNode",
-            "type": "int",
-            "opt": "catofnode",
-            "default": 0,
-            "format": "-catofnode=<cat>",
-            "desc": "Identify node category: 0 - BBCNODE; 1 - FORKNODE; 2 - DPOSNODE, 0 by default"
         },
         {
             "name": "nLogFileSize",

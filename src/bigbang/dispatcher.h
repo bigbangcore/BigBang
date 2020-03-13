@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "peernet.h"
+#include "mqcluster.h"
 
 namespace bigbang
 {
@@ -46,6 +47,8 @@ protected:
     // network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
     std::string strCmd;
+    int nNodeCat;
+    IMQCluster* pMqcluster;
 };
 
 } // namespace bigbang

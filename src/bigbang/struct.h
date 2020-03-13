@@ -256,6 +256,15 @@ public:
     uint16 nMintType;
 };
 
+class CMqRollbackUpdate
+{
+public:
+    int32 triHeight;
+    uint256 triHash;
+    uint8 shortLen;
+    std::vector<uint256> vShort;
+};
+
 /* Net Channel */
 class CPeerKnownTx
 {
