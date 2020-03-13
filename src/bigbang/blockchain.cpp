@@ -556,7 +556,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
     CBlockIndex* pIndexFork = nullptr;
-    // 新增的Block的Trust
+    // 新增的Block的后的链的Trust值要比其所在Fork的Origin Block的链要大，因为当前链的Trust是个前序的TRust的累加值
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
