@@ -597,6 +597,38 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     if (fFromCache)
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        if(mapTxCache.find(hashFork) == mapTxCache.end())
+        {
+            StdError("CTxPool", "ArrangeBlockTx: find hashFork fail: %s", hashFork.ToString().c_str());
+            return;
+        }
+
+        auto& cache = mapTxCache[hashFork];
+        if (!cache.Exists(hashPrev))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: hashPrev does not exist: %s", hashPrev.ToString().c_str());
+            return;
+        }
+        
+        std::vector<CTransaction> vCacheTx;
+        if(!cache.Retrieve(hashPrev, vCacheTx))
+        {
+            StdError("CTxPool", "ArrangeBlockTx: Retrieve hashPrev failed: %s", hashPrev.ToString().c_str());
+            return;
+        }
+
+        nTotalTxFee = 0;
+        size_t currentSize = 0;
+        for(const auto& tx : vCacheTx)
+        {
+            size_t nSerializeSize = xengine::GetSerializeSize(tx);
+            currentSize += nSerializeSize;
+            if(currentSize <= nMaxSize)
+            {
+                nTotalTxFee += tx.nTxFee;
+                vtx.push_back(tx);
+            }
+        }
 
     }
     else
