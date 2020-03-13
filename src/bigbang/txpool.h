@@ -268,18 +268,22 @@ public:
         
         const uint256& highestHash = mapCache.rbegin()->first;
         uint32 upperHeight = CBlock::GetBlockHeightByHash(highestHash);
-        uint32 lowerHeight = upperHeight - (nHeightInterval - 1);
 
-        for(auto iter = mapCache.begin(); iter != mapCache.end(); ) 
+        if(upperHeight > nHeightInterval)
         {
-            uint32 height = CBlock::GetBlockHeightByHash(iter->first);
-            if (height < lowerHeight) 
+            uint32 lowerHeight = upperHeight - (nHeightInterval - 1);
+
+            for(auto iter = mapCache.begin(); iter != mapCache.end(); ) 
             {
-                iter = mapCache.erase(iter);
-            } 
-            else 
-            {
-                ++iter;
+                uint32 height = CBlock::GetBlockHeightByHash(iter->first);
+                if (height < lowerHeight) 
+                {
+                    iter = mapCache.erase(iter);
+                } 
+                else 
+                {
+                    ++iter;
+                }
             }
         }
 
