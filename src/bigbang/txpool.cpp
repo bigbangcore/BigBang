@@ -828,29 +828,16 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     // ArrangeBlockTx to cache
     if (mapTxCache.find(update.hashFork) == mapTxCache.end())
     {
-        mapTxCache.insert(std::make_pair(update.hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
-        
-        std::vector<CTransaction> vtx;
-        int64 nTotalFee = 0;
-        const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-        ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
-
-        auto& cache = mapTxCache[update.hashFork];
-        cache.AddNew(lastBlockEx.GetHash(), vtx);
-        
+        mapTxCache.insert(std::make_pair(update.hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));   
     }
-    else
-    {
-        std::vector<CTransaction> vtx;
-        int64 nTotalFee = 0;
-        const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-        ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
-        auto& cache = mapTxCache[update.hashFork];
-        cache.AddNew(lastBlockEx.GetHash(), vtx);
+    std::vector<CTransaction> vtx;
+    int64 nTotalFee = 0;
+    const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
+    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
-    }
-    
+    auto& cache = mapTxCache[update.hashFork];
+    cache.AddNew(lastBlockEx.GetHash(), vtx);
     
     return true;
 }
