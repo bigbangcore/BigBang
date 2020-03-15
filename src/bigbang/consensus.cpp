@@ -526,7 +526,7 @@ bool CConsensus::LoadDelegateTx()
 
 bool CConsensus::LoadChain()
 {
-    int nLashBlockHeight = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+    /*int nLashBlockHeight = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
     int nStartHeight = nLashBlockHeight - CONSENSUS_ENROLL_INTERVAL + 1;
     if (nStartHeight < 0)
     {
@@ -546,7 +546,7 @@ bool CConsensus::LoadChain()
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result, hashBlock);
         }
-    }
+    }*/
     return true;
 }
 

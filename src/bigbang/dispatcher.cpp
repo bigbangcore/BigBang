@@ -308,37 +308,41 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
-    int64 nWaitTime = rand();
-    if (routineDelegate.vEnrollTx.size() > 0)
+    int64 nPublishTime = GetTime();
+    if (block.IsProofOfWork())
     {
-        nWaitTime += routineDelegate.vEnrollTx[0].GetHash().Get32(7);
+        int64 nWaitTime = rand();
+        if (routineDelegate.vEnrollTx.size() > 0)
+        {
+            nWaitTime += routineDelegate.vEnrollTx[0].GetHash().Get32(7);
+        }
+        nWaitTime %= 20;
+        if (nWaitTime == 0)
+            nWaitTime = 1;
+        nPublishTime += nWaitTime;
     }
-    nWaitTime %= 20;
-    if (nWaitTime == 0)
-        nWaitTime = 1;
-
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                      routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, GetTime() + nWaitTime);
+                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, nPublishTime);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {
-        if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
+        //if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
+        //{
+        Errno err = AddNewTx(tx, nNonce);
+        if (err == OK)
         {
-            Errno err = AddNewTx(tx, nNonce);
-            if (err == OK)
-            {
-                Log("Send DelegateTx success, txid: %s, previd: %s.",
-                    tx.GetHash().GetHex().c_str(),
-                    tx.vInput[0].prevout.hash.GetHex().c_str());
-            }
-            else
-            {
-                Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
-                    err, ErrorString(err), tx.GetHash().GetHex().c_str(),
-                    tx.vInput[0].prevout.hash.GetHex().c_str());
-            }
+            Log("Send DelegateTx success, txid: %s, previd: %s.",
+                tx.GetHash().GetHex().c_str(),
+                tx.vInput[0].prevout.hash.GetHex().c_str());
         }
+        else
+        {
+            Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
+                err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+                tx.vInput[0].prevout.hash.GetHex().c_str());
+        }
+        //}
     }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
