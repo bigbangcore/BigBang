@@ -637,13 +637,6 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
     int64 nWeightRatio = 0;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        CBlock block;
-        if(!pBlockChain->GetBlock(hashBlock, block))
-        {
-            StdError("CTxPool", "ArrangeBlockTx: GetBlock fail");
-            return;
-        }
-
         if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
         {
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
@@ -857,23 +850,29 @@ bool CTxPool::LoadData()
         mapPoolView[hashFork].AddNew(txid, (*mi).second);
     }
 
-    for(const auto& kv : mapPoolView)
+    std::map<uint256, CForkStatus> mapForkStatus;
+    pBlockChain->GetForkStatus(mapForkStatus);
+
+    for(const auto& kv : mapForkStatus)
     {
         const uint256& hashFork = kv.first;
-        uint256 hashBlock;
-        int nHeight = 0;
-        int64 nTime = 0;
-        if(!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime))
-        {
-            return false;
-        }
-
-        std::vector<CTransaction> vtx;
-        int64 nTotalFee = 0;
-        ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
-        
         mapTxCache.insert(make_pair(hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
-        mapTxCache[hashFork].AddNew(hashBlock, vtx);
+        
+        if(mapPoolView.find(hashFork) != mapPoolView.end())
+        {
+            uint256 hashBlock;
+            int nHeight = 0;
+            int64 nTime = 0;
+            if(!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime))
+            {
+                return false;
+            }
+
+            std::vector<CTransaction> vtx;
+            int64 nTotalFee = 0;
+            ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
+            mapTxCache[hashFork].AddNew(hashBlock, vtx);
+        }
     }
     return true;
 }
