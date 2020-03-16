@@ -324,7 +324,7 @@ public:
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
-    void ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
+    bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
     bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
