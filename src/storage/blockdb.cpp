@@ -129,6 +129,7 @@ bool CBlockDB::ListFork(vector<pair<uint256, uint256>>& vFork)
     return dbFork.ListFork(vFork);
 }
 
+// 通过回滚，删除，新增的交易，以及Unspent等信息更新该分支的数据库信息
 bool CBlockDB::UpdateFork(const uint256& hash, const uint256& hashRefBlock, const uint256& hashForkBased,
                           const vector<pair<uint256, CTxIndex>>& vTxNew, const vector<uint256>& vTxDel,
                           const vector<CTxUnspent>& vAddNew, const vector<CTxOutPoint>& vRemove)

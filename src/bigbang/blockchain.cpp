@@ -566,6 +566,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return OK;
     }
 
+    // 把BlockView中的数据变换写入数据库(交易回滚，Unspent回滚等)
     if (!cntrBlock.CommitBlockView(view, pIndexNew))
     {
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());

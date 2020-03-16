@@ -190,6 +190,7 @@ void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTx
     mapUnspent[CTxOutPoint(txid, 1)].Disable();
 }
 
+// 拿到BlockView中未被花费的Unspent列表和被花费的OutPoint列表
 void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoint>& vRemove)
 {
     vAddNew.reserve(mapUnspent.size());
@@ -199,14 +200,17 @@ void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoi
     {
         const CTxOutPoint& out = (*it).first;
         const CUnspent& unspent = (*it).second;
+        // 如果OutPoint对应的Unspent有修改
         if (unspent.IsModified())
         {
+            // 如果Unspent未被花费就提取到vAddNew表中
             if (!unspent.IsNull())
             {
                 vAddNew.push_back(CTxUnspent(out, unspent));
             }
             else
             {
+                // Unspent被花费压入vRemove中
                 vRemove.push_back(out);
             }
         }
@@ -225,6 +229,7 @@ void CBlockView::GetTxUpdated(set<uint256>& setUpdate)
     }
 }
 
+// 获得BlockView中删除的Tx
 void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
 {
     vRemove.reserve(vTxRemove.size());
@@ -1012,6 +1017,7 @@ bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
     return true;
 }
 
+// 把BlockView中的数据变换写入数据库(交易回滚，Unspent回滚等)
 bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
 {
     const uint256 hashFork = pIndexNew->GetOriginHash();
@@ -1055,17 +1061,21 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
 
     vector<uint256> vTxDel;
+    // 获得BlockView中删除的Tx
     view.GetTxRemoved(vTxDel);
 
     vector<CTxUnspent> vAddNew;
     vector<CTxOutPoint> vRemove;
+    // 拿到BlockView中未被花费的Unspent列表(vAddNew)和被花费的OutPoint列表(vRemove)
     view.GetUnspentChanges(vAddNew, vRemove);
 
+    // 新增的Block是该分支的非Origin Block就给该分支升级维写锁，写数据库dbBlock
     if (hashFork == view.GetForkHash())
     {
         spFork->UpgradeToWrite();
     }
 
+    // 通过回滚，删除，新增的交易，以及Unspent等信息更新该分支的数据库信息(dbFork dbTx dbUnspent)
     if (!dbBlock.UpdateFork(hashFork, pIndexNew->GetBlockHash(), view.GetForkHash(), vTxNew, vTxDel, vAddNew, vRemove))
     {
         StdTrace("BlockBase", "CommitBlockView::UpdateFork %s  failed", hashFork.ToString().c_str());
