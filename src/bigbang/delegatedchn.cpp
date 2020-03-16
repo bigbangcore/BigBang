@@ -118,10 +118,13 @@ uint64 CDelegatedChannelChain::GetPublishBitmap(const uint256& hashAnchor)
     {
         return (mapChainData[listBlockHash.back()].GetBitmap(mapChainData[hashAnchor].mapPublishData));
     }*/
-    map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
-    if (it != mapChainData.end() && GetTime() >= it->second.nPublishTime)
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
     {
-        return (it->second.GetBitmap((*it).second.mapPublishData));
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end() && GetTime() >= it->second.nPublishTime)
+        {
+            return (it->second.GetBitmap((*it).second.mapPublishData));
+        }
     }
     return 0;
 }
@@ -142,10 +145,13 @@ void CDelegatedChannelChain::GetPublish(const uint256& hashAnchor, uint64 bmPubl
         CDelegatedChannelChainData& chain = mapChainData[listBlockHash.back()];
         chain.GetKnownData(bmPublish, setDestination);
     }*/
-    map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
-    if (it != mapChainData.end())
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
     {
-        it->second.GetKnownData(bmPublish, setDestination);
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end())
+        {
+            it->second.GetKnownData(bmPublish, setDestination);
+        }
     }
 }
 
@@ -170,13 +176,16 @@ void CDelegatedChannelChain::AskForPublish(const uint256& hashAnchor, uint64 bmP
         bitmap = (bitmap & bmPublish) ^ bmPublish;
         chain.GetKnownData(bitmap, setDestination);
     }*/
-    map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
-    if (it != mapChainData.end())
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
     {
-        CDelegatedChannelChainData& chain = (*it).second;
-        uint64 bitmap = chain.GetBitmap(chain.mapPublishData);
-        bitmap = (bitmap & bmPublish) ^ bmPublish;
-        chain.GetKnownData(bitmap, setDestination);
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end())
+        {
+            CDelegatedChannelChainData& chain = (*it).second;
+            uint64 bitmap = chain.GetBitmap(chain.mapPublishData);
+            bitmap = (bitmap & bmPublish) ^ bmPublish;
+            chain.GetKnownData(bitmap, setDestination);
+        }
     }
 }
 
@@ -220,7 +229,7 @@ bool CDelegatedChannelChain::IsOutOfDistributeRange(const uint256& hashAnchor) c
 bool CDelegatedChannelChain::IsOutOfPublishRange(const uint256& hashAnchor) const
 {
     //return (listBlockHash.empty() || listBlockHash.front() != hashAnchor);
-    return (listBlockHash.empty() || listBlockHash.back() != hashAnchor);
+    return (listBlockHash.size() != CONSENSUS_DISTRIBUTE_INTERVAL + 1 || listBlockHash.back() != hashAnchor);
 }
 
 bool CDelegatedChannelChain::InsertDistributeData(const uint256& hashAnchor, const CDestination& dest,
@@ -246,7 +255,7 @@ bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const 
     {
         return ((*it).second.mapPublishData.insert(make_pair(dest, vchData))).second;
     }*/
-    if (listBlockHash.empty() || listBlockHash.back() != hashAnchor)
+    if (listBlockHash.size() != CONSENSUS_DISTRIBUTE_INTERVAL + 1 || listBlockHash.back() != hashAnchor)
     {
         return false;
     }
