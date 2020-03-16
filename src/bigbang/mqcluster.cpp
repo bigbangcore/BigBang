@@ -510,13 +510,13 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
     }
 }
 
-class action_listener : public virtual mqtt::iaction_listener
+class CActionListener : public virtual mqtt::iaction_listener
 {
-    std::string name_;
+    std::string strName;
 
     void on_failure(const mqtt::token& tok) override
     {
-        std::cout << name_ << " failure";
+        std::cout << strName << " failure";
         if (tok.get_message_id() != 0)
             std::cout << " for token: [" << tok.get_message_id() << "]" << std::endl;
         std::cout << std::endl;
@@ -524,7 +524,7 @@ class action_listener : public virtual mqtt::iaction_listener
 
     void on_success(const mqtt::token& tok) override
     {
-        std::cout << name_ << " success";
+        std::cout << strName << " success";
         if (tok.get_message_id() != 0)
             std::cout << " for token: [" << tok.get_message_id() << "]" << std::endl;
         auto top = tok.get_topics();
@@ -534,49 +534,49 @@ class action_listener : public virtual mqtt::iaction_listener
     }
 
 public:
-    action_listener(const std::string& name)
-      : name_(name) {}
+    CActionListener(const std::string& name)
+      : strName(name) {}
 };
 
 const int RETRY_ATTEMPTS = 3;
-class callback :
+class CMQCallback :
   public virtual mqtt::callback,
   public virtual mqtt::iaction_listener
 {
-    mqtt::async_client& cli_;
-    mqtt::connect_options& connOpts_;
-    CMQCluster& cluster_;
-    uint8 retry_;
-    action_listener subListener_;
+    mqtt::async_client& asynCli;
+    mqtt::connect_options& connOpts;
+    CMQCluster& mqCluster;
+    uint8 nRetry;
+    CActionListener subListener;
 
 public:
-    callback(mqtt::async_client& cli, mqtt::connect_options& connOpts, CMQCluster& clusterIn)
-      : cli_(cli), connOpts_(connOpts), cluster_(clusterIn), retry_(0), subListener_("sublistener") {}
+    CMQCallback(mqtt::async_client& cli, mqtt::connect_options& connOpts, CMQCluster& clusterIn)
+      : asynCli(cli), connOpts(connOpts), mqCluster(clusterIn), nRetry(0), subListener("sublistener") {}
 
     void reconnect()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         try
         {
-            cli_.connect(connOpts_, nullptr, *this);
-            cluster_.LogEvent("[reconnect...]");
+            asynCli.connect(connOpts, nullptr, *this);
+            mqCluster.LogEvent("[reconnect...]");
         }
         catch (const mqtt::exception& exc)
         {
             cerr << "Error: " << exc.what() << std::endl;
-            cluster_.Error("[MQTT_reconnect_ERROR!]");
+            mqCluster.Error("[MQTT_reconnect_ERROR!]");
         }
-        cluster_.LogEvent("[reconnected]");
+        mqCluster.LogEvent("[reconnected]");
     }
 
     void on_failure(const mqtt::token& tok) override
     {
         cout << "\tListener failure for token: [multiple]"
              << tok.get_message_id() << endl;
-        cluster_.LogEvent("[on_failure]");
-        if (++retry_ > RETRY_ATTEMPTS)
+        mqCluster.LogEvent("[on_failure]");
+        if (++nRetry > RETRY_ATTEMPTS)
         {
-            cluster_.Error("[MQTT_retry_to_reconnect_FAILURE!]");
+            mqCluster.Error("[MQTT_retry_to_reconnect_FAILURE!]");
         }
         reconnect();
     }
@@ -585,7 +585,7 @@ public:
     {
         cout << "\tListener success for token: [multiple]"
              << tok.get_message_id() << endl;
-        cluster_.LogEvent("[on_success]");
+        mqCluster.LogEvent("[on_success]");
     }
 
     void connected(const string& cause) override
@@ -595,32 +595,32 @@ public:
         {
             cout << "\tcause: " << cause << endl;
         }
-        cluster_.LogEvent("[connected]");
-        if (CMQCluster::NODE_CATEGORY::FORKNODE == cluster_.catNode)
+        mqCluster.LogEvent("[connected]");
+        if (CMQCluster::NODE_CATEGORY::FORKNODE == mqCluster.catNode)
         {
-            cluster_.topicRespBlk = "Cluster01/" + cluster_.clientID + "/SyncBlockResp";
-            cli_.subscribe(cluster_.topicRespBlk, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << cluster_.topicRespBlk << "'\n"
-                 << "\tfor client " << cluster_.clientID
+            mqCluster.topicRespBlk = "Cluster01/" + mqCluster.clientID + "/SyncBlockResp";
+            asynCli.subscribe(mqCluster.topicRespBlk, CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.topicRespBlk << "'\n"
+                 << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            cluster_.topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-            cli_.subscribe(cluster_.topicRbBlk, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << cluster_.topicRbBlk << "'\n"
-                 << "\tfor client " << cluster_.clientID
+            mqCluster.topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+            asynCli.subscribe(mqCluster.topicRbBlk, CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.topicRbBlk << "'\n"
+                 << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
-        else if (CMQCluster::NODE_CATEGORY::DPOSNODE == cluster_.catNode)
+        else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
-            cluster_.topicReqBlk = "Cluster01/+/SyncBlockReq";
-            cli_.subscribe(cluster_.topicReqBlk, CMQCluster::QOS1, nullptr, subListener_);
-            cout << "\nSubscribing to topic '" << cluster_.topicReqBlk << "'\n"
-                 << "\tfor client " << cluster_.clientID
+            mqCluster.topicReqBlk = "Cluster01/+/SyncBlockReq";
+            asynCli.subscribe(mqCluster.topicReqBlk, CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.topicReqBlk << "'\n"
+                 << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
         cout << endl;
-        cluster_.LogEvent("[subscribed]");
+        mqCluster.LogEvent("[subscribed]");
         cout << endl;
     }
 
@@ -631,8 +631,8 @@ public:
         {
             cout << "\tcause: " << cause << endl;
         }
-        cluster_.LogEvent("[connection_lost]");
-        retry_ = 0;
+        mqCluster.LogEvent("[connection_lost]");
+        nRetry = 0;
         reconnect();
     }
 
@@ -642,17 +642,17 @@ public:
         cout << "\ttopic: '" << msg->get_topic() << "'" << endl;
         cout << "\tpayload: '" << msg->to_string() << "'\n"
              << endl;
-        cluster_.LogEvent("[message_arrived]");
+        mqCluster.LogEvent("[message_arrived]");
         xengine::CBufStream ss;
         ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
-        cluster_.OnReceiveMessage(msg->get_topic(), ss);
+        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
     }
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override
     {
         cout << "\tDelivery complete for token: "
              << (tok ? tok->get_message_id() : -1) << endl;
-        cluster_.LogEvent("[delivery_complete]");
+        mqCluster.LogEvent("[delivery_complete]");
     }
 };
 
@@ -669,7 +669,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         static mqtt::token_ptr conntok;
         static mqtt::delivery_token_ptr delitok;
 
-        static callback cb(client, connOpts, *this);
+        static CMQCallback cb(client, connOpts, *this);
 
         switch (action)
         {

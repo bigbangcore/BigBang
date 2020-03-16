@@ -98,7 +98,7 @@ public:
 
 class CMQCluster : public IMQCluster
 {
-    friend class callback;
+    friend class CMQCallback;
 
     typedef std::shared_ptr<CBufStream> CBufferPtr;
 
