@@ -8,6 +8,7 @@
 #include "base.h"
 #include "txpooldata.h"
 
+// This macro value is related to DPoS Weight value / PoW weight, if weight ratio changed, you must change it
 #define CACHE_HEIGHT_INTERVAL 23
 
 namespace bigbang
