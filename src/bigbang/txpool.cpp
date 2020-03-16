@@ -598,22 +598,14 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     if(mapTxCache.find(hashFork) == mapTxCache.end())
     {
-        // mapTxCache.insert(std::make_pair(hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
-    
-        // std::vector<CTransaction> vecTx;
-        // int64 tempTotalTxFee = 0;
-        // ArrangeBlockTx(hashFork, nBlockTime, hashPrev, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
-        // mapTxCache[hashFork].AddNew(hashPrev, vecTx);
+        StdError("CTxPool", "ArrangeBlockTx: find hashFork failed");
         return false;
     }
 
     auto& cache = mapTxCache[hashFork];
     if (!cache.Exists(hashPrev))
     {
-        // std::vector<CTransaction> vecTx;
-        // int64 tempTotalTxFee = 0;
-        // ArrangeBlockTx(hashFork, nBlockTime, hashPrev, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
-        // cache.AddNew(hashPrev, vecTx);
+        StdError("CTxPool", "ArrangeBlockTx: find hashPrev in cache failed");
         return false;
     }
     
@@ -879,6 +871,8 @@ bool CTxPool::LoadData()
         std::vector<CTransaction> vtx;
         int64 nTotalFee = 0;
         ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
+        
+        mapTxCache.insert(make_pair(hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
         mapTxCache[hashFork].AddNew(hashBlock, vtx);
     }
     return true;
