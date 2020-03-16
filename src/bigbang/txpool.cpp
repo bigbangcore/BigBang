@@ -602,7 +602,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     
         std::vector<CTransaction> vecTx;
         int64 tempTotalTxFee = 0;
-        ArrangeBlockTx(hashFork, nBlockTime, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
+        ArrangeBlockTx(hashFork, nBlockTime, hashPrev, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
         mapTxCache[hashFork].AddNew(hashPrev, vecTx);
     }
 
@@ -611,7 +611,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     {
         std::vector<CTransaction> vecTx;
         int64 tempTotalTxFee = 0;
-        ArrangeBlockTx(hashFork, nBlockTime, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
+        ArrangeBlockTx(hashFork, nBlockTime, hashPrev, MAX_BLOCK_SIZE, vecTx, tempTotalTxFee);
         cache.AddNew(hashPrev, vecTx);
     }
     
@@ -634,7 +634,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
 }
 
-void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
     map<CDestination, int> mapVoteCert;
@@ -642,27 +642,26 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::siz
     int64 nWeightRatio = 0;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        uint256 hashLastBlock;
-        int nHeight;
-        int64 nTime;
-        if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nHeight, nTime))
+        CBlock block;
+        if(!pBlockChain->GetBlock(hashBlock, block))
         {
-            StdError("CTxPool", "ArrangeBlockTx: GetLastBlock fail");
+            StdError("CTxPool", "ArrangeBlockTx: GetBlock fail");
             return;
         }
-        if (!pBlockChain->GetDelegateCertTxCount(hashLastBlock, mapVoteCert))
+
+        if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
         {
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
             return;
         }
 
-        if (!pBlockChain->GetBlockDelegateVote(hashLastBlock, mapVote))
+        if (!pBlockChain->GetBlockDelegateVote(hashBlock, mapVote))
         {
             StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
             return;
         }
 
-        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashLastBlock);
+        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashBlock);
         if (nWeightRatio < 0)
         {
             StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
@@ -834,7 +833,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     std::vector<CTransaction> vtx;
     int64 nTotalFee = 0;
     const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), MAX_BLOCK_SIZE, vtx, nTotalFee);
+    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
     auto& cache = mapTxCache[update.hashFork];
     cache.AddNew(lastBlockEx.GetHash(), vtx);

@@ -345,7 +345,7 @@ protected:
         }
         return ((++nLastSequenceNumber) << 24);
     }
-    void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+    void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee);
 protected:
     storage::CTxPoolData datTxPool;
