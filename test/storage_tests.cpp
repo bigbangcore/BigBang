@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(filetest)
             }
             catch (std::exception& e)
             {
-                BOOST_ERROR("error: " << e.what());
+                // BOOST_ERROR("error: " << e.what());
                 break;
             }
             if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize)
