@@ -267,7 +267,7 @@ CRPCMod::CRPCMod()
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
         //
-        ("enrollforknode", &CRPCMod::RPCEnrollForkNode)
+        ("enrollsupernode", &CRPCMod::RPCEnrollSuperNode)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -2398,9 +2398,9 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCEnrollForkNode(rpc::CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
 {
-    auto spParam = CastParamPtr<CEnrollForkNodeParam>(param);
+    auto spParam = CastParamPtr<CEnrollSuperNodeParam>(param);
     std::vector<std::string> vFork = spParam->vecForks;
     std::string id = spParam->strClientid;
 
@@ -2423,7 +2423,7 @@ CRPCResultPtr CRPCMod::RPCEnrollForkNode(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR, "Enroll fork node failed");
     }
 
-    auto spResult = MakeCEnrollForkNodeResultPtr();
+    auto spResult = MakeCEnrollSuperNodeResultPtr();
     spResult->fRetflag = true;
     return spResult;
 }
