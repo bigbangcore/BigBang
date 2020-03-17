@@ -19,6 +19,8 @@ else
     flag="-DCMAKE_BUILD_TYPE=Release"
 fi
 
+flag+=" -DPAHO_BUILD_STATIC=TRUE -DPAHO_BUILD_SHARED=FALSE"
+
 cmake .. $flag
 if [ $? -ne 0 ]; then 
     cd $origin_path
