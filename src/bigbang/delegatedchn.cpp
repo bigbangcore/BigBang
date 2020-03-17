@@ -45,7 +45,8 @@ void CDelegatedChannelChain::Clear()
 void CDelegatedChannelChain::Update(int nStartHeight,
                                     const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
                                     const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
-                                    const map<CDestination, vector<unsigned char>>& mapPublishData)
+                                    const map<CDestination, vector<unsigned char>>& mapPublishData,
+                                    const uint256& hashDistributeOfPublish, int64 nPublishTime)
 {
     if (nLastBlockHeight < nStartHeight)
     {
@@ -79,16 +80,25 @@ void CDelegatedChannelChain::Update(int nStartHeight,
         mapChainData[vDistributeData[i].first].mapDistributeData.insert(vDistributeData[i].second.begin(), vDistributeData[i].second.end());
     }
 
-    if (!listBlockHash.empty())
+    /*if (!listBlockHash.empty())
     {
         mapChainData[listBlockHash.front()].mapPublishData.insert(mapPublishData.begin(), mapPublishData.end());
-    }
+    }*/
 
     while (listBlockHash.size() > CONSENSUS_DISTRIBUTE_INTERVAL + 1)
     {
         const uint256& hash = listBlockHash.back();
         mapChainData.erase(hash);
         listBlockHash.pop_back();
+    }
+
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1
+        && hashDistributeOfPublish == listBlockHash.back()
+        && mapPublishData.size() > 0)
+    {
+        CDelegatedChannelChainData& data = mapChainData[hashDistributeOfPublish];
+        data.mapPublishData.insert(mapPublishData.begin(), mapPublishData.end());
+        data.nPublishTime = nPublishTime;
     }
 }
 
@@ -104,9 +114,17 @@ uint64 CDelegatedChannelChain::GetDistributeBitmap(const uint256& hashAnchor)
 
 uint64 CDelegatedChannelChain::GetPublishBitmap(const uint256& hashAnchor)
 {
-    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
+    /*if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
     {
         return (mapChainData[listBlockHash.back()].GetBitmap(mapChainData[hashAnchor].mapPublishData));
+    }*/
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
+    {
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end() && GetTime() >= it->second.nPublishTime)
+        {
+            return (it->second.GetBitmap((*it).second.mapPublishData));
+        }
     }
     return 0;
 }
@@ -116,17 +134,24 @@ void CDelegatedChannelChain::GetDistribute(const uint256& hashAnchor, uint64 bmD
     map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
     if (it != mapChainData.end())
     {
-        CDelegatedChannelChainData& chain = (*it).second;
-        chain.GetKnownData(bmDistribute, setDestination);
+        it->second.GetKnownData(bmDistribute, setDestination);
     }
 }
 
 void CDelegatedChannelChain::GetPublish(const uint256& hashAnchor, uint64 bmPublish, set<CDestination>& setDestination)
 {
-    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
+    /*if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
     {
         CDelegatedChannelChainData& chain = mapChainData[listBlockHash.back()];
         chain.GetKnownData(bmPublish, setDestination);
+    }*/
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
+    {
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end())
+        {
+            it->second.GetKnownData(bmPublish, setDestination);
+        }
     }
 }
 
@@ -142,14 +167,25 @@ void CDelegatedChannelChain::AskForDistribute(const uint256& hashAnchor, uint64 
     }
 }
 
-void CDelegatedChannelChain::AskForPublish(const uint256& hashAnchor, uint64 bmDistribute, set<CDestination>& setDestination)
+void CDelegatedChannelChain::AskForPublish(const uint256& hashAnchor, uint64 bmPublish, set<CDestination>& setDestination)
 {
-    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
+    /*if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.front())
     {
         CDelegatedChannelChainData& chain = mapChainData[listBlockHash.back()];
         uint64 bitmap = chain.GetBitmap(mapChainData[hashAnchor].mapPublishData);
-        bitmap = (bitmap & bmDistribute) ^ bmDistribute;
+        bitmap = (bitmap & bmPublish) ^ bmPublish;
         chain.GetKnownData(bitmap, setDestination);
+    }*/
+    if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
+    {
+        map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+        if (it != mapChainData.end())
+        {
+            CDelegatedChannelChainData& chain = (*it).second;
+            uint64 bitmap = chain.GetBitmap(chain.mapPublishData);
+            bitmap = (bitmap & bmPublish) ^ bmPublish;
+            chain.GetKnownData(bitmap, setDestination);
+        }
     }
 }
 
@@ -192,7 +228,8 @@ bool CDelegatedChannelChain::IsOutOfDistributeRange(const uint256& hashAnchor) c
 
 bool CDelegatedChannelChain::IsOutOfPublishRange(const uint256& hashAnchor) const
 {
-    return (listBlockHash.empty() || listBlockHash.front() != hashAnchor);
+    //return (listBlockHash.empty() || listBlockHash.front() != hashAnchor);
+    return (listBlockHash.size() != CONSENSUS_DISTRIBUTE_INTERVAL + 1 || listBlockHash.back() != hashAnchor);
 }
 
 bool CDelegatedChannelChain::InsertDistributeData(const uint256& hashAnchor, const CDestination& dest,
@@ -209,7 +246,16 @@ bool CDelegatedChannelChain::InsertDistributeData(const uint256& hashAnchor, con
 bool CDelegatedChannelChain::InsertPublishData(const uint256& hashAnchor, const CDestination& dest,
                                                const vector<unsigned char>& vchData)
 {
-    if (listBlockHash.empty() || listBlockHash.front() != hashAnchor)
+    /*if (listBlockHash.empty() || listBlockHash.front() != hashAnchor)
+    {
+        return false;
+    }
+    map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
+    if (it != mapChainData.end())
+    {
+        return ((*it).second.mapPublishData.insert(make_pair(dest, vchData))).second;
+    }*/
+    if (listBlockHash.size() != CONSENSUS_DISTRIBUTE_INTERVAL + 1 || listBlockHash.back() != hashAnchor)
     {
         return false;
     }
@@ -230,6 +276,8 @@ CDelegatedChannel::CDelegatedChannel()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pDispatcher = nullptr;
+    nTimerBulletin = 0;
+    nTimerPublish = 0;
     fBulletin = false;
 }
 
@@ -278,6 +326,7 @@ bool CDelegatedChannel::HandleInvoke()
     {
         boost::unique_lock<boost::mutex> lock(mtxBulletin);
         nTimerBulletin = 0;
+        nTimerPublish = 0;
         fBulletin = false;
     }
     return network::IDelegatedChannel::HandleInvoke();
@@ -293,6 +342,11 @@ void CDelegatedChannel::HandleHalt()
             nTimerBulletin = 0;
         }
         fBulletin = false;
+        if (nTimerPublish != 0)
+        {
+            CancelTimer(nTimerPublish);
+            nTimerPublish = 0;
+        }
     }
 
     network::IDelegatedChannel::HandleHalt();
@@ -461,12 +515,27 @@ bool CDelegatedChannel::HandleEvent(network::CEventPeerPublish& eventPublish)
 void CDelegatedChannel::PrimaryUpdate(int nStartHeight,
                                       const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
                                       const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
-                                      const map<CDestination, vector<unsigned char>>& mapPublishData)
+                                      const map<CDestination, vector<unsigned char>>& mapPublishData,
+                                      const uint256& hashDistributeOfPublish, int64 nPublishTime)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
-    dataChain.Update(nStartHeight, vEnrolledWeight, vDistributeData, mapPublishData);
+    dataChain.Update(nStartHeight, vEnrolledWeight, vDistributeData, mapPublishData, hashDistributeOfPublish, nPublishTime);
 
+    if (!mapPublishData.empty())
+    {
+        int64 nTimeLen = nPublishTime - GetTime();
+        if (nTimeLen > 0)
+        {
+            boost::unique_lock<boost::mutex> lock(mtxBulletin);
+            if (nTimerPublish != 0)
+            {
+                CancelTimer(nTimerPublish);
+                nTimerPublish = 0;
+            }
+            nTimerPublish = SetTimer(nTimeLen * 1000, boost::bind(&CDelegatedChannel::PublishTimerFunc, this, _1));
+        }
+    }
     if (!vDistributeData.empty() || !mapPublishData.empty())
     {
         BroadcastBulletin(true);
@@ -564,6 +633,18 @@ void CDelegatedChannel::PushBulletinTimerFunc(uint32 nTimerId)
     }
 }
 
+void CDelegatedChannel::PublishTimerFunc(uint32 nTimerId)
+{
+    {
+        boost::unique_lock<boost::mutex> lock(mtxBulletin);
+        if (nTimerPublish != nTimerId)
+        {
+            return;
+        }
+    }
+    BroadcastBulletin(true);
+}
+
 void CDelegatedChannel::PushBulletin()
 {
     vector<uint64> vPeer;
@@ -573,7 +654,7 @@ void CDelegatedChannel::PushBulletin()
 
     if (!listHash.empty() && !vPeer.empty())
     {
-        const uint256& hashAnchor = listHash.front();
+        /*const uint256& hashAnchor = listHash.front();
 
         network::CEventPeerBulletin eventBulletin(0ULL, hashAnchor);
         eventBulletin.data.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
@@ -585,6 +666,23 @@ void CDelegatedChannel::PushBulletin()
             if (bitmap != 0)
             {
                 eventBulletin.data.AddBitmap(hash, bitmap);
+            }
+        }*/
+        const uint256& hashAnchor = listHash.back();
+
+        network::CEventPeerBulletin eventBulletin(0ULL, hashAnchor);
+        eventBulletin.data.bmDistribute = dataChain.GetDistributeBitmap(hashAnchor);
+        eventBulletin.data.bmPublish = dataChain.GetPublishBitmap(hashAnchor);
+        for (list<uint256>::iterator it = listHash.begin(); it != listHash.end(); ++it)
+        {
+            const uint256& hash = (*it);
+            if (hash != hashAnchor)
+            {
+                uint64 bitmap = dataChain.GetDistributeBitmap(hash);
+                if (bitmap != 0)
+                {
+                    eventBulletin.data.AddBitmap(hash, bitmap);
+                }
             }
         }
         for (const uint64& nNonce : vPeer)

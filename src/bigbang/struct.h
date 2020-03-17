@@ -174,6 +174,7 @@ public:
     std::vector<CTransaction> vEnrollTx;
     std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>> vDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    uint256 hashDistributeOfPublish;
     bool fPublishCompleted;
 
 public:

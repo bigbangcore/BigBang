@@ -110,6 +110,9 @@ public:
 class CDelegatedChannelChainData
 {
 public:
+    CDelegatedChannelChainData()
+      : nPublishTime(0) {}
+
     uint64 GetBitmap(const std::map<CDestination, std::vector<unsigned char>>& mapData) const
     {
         uint64 bitmap = 0;
@@ -133,6 +136,7 @@ public:
 public:
     std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    int64 nPublishTime;
     std::vector<CDestination> vEnrolled;
 };
 
@@ -151,13 +155,14 @@ public:
     void Update(int nStartHeight,
                 const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                 const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
-                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
+                const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
+                const uint256& hashDistributeOfPublish, int64 nPublishTime);
     uint64 GetDistributeBitmap(const uint256& hashAnchor);
     uint64 GetPublishBitmap(const uint256& hashAnchor);
     void GetDistribute(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
     void GetPublish(const uint256& hashAnchor, uint64 bmPublish, std::set<CDestination>& setDestination);
     void AskForDistribute(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
-    void AskForPublish(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
+    void AskForPublish(const uint256& hashAnchor, uint64 bmPublish, std::set<CDestination>& setDestination);
     bool GetDistributeData(const uint256& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
     bool GetPublishData(const uint256& hashAnchor, const CDestination& dest, std::vector<unsigned char>& vchData);
     bool IsOutOfDistributeRange(const uint256& hashAnchor) const;
@@ -179,7 +184,8 @@ public:
     void PrimaryUpdate(int nStartHeight,
                        const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                        const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
-                       const std::map<CDestination, std::vector<unsigned char>>& mapPublishData) override;
+                       const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
+                       const uint256& hashDistributeOfPublish, int64 nPublishTime) override;
 
 protected:
     bool HandleInitialize() override;
@@ -200,6 +206,7 @@ protected:
     void AddPeerKnownPublish(uint64 nNonce, const uint256& hashAnchor, uint64 bmPublish);
     void DispatchMisbehaveEvent(uint64 nNonce, xengine::CEndpointManager::CloseReason reason);
     void PushBulletinTimerFunc(uint32 nTimerId);
+    void PublishTimerFunc(uint32 nTimerId);
     void PushBulletin();
     std::shared_ptr<CDelegatedChannelPeer> GetPeer(uint64 nNonce)
     {
@@ -218,6 +225,7 @@ protected:
     mutable boost::mutex mtxBulletin;
     bool fBulletin;
     uint32 nTimerBulletin;
+    uint32 nTimerPublish;
 };
 
 } // namespace bigbang

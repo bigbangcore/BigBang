@@ -184,6 +184,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             vote.is_public = true;
             vote.Publish(result.mapPublishData);
             vote.hashPublishBlock = hashBlock;
+            result.hashDistributeOfPublish = hashDistribute;
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
 
@@ -255,7 +256,7 @@ bool CDelegate::HandleDistribute(int nTargetHeight, const uint256& hashDistribut
     return ret;
 }
 
-bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashPublishAnchor, const CDestination& destFrom,
+bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
                               const vector<unsigned char>& vchPublishData, bool& fCompleted)
 {
     map<int, CDelegateVote>::iterator it = mapVote.find(nTargetHeight);
@@ -270,6 +271,12 @@ bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashPublishAncho
         StdError("CDelegate", "HandlePublish: hashDistributeBlock is null, target height: %d", nTargetHeight);
         return false;
     }
+    if (hashDistribute != hashDistributeAnchor)
+    {
+        StdError("CDelegate", "HandlePublish: distribute anchor error, target height: %d, local distribute: %s, anchor distribute: %s",
+                 nTargetHeight, hashDistribute.GetHex().c_str(), hashDistributeAnchor.GetHex().c_str());
+        return false;
+    }
     map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(hashDistribute);
     if (mt == mapDistributeVote.end())
     {
@@ -277,12 +284,6 @@ bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashPublishAncho
         return false;
     }
     CDelegateVote& vote = mt->second;
-    if (vote.hashPublishBlock != hashPublishAnchor)
-    {
-        StdError("CDelegate", "HandlePublish: public anchor error, target height: %d, local public: %s, anchor public: %s",
-                 nTargetHeight, vote.hashPublishBlock.GetHex().c_str(), hashPublishAnchor.GetHex().c_str());
-        return false;
-    }
 
     auto t0 = boost::posix_time::microsec_clock::universal_time();
     bool ret = vote.Collect(destFrom, vchPublishData, fCompleted);

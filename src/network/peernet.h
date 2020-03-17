@@ -35,7 +35,8 @@ public:
     virtual void PrimaryUpdate(int nStartHeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                                const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData)
+                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
+                               const uint256& hashDistributeOfPublish, int64 nPublishTime)
         = 0;
 };
 
