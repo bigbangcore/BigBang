@@ -265,6 +265,13 @@ public:
     std::vector<uint256> vShort;
 };
 
+class CMqSuperNodeUpdate
+{
+public:
+    std::string superNodeID;
+    std::vector<uint256> vecOwnedForks;
+};
+
 /* Net Channel */
 class CPeerKnownTx
 {

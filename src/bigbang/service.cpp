@@ -669,9 +669,9 @@ bool CService::GetTxSender(const uint256& txid, CAddress& sender)
     return true;
 }
 
-bool CService::AddForkNode(const storage::CForkNode& node)
+bool CService::AddSuperNode(const storage::CSuperNode& node)
 {
-    return pBlockChain->AddNewForkNode(node);
+    return pBlockChain->AddNewSuperNode(node);
 }
 
 CAddress CService::GetBackSender(const uint256& txid)

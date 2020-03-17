@@ -90,8 +90,8 @@ public:
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
-    virtual Errno AddNewForkNode(const storage::CForkNode& block) = 0;
-    virtual bool ListForkNode(std::vector<storage::CForkNode>& nodes) = 0;
+    virtual Errno AddNewSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
@@ -321,7 +321,7 @@ public:
         = 0;
     /* Util */
     virtual bool GetTxSender(const uint256& txid, CAddress& sender) = 0;
-    virtual bool AddForkNode(const storage::CForkNode& node) = 0;
+    virtual bool AddSuperNode(const storage::CSuperNode& node) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

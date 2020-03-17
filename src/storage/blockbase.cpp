@@ -493,36 +493,36 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
     return true;
 }
 
-bool CBlockBase::AddNewForkNode(const CForkNode& forkNode)
+bool CBlockBase::AddNewSuperNode(const CSuperNode& superNode)
 {
-    if (!dbBlock.AddNewForkNode(forkNode))
+    if (!dbBlock.AddNewSuperNode(superNode))
     {
-        Error("F", "Failed to addnew forknode in %s", forkNode.forkNodeID.c_str());
+        Error("F", "Failed to addnew supernode in %s", superNode.superNodeID.c_str());
         return false;
     }
-    Log("F", "AddNew forknode,cliID=%s with %d forks", forkNode.forkNodeID.c_str(),
-            forkNode.vecOwnedForks.size());
-    for (const auto& i : forkNode.vecOwnedForks)
+    Log("F", "AddNew supernode,cliID=%s with %d forks", superNode.superNodeID.c_str(),
+        superNode.vecOwnedForks.size());
+    for (const auto& i : superNode.vecOwnedForks)
     {
-        Log("F", "AddNew forknode with fork [%s]", i.ToString().c_str());
+        Log("F", "AddNew supernode with fork [%s]", i.ToString().c_str());
     }
     return true;
 }
 
-bool CBlockBase::ListForkNode(std::vector<storage::CForkNode>& nodes)
+bool CBlockBase::ListSuperNode(vector<storage::CSuperNode>& nodes)
 {
-    if (!dbBlock.ListForkNode(nodes))
+    if (!dbBlock.ListSuperNode(nodes))
     {
-        Error("F", "Failed to list forknode");
+        Error("F", "Failed to list supernode");
         return false;
     }
-    Log("F", "List forknode successfully");
+    Log("F", "List supernode successfully");
     for (const auto& node : nodes)
     {
         for (const auto& fork : node.vecOwnedForks)
         {
-            Log("F", "forknode client ID [%s] : fork [%s]",
-                node.forkNodeID.c_str(), fork.ToString().c_str());
+            Log("F", "supernode client ID [%s] : fork [%s]",
+                node.superNodeID.c_str(), fork.ToString().c_str());
         }
     }
     return true;

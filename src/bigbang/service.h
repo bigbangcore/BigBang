@@ -81,7 +81,7 @@ public:
                      crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
     bool GetTxSender(const uint256& txid, CAddress& sender) override;
-    bool AddForkNode(const storage::CForkNode& node) override;
+    bool AddSuperNode(const storage::CSuperNode& node) override;
 
 protected:
     bool HandleInitialize() override;

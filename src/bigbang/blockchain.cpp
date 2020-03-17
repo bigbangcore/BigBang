@@ -641,18 +641,18 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
-Errno CBlockChain::AddNewForkNode(const storage::CForkNode& node)
+Errno CBlockChain::AddNewSuperNode(const storage::CSuperNode& node)
 {
-    if (!cntrBlock.AddNewForkNode(node))
+    if (!cntrBlock.AddNewSuperNode(node))
     {
         return FAILED;
     }
     return OK;
 }
 
-bool CBlockChain::ListForkNode(std::vector<storage::CForkNode>& nodes)
+bool CBlockChain::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
 {
-    if (!cntrBlock.ListForkNode(nodes))
+    if (!cntrBlock.ListSuperNode(nodes))
     {
         return false;
     }

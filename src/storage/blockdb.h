@@ -48,8 +48,8 @@ public:
     bool RetrieveDelegate(const uint256& hash, std::map<CDestination, int64>& mapDelegate);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
-    bool AddNewForkNode(const CForkNode& forkNode);
-    bool ListForkNode(std::vector<CForkNode>& nodes);
+    bool AddNewSuperNode(const CSuperNode& superNode);
+    bool ListSuperNode(std::vector<CSuperNode>& nodes);
 
 protected:
     bool LoadFork();
@@ -60,7 +60,7 @@ protected:
     CTxIndexDB dbTxIndex;
     CUnspentDB dbUnspent;
     CDelegateDB dbDelegate;
-    CForkNodeDB dbForkNode;
+    CSuperNodeDB dbSuperNode;
 };
 
 } // namespace storage

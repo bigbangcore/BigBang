@@ -15,12 +15,12 @@ namespace storage
 {
 
 //////////////////////////////
-// CForkNodeDB
+// CSuperNodeDB
 
-bool CForkNodeDB::Initialize(const boost::filesystem::path& pathData)
+bool CSuperNodeDB::Initialize(const boost::filesystem::path& pathData)
 {
     CLevelDBArguments args;
-    args.path = (pathData / "forknode").string();
+    args.path = (pathData / "supernode").string();
     args.syncwrite = true;
     args.files = 16;
     args.cache = 2 << 20;
@@ -36,35 +36,35 @@ bool CForkNodeDB::Initialize(const boost::filesystem::path& pathData)
     return true;
 }
 
-void CForkNodeDB::Deinitialize()
+void CSuperNodeDB::Deinitialize()
 {
     Close();
 }
 
-bool CForkNodeDB::AddNewForkNode(const CForkNode& cli)
+bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
 {
-    vector<CForkNode> nodes;
-    ListForkNode(nodes);
-    bool ret = Write(cli.forkNodeID, cli.vecOwnedForks, true);  //overwrite
-    ListForkNode(nodes);
+    vector<CSuperNode> nodes;
+    ListSuperNode(nodes);
+    bool ret = Write(cli.superNodeID, cli.vecOwnedForks, true);  //overwrite
+    ListSuperNode(nodes);
     return ret;
 }
 
-bool CForkNodeDB::RemoveForkNode(const string& cliID)
+bool CSuperNodeDB::RemoveSuperNode(const string& cliID)
 {
     return Erase(cliID);
 }
 
-bool CForkNodeDB::RetrieveForkNode(const string& cliID, CForkNode& cli)
+bool CSuperNodeDB::RetrieveSuperNode(const string& cliID, CSuperNode& cli)
 {
     return Read(cliID, cli);
 }
 
-bool CForkNodeDB::ListForkNode(std::vector<CForkNode>& vCli)
+bool CSuperNodeDB::ListSuperNode(std::vector<CSuperNode>& vCli)
 {
     map<std::string, std::vector<uint256>> mapCli;
 
-    if (!WalkThrough(boost::bind(&CForkNodeDB::LoadForkNodeWalker, this, _1, _2, boost::ref(mapCli))))
+    if (!WalkThrough(boost::bind(&CSuperNodeDB::LoadSuperNodeWalker, this, _1, _2, boost::ref(mapCli))))
     {
         return false;
     }
@@ -72,20 +72,20 @@ bool CForkNodeDB::ListForkNode(std::vector<CForkNode>& vCli)
     vCli.reserve(mapCli.size());
     for (const auto& it : mapCli)
     {
-        CForkNode node;
-        node.forkNodeID = it.first;
+        CSuperNode node;
+        node.superNodeID = it.first;
         node.vecOwnedForks = it.second;
         vCli.emplace_back(node);
     }
     return true;
 }
 
-void CForkNodeDB::Clear()
+void CSuperNodeDB::Clear()
 {
     RemoveAll();
 }
 
-bool CForkNodeDB::LoadForkNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
+bool CSuperNodeDB::LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
                                      map<std::string, std::vector<uint256>>& mapCli)
 {
     string strCliID;

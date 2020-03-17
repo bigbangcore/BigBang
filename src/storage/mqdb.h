@@ -13,41 +13,41 @@ namespace bigbang
 namespace storage
 {
 
-class CForkNode
+class CSuperNode
 {
     friend class xengine::CStream;
 
 public:
-    std::string forkNodeID;
+    std::string superNodeID;
     std::vector<uint256> vecOwnedForks;
 
 public:
-    CForkNode(std::string id = std::string(), std::vector<uint256> forks = std::vector<uint256>())
-    : forkNodeID(id), vecOwnedForks(forks) {}
+    CSuperNode(std::string id = std::string(), std::vector<uint256> forks = std::vector<uint256>())
+    : superNodeID(id), vecOwnedForks(forks) {}
 
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
-        s.Serialize(forkNodeID, opt);
+        s.Serialize(superNodeID, opt);
         s.Serialize(vecOwnedForks, opt);
     }
 };
 
-class CForkNodeDB : public xengine::CKVDB
+class CSuperNodeDB : public xengine::CKVDB
 {
 public:
-    CForkNodeDB() {}
+    CSuperNodeDB() {}
     bool Initialize(const boost::filesystem::path& pathData);
     void Deinitialize();
-    bool AddNewForkNode(const CForkNode& cli);
-    bool RemoveForkNode(const std::string& cliID);
-    bool RetrieveForkNode(const std::string& forkNodeID, CForkNode& cli);
-    bool ListForkNode(std::vector<CForkNode>& vCli);
+    bool AddNewSuperNode(const CSuperNode& cli);
+    bool RemoveSuperNode(const std::string& cliID);
+    bool RetrieveSuperNode(const std::string& superNodeID, CSuperNode& cli);
+    bool ListSuperNode(std::vector<CSuperNode>& vCli);
     void Clear();
 
 protected:
-    bool LoadForkNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
+    bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
                             std::map<std::string, std::vector<uint256>>& mapCli);
 };
 

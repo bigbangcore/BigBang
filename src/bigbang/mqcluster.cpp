@@ -108,56 +108,56 @@ bool CMQCluster::HandleInvoke()
         return true;
     }
 
-    std::vector<storage::CForkNode> nodes;
-    if (!pBlockChain->ListForkNode(nodes))
+    std::vector<storage::CSuperNode> nodes;
+    if (!pBlockChain->ListSuperNode(nodes))
     {
-        Log("CMQCluster::HandleInvoke(): list fork node failed");
+        Log("CMQCluster::HandleInvoke(): list super node failed");
         return false;
     }
     for (const auto& node : nodes)
     {
-        mapForkNode.insert(make_pair(node.forkNodeID, node.vecOwnedForks));
+        mapSuperNode.insert(make_pair(node.superNodeID, node.vecOwnedForks));
         if (1 == node.vecOwnedForks.size()
             && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
         {
-            Log("dpos node of MQ: [%s]", node.forkNodeID.c_str());
+            Log("dpos node of MQ: [%s]", node.superNodeID.c_str());
         }
         else
         {
-            Log("fork node of MQ: [%s]", node.forkNodeID.c_str());
+            Log("fork node of MQ: [%s]", node.superNodeID.c_str());
         }
         for (const auto& fork : node.vecOwnedForks)
         {
             Log("CMQCluster::HandleInvoke(): list fork/dpos node [%s] with fork [%s]",
-                node.forkNodeID.c_str(), fork.ToString().c_str());
+                node.superNodeID.c_str(), fork.ToString().c_str());
         }
     }
 
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-        if (mapForkNode.size() == 0)
+        if (mapSuperNode.size() == 0)
         {
             Log("CMQCluster::HandleInvoke(): this fork node has not enrolled "
                 "itself to dpos node yet[%d]",
-                mapForkNode.size());
+                mapSuperNode.size());
         }
-        if (mapForkNode.size() > 1)
+        if (mapSuperNode.size() > 1)
         {
             Error("CMQCluster::HandleInvoke(): fork node should have one "
                   "single enrollment[%d]",
-                  mapForkNode.size());
+                  mapSuperNode.size());
             return false;
         }
-        if (1 == mapForkNode.size())
+        if (1 == mapSuperNode.size())
         {
-            clientID = mapForkNode.begin()->first;
+            clientID = mapSuperNode.begin()->first;
             topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics "
                 "[%s] \n [%s]:", clientID.c_str(),
                 topicRespBlk.c_str(), topicRbBlk.c_str());
-            for (const auto& fork : mapForkNode.begin()->second)
+            for (const auto& fork : mapSuperNode.begin()->second)
             {
                 Log("CMQCluster::HandleInvoke(): fork [%s] intended to be produced "
                     "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
@@ -172,7 +172,7 @@ bool CMQCluster::HandleInvoke()
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
-        for (const auto& node : mapForkNode)
+        for (const auto& node : mapSuperNode)
         {
             if (1 == node.second.size()
                 && node.second[0] == pCoreProtocol->GetGenesisBlockHash())
@@ -223,7 +223,7 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 
     if (catNode != NODE_CATEGORY::DPOSNODE)
     {
-        Error("CMQCluster::HandleEvent(): only dpos fork should receive this kind of event");
+        Error("CMQCluster::HandleEvent(): only dpos node should receive this kind of event");
         return false;
     }
 
@@ -259,13 +259,13 @@ bool CMQCluster::LogEvent(const string& info)
 
 bool CMQCluster::PostBlockRequest(int syncHeight)
 {
-    if (mapForkNode.empty())
+    if (mapSuperNode.empty())
     {
         Log("CMQCluster::PostBlockRequest(): enrollment is empty for this fork node");
         return true;
     }
 
-    if (mapForkNode.size() > 1)
+    if (mapSuperNode.size() > 1)
     {
         Error("CMQCluster::PostBlockRequest(): enrollment is incorrect for this fork node");
         return false;
@@ -297,7 +297,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     req.ipAddr = 1111638320;
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
-    auto enroll = mapForkNode.begin();
+    auto enroll = mapSuperNode.begin();
     req.forkNum = (*enroll).second.size();
     req.forkList = (*enroll).second;
     req.lastHeight = height;
@@ -486,8 +486,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
 
         //check if requesting fork node has been enrolled
-        auto node = mapForkNode.find(req.forkNodeId);
-        if (node == mapForkNode.end())
+        auto node = mapSuperNode.find(req.forkNodeId);
+        if (node == mapSuperNode.end())
         {
             Error("CMQCluster::OnReceiveMessage(): requesting fork node has not enrolled yet");
             return;
@@ -509,7 +509,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
 
         //add this requesting fork node to active list
-        mapActiveForkNode[req.ipAddr] = storage::CForkNode(req.forkNodeId, req.forkList);
+        mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.forkList);
 
         //processing request from fork node
         //check height and hash are matched
@@ -791,7 +791,7 @@ void CMQCluster::MqttThreadFunc()
     if (!fAbort)
     {
         boost::unique_lock<boost::mutex> lock(mtxStatus);
-        while (mapForkNode.empty())
+        while (mapSuperNode.empty())
         {
             Log("there is no enrollment info, waiting for it coming...");
             condStatus.wait(lock);

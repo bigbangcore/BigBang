@@ -2414,11 +2414,11 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         }
         forks.emplace_back(fork);
     }
-    storage::CForkNode node;
-    node.forkNodeID = std::move(id);
+    storage::CSuperNode node;
+    node.superNodeID = std::move(id);
     node.vecOwnedForks = std::move(forks);
 
-    if(OK != pService->AddForkNode(node))
+    if(OK != pService->AddSuperNode(node))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "Enroll fork node failed");
     }

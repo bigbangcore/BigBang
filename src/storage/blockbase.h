@@ -233,8 +233,8 @@ public:
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
     bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust);
     bool AddNewForkContext(const CForkContext& ctxt);
-    bool AddNewForkNode(const CForkNode& forkNode);
-    bool ListForkNode(std::vector<storage::CForkNode>& nodes);
+    bool AddNewSuperNode(const CSuperNode& superNode);
+    bool ListSuperNode(std::vector<storage::CSuperNode>& nodes);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
     bool Retrieve(const uint256& hash, CBlockEx& block);
