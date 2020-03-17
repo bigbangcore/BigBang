@@ -164,6 +164,8 @@ private:
     string topicRbBlk;
     NODE_CATEGORY catNode;
 //    std::vector<storage::CForkNode> vForkNode;
+    boost::mutex mtxStatus;
+    boost::condition_variable condStatus;
     std::map<string, std::vector<uint256>> mapForkNode;
     std::map<uint32, storage::CForkNode> mapActiveForkNode;
 

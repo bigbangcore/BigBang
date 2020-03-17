@@ -18,8 +18,10 @@ class CNetChannelPeer
     {
     public:
         CNetChannelPeerFork()
-          : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT), nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
-            nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2), fWaitGetTxComplete(false), nCacheSynTxCount(NETCHANNEL_KNOWNINV_MAXCOUNT)
+          : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT),
+            nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
+            nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2),
+            fWaitGetTxComplete(false), nCacheSynTxCount(NETCHANNEL_KNOWNINV_MAXCOUNT)
         {
         }
         enum
@@ -94,7 +96,8 @@ class CNetChannelPeer
                 }
                 break;
             case SYNTXINV_STATUS_WAIT_PEER_COMPLETE:
-                if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
+                if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT
+                    || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
                 {
                     InitTxInvSynData();
                     nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;

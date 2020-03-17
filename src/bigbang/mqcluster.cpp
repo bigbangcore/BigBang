@@ -60,7 +60,7 @@ bool CMQCluster::HandleInitialize()
     }
     else if (NODE_CATEGORY::BBCNODE == catNode)
     {
-        Log("CMQCluster::HandleInitialize(): bbc node so go passby");
+        Log("CMQCluster::HandleInitialize(): bbc node so bypass");
         return true;
     }
 
@@ -104,7 +104,7 @@ bool CMQCluster::HandleInvoke()
 {
     if (NODE_CATEGORY::BBCNODE == catNode)
     {
-        Log("CMQCluster::HandleInvoke(): bbc node so go passby");
+        Log("CMQCluster::HandleInvoke(): bbc node so bypass");
         return true;
     }
 
@@ -117,11 +117,18 @@ bool CMQCluster::HandleInvoke()
     for (const auto& node : nodes)
     {
         mapForkNode.insert(make_pair(node.forkNodeID, node.vecOwnedForks));
-        cout << "fork node of MQ: " << node.forkNodeID << endl;
+        if (1 == node.vecOwnedForks.size()
+            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
+        {
+            Log("dpos node of MQ: [%s]", node.forkNodeID.c_str());
+        }
+        else
+        {
+            Log("fork node of MQ: [%s]", node.forkNodeID.c_str());
+        }
         for (const auto& fork : node.vecOwnedForks)
         {
-            cout << "the fork producing subsidiary: " << fork.ToString() << endl;
-            Log("CMQCluster::HandleInvoke(): list fork node [%s] fork [%s]",
+            Log("CMQCluster::HandleInvoke(): list fork/dpos node [%s] with fork [%s]",
                 node.forkNodeID.c_str(), fork.ToString().c_str());
         }
     }
@@ -129,15 +136,52 @@ bool CMQCluster::HandleInvoke()
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-        if (mapForkNode.size() != 1)
+        if (mapForkNode.size() == 0)
         {
-            Error("CMQCluster::HandleHalt(): fork node should have one single enrollment");
+            Log("CMQCluster::HandleInvoke(): this fork node has not enrolled "
+                "itself to dpos node yet[%d]",
+                mapForkNode.size());
+        }
+        if (mapForkNode.size() > 1)
+        {
+            Error("CMQCluster::HandleInvoke(): fork node should have one "
+                  "single enrollment[%d]",
+                  mapForkNode.size());
             return false;
         }
-        if (!PostBlockRequest(-1))
+        if (1 == mapForkNode.size())
         {
-            Error("CMQCluster::HandleHalt(): failed to post requesting block");
-            return false;
+            clientID = mapForkNode.begin()->first;
+            topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
+            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+            Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics "
+                "[%s] \n [%s]:", clientID.c_str(),
+                topicRespBlk.c_str(), topicRbBlk.c_str());
+            for (const auto& fork : mapForkNode.begin()->second)
+            {
+                Log("CMQCluster::HandleInvoke(): fork [%s] intended to be produced "
+                    "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
+            }
+
+            if (!PostBlockRequest(-1))
+            {
+                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+                return false;
+            }
+        }
+    }
+    else if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        for (const auto& node : mapForkNode)
+        {
+            if (1 == node.second.size()
+                && node.second[0] == pCoreProtocol->GetGenesisBlockHash())
+            { //dpos node
+                clientID = node.first;
+                topicReqBlk = "Cluster01/+/SyncBlockReq";
+                Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
+                    clientID.c_str(), topicReqBlk.c_str());
+            }
         }
     }
 
@@ -215,9 +259,15 @@ bool CMQCluster::LogEvent(const string& info)
 
 bool CMQCluster::PostBlockRequest(int syncHeight)
 {
-    if (mapForkNode.empty() || mapForkNode.size() > 1)
+    if (mapForkNode.empty())
     {
-        Error("CMQCluster::PostBlockRequest(): enrollment is incorrect for fork node");
+        Log("CMQCluster::PostBlockRequest(): enrollment is empty for this fork node");
+        return true;
+    }
+
+    if (mapForkNode.size() > 1)
+    {
+        Error("CMQCluster::PostBlockRequest(): enrollment is incorrect for this fork node");
         return false;
     }
 
@@ -335,7 +385,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //iterate to retrieve next one
 
             if (resp.isBest)
-            {//when reaching best height, send request by timer
+            { //when reaching best height, send request by timer
                 nReqBlkTimerID = SetTimer(1000 * 60,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
             }
@@ -598,14 +648,12 @@ public:
         mqCluster.LogEvent("[connected]");
         if (CMQCluster::NODE_CATEGORY::FORKNODE == mqCluster.catNode)
         {
-            mqCluster.topicRespBlk = "Cluster01/" + mqCluster.clientID + "/SyncBlockResp";
             asynCli.subscribe(mqCluster.topicRespBlk, CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.topicRespBlk << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            mqCluster.topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             asynCli.subscribe(mqCluster.topicRbBlk, CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.topicRbBlk << "'\n"
                  << "\tfor client " << mqCluster.clientID
@@ -613,7 +661,6 @@ public:
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
-            mqCluster.topicReqBlk = "Cluster01/+/SyncBlockReq";
             asynCli.subscribe(mqCluster.topicReqBlk, CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.topicReqBlk << "'\n"
                  << "\tfor client " << mqCluster.clientID
@@ -739,6 +786,18 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 void CMQCluster::MqttThreadFunc()
 {
     Log("entering thread function of MQTT");
+
+    //wait for supernode itself status available
+    if (!fAbort)
+    {
+        boost::unique_lock<boost::mutex> lock(mtxStatus);
+        while (mapForkNode.empty())
+        {
+            Log("there is no enrollment info, waiting for it coming...");
+            condStatus.wait(lock);
+        }
+    }
+
     //establish connection
     ClientAgent(MQ_CLI_ACTION::CONN);
 
