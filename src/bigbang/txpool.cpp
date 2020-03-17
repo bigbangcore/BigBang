@@ -490,9 +490,8 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     return err;
 }
 
-void CTxPool::Pop(const uint256& txid)
+void CTxPool::PopWithoutLock(const uint256& txid)
 {
-    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
     if (it == mapTx.end())
     {
@@ -523,6 +522,12 @@ void CTxPool::Pop(const uint256& txid)
     }
 
     StdTrace("CTxPool", "Pop success, txid: %s", txid.GetHex().c_str());
+}
+
+void CTxPool::Pop(const uint256& txid)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    PopWithoutLock(txid);
 }
 
 bool CTxPool::Get(const uint256& txid, CTransaction& tx) const

@@ -11,6 +11,8 @@
 // This macro value is related to DPoS Weight value / PoW weight, if weight ratio changed, you must change it
 #define CACHE_HEIGHT_INTERVAL 23
 
+#define MAX_ACTIVE_TX_TIME_INTERVAL (60*60)
+
 namespace bigbang
 {
 
@@ -348,6 +350,7 @@ protected:
     }
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee);
+    void PopWithoutLock(const uint256& txid);
 protected:
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
