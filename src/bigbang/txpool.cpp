@@ -858,21 +858,19 @@ bool CTxPool::LoadData()
         const uint256& hashFork = kv.first;
         mapTxCache.insert(make_pair(hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
         
-        if(mapPoolView.find(hashFork) != mapPoolView.end())
+        uint256 hashBlock;
+        int nHeight = 0;
+        int64 nTime = 0;
+        if(!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime))
         {
-            uint256 hashBlock;
-            int nHeight = 0;
-            int64 nTime = 0;
-            if(!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime))
-            {
-                return false;
-            }
-
-            std::vector<CTransaction> vtx;
-            int64 nTotalFee = 0;
-            ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
-            mapTxCache[hashFork].AddNew(hashBlock, vtx);
+            return false;
         }
+
+        std::vector<CTransaction> vtx;
+        int64 nTotalFee = 0;
+        ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
+        mapTxCache[hashFork].AddNew(hashBlock, vtx);
+        
     }
     return true;
 }
