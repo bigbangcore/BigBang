@@ -252,6 +252,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         clientID = id;
+        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
         topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics "
@@ -262,6 +263,12 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced "
                 "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
         }
+
+        {
+            boost::unique_lock<boost::mutex> lock(mtxStatus);
+            mapSuperNode.insert(make_pair(id, forks));
+        }
+        condStatus.notify_all();
 
         if (!PostBlockRequest(-1))
         {
@@ -285,12 +292,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             Log("CMQCluster::HandleEvent(): dpos node register clientid [%s] with topic [%s]",
                 clientID.c_str(), topicReqBlk.c_str());
         }
+
+        {
+            boost::unique_lock<boost::mutex> lock(mtxStatus);
+            mapSuperNode.insert(make_pair(id, forks));
+        }
+        condStatus.notify_all();
     }
-    {
-        boost::unique_lock<boost::mutex> lock(mtxStatus);
-        mapSuperNode.insert(make_pair(id, forks));
-    }
-    condStatus.notify_all();
 
     return true;
 }
@@ -789,22 +797,26 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
-            while (!deqSendBuff.empty())
             {
-                pair<string, CBufferPtr> buf = deqSendBuff.front();
-                cout << "\nSending message to [" << buf.first << "]..." << endl;
-                buf.second->Dump();
+                boost::unique_lock<boost::mutex> lock(mtxSend);
+                while (!deqSendBuff.empty())
+                {
+                    pair<string, CBufferPtr> buf = deqSendBuff.front();
+                    cout << "\nSending message to [" << buf.first << "]..." << endl;
+                    buf.second->Dump();
 
-                mqtt::message_ptr pubmsg = mqtt::make_message(
-                    buf.first, buf.second->GetData(), buf.second->GetSize());
-                pubmsg->set_qos(QOS1);
-                pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
-                delitok = client.publish(pubmsg, nullptr, cb);
-                delitok->wait_for(100);
-                cout << "_._._OK" << endl;
+                    mqtt::message_ptr pubmsg = mqtt::make_message(
+                        buf.first, buf.second->GetData(), buf.second->GetSize());
+                    pubmsg->set_qos(QOS1);
+                    pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
+                    delitok = client.publish(pubmsg, nullptr, cb);
+                    delitok->wait_for(100);
+                    cout << "_._._OK" << endl;
 
-                deqSendBuff.pop_front();
+                    deqSendBuff.pop_front();
+                }
             }
+            condSend.notify_all();
             break;
         }
         case MQ_CLI_ACTION::DISCONN:
@@ -859,13 +871,13 @@ void CMQCluster::MqttThreadFunc()
     {
         {
             boost::unique_lock<boost::mutex> lock(mtxSend);
-            while (!fAbort)
+            while (deqSendBuff.empty())
             {
-                ClientAgent(MQ_CLI_ACTION::PUB);
-                Log("thread function of MQTT: go through an iteration");
                 condSend.wait(lock);
             }
         }
+        ClientAgent(MQ_CLI_ACTION::PUB);
+        Log("thread function of MQTT: go through an iteration");
     }
 
     //disconnect to broker

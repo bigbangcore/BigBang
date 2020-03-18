@@ -2424,7 +2424,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     node.superNodeID = std::move(id);
     node.vecOwnedForks = std::move(forks);
 
-    if(OK != pService->AddSuperNode(node))
+    if(!pService->AddSuperNode(node))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "Enroll super node failed");
     }
