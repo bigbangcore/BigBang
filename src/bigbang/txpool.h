@@ -22,19 +22,20 @@ public:
     uint64 nSequenceNumber;
     std::size_t nSerializeSize;
     uint64 nNextSequenceNumber;
+    int64 nEntryTimeStamp;
 
 public:
     CPooledTx()
     {
         SetNull();
     }
-    CPooledTx(const CAssembledTx& tx, uint64 nSequenceNumberIn)
-      : CAssembledTx(tx), nSequenceNumber(nSequenceNumberIn), nNextSequenceNumber(0)
+    CPooledTx(const CAssembledTx& tx, uint64 nSequenceNumberIn, int64 nEntryTimeStampIn)
+      : CAssembledTx(tx), nSequenceNumber(nSequenceNumberIn), nNextSequenceNumber(0), nEntryTimeStamp(nEntryTimeStampIn)
     {
         nSerializeSize = xengine::GetSerializeSize(static_cast<const CTransaction&>(tx));
     }
-    CPooledTx(const CTransaction& tx, int nBlockHeightIn, uint64 nSequenceNumberIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
-      : CAssembledTx(tx, nBlockHeightIn, destInIn, nValueInIn), nSequenceNumber(nSequenceNumberIn), nNextSequenceNumber(0)
+    CPooledTx(const CTransaction& tx, int nBlockHeightIn, uint64 nSequenceNumberIn, int64 nEntryTimeStampIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
+      : CAssembledTx(tx, nBlockHeightIn, destInIn, nValueInIn), nSequenceNumber(nSequenceNumberIn), nEntryTimeStamp(nEntryTimeStampIn), nNextSequenceNumber(0)
     {
         nSerializeSize = xengine::GetSerializeSize(tx);
     }

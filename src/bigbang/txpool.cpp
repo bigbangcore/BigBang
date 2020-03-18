@@ -320,7 +320,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, std::vector<uint256>
     {
         if (i.ptx)
         {
-            if (nNetTime - i.ptx->nTimeStamp > MAX_ACTIVE_TX_TIME_INTERVAL)
+            if (nNetTime - i.ptx->nEntryTimeStamp > MAX_ACTIVE_TX_TIME_INTERVAL)
             {
                 vDeativeTx.push_back(i.ptx->GetHash());
                 continue;
@@ -344,7 +344,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, std::vector<uint256>
         }
         if (i.ptx)
         {
-            if (nNetTime - i.ptx->nTimeStamp > MAX_ACTIVE_TX_TIME_INTERVAL)
+            if (nNetTime - i.ptx->nEntryTimeStamp > MAX_ACTIVE_TX_TIME_INTERVAL)
             {
                 vDeativeTx.push_back(i.ptx->GetHash());
                 continue;
@@ -867,7 +867,7 @@ bool CTxPool::LoadData()
         const uint256& txid = vTx[i].second.first;
         const CAssembledTx& tx = vTx[i].second.second;
 
-        map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
+        map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber(), GetNetTime()))).first;
         mapPoolView[hashFork].AddNew(txid, (*mi).second);
     }
 
@@ -962,7 +962,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     }
 
     CDestination destIn = vPrevOutput[0].destTo;
-    map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
+    map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), GetNetTime(), destIn, nValueIn))).first;
     if (!txView.AddNew(txid, (*mi).second))
     {
         StdTrace("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
