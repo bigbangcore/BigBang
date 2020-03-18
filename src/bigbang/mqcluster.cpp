@@ -255,8 +255,8 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
         topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-        Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics "
-            "[%s] \n [%s]:", clientID.c_str(),
+        Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics:"
+            "\n[%s]\n[%s]", clientID.c_str(),
             topicRespBlk.c_str(), topicRbBlk.c_str());
         for (const auto& fork : forks)
         {
