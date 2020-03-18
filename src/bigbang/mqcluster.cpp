@@ -135,7 +135,6 @@ bool CMQCluster::HandleInvoke()
 
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
         if (mapSuperNode.size() == 0)
         {
             Log("CMQCluster::HandleInvoke(): this fork node has not enrolled "
@@ -152,10 +151,11 @@ bool CMQCluster::HandleInvoke()
         if (1 == mapSuperNode.size())
         {
             clientID = mapSuperNode.begin()->first;
+            topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
             topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-            Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics "
-                "[%s] \n [%s]:", clientID.c_str(),
+            Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
+                "\t[%s]\n\t[%s]", clientID.c_str(),
                 topicRespBlk.c_str(), topicRbBlk.c_str());
             for (const auto& fork : mapSuperNode.begin()->second)
             {
@@ -343,8 +343,8 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     }
 
     CSyncBlockRequest req;
-    //    req.ipAddr = 16777343; //127.0.0.1
-    req.ipAddr = 1111638320;
+    req.ipAddr = 16777343; //127.0.0.1
+    //req.ipAddr = 1111638320;    //"0ABB"
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
     auto enroll = mapSuperNode.begin();

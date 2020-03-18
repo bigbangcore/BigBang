@@ -685,9 +685,9 @@ bool CService::GetTxSender(const uint256& txid, CAddress& sender)
 
 bool CService::AddSuperNode(const storage::CSuperNode& node)
 {
-    if (!pBlockChain->AddNewSuperNode(node))
+    if (OK != pBlockChain->AddNewSuperNode(node))
     {
-        StdError("CService::AddSuperNode", "Add new superNode failed.");
+        StdError("CService::AddSuperNode", "Add new super node failed.");
         return false;
     }
 
