@@ -52,11 +52,11 @@ bool CMQCluster::HandleInitialize()
 {
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        clientID = "FORKNODE-01";
+//        clientID = "FORKNODE-01";
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
-        clientID = "DPOSNODE";
+//        clientID = "DPOSNODE";
     }
     else if (NODE_CATEGORY::BBCNODE == catNode)
     {
@@ -241,6 +241,56 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
         deqSendBuff.emplace_back(make_pair(topicRbBlk, spRBC));
     }
     condSend.notify_all();
+
+    return true;
+}
+
+bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
+{
+    string id = eventMqUpdateEnroll.data.superNodeClientID;
+    vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        clientID = id;
+        topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
+        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+        Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics "
+            "[%s] \n [%s]:", clientID.c_str(),
+            topicRespBlk.c_str(), topicRbBlk.c_str());
+        for (const auto& fork : forks)
+        {
+            Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced "
+                "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
+        }
+
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::HandleEvent(): failed to post requesting block");
+            return false;
+        }
+    }
+    else if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        if (1 == forks.size()
+            && forks[0] == pCoreProtocol->GetGenesisBlockHash())
+        { //dpos node
+            clientID = id;
+            topicReqBlk = "Cluster01/+/SyncBlockReq";
+            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s]",
+                clientID.c_str(), topicReqBlk.c_str());
+        }
+        else
+        { //fork nodes either enrolled or p2p
+            //mapActiveSuperNode[ip] = storage::CSuperNode();
+            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s] with topic [%s]",
+                clientID.c_str(), topicReqBlk.c_str());
+        }
+    }
+    {
+        boost::unique_lock<boost::mutex> lock(mtxStatus);
+        mapSuperNode.insert(make_pair(id, forks));
+    }
+    condStatus.notify_all();
 
     return true;
 }

@@ -18,7 +18,14 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr),
+    pBlockChain(nullptr),
+    pTxPool(nullptr),
+    pDispatcher(nullptr),
+    pWallet(nullptr),
+    pNetwork(nullptr),
+    pForkManager(nullptr),
+    pMQCluster(nullptr)
 {
 }
 
@@ -70,6 +77,12 @@ bool CService::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("mqcluster", pMQCluster))
+    {
+        Error("Failed to request mqcluster");
+        return false;
+    }
+
     return true;
 }
 
@@ -82,6 +95,7 @@ void CService::HandleDeinitialize()
     pWallet = nullptr;
     pNetwork = nullptr;
     pForkManager = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CService::HandleInvoke()
@@ -461,8 +475,8 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     }
 
     if (!fCompleted
-          || (pCoreProtocol->ValidateTransaction(tx) == OK
-              && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
+        || (pCoreProtocol->ValidateTransaction(tx) == OK
+            && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
     {
         return true;
     }
@@ -671,7 +685,21 @@ bool CService::GetTxSender(const uint256& txid, CAddress& sender)
 
 bool CService::AddSuperNode(const storage::CSuperNode& node)
 {
-    return pBlockChain->AddNewSuperNode(node);
+    if (!pBlockChain->AddNewSuperNode(node))
+    {
+        StdError("CService::AddSuperNode", "Add new superNode failed.");
+        return false;
+    }
+
+    CEventMQEnrollUpdate *pEvent = new CEventMQEnrollUpdate(0);
+    if (nullptr != pEvent)
+    {
+        pEvent->data.superNodeClientID = node.superNodeID;
+        pEvent->data.vecForksOwned = node.vecOwnedForks;
+        pMQCluster->PostEvent(pEvent);
+    }
+
+    return true;
 }
 
 CAddress CService::GetBackSender(const uint256& txid)

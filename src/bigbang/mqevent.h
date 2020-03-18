@@ -18,6 +18,7 @@ enum
     EVENT_MQ_BASE = EVENT_USER_BASE,
     EVENT_MQ_SYNCBLOCK,
     EVENT_MQ_UPDATEBLOCK,   //dpos node deliver rollback block
+    EVENT_MQ_ENROLLUPDATE,
     EVENT_MQ_AGREEMENT
 };
 
@@ -27,6 +28,7 @@ class CMQEventListener;
 
 typedef TYPE_MQEVENT(EVENT_MQ_SYNCBLOCK, std::string) CEventMQSyncBlock;
 typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBLOCK, CMqRollbackUpdate) CEventMQChainUpdate;
+typedef TYPE_MQEVENT(EVENT_MQ_ENROLLUPDATE, CMqSuperNodeUpdate) CEventMQEnrollUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_AGREEMENT, CDelegateAgreement) CEventMQAgreement;
 
 class CMQEventListener : virtual public CEventListener
@@ -35,6 +37,7 @@ public:
     virtual ~CMQEventListener() {}
     DECLARE_EVENTHANDLER(CEventMQSyncBlock);
     DECLARE_EVENTHANDLER(CEventMQChainUpdate);
+    DECLARE_EVENTHANDLER(CEventMQEnrollUpdate);
     DECLARE_EVENTHANDLER(CEventMQAgreement);
 };
 

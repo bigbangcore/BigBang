@@ -32,7 +32,7 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
-    pMqcluster = nullptr;
+    pMQCluster = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -111,7 +111,7 @@ bool CDispatcher::HandleInitialize()
     nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
     if (2 == nNodeCat)
     {
-        if (!GetObject("mqcluster", pMqcluster))
+        if (!GetObject("mqcluster", pMQCluster))
         {
             Error("Failed to request mqcluster");
             return false;
@@ -134,7 +134,7 @@ void CDispatcher::HandleDeinitialize()
     pNetChannel = nullptr;
     // pDelegatedChannel = nullptr;
     pDataStat = nullptr;
-    pMqcluster = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -383,7 +383,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
                 pMqChainUpdate->data.vShort.push_back(rb.GetHash());
             }
 
-            pMqcluster->PostEvent(pMqChainUpdate);
+            pMQCluster->PostEvent(pMqChainUpdate);
         }
     }
 }

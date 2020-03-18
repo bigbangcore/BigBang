@@ -133,6 +133,7 @@ protected:
 
     bool HandleEvent(CEventMQSyncBlock& eventMqSyncBlock) override;
     bool HandleEvent(CEventMQChainUpdate& eventMqUpdateChain) override;
+    bool HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll) override;
     bool HandleEvent(CEventMQAgreement& eventMqAgreement) override;
 
     bool IsAuthenticated() override;

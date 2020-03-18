@@ -268,8 +268,8 @@ public:
 class CMqSuperNodeUpdate
 {
 public:
-    std::string superNodeID;
-    std::vector<uint256> vecOwnedForks;
+    std::string superNodeClientID;
+    std::vector<uint256> vecForksOwned;
 };
 
 /* Net Channel */

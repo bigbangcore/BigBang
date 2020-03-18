@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "mqdb.h"
+#include "mqcluster.h"
 #include "network.h"
 #include "xengine.h"
 
@@ -100,6 +101,7 @@ protected:
     IWallet* pWallet;
     CNetwork* pNetwork;
     IForkManager* pForkManager;
+    IMQCluster* pMQCluster;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;
 };

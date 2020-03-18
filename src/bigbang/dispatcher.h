@@ -48,7 +48,7 @@ protected:
     IDataStat* pDataStat;
     std::string strCmd;
     int nNodeCat;
-    IMQCluster* pMqcluster;
+    IMQCluster* pMQCluster;
 };
 
 } // namespace bigbang
