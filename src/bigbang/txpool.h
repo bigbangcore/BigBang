@@ -254,11 +254,11 @@ public:
 
 class CTxCache
 {
-public: 
-    explicit CTxCache(size_t nHeightIntervalIn = 0) 
-        : nHeightInterval(nHeightIntervalIn){}
-    explicit CTxCache(const CTxCache& cache)
-        : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache){}
+public:
+    CTxCache(size_t nHeightIntervalIn = 0)
+      : nHeightInterval(nHeightIntervalIn) {}
+    CTxCache(const CTxCache& cache)
+      : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
     bool Exists(const uint256& hash)
     {
         return mapCache.count(hash) > 0;
@@ -266,32 +266,31 @@ public:
     void AddNew(const uint256& hash, const std::vector<CTransaction>& vtxIn)
     {
         mapCache[hash] = vtxIn;
-        
+
         const uint256& highestHash = mapCache.rbegin()->first;
         uint32 upperHeight = CBlock::GetBlockHeightByHash(highestHash);
 
-        if(upperHeight > nHeightInterval)
+        if (upperHeight > nHeightInterval)
         {
             uint32 lowerHeight = upperHeight - (nHeightInterval - 1);
 
-            for(auto iter = mapCache.begin(); iter != mapCache.end(); ) 
+            for (auto iter = mapCache.begin(); iter != mapCache.end();)
             {
                 uint32 height = CBlock::GetBlockHeightByHash(iter->first);
-                if (height < lowerHeight) 
+                if (height < lowerHeight)
                 {
                     iter = mapCache.erase(iter);
-                } 
-                else 
+                }
+                else
                 {
                     ++iter;
                 }
             }
         }
-
     }
     bool Retrieve(const uint256& hash, std::vector<CTransaction>& vtx)
     {
-        if(mapCache.find(hash) != mapCache.end())
+        if (mapCache.find(hash) != mapCache.end())
         {
             vtx = mapCache[hash];
             return true;
@@ -306,6 +305,7 @@ public:
     {
         mapCache.clear();
     }
+
 private:
     size_t nHeightInterval;
     std::map<uint256, std::vector<CTransaction>> mapCache;
@@ -348,6 +348,7 @@ protected:
     }
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee);
+
 protected:
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
