@@ -677,6 +677,11 @@
                 "request": "curl -d '{\"id\":3,\"method\":\"enrollsupernode\",\"jsonrpc\":\"2.0\",\"params\":{[\"575f2041770496489120bb102d9dd55f5e75b0c4aa528d5762b92b59acd6d939\",\"6236d780f9f743707d57b3feb19d21c8a867577f5e83c163774222bb7ef8d8cb\",\"7c6a6aba05cec77a998c19649ee1fa0e29c7b5246d0e3a6501ee1d4d81dd73ea\"]}}' http://127.0.0.1:9902",
                 "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":true}"
             }
+        ],
+        "error": [
+            "{\"code\":-32600,\"message\":\"Invalid super node\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-32603,\"message\":\"Add super node enrollment failed\"}"
         ]
     },
     "listpeer": {

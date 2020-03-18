@@ -2400,6 +2400,12 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
 {
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (1 != nNodeCat && 2 != nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only super node has the feature");
+    }
+
     auto spParam = CastParamPtr<CEnrollSuperNodeParam>(param);
     std::vector<std::string> vFork = spParam->vecForks;
     std::string id = spParam->strClientid;
@@ -2420,7 +2426,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
 
     if(OK != pService->AddSuperNode(node))
     {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Enroll fork node failed");
+        throw CRPCException(RPC_INTERNAL_ERROR, "Enroll super node failed");
     }
 
     auto spResult = MakeCEnrollSuperNodeResultPtr();
