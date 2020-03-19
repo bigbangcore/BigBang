@@ -527,7 +527,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
         //     mapEnrollTx.insert(make_pair(make_pair(tx.sendTo, tx.hashAnchor), txid));
         // }
-        
+
         // 把tx对应的上下文信息保存到BlockEx中，以增加信息字段vTxContxt
         vTxContxt.push_back(txContxt);
         // 添加新增打包好的tx到BlockView中
@@ -573,8 +573,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
+    // 新增的Block的Index构造BlockChainUpdate(新增块的Origin hash，高度，时间戳，所属分支子链，以及父链)
     update = CBlockChainUpdate(pIndexNew);
+    // 通过BlockView的最新数据拿到更新了的Tx列表(待删除，还没有实际删除的Tx集合)，存到blockchainupdate对象的setTxUpdate字段中
     view.GetTxUpdated(update.setTxUpdate);
+    // 拿到长短链切换后的Block的变化，就是切换后，长链拿到的是BlockAndNew，短链是BlockRemove，都存到了update对象中，为了通知给其他模块，比如TxPool，consensus，wallet等。
     if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
     {
         Log("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());

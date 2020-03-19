@@ -217,6 +217,7 @@ void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoi
     }
 }
 
+// 获得BlockView中待删除，但是还没有删除的tx列表
 void CBlockView::GetTxUpdated(set<uint256>& setUpdate)
 {
     for (int i = 0; i < vTxRemove.size(); i++)
@@ -914,7 +915,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         // 该Fork当前最后一个Block的Index
         CBlockIndex* pForkLast = spFork->GetLast();
 
-        vector<CBlockIndex*> vPath; 
+        vector<CBlockIndex*> vPath;
         // 得到某个Block（前序）与Fork最后一个Block之间差了多少个分叉Block，差的分叉Block序列用vPath输出，最后返回分叉点的Index指针
         // 主要是为了长短链切换
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);

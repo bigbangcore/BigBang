@@ -86,6 +86,7 @@ public:
 };
 
 // Notify
+// 该类对象用于消息通知，通知链的最新状态。
 class CBlockChainUpdate
 {
 public:
