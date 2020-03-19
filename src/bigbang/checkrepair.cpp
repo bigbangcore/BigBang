@@ -402,6 +402,103 @@ bool CCheckWalletForkUnspent::CheckWalletUnspent(const CTxOutPoint& point, const
 }
 
 /////////////////////////////////////////////////////////////////////////
+// CCheckDelegateDB
+
+bool CCheckDelegateDB::CheckDelegate(const uint256& hashBlock)
+{
+    CDelegateContext ctxtDelegate;
+    return Retrieve(hashBlock, ctxtDelegate);
+}
+
+bool CCheckDelegateDB::UpdateDelegate(const uint256& hashBlock, CBlockEx& block, uint32 nBlockFile, uint32 nBlockOffset)
+{
+    if (block.IsGenesis())
+    {
+        CDelegateContext ctxtDelegate;
+        if (!AddNew(hashBlock, ctxtDelegate))
+        {
+            StdTrace("check", "Update genesis delegate fail, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+        return true;
+    }
+
+    CDelegateContext ctxtDelegate;
+    map<CDestination, int64>& mapDelegate = ctxtDelegate.mapVote;
+    map<int, map<CDestination, CDiskPos>>& mapEnrollTx = ctxtDelegate.mapEnrollTx;
+    if (!RetrieveDelegatedVote(block.hashPrev, mapDelegate))
+    {
+        StdError("check", "Update delegate vote: RetrieveDelegatedVote fail, hashPrev: %s", block.hashPrev.GetHex().c_str());
+        return false;
+    }
+
+    {
+        CTemplateId tid;
+        if (block.txMint.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            mapDelegate[block.txMint.sendTo] += block.txMint.nAmount;
+        }
+    }
+
+    CBufStream ss;
+    CVarInt var(block.vtx.size());
+    uint32 nOffset = nBlockOffset + block.GetTxSerializedOffset()
+                     + ss.GetSerializeSize(block.txMint)
+                     + ss.GetSerializeSize(var);
+    for (int i = 0; i < block.vtx.size(); i++)
+    {
+        CTransaction& tx = block.vtx[i];
+        CDestination destInDelegateTemplate;
+        CDestination sendToDelegateTemplate;
+        CTxContxt& txContxt = block.vTxContxt[i];
+        if (!CTemplate::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
+        {
+            StdLog("check", "Update delegate vote: parse delegate dest fail, destIn: %s, sendTo: %s, block: %s, txid: %s",
+                   CAddress(txContxt.destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str(), hashBlock.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        if (!sendToDelegateTemplate.IsNull())
+        {
+            mapDelegate[sendToDelegateTemplate] += tx.nAmount;
+        }
+        if (!destInDelegateTemplate.IsNull())
+        {
+            mapDelegate[destInDelegateTemplate] -= (tx.nAmount + tx.nTxFee);
+        }
+        if (tx.nType == CTransaction::TX_CERT)
+        {
+            if (destInDelegateTemplate.IsNull())
+            {
+                StdLog("check", "Update delegate vote: TX_CERT destInDelegate is null, destInDelegate: %s, block: %s, txid: %s",
+                       CAddress(destInDelegateTemplate).ToString().c_str(), hashBlock.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            int nCertAnchorHeight = 0;
+            try
+            {
+                CIDataStream is(tx.vchData);
+                is >> nCertAnchorHeight;
+            }
+            catch (...)
+            {
+                StdLog("check", "Update delegate vote: TX_CERT vchData error, destInDelegate: %s, block: %s, txid: %s",
+                       CAddress(destInDelegateTemplate).ToString().c_str(), hashBlock.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+            mapEnrollTx[nCertAnchorHeight].insert(make_pair(destInDelegateTemplate, CDiskPos(nBlockFile, nOffset)));
+        }
+        nOffset += ss.GetSerializeSize(tx);
+    }
+
+    if (!AddNew(hashBlock, ctxtDelegate))
+    {
+        StdError("check", "Update delegate context failed, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////
 // CCheckWalletTxWalker
 
 bool CCheckWalletTxWalker::Walk(const CWalletTx& wtx)
@@ -878,6 +975,19 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
+    if (!objDelegateDB.CheckDelegate(hashBlock))
+    {
+        StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
+        if (!fOnlyCheck)
+        {
+            if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
+            {
+                StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
+                return false;
+            }
+        }
+    }
+
     CBlockIndex* pNewBlockIndex = nullptr;
     CBlockOutline* pBlockOutline = objBlockIndexWalker.GetBlockOutline(hashBlock);
     if (pBlockOutline == nullptr)
@@ -1151,8 +1261,6 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
         return false;
     }
 
-    // TODO: int64 nMinEnrollAmount = pCoreProtocol->MinEnrollAmount();
-    int64 nMinEnrollAmount = 10000000 * COIN;
     if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
     {
         return true;
@@ -1170,7 +1278,7 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
         pIndex = pIndex->pPrev;
     }
 
-    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, nMinEnrollAmount,
+    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, objProofParam.nDelegateProofOfStakeEnrollMinimumAmount,
                                enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
     {
         StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
@@ -1227,6 +1335,7 @@ bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, c
             }
         }
     }
+
     // first 23 destination sorted by amount and sequence
     for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
     {
@@ -1529,7 +1638,7 @@ bool CCheckBlockWalker::GetBlockWalletTx(const set<CDestination>& setAddress, ve
     return true;
 }
 
-bool CCheckBlockWalker::CheckBlockIndex(bool fOnlyCheck)
+bool CCheckBlockWalker::CheckBlockIndex()
 {
     for (map<uint256, CBlockIndex*>::iterator it = mapBlockIndex.begin(); it != mapBlockIndex.end(); ++it)
     {
@@ -1578,7 +1687,7 @@ bool CCheckRepairData::FetchBlockData()
     uint32 nLastPosRet = 0;
 
     StdLog("check", "Fetch block and tx......");
-    if (!tsBlock.WalkThrough(objBlockWalker, nLastFileRet, nLastPosRet))
+    if (!tsBlock.WalkThrough(objBlockWalker, nLastFileRet, nLastPosRet, !fOnlyCheck))
     {
         StdError("check", "Fetch block and tx fail.");
         return false;
@@ -1981,8 +2090,9 @@ bool CCheckRepairData::CheckTxIndex()
             dbTxIndex.Deinitialize();
             return false;
         }
-        CBlockIndex* pBlockIndex = mt->second.pOrigin;
-        while (pBlockIndex)
+        int nCheckOkCount = 0;
+        CBlockIndex* pBlockIndex = mt->second.pLast;
+        while (pBlockIndex && pBlockIndex != mt->second.pOrigin)
         {
             const uint256& hashBlock = pBlockIndex->GetBlockHash();
             uint256 hashFork = pBlockIndex->GetOriginHash();
@@ -2003,6 +2113,7 @@ bool CCheckRepairData::CheckTxIndex()
             {
                 CBufStream ss;
                 CTxIndex txIndex;
+                bool bCheckFail = false;
 
                 uint32 nTxOffset = pBlockIndex->nOffset + block.GetTxSerializedOffset();
                 if (!dbTxIndex.Retrieve(hashFork, block.txMint.GetHash(), txIndex))
@@ -2011,6 +2122,7 @@ bool CCheckRepairData::CheckTxIndex()
                            block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.txMint.GetHash().GetHex().c_str());
 
                     mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
+                    bCheckFail = true;
                 }
                 else
                 {
@@ -2021,6 +2133,7 @@ bool CCheckRepairData::CheckTxIndex()
                                block.txMint.GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                         mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
+                        bCheckFail = true;
                     }
                 }
                 nTxOffset += ss.GetSerializeSize(block.txMint);
@@ -2035,6 +2148,7 @@ bool CCheckRepairData::CheckTxIndex()
                                block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str());
 
                         mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
+                        bCheckFail = true;
                     }
                     else
                     {
@@ -2044,12 +2158,17 @@ bool CCheckRepairData::CheckTxIndex()
                                    block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                             mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
+                            bCheckFail = true;
                         }
                     }
                     nTxOffset += ss.GetSerializeSize(block.vtx[i]);
                 }
+                if (!bCheckFail && ++nCheckOkCount >= 128)
+                {
+                    break;
+                }
             }
-            pBlockIndex = pBlockIndex->pNext;
+            pBlockIndex = pBlockIndex->pPrev;
         }
     }
 
@@ -2278,7 +2397,7 @@ bool CCheckRepairData::CheckRepairData()
     }
 
     StdLog("check", "Check block index starting");
-    if (!objBlockWalker.CheckBlockIndex(fOnlyCheck))
+    if (!objBlockWalker.CheckBlockIndex())
     {
         StdLog("check", "Check block index fail");
         return false;

@@ -19,6 +19,8 @@ set(sources
     ipv6_tests.cpp
     crypto_tests.cpp
     delegate_tests.cpp
+    storage_tests.cpp
+    txpool_tests.cpp
 )
 
 #set(lib_src ../src/common/destination.h ../src/common/destination.cpp)

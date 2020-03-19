@@ -21,6 +21,27 @@
 namespace bigbang
 {
 
+inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
+{
+    if (0 == nVchData)
+    {
+        return nMinFee;
+    }
+    uint32_t multiplier = nVchData / 200;
+    if (nVchData % 200 > 0)
+    {
+        multiplier++;
+    }
+    if (multiplier > 5)
+    {
+        return nMinFee + 1000 + (multiplier - 5) * 400;
+    }
+    else
+    {
+        return nMinFee + multiplier * 200;
+    }
+}
+
 // Status
 class CForkStatus
 {
@@ -153,6 +174,7 @@ public:
     std::vector<CTransaction> vEnrollTx;
     std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>> vDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    uint256 hashDistributeOfPublish;
     bool fPublishCompleted;
 
 public:

@@ -279,6 +279,10 @@ public:
     {
         Deinitialize();
     }
+
+public:
+    bool CheckDelegate(const uint256& hashBlock);
+    bool UpdateDelegate(const uint256& hashBlock, CBlockEx& block, uint32 nBlockFile, uint32 nBlockOffset);
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -431,8 +435,8 @@ public:
 class CCheckBlockWalker : public CTSWalker<CBlockEx>
 {
 public:
-    CCheckBlockWalker(bool fTestnetIn)
-      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn) {}
+    CCheckBlockWalker(bool fTestnetIn, bool fOnlyCheckIn)
+      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn), fOnlyCheck(fOnlyCheckIn) {}
     ~CCheckBlockWalker();
 
     bool Initialize(const string& strPath);
@@ -455,9 +459,10 @@ public:
     void ClearBlockIndex();
     bool CheckTxExist(const uint256& hashFork, const uint256& txid, int& nHeight);
     bool GetBlockWalletTx(const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
-    bool CheckBlockIndex(bool fOnlyCheck);
+    bool CheckBlockIndex();
 
 public:
+    bool fOnlyCheck;
     int64 nBlockCount;
     uint32 nMainChainHeight;
     int64 nMainChainTxCount;
@@ -479,7 +484,7 @@ class CCheckRepairData
 {
 public:
     CCheckRepairData(const string& strPath, bool fTestnetIn, bool fOnlyCheckIn)
-      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn) {}
+      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn, fOnlyCheckIn) {}
 
 protected:
     bool FetchBlockData();

@@ -1231,10 +1231,14 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             {
                 if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock, hashBlockRef))
                 {
-                    StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, type: %s, block: %s",
-                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock),
-                           GetBlockTypeStr(pBlock->nType, pBlock->txMint.nType).c_str(), hashBlock.GetHex().c_str());
-                    sched.SetRepeatBlock(nNonceSender, hashBlock, *pBlock);
+                    StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, block: %s",
+                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    if (!sched.SetRepeatBlock(nNonceSender, hashBlock))
+                    {
+                        StdLog("NetChannel", "NetChannel AddNewBlock: Generate multiple repeat blocks, peer: %s, height: %d, block: %s",
+                               GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                        setMisbehavePeer.insert(nNonceSender);
+                    }
                     return;
                 }
             }
@@ -1360,12 +1364,12 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 continue;
             }
 
-            if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
+            /*if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
             {
                 StdWarn("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
                         GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
                 continue;
-            }
+            }*/
 
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)

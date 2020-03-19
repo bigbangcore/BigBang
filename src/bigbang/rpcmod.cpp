@@ -256,6 +256,10 @@ CRPCMod::CRPCMod()
         ("importwallet", &CRPCMod::RPCImportWallet)
         //
         ("makeorigin", &CRPCMod::RPCMakeOrigin)
+        //
+        ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
+        //
+        ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -1589,30 +1593,20 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
-
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
     }
-
     if (!pService->HaveFork(hashFork))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
+
     vector<unsigned char> vchData;
-    auto strDataTmp = spParam->strData;
-    if (strDataTmp.IsValid())
+    if (spParam->strData.IsValid())
     {
+        auto strDataTmp = spParam->strData;
         if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
             auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
@@ -1624,10 +1618,22 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         }
     }
 
+    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    if (spParam->dTxfee.IsValid())
+    {
+        int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
+        if (nUserTxFee > nTxFee)
+        {
+            nTxFee = nUserTxFee;
+        }
+        StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
     if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         nAmount -= nTxFee;
     }
+
     CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
@@ -1681,6 +1687,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     {
         throw CRPCException(RPC_WALLET_ERROR, "The signature is not completed");
     }
+
     Errno err = pService->SendTransaction(txNew);
     if (err != OK)
     {
@@ -1716,16 +1723,6 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
-    int64 nTxFee = MIN_TX_FEE;
-    if (spParam->dTxfee.IsValid())
-    {
-        nTxFee = AmountFromValue(spParam->dTxfee);
-        if (nTxFee < MIN_TX_FEE)
-        {
-            nTxFee = MIN_TX_FEE;
-        }
-    }
-
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
@@ -1742,6 +1739,20 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     {
         vchData = ParseHexString(spParam->strData);
     }
+
+    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    if (spParam->dTxfee.IsValid())
+    {
+        nTxFee = AmountFromValue(spParam->dTxfee);
+
+        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        if (nTxFee < nFee)
+        {
+            nTxFee = nFee;
+        }
+        StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
     CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
@@ -2199,6 +2210,73 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     spResult->strHex = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize());
 
     return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSignRawTransactionWithWalletParam>(param);
+
+    crypto::CPubKey pubkey;
+    pubkey.SetHex(spParam->strPubkey);
+    CDestination destIn(pubkey);
+    if (destIn.IsTemplate())
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Not a pubkey used to sign");
+    }
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
+    }
+
+    bool fCompleted = true;
+    if (!pService->SignRawTransaction(destIn, rawTx, fCompleted))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign raw transaction");
+    }
+
+    CBufStream ssNew;
+    ssNew << rawTx;
+
+    auto spResult = MakeCSignTransactionResultPtr();
+    spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
+    spResult->fCompleted = fCompleted;
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSendRawTransactionParam>(param);
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
+    }
+
+    Errno err = pService->SendRawTransaction(rawTx);
+    if (err != OK)
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
+                                                          + ErrorString(err));
+    }
+
+    return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
 }
 
 /* Util */

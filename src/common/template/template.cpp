@@ -318,8 +318,10 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
-                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig, bool& fCompleted) const
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor,
+                                 const CDestination& destTo, const int32 nForkHeight,
+                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig,
+                                 bool& fCompleted) const
 {
     vchSig = vchData;
     if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))

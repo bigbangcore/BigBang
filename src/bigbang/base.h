@@ -106,7 +106,7 @@ public:
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashRefBlock, CDelegateAgreement& agreement) = 0;
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
-    virtual bool ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes) = 0;
+    virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
 
     const CBasicConfig* Config()
     {
@@ -132,7 +132,7 @@ public:
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
-    virtual void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+    virtual bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)
         = 0;
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
@@ -171,8 +171,8 @@ public:
     }
     virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
-    virtual bool AddNewDistribute(int nAnchorHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
-    virtual bool AddNewPublish(int nAnchorHeight, const uint256& hashPublishAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
+    virtual bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
+    virtual bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
 };
@@ -318,6 +318,8 @@ public:
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
+    virtual bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
+    virtual Errno SendRawTransaction(CTransaction& tx) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
