@@ -584,6 +584,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
+    // 如果真有长短链切换回滚短链，那么vBlockRemove必然不为空
     if (!update.vBlockRemove.empty())
     {
         uint32 nTxAdd = 0;
@@ -1130,6 +1131,7 @@ Errno CBlockChain::GetTxContxt(storage::CBlockView& view, const CTransaction& tx
     return OK;
 }
 
+// 拿到新增Block的长链与短链的block变化，就是长短链切换，AddNew是长链，Remove是短链
 bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                                   vector<CBlockEx>& vBlockAddNew, vector<CBlockEx>& vBlockRemove)
 {

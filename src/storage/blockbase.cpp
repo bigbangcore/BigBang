@@ -606,6 +606,7 @@ bool CBlockBase::RetrieveIndex(const uint256& hash, CBlockIndex** ppIndex)
     return (*ppIndex != nullptr);
 }
 
+// 拿到某个Block所在的分支的最后一个Block的index
 bool CBlockBase::RetrieveFork(const uint256& hash, CBlockIndex** ppIndex)
 {
     CReadLock rlock(rwAccess);
