@@ -2112,23 +2112,28 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
                                       + string(" keys and ") + std::to_string(nTemp) + string(" templates."));
 }
 
+// 创建新分支的Origin Block，把分支的相关信息写入OriginBlock，然后返回BLock的Hex可视化字符串，没有任何链上操作，仅仅是创建OriginBlock，给新建分支做准备
 CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeOriginParam>(param);
 
     //makeorigin <"prev"> <"owner"> <$amount$> <"name"> <"symbol"> <$reward$> <halvecycle> (-i|-noi*isolated*) (-p|-nop*private*) (-e|-noe*enclosed*)
     uint256 hashPrev;
+    // 从哪个Block分叉的Block Hash，就是分支Origin Block的前序Block的hash
     hashPrev.SetHex(spParam->strPrev);
 
+    // owner的pubkey对应的地址
     CDestination destOwner = static_cast<CDestination>(CAddress(spParam->strOwner));
     if (destOwner.IsNull())
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
     }
 
+    // 分支的金额和挖矿奖励
     int64 nAmount = AmountFromValue(spParam->dAmount);
     int64 nMintReward = AmountFromValue(spParam->dReward);
 
+    // 校验分支名和分支符号的长度大小，Fork名字要唯一
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
     {
@@ -2138,16 +2143,19 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     CBlock blockPrev;
     uint256 hashParent;
     int nJointHeight;
+    // 拿到要创建的分支的Origin Block的前序Block的信息，就是Fork的父分支和分叉高度
     if (!pService->GetBlock(hashPrev, blockPrev, hashParent, nJointHeight))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown prev block");
     }
 
+    // 分叉点的Block不能是Extend块
     if (blockPrev.IsExtended() || blockPrev.IsVacant())
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Prev block should not be extended/vacant block");
     }
 
+    // 通过make origin命令设置分支的信息，名字，符号，分叉高度，分叉Block hash，挖矿奖励，是否是孤立的分支等等
     CProfile profile;
     profile.strName = spParam->strName;
     profile.strSymbol = spParam->strSymbol;
@@ -2160,21 +2168,24 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nHalveCycle = spParam->nHalvecycle;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 
+    // 创建该分支的Origin Block，该Block与前序Block的时间戳间隔是60s，前序hash指向前序Block
     CBlock block;
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_ORIGIN;
     block.nTimeStamp = blockPrev.nTimeStamp + BLOCK_TARGET_SPACING;
     block.hashPrev = hashPrev;
-    profile.Save(block.vchProof);
+    profile.Save(block.vchProof); // 把分支的信息序列化写入Origin Block的vchProof字段里
 
+    // 把make origin的amount金额通过Origin Block的mint tx打入到owner的地址
     CTransaction& tx = block.txMint;
     tx.nType = CTransaction::TX_GENESIS;
     tx.nTimeStamp = block.nTimeStamp;
     tx.sendTo = destOwner;
     tx.nAmount = nAmount;
-    tx.vchData.assign(profile.strName.begin(), profile.strName.end());
+    tx.vchData.assign(profile.strName.begin(), profile.strName.end()); // 把分支的名称序列化到Origin BLock的mint tx的vchData字段里
 
     crypto::CPubKey pubkey;
+    // 获得owner地址所对应的pubkey
     if (!destOwner.GetPubKey(pubkey))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Owner' address should be pubkey address");
@@ -2187,6 +2198,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
     }
+    // 如果是公钥肯定不能签名
     if (fPublic)
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign origin block by public key");
@@ -2196,6 +2208,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_WALLET_UNLOCK_NEEDED, "Key is locked");
     }
 
+    // 通过owner的公钥在WalletStore里面找到对应的owner的私钥给Origin Block hash进行签名，然后写入Origin Block的vchSig字段里
     uint256 hashBlock = block.GetHash();
     if (!pService->SignSignature(pubkey, hashBlock, block.vchSig))
     {
@@ -2206,7 +2219,9 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     ss << block;
 
     auto spResult = MakeCMakeOriginResultPtr();
+    // 返回Hex编码的Origin Block的hash
     spResult->strHash = hashBlock.GetHex();
+    // 返回Hex编码的Orgin Block的可视化字符串
     spResult->strHex = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize());
 
     return spResult;

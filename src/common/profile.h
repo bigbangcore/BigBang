@@ -26,6 +26,7 @@ enum
     PROFILE_MAX,
 };
 
+// 描述关于某个分支的信息
 class CProfile
 {
 public:
