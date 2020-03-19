@@ -52,11 +52,11 @@ bool CMQCluster::HandleInitialize()
 {
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-//        clientID = "FORKNODE-01";
+        //        clientID = "FORKNODE-01";
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
-//        clientID = "DPOSNODE";
+        //        clientID = "DPOSNODE";
     }
     else if (NODE_CATEGORY::BBCNODE == catNode)
     {
@@ -155,12 +155,14 @@ bool CMQCluster::HandleInvoke()
             topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
-                "\t[%s]\n\t[%s]", clientID.c_str(),
+                "\t[%s]\n\t[%s]",
+                clientID.c_str(),
                 topicRespBlk.c_str(), topicRbBlk.c_str());
             for (const auto& fork : mapSuperNode.begin()->second)
             {
                 Log("CMQCluster::HandleInvoke(): fork [%s] intended to be produced "
-                    "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
+                    "by this node [%s]:",
+                    fork.ToString().c_str(), clientID.c_str());
             }
 
             if (!PostBlockRequest(-1))
@@ -256,12 +258,14 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics:"
-            "\n[%s]\n[%s]", clientID.c_str(),
+            "\n[%s]\n[%s]",
+            clientID.c_str(),
             topicRespBlk.c_str(), topicRbBlk.c_str());
         for (const auto& fork : forks)
         {
             Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced "
-                "by this node [%s]:", fork.ToString().c_str(), clientID.c_str());
+                "by this node [%s]:",
+                fork.ToString().c_str(), clientID.c_str());
         }
 
         {
@@ -406,6 +410,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         return;
     case NODE_CATEGORY::FORKNODE:
     {
+        Log("CMQCluster::OnReceiveMessage(): current height is [%d]", int(lastHeightResp));
         if (topicRbBlk != topic)
         { //respond to request block of main chain
             //unpack payload
@@ -418,6 +423,14 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             {
                 StdError(__PRETTY_FUNCTION__, e.what());
                 Error("CMQCluster::OnReceiveMessage(): failed to unpack respond msg");
+                return;
+            }
+
+            if (-1 == resp.height)
+            {   //has reached the best height for the first time communication,
+                // then set timer to process the following business rather than req/resp model
+                nReqBlkTimerID = SetTimer(1000 * 30,
+                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
                 return;
             }
 
@@ -444,7 +457,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //iterate to retrieve next one
 
             if (resp.isBest)
-            { //when reaching best height, send request by timer
+            { //when reach best height, send request by timer
                 nReqBlkTimerID = SetTimer(1000 * 60,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
             }
@@ -568,42 +581,70 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
 
         //add this requesting fork node to active list
-        mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.forkList);
+        if (!mapActiveSuperNode.count(req.ipAddr))
+        {
+            mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.forkList);
+        }
 
         //processing request from fork node
-        //check height and hash are matched
-        uint256 hash;
-        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
-        {
-            Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match");
-            return;
-        }
-        if (hash != req.lastHash)
-        {
-            Error("CMQCluster::OnReceiveMessage(): height and hash do not match");
-            return;
-        }
-        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
-        {
-            Error("CMQCluster::OnReceiveMessage(): failed to get next block hash");
-            return;
-        }
-        CBlock block;
-        if (!pBlockChain->GetBlock(hash, block))
-        {
-            Error("CMQCluster::OnReceiveMessage(): failed to get next block");
-            return;
-        }
 
-        //reply block requested
+        //check height requested
+        int best = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
         CSyncBlockResponse resp;
-        resp.height = req.lastHeight + 1;
-        resp.hash = hash;
-        resp.isBest = resp.height < pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash())
+        if (req.lastHeight > best)
+        {
+            Error("CMQCluster::OnReceiveMessage(): block height owned by fork node "
+                "should not be greater than the best one on dpos node");
+            return;
+        }
+        else if (req.lastHeight == best)
+        {
+            Log("CMQCluster::OnReceiveMessage(): block height owned by fork node "
+                  "has reached the best one on dpos node, please wait...");
+            resp.height = -1;
+            resp.hash = uint256();
+            resp.isBest = 1;
+            resp.block = CBlock();
+            resp.blockSize = xengine::GetSerializeSize(resp.block);
+        }
+        else
+        {
+            //check height and hash are matched
+            uint256 hash;
+            if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match");
+                return;
+            }
+            if (hash != req.lastHash)
+            {
+                Error("CMQCluster::OnReceiveMessage(): height and hash do not match");
+                return;
+            }
+            if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash");
+                return;
+            }
+            CBlock block;
+            if (!pBlockChain->GetBlock(hash, block))
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to get next block");
+                return;
+            }
+
+            //reply block requested
+            resp.height = req.lastHeight + 1;
+            resp.hash = hash;
+            resp.isBest = req.lastHeight + 1 < best
                           ? 0
                           : 1;
-        resp.blockSize = xengine::GetSerializeSize(block);
-        resp.block = move(block);
+            Log("CMQCluster::OnReceiveMessage(): request[%d] best[%d] isBest[%d]",
+                req.lastHeight + 1, best, resp.isBest);
+            resp.blockSize = xengine::GetSerializeSize(block);
+            resp.block = move(block);
+        }
+
 
         CBufferPtr spSS(new CBufStream);
         *spSS.get() << resp;
