@@ -13,6 +13,7 @@
 #include "exchange.h"
 #include "fork.h"
 #include "multisig.h"
+#include "payment.h"
 #include "proof.h"
 #include "rpc/auto_protocol.h"
 #include "stream/datastream.h"
@@ -20,7 +21,6 @@
 #include "templateid.h"
 #include "transaction.h"
 #include "vote.h"
-#include "payment.h"
 #include "weighted.h"
 
 using namespace std;
@@ -115,22 +115,27 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(uint16 nTypeIn, const vector<uin
     return CTemplatePtr(ptr);
 }
 
+// 通过TemplateRequest的数据拿到模板类型，并创建相应的模板
 const CTemplatePtr CTemplate::CreateTemplatePtr(const CTemplateRequest& obj, CDestination&& destInstance)
 {
+    // 通过TemplateRequest的数据拿到模板类型，并创建相应类型的模板指针(CTemplateFork,CTemplateMint等)，模板指针在TypeInfo中的ptr
     const CTypeInfo* pTypeInfo = GetTypeInfoByName(obj.strType);
     if (!pTypeInfo)
     {
         return nullptr;
     }
 
+    // 创建不同类型的CTemplate对象的深拷贝
     CTemplate* ptr = pTypeInfo->ptr->clone();
     if (ptr)
     {
+        // 设置不同类型相应的模板数据
         if (!ptr->SetTemplateData(obj, move(destInstance)) || !ptr->ValidateParam())
         {
             delete ptr;
             return nullptr;
         }
+        // 构建处理对应类型的模板数据和ID
         ptr->BuildTemplateData();
         ptr->BuildTemplateId();
     }

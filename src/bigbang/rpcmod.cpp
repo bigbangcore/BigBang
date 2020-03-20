@@ -1345,26 +1345,33 @@ CRPCResultPtr CRPCMod::RPCExportKey(CRPCParamPtr param)
     return MakeCExportKeyResultPtr(ToHexString(vchKey));
 }
 
+// 添加并创建一个新模板
 CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CAddNewTemplateParam>(param);
+    // 通过TemplateRequest的数据拿到模板类型，并创建相应的模板
     CTemplatePtr ptr = CTemplate::CreateTemplatePtr(spParam->data, CAddress());
     if (ptr == nullptr)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parameters,failed to make template");
     }
+    // 钱包中没有这个模板ID才能添加这个新模板，模板iD其实就是模板的所有二进制数据的hash，只要模板内容vchData和模板类型相同，那么ID就相同
+    // 模板ID是模板内容vchData与模板type的uint256组合( uint256(hash(vchData) << 16 | uint16(type)) )
     if (!pService->HaveTemplate(ptr->GetTemplateId()))
     {
+        // 把新创建的模板添加进钱包，也就是把模板指针和模板vchData存入缓存和dbWallet里，入库
         if (!pService->AddTemplate(ptr))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
         }
+        // 通过模板地址同步与这个地址有关（from 和 to的地址都校验）的所有Tx，并把这些tx，更新插入到wallet中
         if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
         }
     }
 
+    // 返回新模板的地址，也就是模板ID
     return MakeCAddNewTemplateResultPtr(CAddress(ptr->GetTemplateId()).ToString());
 }
 

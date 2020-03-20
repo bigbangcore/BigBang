@@ -89,19 +89,24 @@ bool CTemplateFork::SetTemplateData(const vector<uint8>& vchDataIn)
     return true;
 }
 
+// 设置解析模板数据，并存入模板对象
 bool CTemplateFork::SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, CDestination&& destInstance)
 {
+    // 校验模板类型
     if (obj.strType != GetTypeName(TEMPLATE_FORK))
     {
         return false;
     }
 
+    // 解析并校验赎回pubkey地址
     if (!destInstance.ParseString(obj.fork.strRedeem))
     {
         return false;
     }
+    // 把解析完成的地址存储赎回地址的destRedeem字段
     destRedeem = destInstance;
 
+    // 设置make origin生成的ForkHash。strFork参数一般是make orgin的hash，也就是Origin Block的hash
     if (hashFork.SetHex(obj.fork.strFork) != obj.fork.strFork.size())
     {
         return false;
@@ -110,6 +115,7 @@ bool CTemplateFork::SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, C
     return true;
 }
 
+// 将模板数据的二进制数据写入模板vchData字段中
 void CTemplateFork::BuildTemplateData()
 {
     vchData.clear();
