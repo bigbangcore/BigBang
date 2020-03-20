@@ -16,6 +16,7 @@
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
+#include "template/fork.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -1632,6 +1633,15 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         nAmount -= nTxFee;
+    }
+
+    CTemplateId tid;
+    int lastHeight = pService->GetForkHeight(pCoreProtocol->GetGenesisBlockHash());
+    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
+        && nAmount < CTemplateFork::LockedCoin(lastHeight))
+    {
+        int64 mortgageAmount = CTemplateFork::LockedCoin(lastHeight);
+        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(mortgageAmount) + " for creating fork");
     }
 
     CTransaction txNew;
