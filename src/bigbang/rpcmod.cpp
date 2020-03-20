@@ -2413,6 +2413,10 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     std::vector<uint256> forks;
     for (const auto& i : vFork)
     {
+        if (64 != i.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork hash");
+        }
         uint256 fork;
         if (fork.SetHex(i) != i.size())
         {
