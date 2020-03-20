@@ -83,6 +83,7 @@ public:
     /* Util */
     bool GetTxSender(const uint256& txid, CAddress& sender) override;
     bool AddSuperNode(const storage::CSuperNode& node) override;
+    bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) override;
 
 protected:
     bool HandleInitialize() override;

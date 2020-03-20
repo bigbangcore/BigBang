@@ -322,6 +322,7 @@ public:
     /* Util */
     virtual bool GetTxSender(const uint256& txid, CAddress& sender) = 0;
     virtual bool AddSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

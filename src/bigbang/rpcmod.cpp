@@ -14,11 +14,11 @@
 //#include <algorithm>
 
 #include "address.h"
+#include "mqdb.h"
 #include "rpc/auto_protocol.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
-#include "mqdb.h"
 
 using namespace std;
 using namespace xengine;
@@ -2420,18 +2420,34 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         }
         forks.emplace_back(fork);
     }
-    storage::CSuperNode node;
-    node.superNodeID = std::move(id);
-    node.vecOwnedForks = std::move(forks);
-    node.nodeCat = nNodeCat;
+    storage::CSuperNode newNode;
+    newNode.superNodeID = std::move(id);
+    newNode.vecOwnedForks = std::move(forks);
+    newNode.nodeCat = nNodeCat;
 
-    if(!pService->AddSuperNode(node))
+    if (!pService->AddSuperNode(newNode))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "Enroll super node failed");
     }
 
+    vector<storage::CSuperNode> nodes;
+    if (!pService->ListSuperNode(nodes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "List super nodes failed");
+    }
+
     auto spResult = MakeCEnrollSuperNodeResultPtr();
-    spResult->fRetflag = true;
+    for (const auto& it : nodes)
+    {
+        CEnrollSuperNodeResult::CNode node;
+        node.strClientid = it.superNodeID;
+        for (const auto& fork : it.vecOwnedForks)
+        {
+            node.vecForks.push_back(fork.ToString());
+        }
+        spResult->vecNode.push_back(node);
+    }
+
     return spResult;
 }
 

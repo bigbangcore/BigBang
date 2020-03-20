@@ -50,15 +50,7 @@ bool CMQCluster::IsAuthenticated()
 
 bool CMQCluster::HandleInitialize()
 {
-    if (NODE_CATEGORY::FORKNODE == catNode)
-    {
-        //        clientID = "FORKNODE-01";
-    }
-    else if (NODE_CATEGORY::DPOSNODE == catNode)
-    {
-        //        clientID = "DPOSNODE";
-    }
-    else if (NODE_CATEGORY::BBCNODE == catNode)
+    if (NODE_CATEGORY::BBCNODE == catNode)
     {
         Log("CMQCluster::HandleInitialize(): bbc node so bypass");
         return true;

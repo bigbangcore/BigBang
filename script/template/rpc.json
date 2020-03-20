@@ -664,9 +664,29 @@
             }
         },
         "response": {
-            "type": "bool",
-            "name": "retflag",
-            "desc": "successful or not"
+            "type": "array",
+            "name": "node",
+            "desc": "enrolled nodes previously",
+            "content": {
+                "node": {
+                    "type": "object",
+                    "content": {
+                        "clientid": {
+                            "type": "string",
+                            "desc": "client id for mq either dpos node or fork nodes"
+                        },
+                        "forks": {
+                            "type": "array",
+                            "content": {
+                                "fork": {
+                                    "type": "string",
+                                    "desc": "fork which will be produced by specific fork node"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         "example": [
             {
@@ -681,7 +701,8 @@
         "error": [
             "{\"code\":-32600,\"message\":\"Invalid super node\"}",
             "{\"code\":-6,\"message\":\"Unknown fork\"}",
-            "{\"code\":-32603,\"message\":\"Add super node enrollment failed\"}"
+            "{\"code\":-32603,\"message\":\"Add super node enrollment failed\"}",
+            "{\"code\":-32603,\"message\":\"List super node enrollment failed\"}"
         ]
     },
     "listpeer": {

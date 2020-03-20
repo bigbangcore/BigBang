@@ -702,6 +702,17 @@ bool CService::AddSuperNode(const storage::CSuperNode& node)
     return true;
 }
 
+bool CService::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
+{
+    if (!pBlockChain->ListSuperNode(nodes))
+    {
+        StdError("CService::ListSuperNode", "list super nodes failed.");
+        return false;
+    }
+
+    return true;
+}
+
 CAddress CService::GetBackSender(const uint256& txid)
 {
     CTransaction tx;
