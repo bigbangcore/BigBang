@@ -263,6 +263,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 
         {
             boost::unique_lock<boost::mutex> lock(mtxStatus);
+            mapSuperNode.clear();
             mapSuperNode.insert(make_pair(id, forks));
         }
         condStatus.notify_all();
