@@ -43,10 +43,16 @@ void CSuperNodeDB::Deinitialize()
 
 bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
 {
-    vector<CSuperNode> nodes;
-    ListSuperNode(nodes);
-    bool ret = Write(cli.superNodeID, cli.vecOwnedForks, true);  //overwrite
-    ListSuperNode(nodes);
+    bool ret = false;
+    if (1 == cli.nodeCat)
+    {
+        Clear();
+        ret = Write(cli.superNodeID, cli.vecOwnedForks, false);
+    }
+    else if (2 == cli.nodeCat)
+    {
+        ret = Write(cli.superNodeID, cli.vecOwnedForks, true);
+    }
     return ret;
 }
 

@@ -2423,6 +2423,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     storage::CSuperNode node;
     node.superNodeID = std::move(id);
     node.vecOwnedForks = std::move(forks);
+    node.nodeCat = nNodeCat;
 
     if(!pService->AddSuperNode(node))
     {

@@ -118,11 +118,12 @@ bool CMQCluster::HandleInvoke()
     {
         mapSuperNode.insert(make_pair(node.superNodeID, node.vecOwnedForks));
         if (1 == node.vecOwnedForks.size()
-            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
+            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash()
+            && 2 == node.nodeCat)
         {
             Log("dpos node of MQ: [%s]", node.superNodeID.c_str());
         }
-        else
+        else if (1 == node.nodeCat)
         {
             Log("fork node of MQ: [%s]", node.superNodeID.c_str());
         }

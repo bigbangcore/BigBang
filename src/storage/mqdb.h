@@ -20,6 +20,7 @@ class CSuperNode
 public:
     std::string superNodeID;
     std::vector<uint256> vecOwnedForks;
+    int8 nodeCat;
 
 public:
     CSuperNode(std::string id = std::string(), std::vector<uint256> forks = std::vector<uint256>())
@@ -31,6 +32,7 @@ protected:
     {
         s.Serialize(superNodeID, opt);
         s.Serialize(vecOwnedForks, opt);
+        s.Serialize(nodeCat, opt);
     }
 };
 
