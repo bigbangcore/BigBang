@@ -303,7 +303,8 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
             block_hash += " " + ite->GetHash().GetHex();
         }
         cmd += block_hash;
-        static auto fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+        static std::future<int> fut;
+        fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
     }
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
