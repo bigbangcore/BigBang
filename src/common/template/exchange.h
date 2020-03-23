@@ -60,10 +60,12 @@ protected:
 public:
     CDestination destSpend_m;
     CDestination destSpend_s;
-    int height_m;
-    int height_s;
+    uint32 height_m;
+    uint32 height_s;
     uint256 fork_m;
     uint256 fork_s;
+
+    static const int DataLen = (sizeof(destSpend_m.prefix) + sizeof(destSpend_m.data) + sizeof(height_m) + sizeof(fork_m)) * 2;
 };
 
 #endif

@@ -50,7 +50,7 @@ public:
     uint64 m_pledge;
     uint32 m_height_end;
     static const int SafeHeight = 30;
-    static const int DataLen = sizeof(m_business) + sizeof(m_customer) + sizeof(m_height_exec) + sizeof(m_amount) + sizeof(m_pledge) + sizeof(m_height_end);
+    static const int DataLen =  sizeof(m_business.prefix) + sizeof(m_business.data) + sizeof(m_customer.prefix) + sizeof(m_customer.data) + sizeof(m_height_exec) + sizeof(m_amount) + sizeof(m_pledge) + sizeof(m_height_end);
 };
 
 #endif
