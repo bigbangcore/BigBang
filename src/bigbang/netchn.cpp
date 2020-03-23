@@ -238,7 +238,8 @@ int CNetChannel::GetPrimaryChainHeight()
     uint256 hashBlock = uint64(0);
     int nHeight = 0;
     int64 nTime = 0;
-    if (pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime))
+    uint16 nMintType = 0;
+    if (pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
     {
         return nHeight;
     }
@@ -550,7 +551,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                         {
                             uint256 hashLastBlock;
                             int64 nLastTime = 0;
-                            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastTime))
+                            uint16 nMintType = 0;
+                            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastTime, nMintType))
                             {
                                 StdError("NetChannel", "CEventPeerInv: peer: %s, GetLastBlock fail, fork: %s",
                                          GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
@@ -711,7 +713,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
         uint256 hashLastBlock;
         int nLastHeight = 0;
         int64 nLastTime = 0;
-        if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime))
+        uint16 nMintType = 0;
+        if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime, nMintType))
         {
             for (const uint256& hash : eventGetBlocks.data.vBlockHash)
             {

@@ -39,6 +39,9 @@ static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 6900000
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
+// dpos begin height
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 0;
+
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
@@ -886,6 +889,28 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
 int64 CCoreProtocol::MinEnrollAmount()
 {
     return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+}
+
+uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
+{
+    if (pIndexPrev == nullptr || !pIndexPrev->IsPrimary())
+    {
+        return 0;
+    }
+
+    const CBlockIndex* pIndex = pIndexPrev;
+    while (pIndex->IsProofOfWork() && pIndex->nHeight > DELEGATE_PROOF_OF_STAKE_HEIGHT && pIndex->pPrev != nullptr)
+    {
+        pIndex = pIndex->pPrev;
+    }
+
+    uint32 nTimeStamp = pIndex->nTimeStamp + BLOCK_TARGET_SPACING * (pIndexPrev->nHeight - pIndex->nHeight + 1);
+    if (nTimeStamp <= pIndexPrev->nTimeStamp)
+    {
+        nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+    }
+
+    return nTimeStamp;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

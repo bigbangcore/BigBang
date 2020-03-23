@@ -36,6 +36,7 @@ public:
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t> mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, int nBlockHeight) override;
     virtual int64 MinEnrollAmount() override;
+    virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
 
 protected:
     bool HandleInitialize() override;

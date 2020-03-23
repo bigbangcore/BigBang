@@ -57,6 +57,11 @@ public:
     {
     }
 
+    bool IsNull()
+    {
+        return nLastBlockTime == 0;
+    }
+
 public:
     uint256 hashOrigin;
     uint256 hashParent;
@@ -66,6 +71,7 @@ public:
     int64 nLastBlockTime;
     int nLastBlockHeight;
     int64 nMoneySupply;
+    uint16 nMintType;
     std::multimap<int, uint256> mapSubline;
 };
 
@@ -251,12 +257,17 @@ protected:
 class CBlockMakerUpdate
 {
 public:
+    uint256 hashFork;
+    uint256 hashParent;
+    int nOriginHeight;
+
     uint256 hashBlock;
     int64 nBlockTime;
     int nBlockHeight;
     uint256 nAgreement;
     std::size_t nWeight;
     uint16 nMintType;
+    int64 nMoneySupply;
 };
 
 /* Net Channel */

@@ -350,6 +350,9 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     {
         CProofOfSecretShare proof;
         proof.Load(block.vchProof);
+        pBlockMakerUpdate->data.hashFork = updateBlockChain.hashFork;
+        pBlockMakerUpdate->data.hashParent = updateBlockChain.hashParent;
+        pBlockMakerUpdate->data.nOriginHeight = updateBlockChain.nOriginHeight;
         pBlockMakerUpdate->data.hashBlock = updateBlockChain.hashLastBlock;
         pBlockMakerUpdate->data.nBlockTime = updateBlockChain.nLastBlockTime;
         pBlockMakerUpdate->data.nBlockHeight = updateBlockChain.nLastBlockHeight;

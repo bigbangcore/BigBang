@@ -118,6 +118,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
         status.nLastBlockTime = pIndex->GetBlockTime();
         status.nLastBlockHeight = pIndex->GetBlockHeight();
         status.nMoneySupply = pIndex->GetMoneySupply();
+        status.nMintType = pIndex->nMintType;
     }
 }
 
@@ -222,7 +223,7 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
     return (!vBlockHash.empty());
 }
 
-bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
+bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
@@ -232,6 +233,7 @@ bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int&
     hashBlock = pIndex->GetBlockHash();
     nHeight = pIndex->GetBlockHeight();
     nTime = pIndex->GetBlockTime();
+    nMintType = pIndex->nMintType;
     return true;
 }
 
@@ -796,7 +798,7 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
-bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes)
+bool CBlockChain::ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes)
 {
     std::vector<uint256> vBlockHash;
     if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), height, vBlockHash) || vBlockHash.size() == 0)
@@ -804,7 +806,7 @@ bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<
         return false;
     }
     cntrBlock.GetDelegatePaymentList(vBlockHash[0], mapVotes);
-    if (!GetBlock(vBlockHash[0],block))
+    if (!GetBlock(vBlockHash[0], block))
     {
         return false;
     }
@@ -1029,6 +1031,16 @@ int64 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
         return -1;
     }
     return pIndex->GetMoneySupply();
+}
+
+uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
+{
+    CBlockIndex* pIndexPrev = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev) || pIndexPrev == nullptr)
+    {
+        return 0;
+    }
+    return pCoreProtocol->DPoSTimestamp(pIndexPrev);
 }
 
 bool CBlockChain::CheckContainer()

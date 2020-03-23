@@ -461,7 +461,8 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
 
     uint256 hashLast;
     int64 nTime;
-    if (!pBlockChain->GetLastBlock(hashFork, hashLast, nHeight, nTime))
+    uint16 nMintType;
+    if (!pBlockChain->GetLastBlock(hashFork, hashLast, nHeight, nTime, nMintType))
     {
         StdError("CTxPool", "Push: GetLastBlock fail, txid: %s, hashFork: %s",
                  txid.GetHex().c_str(), hashFork.GetHex().c_str());
