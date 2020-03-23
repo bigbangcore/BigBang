@@ -1637,10 +1637,10 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
 
     CTemplateId tid;
     int lastHeight = pService->GetForkHeight(pCoreProtocol->GetGenesisBlockHash());
+    int64 mortgageAmount = CTemplateFork::LockedCoin(lastHeight);
     if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-        && nAmount < CTemplateFork::LockedCoin(lastHeight))
+        && nAmount < mortgageAmount)
     {
-        int64 mortgageAmount = CTemplateFork::LockedCoin(lastHeight);
         throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(mortgageAmount) + " for creating fork");
     }
 
