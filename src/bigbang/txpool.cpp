@@ -862,7 +862,8 @@ bool CTxPool::LoadData()
         uint256 hashBlock;
         int nHeight = 0;
         int64 nTime = 0;
-        if (!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime))
+        uint16 nMintType = 0;
+        if (!pBlockChain->GetLastBlock(hashFork, hashBlock, nHeight, nTime, nMintType))
         {
             return false;
         }

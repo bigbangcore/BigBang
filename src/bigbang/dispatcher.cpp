@@ -309,18 +309,6 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
     int64 nPublishTime = GetTime();
-    if (block.IsProofOfWork())
-    {
-        int64 nWaitTime = rand();
-        if (routineDelegate.vEnrollTx.size() > 0)
-        {
-            nWaitTime += routineDelegate.vEnrollTx[0].GetHash().Get32(7);
-        }
-        nWaitTime %= 20;
-        if (nWaitTime == 0)
-            nWaitTime = 1;
-        nPublishTime += nWaitTime;
-    }
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                      routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
                                      routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, nPublishTime);

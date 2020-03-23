@@ -283,12 +283,6 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
     }
 
-    // Extended block should be not empty
-    if (block.nType == CBlock::BLOCK_EXTENDED && block.vtx.empty())
-    {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "empty extended block\n");
-    }
-
     // validate vacant block
     if (block.nType == CBlock::BLOCK_VACANT)
     {
@@ -408,9 +402,10 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                                  const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() != pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING)
+    uint32 nTime = DPoSTimestamp(pIndexPrev);
+    if (block.GetBlockTime() != nTime)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u\n", block.GetBlockTime(), nTime);
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
@@ -438,7 +433,8 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     else
     {
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
+            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
         }

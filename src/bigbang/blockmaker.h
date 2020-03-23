@@ -81,7 +81,7 @@ protected:
                       const uint32& nPrevHeight, const CDelegateAgreement& agreement);
     void ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
-    bool DispatchBlock(CBlock& block);
+    bool DispatchBlock(const CBlock& block);
     void ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, const int64& nPrimaryBlockTime,
                                      const int& nPrimaryBlockHeight, const uint16& nPrimaryMintType,
                                      const CDelegateAgreement& agreement);
