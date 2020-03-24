@@ -2226,7 +2226,7 @@ CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                      + ErrorString(err));
+                                                          + ErrorString(err));
     }
 
     return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
