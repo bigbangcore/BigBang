@@ -223,6 +223,28 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
     return (!vBlockHash.empty());
 }
 
+bool CBlockChain::GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
+    {
+        return false;
+    }
+    while (pIndex != nullptr && pIndex->GetBlockHeight() > nHeight)
+    {
+        pIndex = pIndex->pPrev;
+    }
+    if (pIndex == nullptr || pIndex->GetBlockHeight() != nHeight)
+    {
+        return false;
+    }
+
+    hashBlock = pIndex->GetBlockHash();
+    nTime = pIndex->GetBlockTime();
+
+    return true;
+}
+
 bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType)
 {
     CBlockIndex* pIndex = nullptr;

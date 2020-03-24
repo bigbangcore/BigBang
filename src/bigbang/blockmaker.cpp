@@ -16,7 +16,7 @@ using namespace std;
 using namespace xengine;
 
 #define INITIAL_HASH_RATE (8)
-#define WAIT_AGREEMENT_TIME (BLOCK_TARGET_SPACING - 5)
+#define WAIT_AGREEMENT_TIME_OFFSET -5
 #define WAIT_NEWBLOCK_TIME (BLOCK_TARGET_SPACING + 5)
 #define WAIT_LAST_EXTENDED_TIME (BLOCK_TARGET_SPACING - 10)
 
@@ -228,7 +228,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     lastStatus.hashLastBlock = data.hashBlock;
     lastStatus.nLastBlockTime = data.nBlockTime;
     lastStatus.nLastBlockHeight = data.nBlockHeight;
-    lastStatus.nMoneySupply = data.nMoneySupply;
+    lastStatus.nMintType = data.nMintType;
 
     if (lastStatus.nLastBlockHeight == currentStatus.nLastBlockHeight)
     {
@@ -314,7 +314,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     int64 nTotalTxFee = 0;
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
-        // TODO: blockmaker need to handle failed, do not forget
+        Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
     }
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
@@ -471,6 +471,10 @@ void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64&
                 ProcessSubFork(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrimaryBlockHeight, nPrimaryMintType);
                 return;
             }
+            else if (fExit)
+            {
+                return;
+            }
             else
             {
                 boost::unique_lock<boost::mutex> lock(mutex);
@@ -507,14 +511,14 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         {
             CBlock block;
             PreparePiggyback(block, agreement, hashRefBlock, nRefBlockTime, nPrevHeight, it->second, nPrevMintType);
-            mapBlocks.insert(make_pair(nRefBlockTime - GetNetTime(), make_pair(it->first, block)));
+            mapBlocks.insert(make_pair(nRefBlockTime, make_pair(it->first, block)));
         }
     }
 
     while (!mapBlocks.empty())
     {
         auto it = mapBlocks.begin();
-        int64 nSeconds = it->first;
+        int64 nSeconds = it->first - GetNetTime();
         const uint256 hashFork = it->second.first;
         CBlock block = it->second.second;
         mapBlocks.erase(it);
@@ -531,23 +535,24 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             if (block.hashPrev == 0)
             {
                 uint256 hashLastBlock;
-                int nLastHeight;
                 int64 nLastTime;
-                uint16 nLastMintType;
-                if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime, nLastMintType))
+                if (pBlockChain->GetLastBlockOfHeight(hashFork, nPrevHeight, hashLastBlock, nLastTime))
                 {
-                    // last is PoW or last extended or timeouot
-                    if (nLastHeight == nPrevHeight && nLastTime < nRefBlockTime
-                        && (nPrevMintType != CTransaction::TX_STAKE
-                            || nLastTime + EXTENDED_BLOCK_SPACING == nRefBlockTime
-                            || GetNetTime() - nRefBlockTime >= WAIT_LAST_EXTENDED_TIME))
+                    if ((nPrevMintType == CTransaction::TX_STAKE)
+                        && (nLastTime + EXTENDED_BLOCK_SPACING != nRefBlockTime)
+                        && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME))
                     {
+                        // wait the last exteded block for 1s
+                        mapBlocks.insert(make_pair(GetNetTime() + 1, make_pair(hashFork, block)));
+                    }
+                    else if (nLastTime < nRefBlockTime)
+                    {
+                        // last is PoW or last extended or timeout
                         block.hashPrev = hashLastBlock;
                     }
                     else
                     {
-                        // wait the last exteded block for 1s
-                        mapBlocks.insert(make_pair(1, make_pair(hashFork, block)));
+                        Error("ProcessSubFork last block time %ld >= ref block time %ld, fork: %s, height: %s", nLastTime, nRefBlockTime, hashFork.ToString().c_str(), nPrevHeight);
                     }
                 }
                 else
@@ -597,7 +602,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                 CBlock extended;
                 if (CreateExtended(extended, profile, agreement, hashRefBlock, hashFork, block.GetHash(), block.nTimeStamp + EXTENDED_BLOCK_SPACING))
                 {
-                    mapBlocks.insert(make_pair(extended.nTimeStamp - GetNetTime(), make_pair(hashFork, extended)));
+                    mapBlocks.insert(make_pair(extended.nTimeStamp, make_pair(hashFork, extended)));
                 }
                 else
                 {
@@ -768,7 +773,8 @@ void CBlockMaker::BlockMakerThreadFunc()
 
         CDelegateAgreement agree;
         {
-            int64 nWaitAgreement = nPrimaryBlockTime + WAIT_AGREEMENT_TIME - GetNetTime();
+            int64 nTimeStamp = pBlockChain->DPoSTimestamp(hashPrimaryBlock);
+            int64 nWaitAgreement = nTimeStamp + WAIT_AGREEMENT_TIME_OFFSET - GetNetTime();
             if (nWaitAgreement <= 0)
             {
                 nWaitAgreement = 1;

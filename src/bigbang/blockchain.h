@@ -27,6 +27,7 @@ public:
     bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) override;
+    bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) override;
     bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType) override;
     bool GetLastBlockTime(const uint256& hashFork, int nDepth, std::vector<int64>& vTime) override;
     bool GetBlock(const uint256& hashBlock, CBlock& block) override;

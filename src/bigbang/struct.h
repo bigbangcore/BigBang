@@ -257,7 +257,6 @@ protected:
 class CBlockMakerUpdate
 {
 public:
-    uint256 hashFork;
     uint256 hashParent;
     int nOriginHeight;
 
@@ -267,7 +266,6 @@ public:
     uint256 nAgreement;
     std::size_t nWeight;
     uint16 nMintType;
-    int64 nMoneySupply;
 };
 
 /* Net Channel */

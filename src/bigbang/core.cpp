@@ -440,8 +440,7 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
         }
     }
 
-    int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
-    if (block.txMint.sendTo != agreement.GetBallot(nIndex))
+    if (block.txMint.sendTo != agreement.GetBallot(0))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
