@@ -174,6 +174,7 @@ bool CMQCluster::HandleInvoke()
             { //dpos node
                 clientID = node.first;
                 topicReqBlk = "Cluster01/+/SyncBlockReq";
+                topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
                 Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
                     clientID.c_str(), topicReqBlk.c_str());
             }
@@ -214,6 +215,7 @@ bool CMQCluster::HandleEvent(CEventMQSyncBlock& eventMqSyncBlock)
 
 bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 {
+    Log("CMQCluster::HandleEvent(): entering forking event handler");
     CMqRollbackUpdate& update = eventMqUpdateChain.data;
 
     if (catNode != NODE_CATEGORY::DPOSNODE)
@@ -231,12 +233,17 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
     CBufferPtr spRBC(new CBufStream);
     *spRBC.get() << rbc;
 
+    Log("CMQCluster::HandleEvent(): rollback-topic[%s]:"
+        "forkheight[%d] forkhash[%s] shortlen[%d]",
+        topicRbBlk.c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
+
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
         deqSendBuff.emplace_back(make_pair(topicRbBlk, spRBC));
     }
     condSend.notify_all();
 
+    Log("CMQCluster::HandleEvent(): exiting forking event handler");
     return true;
 }
 
@@ -281,6 +288,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         { //dpos node
             clientID = id;
             topicReqBlk = "Cluster01/+/SyncBlockReq";
+            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s]",
                 clientID.c_str(), topicReqBlk.c_str());
         }
@@ -486,6 +494,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 
             if (rb.rbHeight < lastHeightResp)
             {
+                Log("CMQCluster::OnReceiveMessage(): rbheight[%d], lastheight[%d]",
+                    rb.rbHeight, int(lastHeightResp));
                 //check hard fork point
                 uint256 hash;
                 if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight, hash))
@@ -495,6 +505,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 }
                 bool fMatch = true;
                 int nSync = rb.rbHeight - 1;
+                Log("CMQCluster::OnReceiveMessage(): rbhash[%s], lasthash[%s]",
+                    rb.rbHash.ToString().c_str(), hash.ToString().c_str());
                 if (hash != rb.rbHash)
                 {
                     Log("CMQCluster::OnReceiveMessage(): hard fork block hash does not match");
