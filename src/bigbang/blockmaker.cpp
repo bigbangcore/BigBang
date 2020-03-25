@@ -557,6 +557,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                 }
                 else
                 {
+                    mapBlocks.insert(make_pair(GetNetTime() + 1, make_pair(hashFork, block)));
                     Error("ProcessSubFork get last block error, fork: %s", hashFork.ToString().c_str());
                 }
             }
