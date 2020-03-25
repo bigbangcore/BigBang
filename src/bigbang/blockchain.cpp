@@ -543,6 +543,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         vTxContxt.push_back(txContxt);
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
 
+        StdTrace("BlockChain", "AddNewBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
+
         nTotalFee += tx.nTxFee;
     }
 
@@ -579,6 +581,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+
+    StdTrace("BlockChain", "AddNewBlock: commit blockchain success, block tx count: %ld, block: %s", block.vtx.size(), hash.GetHex().c_str());
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
