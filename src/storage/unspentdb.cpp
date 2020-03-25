@@ -116,8 +116,8 @@ bool CForkUnspentDB::ReadUnspent(const CTxOutPoint& txout, CTxOut& output)
         }
     }
 
-    if (rwLower.ReadTryLock())
     {
+        xengine::CReadLock rlock(rwLower);
         MapType& mapLower = dblCache.GetLowerMap();
         typename MapType::iterator it = mapLower.find(txout);
         if (it != mapLower.end())
@@ -125,13 +125,10 @@ bool CForkUnspentDB::ReadUnspent(const CTxOutPoint& txout, CTxOut& output)
             if (!(*it).second.IsNull())
             {
                 output = (*it).second;
-                rwLower.ReadUnlock();
                 return true;
             }
-            rwLower.ReadUnlock();
             return false;
         }
-        rwLower.ReadUnlock();
     }
 
     return Read(txout, output);
