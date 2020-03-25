@@ -369,19 +369,18 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         {
             pMqChainUpdate->data.shortLen = updateBlockChain.vBlockRemove.size();
             pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
-            bool fFirst = true;
             for (const auto& rb : updateBlockChain.vBlockRemove)
             {
-                if (fFirst)
-                {
-                    pMqChainUpdate->data.triHeight = rb.GetBlockHeight() - 1;
-                    pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
-                                              pMqChainUpdate->data.triHeight,
-                                              pMqChainUpdate->data.triHash);
-                    fFirst = false;
-                }
-                pMqChainUpdate->data.vShort.push_back(rb.GetHash());
+                Log("CDispatcher::UpdatePrimaryBlock: removed short link block [%s]",
+                    rb.GetHash().ToString().c_str());
+                pMqChainUpdate->data.vShort.emplace_back(rb.GetHash());
             }
+            pMqChainUpdate->data.triHeight = pMqChainUpdate->data.vShort.back().Get32(7) - 1;
+            pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
+                                      pMqChainUpdate->data.triHeight,
+                                      pMqChainUpdate->data.triHash);
+            Log("CDispatcher::UpdatePrimaryBlock: forked block hash [%s] with height [%d]",
+                pMqChainUpdate->data.triHash.ToString().c_str(), pMqChainUpdate->data.triHeight);
 
             pMQCluster->PostEvent(pMqChainUpdate);
         }

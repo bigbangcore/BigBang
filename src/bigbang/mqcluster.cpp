@@ -323,6 +323,8 @@ bool CMQCluster::LogEvent(const string& info)
 
 bool CMQCluster::PostBlockRequest(int syncHeight)
 {
+    Log("CMQCluster::PostBlockRequest(): posting request for block #%d", syncHeight);
+
     if (mapSuperNode.empty())
     {
         Log("CMQCluster::PostBlockRequest(): enrollment is empty for this fork node");
@@ -355,6 +357,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
         }
         height = syncHeight;
     }
+    Log("CMQCluster::PostBlockRequest(): posting request for block hash[%s]", hash.ToString().c_str());
 
     CSyncBlockRequest req;
     req.ipAddr = 16777343; //127.0.0.1
@@ -429,7 +432,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             }
 
             if (-1 == resp.height)
-            {   //has reached the best height for the first time communication,
+            { //has reached the best height for the first time communication,
                 // then set timer to process the following business rather than req/resp model
                 nReqBlkTimerID = SetTimer(1000 * 30,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
@@ -496,47 +499,73 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             {
                 Log("CMQCluster::OnReceiveMessage(): rbheight[%d], lastheight[%d]",
                     rb.rbHeight, int(lastHeightResp));
+
                 //check hard fork point
                 uint256 hash;
-                if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight, hash))
+                if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight, hash)
+                    || hash != rb.rbHash)
                 {
-                    Error("CMQCluster::OnReceiveMessage(): failed to get hard fork block hash");
+                    Log("CMQCluster::OnReceiveMessage(): rbhash[%s], lasthash[%s]",
+                        rb.rbHash.ToString().c_str(), hash.ToString().c_str());
+                    Error("CMQCluster::OnReceiveMessage(): failed to get hard fork block hash or dismatch"
+                          "then re-synchronize block from genesis one");
+                    if (!PostBlockRequest(0)) //re-sync from genesis block
+                    {
+                        Error("CMQCluster::OnReceiveMessage(): failed to post request while re-sync");
+                        return;
+                    }
                     return;
                 }
-                bool fMatch = true;
-                int nSync = rb.rbHeight - 1;
+
+                bool fMatch = false;
                 Log("CMQCluster::OnReceiveMessage(): rbhash[%s], lasthash[%s]",
                     rb.rbHash.ToString().c_str(), hash.ToString().c_str());
                 if (hash != rb.rbHash)
                 {
-                    Log("CMQCluster::OnReceiveMessage(): hard fork block hash does not match");
-                    fMatch = false;
+                    Error("CMQCluster::OnReceiveMessage(): hard fork block hash does not match");
+                    return;
                 }
 
                 //check blocks in rollback
-                if (fMatch)
+                int nShort = 0;
+                for (int i = rb.rbSize; i > 0; --i)
                 {
-                    for (int i = 0; i < rb.rbSize; ++i)
+                    if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
+                                                   rb.rbHeight + rb.rbSize - i + 1, hash))
                     {
-                        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), rb.rbHeight + i + 1, hash))
+                        if (i != rb.rbSize)
                         {
-                            Error("CMQCluster::OnReceiveMessage(): failed to get rollback block hash");
-                            return;
-                        }
-                        if (hash == rb.hashList[i])
-                        {
-                            Log("CMQCluster::OnReceiveMessage(): fork node has not been rolled back yet");
-                            fMatch = false;
+                            Log("CMQCluster::OnReceiveMessage(): exceed to get rollback block hash");
                             break;
                         }
-                        ++nSync;
+                        else
+                        {
+                            Error("CMQCluster::OnReceiveMessage(): short chain does not match for one on dpos node");
+                            return;
+                        }
+                    }
+                    if (hash == rb.hashList[i - 1])
+                    {
+                        Log("CMQCluster::OnReceiveMessage(): fork node has not been rolled back yet"
+                            " with hash [%s]",
+                            hash.ToString().c_str());
+                        fMatch = true;
+                        ++nShort;
+                        continue;
+                    }
+                    else
+                    {
+                        Error("CMQCluster::OnReceiveMessage(): short chain does not match for one on dpos node");
+                        return;
                     }
                 }
+                Log("CMQCluster::OnReceiveMessage(): fork node rb[%d] against dpos node rb[%d]", nShort, rb.rbSize);
 
                 //re-request from hard fork point to sync the best chain
-                if (!fMatch)
+                if (fMatch)
                 {
-                    lastHeightResp = nSync;
+                    lastHeightResp = rb.rbHeight;
+                    Log("CMQCluster::OnReceiveMessage(): rb.rbHeight[%d] against lastHeightResp[%d]", rb.rbHeight, int(lastHeightResp));
                     if (!PostBlockRequest(lastHeightResp))
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post request");
@@ -600,13 +629,13 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         if (req.lastHeight > best)
         {
             Error("CMQCluster::OnReceiveMessage(): block height owned by fork node "
-                "should not be greater than the best one on dpos node");
+                  "should not be greater than the best one on dpos node");
             return;
         }
         else if (req.lastHeight == best)
         {
             Log("CMQCluster::OnReceiveMessage(): block height owned by fork node "
-                  "has reached the best one on dpos node, please wait...");
+                "has reached the best one on dpos node, please wait...");
             resp.height = -1;
             resp.hash = uint256();
             resp.isBest = 1;
@@ -619,17 +648,19 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             uint256 hash;
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match");
+                Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match "
+                      "at height of #%d", req.lastHeight);
                 return;
             }
             if (hash != req.lastHash)
             {
-                Error("CMQCluster::OnReceiveMessage(): height and hash do not match");
+                Error("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
+                      "at height of [%d]", hash.ToString().c_str(), req.lastHash.ToString().c_str(), req.lastHeight);
                 return;
             }
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash");
+                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of #%d", req.lastHeight + 1);
                 return;
             }
             CBlock block;
@@ -643,14 +674,13 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             resp.height = req.lastHeight + 1;
             resp.hash = hash;
             resp.isBest = req.lastHeight + 1 < best
-                          ? 0
-                          : 1;
+                              ? 0
+                              : 1;
             Log("CMQCluster::OnReceiveMessage(): request[%d] best[%d] isBest[%d]",
                 req.lastHeight + 1, best, resp.isBest);
             resp.blockSize = xengine::GetSerializeSize(block);
             resp.block = move(block);
         }
-
 
         CBufferPtr spSS(new CBufStream);
         *spSS.get() << resp;
