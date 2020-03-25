@@ -613,6 +613,8 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     std::vector<CTransaction> vCacheTx;
     cache.Retrieve(hashPrev, vCacheTx);
 
+    StdTrace("CTxPool", "hashPrev: %s vCacheTx size: %d", hashPrev.ToString().c_str(), vCacheTx.size());
+
     nTotalTxFee = 0;
     size_t currentSize = 0;
     for (const auto& tx : vCacheTx)
@@ -626,7 +628,10 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 
         nTotalTxFee += tx.nTxFee;
         vtx.push_back(tx);
+        StdTrace("CTxPool", "\t Arrange Tx to block: %s", tx.GetHash().ToString().c_str());
     }
+
+    StdTrace("CTxPool", "\t ------- Arrange Tx to block vtx size: %d", vtx.size());
     return true;
 }
 
@@ -823,6 +828,14 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     int64 nTotalFee = 0;
     const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
     ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee);
+
+    StdTrace("CTxPoolView", "Arrange to cache vtx size: %d", vtx.size());
+    for(const auto& tx : vtx)
+    {
+        StdTrace("\tArrange To cache tx: %s", tx.GetHash().ToString().c_str());
+    }
+
+    StdTrace("CTxPoolView", "################# Arrange to cache vtx size: %d", vtx.size());
 
     auto& cache = mapTxCache[update.hashFork];
     cache.AddNew(lastBlockEx.GetHash(), vtx);
