@@ -53,7 +53,8 @@ public:
         nOriginHeight(nOriginHeightIn),
         nLastBlockTime(0),
         nLastBlockHeight(-1),
-        nMoneySupply(0)
+        nMoneySupply(0),
+        nMintType(-1)
     {
     }
 
