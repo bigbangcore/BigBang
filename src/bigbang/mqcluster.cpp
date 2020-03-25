@@ -27,7 +27,8 @@ CMQCluster::CMQCluster(int catNodeIn)
     fAuth(false),
     fAbort(false),
     srvAddr("tcp://localhost:1883"),
-    nReqBlkTimerID(0)
+    nReqBlkTimerID(0),
+    nRollNum(0)
 {
     switch (catNodeIn)
     {
@@ -350,10 +351,18 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     }
     else
     {
-        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), syncHeight, hash))
+        if (nRollNum)
         {
-            Error("CMQCluster::PostBlockRequest(): failed to get specific block");
-            return false;
+            boost::unique_lock<boost::mutex> lock(mtxRoll);
+            hash = vLongFork.back();
+        }
+        else
+        {
+            if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), syncHeight, hash))
+            {
+                Error("CMQCluster::PostBlockRequest(): failed to get specific block");
+                return false;
+            }
         }
         height = syncHeight;
     }
@@ -458,6 +467,21 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
             lastHeightResp = resp.height;
+
+            //check if there are rollbacked blocks
+            if (nRollNum)
+            {
+                boost::unique_lock<boost::mutex> lock(mtxRoll);
+                if (vLongFork.size() < nRollNum)
+                {
+                    vLongFork.emplace_back(resp.hash);
+                }
+                else
+                {
+                    vLongFork.clear();
+                    nRollNum = 0;
+                }
+            }
 
             //iterate to retrieve next one
 
@@ -569,8 +593,10 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     if (!PostBlockRequest(lastHeightResp))
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post request");
+                        nRollNum = nShort;
                         return;
                     }
+                    nRollNum = nShort;
                 }
             }
         }

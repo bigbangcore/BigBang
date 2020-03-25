@@ -178,6 +178,10 @@ private:
 
     std::atomic<int> lastHeightResp;
     uint32 nReqBlkTimerID;
+
+    boost::mutex mtxRoll;
+    std::vector<uint256> vLongFork;
+    std::atomic<int> nRollNum;
 };
 
 } // namespace bigbang
