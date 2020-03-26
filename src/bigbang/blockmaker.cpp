@@ -537,18 +537,21 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                 uint256 hashLastBlock;
                 int64 nLastTime;
 
+                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
                 if (pBlockChain->GetLastBlockOfHeight(hashFork, nPrevHeight, hashLastBlock, nLastTime)
-                    && ((nPrevMintType != CTransaction::TX_STAKE)
-                        || (nLastTime + EXTENDED_BLOCK_SPACING == nRefBlockTime)
-                        || (GetNetTime() - nRefBlockTime >= WAIT_LAST_EXTENDED_TIME)))
+                    && (!fInWaitTime || (nLastTime + EXTENDED_BLOCK_SPACING == nRefBlockTime)))
                 {
                     // last is PoW or last extended or timeout
                     block.hashPrev = hashLastBlock;
                 }
-                else
+                else if (fInWaitTime)
                 {
                     // wait the last exteded block for 1s
                     mapBlocks.insert(make_pair(GetNetTime() + 1, make_pair(hashFork, block)));
+                }
+                else
+                {
+                    Error("ProcessSubFork get last block error, fork: %s", hashFork.ToString().c_str());
                 }
             }
 
