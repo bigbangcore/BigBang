@@ -829,7 +829,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
     ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee);
 
-    StdTrace("CTxPoolView", "Arrange to cache vtx size: %d", vtx.size());
+    StdTrace("CTxPoolView", "Arrange to cache vtx size: %d blockhash: %s", vtx.size(), lastBlockEx.GetHash().ToString().c_str());
     for(const auto& tx : vtx)
     {
         StdTrace("\tArrange To cache tx: %s", tx.GetHash().ToString().c_str());
