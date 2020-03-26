@@ -170,9 +170,9 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                 StdLog("CDelegate", "Evolve Publish: hash public block, target height: %d, distribute block: [%d] %s, old public: %s, new public: %s",
                        nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str(),
                        vote.hashPublishBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
-                vote.is_public = false;
+                vote.is_published = false;
             }
-            if (vote.is_public)
+            if (vote.is_published)
             {
                 StdError("CDelegate", "Evolve Publish: already public, target height: %d, distribute block: [%d] %s",
                          nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str());
@@ -181,7 +181,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
             auto t0 = boost::posix_time::microsec_clock::universal_time();
 
-            vote.is_public = true;
+            vote.is_published = true;
             vote.Publish(result.mapPublishData);
             vote.hashPublishBlock = hashBlock;
             result.hashDistributeOfPublish = hashDistribute;

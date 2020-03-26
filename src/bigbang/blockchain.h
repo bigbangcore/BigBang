@@ -27,7 +27,8 @@ public:
     bool GetBlockLocation(const uint256& hashBlock, uint256& hashFork, int& nHeight, uint256& hashNext) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, uint256& hashBlock) override;
     bool GetBlockHash(const uint256& hashFork, int nHeight, std::vector<uint256>& vBlockHash) override;
-    bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime) override;
+    bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) override;
+    bool GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType) override;
     bool GetLastBlockTime(const uint256& hashFork, int nDepth, std::vector<int64>& vTime) override;
     bool GetBlock(const uint256& hashBlock, CBlock& block) override;
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) override;
@@ -59,7 +60,8 @@ public:
     int64 GetDelegateWeightRatio(const uint256& hashBlock) override;
     bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) override;
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
-    bool ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes) override;
+    bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
+    uint32 DPoSTimestamp(const uint256& hashPrev) override;
 
 protected:
     bool HandleInitialize() override;

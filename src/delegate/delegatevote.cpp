@@ -67,7 +67,7 @@ CDelegateVote::CDelegateVote()
 {
     witness.SetupWitness();
     is_enroll = false;
-    is_public = false;
+    is_published = false;
 }
 
 CDelegateVote::~CDelegateVote()

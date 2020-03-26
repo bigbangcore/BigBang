@@ -5,9 +5,12 @@
 #ifndef BIGBANG_BLOCKMAKER_H
 #define BIGBANG_BLOCKMAKER_H
 
+#include <atomic>
+
 #include "base.h"
 #include "event.h"
 #include "key.h"
+
 namespace bigbang
 {
 
@@ -70,55 +73,41 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
-    bool Interrupted()
-    {
-        return (nMakerStatus != MAKER_RUN);
-    }
-    bool Wait(long nSeconds);
-    bool Wait(long nSeconds, const uint256& hashPrimaryBlock);
+    bool InterruptedPoW(const uint256& hashPrimary);
+    bool WaitExit(const long nSeconds);
+    bool WaitLastBlock(const long nSeconds, const uint256& hashPrimary);
+    bool WaitCurrentBlock(const long nSeconds, const uint256& hashPrimary);
     void PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
                       const uint32& nPrevHeight, const CDelegateAgreement& agreement);
     void ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
-    bool DispatchBlock(CBlock& block);
-    bool CreateProofOfWorkBlock(CBlock& block);
-    void ProcessDelegatedProofOfStake(CBlock& block, const CDelegateAgreement& agreement, const int32 nPrevHeight);
-    void ProcessExtended(const CDelegateAgreement& agreement, const uint256& hashPrimaryBlock,
-                         int64 nPrimaryBlockTime, const int32 nPrimaryBlockHeight);
-    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, std::size_t nWeight);
+    bool DispatchBlock(const CBlock& block);
+    void ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, const int64& nPrimaryBlockTime,
+                                     const int& nPrimaryBlockHeight, const uint16& nPrimaryMintType,
+                                     const CDelegateAgreement& agreement);
+    void ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
+                                      int& nPrimaryBlockHeight, uint16& nPrimaryMintType,
+                                      const CDelegateAgreement& agreement);
+    void ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+                        const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType);
+    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo);
-    void CreatePiggyback(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                         const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight);
-    void CreateExtended(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                        const uint256& hashRefBlock, const std::set<uint256>& setFork, int nPrimaryBlockHeight, int64 nTime);
-    bool GetAvailiableDelegatedProfile(const std::vector<CDestination>& vBallot, std::vector<CBlockMakerProfile*>& vProfile);
-    bool GetAvailiableExtendedFork(std::set<uint256>& setFork);
-    void Test();
+    void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
+                          int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
+    bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+                        const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
 
 private:
-    enum
-    {
-        MAKER_RUN = 0,
-        MAKER_RESET = 1,
-        MAKER_EXIT = 2,
-        MAKER_HOLD = 3
-    };
     void BlockMakerThreadFunc();
-    void ExtendedMakerThreadFunc();
 
 protected:
-    mutable boost::shared_mutex rwAccess;
     xengine::CThread thrMaker;
-    xengine::CThread thrExtendedMaker;
     boost::mutex mutex;
-    boost::condition_variable cond;
-    int nMakerStatus;
-    uint256 hashLastBlock;
-    int64 nLastBlockTime;
-    int nLastBlockHeight;
-    uint256 nLastAgreement;
-    std::size_t nLastWeight;
-    CDelegateAgreement currentAgreement;
+    boost::condition_variable condExit;
+    boost::condition_variable condBlock;
+    std::atomic<bool> fExit;
+    CForkStatus lastStatus;
+    CForkStatus currentStatus;
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;

@@ -53,8 +53,14 @@ public:
         nOriginHeight(nOriginHeightIn),
         nLastBlockTime(0),
         nLastBlockHeight(-1),
-        nMoneySupply(0)
+        nMoneySupply(0),
+        nMintType(-1)
     {
+    }
+
+    bool IsNull()
+    {
+        return nLastBlockTime == 0;
     }
 
 public:
@@ -66,6 +72,7 @@ public:
     int64 nLastBlockTime;
     int nLastBlockHeight;
     int64 nMoneySupply;
+    uint16 nMintType;
     std::multimap<int, uint256> mapSubline;
 };
 
@@ -253,6 +260,9 @@ protected:
 class CBlockMakerUpdate
 {
 public:
+    uint256 hashParent;
+    int nOriginHeight;
+
     uint256 hashBlock;
     int64 nBlockTime;
     int nBlockHeight;

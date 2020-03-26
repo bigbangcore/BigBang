@@ -105,7 +105,7 @@ protected:
 public:
     uint256 blockHash;
     bool is_enroll;
-    bool is_public;
+    bool is_published;
     uint256 hashDistributeBlock;
     uint256 hashPublishBlock;
 };

@@ -118,6 +118,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
         status.nLastBlockTime = pIndex->GetBlockTime();
         status.nLastBlockHeight = pIndex->GetBlockHeight();
         status.nMoneySupply = pIndex->GetMoneySupply();
+        status.nMintType = pIndex->nMintType;
     }
 }
 
@@ -222,7 +223,29 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
     return (!vBlockHash.empty());
 }
 
-bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
+bool CBlockChain::GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
+    {
+        return false;
+    }
+    while (pIndex != nullptr && pIndex->GetBlockHeight() > nHeight)
+    {
+        pIndex = pIndex->pPrev;
+    }
+    if (pIndex == nullptr || pIndex->GetBlockHeight() != nHeight)
+    {
+        return false;
+    }
+
+    hashBlock = pIndex->GetBlockHash();
+    nTime = pIndex->GetBlockTime();
+
+    return true;
+}
+
+bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
@@ -232,6 +255,7 @@ bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int&
     hashBlock = pIndex->GetBlockHash();
     nHeight = pIndex->GetBlockHeight();
     nTime = pIndex->GetBlockTime();
+    nMintType = pIndex->nMintType;
     return true;
 }
 
@@ -533,6 +557,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         // 添加新增打包好的tx到BlockView中
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
         // 累加各个交易费
+        StdTrace("BlockChain", "AddNewBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
         nTotalFee += tx.nTxFee;
     }
     // 挖矿奖励不能大于总打包交易费和奖励值
@@ -574,6 +599,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     // 新增的Block的Index构造BlockChainUpdate(新增块的Origin hash，高度，时间戳，所属分支子链，以及父链)
+    StdTrace("BlockChain", "AddNewBlock: commit blockchain success, block tx count: %ld, block: %s", block.vtx.size(), hash.GetHex().c_str());
     update = CBlockChainUpdate(pIndexNew);
     // 通过BlockView的最新数据拿到更新了的Tx列表(待删除，还没有实际删除的Tx集合)，存到blockchainupdate对象的setTxUpdate字段中
     view.GetTxUpdated(update.setTxUpdate);
@@ -1074,6 +1100,16 @@ int64 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
         return -1;
     }
     return pIndex->GetMoneySupply();
+}
+
+uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
+{
+    CBlockIndex* pIndexPrev = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev) || pIndexPrev == nullptr)
+    {
+        return 0;
+    }
+    return pCoreProtocol->DPoSTimestamp(pIndexPrev);
 }
 
 bool CBlockChain::CheckContainer()

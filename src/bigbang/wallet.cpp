@@ -1579,6 +1579,7 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         if (ptr->GetTemplateType() == TEMPLATE_EXCHANGE)
         {
             CTemplateExchangePtr pe = boost::dynamic_pointer_cast<CTemplateExchange>(ptr);
+            vchSig = tx.vchSig;
             return pe->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, vchSubSig, vchSig);
         }
         else

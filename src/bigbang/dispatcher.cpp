@@ -310,24 +310,13 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
             block_hash += " " + ite->GetHash().GetHex();
         }
         cmd += block_hash;
-        std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+        static std::future<int> fut;
+        fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
     }
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
     int64 nPublishTime = GetTime();
-    if (block.IsProofOfWork())
-    {
-        int64 nWaitTime = rand();
-        if (routineDelegate.vEnrollTx.size() > 0)
-        {
-            nWaitTime += routineDelegate.vEnrollTx[0].GetHash().Get32(7);
-        }
-        nWaitTime %= 20;
-        if (nWaitTime == 0)
-            nWaitTime = 1;
-        nPublishTime += nWaitTime;
-    }
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                      routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
                                      routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, nPublishTime);
@@ -357,6 +346,8 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     {
         CProofOfSecretShare proof;
         proof.Load(block.vchProof);
+        pBlockMakerUpdate->data.hashParent = updateBlockChain.hashParent;
+        pBlockMakerUpdate->data.nOriginHeight = updateBlockChain.nOriginHeight;
         pBlockMakerUpdate->data.hashBlock = updateBlockChain.hashLastBlock;
         pBlockMakerUpdate->data.nBlockTime = updateBlockChain.nLastBlockTime;
         pBlockMakerUpdate->data.nBlockHeight = updateBlockChain.nLastBlockHeight;
