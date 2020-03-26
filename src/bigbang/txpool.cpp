@@ -58,6 +58,9 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
 
     if (idxTx.find(txid) != idxTx.end())
     {
+        CPooledTxLinkSetByTxHash::iterator it = idxTx.find(txid);
+        StdTrace("CTxPoolView", "AddNew: setTxLinkIndex erase, txid: %s, old seq: %ld, new seq: %ld",
+                 txid.GetHex().c_str(), it->nSequenceNumber, tx.nSequenceNumber);
         setTxLinkIndex.erase(txid);
     }
 
@@ -140,6 +143,8 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
                  txid.GetHex().c_str(), tx.nSequenceNumber);
         return false;
     }
+    StdTrace("CTxPoolView", "AddNew: setTxLinkIndex insert success, txid: %s, nSequenceNumber: %ld",
+             txid.GetHex().c_str(), tx.nSequenceNumber);
 
     for (std::size_t i = 0; i < tx.vInput.size(); i++)
     {
@@ -195,6 +200,8 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
                     mapSpent.erase(out1);
                 }
                 viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
+                xengine::StdTrace("CTxPoolView", "InvalidateSpent: setTxLinkIndex erase, txid: %s, seq: %ld",
+                                  txidNextTx.GetHex().c_str(), pNextTx->nSequenceNumber);
                 setTxLinkIndex.erase(txidNextTx);
             }
         }
@@ -628,7 +635,7 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 
         nTotalTxFee += tx.nTxFee;
         vtx.push_back(tx);
-        StdTrace("CTxPool", "\t Arrange Tx to block: %s", tx.GetHash().ToString().c_str());
+        StdTrace("CTxPool", "Arrange Tx to block: %s", tx.GetHash().ToString().c_str());
     }
 
     StdTrace("CTxPool", "\t ------- Arrange Tx to block vtx size: %d", vtx.size());
@@ -832,7 +839,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     StdTrace("CTxPoolView", "Arrange to cache vtx size: %d blockhash: %s", vtx.size(), lastBlockEx.GetHash().ToString().c_str());
     for(const auto& tx : vtx)
     {
-        StdTrace("\tArrange To cache tx: %s", tx.GetHash().ToString().c_str());
+        StdTrace("CTxPoolView", "Arrange To cache tx: %s", tx.GetHash().ToString().c_str());
     }
 
     StdTrace("CTxPoolView", "################# Arrange to cache vtx size: %d", vtx.size());
