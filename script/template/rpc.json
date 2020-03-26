@@ -3079,7 +3079,11 @@
             }
         ],
         "error": [
-            "{\"code\" : -32603, \"message\" : \"The primary chain is invalid.\"}"
+            "{\"code\" : -32600, \"message\" : \"Invalid request for non-super-node.\"}",
+            "{\"code\" : -4, \"message\" : \"Invalid spent address.\"}",
+            "{\"code\" : -4, \"message\" : \"Invalid private key.\"}",
+            "{\"code\" : -4, \"message\" : \"Mining signature private key and spent address cannot be from the same.\"}",
+            "{\"code\" : -4, \"message\" : \"Invalid mint template.\"}"
         ]
     },
     "submitwork": {
@@ -3123,6 +3127,7 @@
             }
         ],
         "error": [
+            "{\"code\" : -32600, \"message\" : \"Invalid request for non-super-node.\"}",
             "{\"code\" : -4, \"message\" : \"Invalid spent address\"}",
             "{\"code\" : -4, \"message\" : \"Invalid private key\"}",
             "{\"code\" : -4, \"message\" : \"Invalid mint template\"}",

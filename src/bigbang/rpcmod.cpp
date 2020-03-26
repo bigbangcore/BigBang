@@ -2458,6 +2458,12 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
 // /* Mint */
 CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
 {
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (1 == nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "This fork node has not feature of POW mining");
+    }
+
     //getwork <"spent"> <"privkey"> ("prev")
     auto spParam = CastParamPtr<CGetWorkParam>(param);
 
@@ -2475,7 +2481,7 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
     crypto::CPubKey pubkeySpent;
     if (addrSpent.GetPubKey(pubkeySpent) && pubkeySpent == key.GetPubKey())
     {
-        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid spent address or private key");
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Mining signature private key and spent address cannot be from the same.");
     }
     CTemplateMintPtr ptr = CTemplateMint::CreateTemplatePtr(new CTemplateProof(key.GetPubKey(), static_cast<CDestination&>(addrSpent)));
     if (ptr == nullptr)
@@ -2510,6 +2516,12 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCSubmitWork(CRPCParamPtr param)
 {
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (1 == nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "This fork node has not feature of POW mining");
+    }
+
     auto spParam = CastParamPtr<CSubmitWorkParam>(param);
     vector<unsigned char> vchWorkData(ParseHexString(spParam->strData));
     CAddress addrSpent(spParam->strSpent);
