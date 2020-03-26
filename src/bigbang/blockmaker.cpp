@@ -130,7 +130,8 @@ bool CBlockMaker::HandleInitialize()
     //     }
     // }
 
-    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && 1 != nNodeCat)
     {
         CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
         if (profile.IsValid())
@@ -317,7 +318,7 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 
 bool CBlockMaker::DispatchBlock(CBlock& block)
 {
-/*    int nWait = block.nTimeStamp - GetNetTime();
+    /*    int nWait = block.nTimeStamp - GetNetTime();
     if (nWait > 0 && !Wait(nWait))
     {
         StdTrace("blockmaker", "Wait failed nWait: %d", nWait);
