@@ -709,34 +709,44 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     return true;
 }
 
+// 通过链的某个fORK最新更新的状态(回滚，最新高度等信息)来回滚更新某个Fork的TxPool，并同时得到某个Fork的Tx集合的变化
 bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
 {
+    // 更新对应的Fork
     change.hashFork = update.hashFork;
 
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
     CTxPoolView viewInvolvedTx;
+    // 拿到对应的Fork的TxPoolView
     CTxPoolView& txView = mapPoolView[update.hashFork];
 
     //int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
+    // 对于长链，高度从低到高遍历处理
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
     {
         int nBlockHeight = block.GetBlockHeight();
         if (block.txMint.nAmount != 0)
         {
+            // 长链Block的 mint tx如果有效，就放到txChange的txAddNew中
             change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight /*nHeight*/));
         }
+        // 遍历处理BlockView中被打包的Tx列表，从前序到后续
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
+            // 不在BlockView中删除回滚的Tx集合里面，setTxUpdate是被待删除回滚的tx集合
             if (!update.setTxUpdate.count(txid))
             {
+                // 没被回滚删除的Tx，如果存在TxView中就需要从View中删除，如果存在也意味着Tx在没被上链的时候被同步过来了，既然现在tx已经上链，就需要删除
                 if (txView.Exists(txid))
                 {
+                    // 也就是把该Tx的前序设置为未花费
                     txView.Remove(txid);
                     mapTx.erase(txid);
+                    // 
                     change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
                 else

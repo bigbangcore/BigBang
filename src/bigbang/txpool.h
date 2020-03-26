@@ -117,6 +117,7 @@ typedef boost::multi_index_container<
 typedef CPooledCertTxLinkSet::nth_index<0>::type CPooledCertTxLinkSetByTxHash;
 typedef CPooledCertTxLinkSet::nth_index<1>::type CPooledCertTxLinkSetBySequenceNumber;
 
+// 一个Fork对应一个TxPoolView
 class CTxPoolView
 {
 public:

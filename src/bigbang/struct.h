@@ -128,6 +128,7 @@ public:
     std::vector<CBlockEx> vBlockRemove;
 };
 
+// Tx的变化表示类
 class CTxSetChange
 {
 public:

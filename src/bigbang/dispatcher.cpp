@@ -158,7 +158,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CBlockChainUpdate updateBlockChain;
     if (!block.IsOrigin())
     {
-        // 非Fork的其他Block
+        // 非Fork Origin Block的其他Block
         err = pBlockChain->AddNewBlock(block, updateBlockChain);
         if (err == OK && !block.IsVacant())
         {
@@ -184,6 +184,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
 
     CTxSetChange changeTxSet;
+    // 通过新增Block获得某个Fork链的最新状态(回滚，新增，高度等消息)来更新某个Fork的TxPool，并拿到TxSetChange，表示某个Forktx集合的变化
     if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))
     {
         StdError("CDispatcher", "AddNewBlock: TxPool SynchronizeBlockChain fail, block: %s", block.GetHash().GetHex().c_str());
