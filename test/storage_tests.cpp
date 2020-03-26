@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(filetest)
             nOffset = fs.GetCurPos();
             nBlockCount++;
         }
-        printf("%s  file test success: nBlockCount: %d, time: %ld.\n", GetLocalTime().c_str(), nBlockCount, GetTime() - nBeginTime);
+        cout << GetLocalTime() << " file test success: nBlockCount: " << nBlockCount << ", time: " << GetTime() - nBeginTime << endl;
     }
     catch (std::exception& e)
     {

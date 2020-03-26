@@ -118,6 +118,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
         status.nLastBlockTime = pIndex->GetBlockTime();
         status.nLastBlockHeight = pIndex->GetBlockHeight();
         status.nMoneySupply = pIndex->GetMoneySupply();
+        status.nMintType = pIndex->nMintType;
     }
 }
 
@@ -222,7 +223,29 @@ bool CBlockChain::GetBlockHash(const uint256& hashFork, int nHeight, vector<uint
     return (!vBlockHash.empty());
 }
 
-bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime)
+bool CBlockChain::GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveFork(hashFork, &pIndex) || pIndex->GetBlockHeight() < nHeight)
+    {
+        return false;
+    }
+    while (pIndex != nullptr && pIndex->GetBlockHeight() > nHeight)
+    {
+        pIndex = pIndex->pPrev;
+    }
+    if (pIndex == nullptr || pIndex->GetBlockHeight() != nHeight)
+    {
+        return false;
+    }
+
+    hashBlock = pIndex->GetBlockHash();
+    nTime = pIndex->GetBlockTime();
+
+    return true;
+}
+
+bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int& nHeight, int64& nTime, uint16& nMintType)
 {
     CBlockIndex* pIndex = nullptr;
     if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
@@ -232,6 +255,7 @@ bool CBlockChain::GetLastBlock(const uint256& hashFork, uint256& hashBlock, int&
     hashBlock = pIndex->GetBlockHash();
     nHeight = pIndex->GetBlockHeight();
     nTime = pIndex->GetBlockTime();
+    nMintType = pIndex->nMintType;
     return true;
 }
 
@@ -519,6 +543,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         vTxContxt.push_back(txContxt);
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
 
+        StdTrace("BlockChain", "AddNewBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
+
         nTotalFee += tx.nTxFee;
     }
 
@@ -555,6 +581,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+
+    StdTrace("BlockChain", "AddNewBlock: commit blockchain success, block tx count: %ld, block: %s", block.vtx.size(), hash.GetHex().c_str());
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
@@ -796,7 +824,7 @@ bool CBlockChain::GetVotes(const CDestination& destDelegate, int64& nVotes)
     return cntrBlock.GetVotes(pCoreProtocol->GetGenesisBlockHash(), destDelegate, nVotes);
 }
 
-bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<int64, CDestination> &mapVotes)
+bool CBlockChain::ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes)
 {
     std::vector<uint256> vBlockHash;
     if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), height, vBlockHash) || vBlockHash.size() == 0)
@@ -804,7 +832,7 @@ bool CBlockChain::ListDelegatePayment(uint32 height,CBlock &block,std::multimap<
         return false;
     }
     cntrBlock.GetDelegatePaymentList(vBlockHash[0], mapVotes);
-    if (!GetBlock(vBlockHash[0],block))
+    if (!GetBlock(vBlockHash[0], block))
     {
         return false;
     }
@@ -1029,6 +1057,16 @@ int64 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
         return -1;
     }
     return pIndex->GetMoneySupply();
+}
+
+uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
+{
+    CBlockIndex* pIndexPrev = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev) || pIndexPrev == nullptr)
+    {
+        return 0;
+    }
+    return pCoreProtocol->DPoSTimestamp(pIndexPrev);
 }
 
 bool CBlockChain::CheckContainer()

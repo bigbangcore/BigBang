@@ -19,7 +19,7 @@ using namespace xengine;
 
 //#define BBCP_SET_TOKEN_DISTRIBUTION
 
-static const int64 MAX_CLOCK_DRIFT = 10 * 60;
+static const int64 MAX_CLOCK_DRIFT = 20;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
@@ -38,6 +38,9 @@ static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * C
 static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
+
+// dpos begin height
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 0;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -280,12 +283,6 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
     }
 
-    // Extended block should be not empty
-    if (block.nType == CBlock::BLOCK_EXTENDED && block.vtx.empty())
-    {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "empty extended block\n");
-    }
-
     // validate vacant block
     if (block.nType == CBlock::BLOCK_VACANT)
     {
@@ -405,10 +402,10 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                                  const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING
-        || block.GetBlockTime() >= pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING * 3 / 2)
+    uint32 nTime = DPoSTimestamp(pIndexPrev);
+    if (block.GetBlockTime() != nTime)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u\n", block.GetBlockTime(), nTime);
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
@@ -436,14 +433,14 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     else
     {
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
+            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
         }
     }
 
-    int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
-    if (block.txMint.sendTo != agreement.GetBallot(nIndex))
+    if (block.txMint.sendTo != agreement.GetBallot(0))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
@@ -855,26 +852,26 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
              nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
     {
-        size_t nTrust = mapSelectBallot.size();
+        // size_t nTrust = mapSelectBallot.size();
         size_t total = nEnrollWeight;
-        set<CDestination> setMaker;
-        for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        // set<CDestination> setMaker;
+        // for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        // {
+        //     nSelected += *p;
+        size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
+        for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
         {
-            nSelected += *p;
-            size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
-            for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
+            if (n < it->second)
             {
-                if (n < it->second)
-                {
-                    vBallot.push_back(it->first);
-                    total -= it->second;
-                    mapSelectBallot.erase(it);
-                    break;
-                }
-                n -= (*it).second;
+                vBallot.push_back(it->first);
+                // total -= it->second;
+                // mapSelectBallot.erase(it);
+                break;
             }
-            --nTrust;
+            n -= (*it).second;
         }
+        //     --nTrust;
+        // }
     }
 
     StdTrace("Core", "vBallot size: %lu", vBallot.size());
@@ -887,6 +884,28 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
 int64 CCoreProtocol::MinEnrollAmount()
 {
     return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+}
+
+uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
+{
+    if (pIndexPrev == nullptr || !pIndexPrev->IsPrimary())
+    {
+        return 0;
+    }
+
+    const CBlockIndex* pIndex = pIndexPrev;
+    while (pIndex->IsProofOfWork() && pIndex->nHeight > DELEGATE_PROOF_OF_STAKE_HEIGHT && pIndex->pPrev != nullptr)
+    {
+        pIndex = pIndex->pPrev;
+    }
+
+    uint32 nTimeStamp = pIndex->nTimeStamp + BLOCK_TARGET_SPACING * (pIndexPrev->nHeight - pIndex->nHeight + 1);
+    if (nTimeStamp <= pIndexPrev->nTimeStamp)
+    {
+        nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+    }
+
+    return nTimeStamp;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

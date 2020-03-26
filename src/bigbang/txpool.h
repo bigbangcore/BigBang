@@ -230,6 +230,8 @@ public:
             {
                 SetUnspent(pTx->vInput[i].prevout);
             }
+            xengine::StdTrace("CTxPoolView", "Remove: setTxLinkIndex erase, txid: %s, seq: %ld",
+                              txid.GetHex().c_str(), pTx->nSequenceNumber);
             setTxLinkIndex.erase(txid);
         }
     }
