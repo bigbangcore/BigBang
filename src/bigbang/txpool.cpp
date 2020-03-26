@@ -165,6 +165,7 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
     return true;
 }
 
+// 把输入参数outpoint所关联的Tx链条的所有后序都标记为未花费，并拿到这个链条的TxPoolView
 void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx)
 {
     vector<CTxOutPoint> vOutPoint;
@@ -172,15 +173,19 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     for (std::size_t i = 0; i < vOutPoint.size(); i++)
     {
         uint256 txidNextTx;
+        // 通过前序输出拿到输出的花费，也就是花费这个输出的tx，也就是下一个（后序）tx的id
         if (GetSpent(vOutPoint[i], txidNextTx))
         {
             CPooledTx* pNextTx = nullptr;
+            // 通过后序Tx id得到后序Tx本身
             if ((pNextTx = Get(txidNextTx)) != nullptr)
             {
+                // 把后序tx的所有前序输出都标记为未花费
                 for (const CTxIn& txin : pNextTx->vInput)
                 {
                     SetUnspent(txin.prevout);
                 }
+                // 后序tx的输出是否有花费，一旦有花费，就压入队列，广度优先，去标记后序tx的前序输出为未花费
                 CTxOutPoint out0(txidNextTx, 0);
                 if (IsSpent(out0))
                 {
@@ -190,6 +195,7 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
                 {
                     mapSpent.erase(out0);
                 }
+                // 找零
                 CTxOutPoint out1(txidNextTx, 1);
                 if (IsSpent(out1))
                 {
@@ -199,9 +205,11 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
                 {
                     mapSpent.erase(out1);
                 }
+                // 把关联的Tx后序链条的所有Tx添加到输出参数的viewInvolvedTx中
                 viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
                 xengine::StdTrace("CTxPoolView", "InvalidateSpent: setTxLinkIndex erase, txid: %s, seq: %ld",
                                   txidNextTx.GetHex().c_str(), pNextTx->nSequenceNumber);
+                // 从TxPoolView删除关联的Tx后序链条的所有Tx
                 setTxLinkIndex.erase(txidNextTx);
             }
         }
@@ -744,7 +752,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             // 长链Block的 mint tx如果有效，就放到txChange的txAddNew中
             change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight /*nHeight*/));
         }
-        // 遍历处理BlockView中被打包的Tx列表，从前序到后续
+        // 遍历处理Block中被打包的Tx列表，从前序到后续
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
             const CTransaction& tx = block.vtx[i];
@@ -753,26 +761,29 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             // 不在BlockView中删除回滚的Tx集合里面，setTxUpdate是被待删除回滚的tx集合
             if (!update.setTxUpdate.count(txid))
             {
-                // 没被回滚删除的Tx，如果存在TxView中就需要从View中删除，如果存在也意味着Tx在没被上链的时候被同步过来了，既然现在tx已经上链，就需要删除
+                // 没被回滚删除的Tx，如果存在TxView中就需要从View中删除，如果存在也意味着Tx在没被上链的时候被同步过来了，既然现在tx已经上链，就需要删除txpool中的tx
                 if (txView.Exists(txid))
                 {
                     // 也就是把该Tx的前序设置为未花费
                     txView.Remove(txid);
                     mapTx.erase(txid);
-                    // 
+                    // 因为打包上链的tx存在txpool中，所以是加入到maptxupdate字段
                     change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
                 else
                 {
+                    // 打包上链的Tx，不存在TxPool中的，就把它的前序输出所关联的所有后序Tx链条都标记为未花费，并拿到这个后序链条的TxPoolView
                     for (const CTxIn& txin : tx.vInput)
                     {
                         txView.InvalidateSpent(txin.prevout, viewInvolvedTx);
                     }
+                    // 因为打包上链的tx不存在txpool中，所以是加入到vTxAddNew字段
                     change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight /*nHeight*/, txContxt.destIn, txContxt.GetValueIn()));
                 }
             }
             else
             {
+                // 被BlocView中删除回滚的tx也加入到mapTxUpdate字段
                 change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
             }
         }
@@ -783,18 +794,22 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
     //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
     //for (const CBlockEx& block : vBlockRemove)
+    // 对于被回滚的短链，高度从低到高的遍历处理
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
     {
+        // 遍历处理Block中被打包的Tx，前后序的顺序列        
         for (int i = 0; i < block.vtx.size(); ++i)
         {
             const CTransaction& tx = block.vtx[i];
             uint256 txid = tx.GetHash();
+            // 不在BlockView中删除回滚的Tx集合里面，setTxUpdate是被待删除回滚的tx集合
             if (!update.setTxUpdate.count(txid))
             {
                 uint256 spent0, spent1;
-
+                // 得到被回滚Block打包的Tx的输出所对应的后序Tx id（包含找零）
                 txView.GetSpent(CTxOutPoint(txid, 0), spent0);
                 txView.GetSpent(CTxOutPoint(txid, 1), spent1);
+                // 回滚的Tx重新添加到对应的Fork的TxPoolView中
                 if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight) == OK)
                 {
                     if (spent0 != 0)
@@ -931,6 +946,7 @@ bool CTxPool::SaveData()
     return datTxPool.Save(vTx);
 }
 
+// 将Tx添加到TxPoolView中
 Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
     vector<CTxOut> vPrevOutput;
