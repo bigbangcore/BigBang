@@ -17,7 +17,7 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-//#define BBCP_SET_TOKEN_DISTRIBUTION
+#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 20;
 
