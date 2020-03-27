@@ -34,54 +34,54 @@ void KeyGenerator(uint256& priv, uint256& pub)
     P.Pack(pub.begin());
 }
 
-BOOST_AUTO_TEST_CASE(fp25519)
-{
-    srand(time(0));
-    uint8_t md32[32];
+// BOOST_AUTO_TEST_CASE(fp25519)
+// {
+//     srand(time(0));
+//     uint8_t md32[32];
 
-    // add, minus
-    for (int i = 0; i < 10; i++)
-    {
-        RandGeneretor(md32);
-        CFP25519 add1(md32);
-        RandGeneretor(md32);
-        CFP25519 add2(md32);
-        CFP25519 fpSum = add1 + add2;
-        BOOST_CHECK(add1 == fpSum - add2);
-        BOOST_CHECK(add2 == fpSum - add1);
-    }
+//     // add, minus
+//     for (int i = 0; i < 10; i++)
+//     {
+//         RandGeneretor(md32);
+//         CFP25519 add1(md32);
+//         RandGeneretor(md32);
+//         CFP25519 add2(md32);
+//         CFP25519 fpSum = add1 + add2;
+//         BOOST_CHECK(add1 == fpSum - add2);
+//         BOOST_CHECK(add2 == fpSum - add1);
+//     }
 
-    // multiply, divide
-    for (int i = 0; i < 10; i++)
-    {
-        RandGeneretor(md32);
-        CFP25519 mul1(md32);
-        RandGeneretor(md32);
-        CFP25519 mul2(md32);
-        CFP25519 fpProduct = mul1 * mul2;
-        BOOST_CHECK(mul1 == fpProduct / mul2);
-        BOOST_CHECK(mul2 == fpProduct / mul1);
-    }
+//     // multiply, divide
+//     for (int i = 0; i < 10; i++)
+//     {
+//         RandGeneretor(md32);
+//         CFP25519 mul1(md32);
+//         RandGeneretor(md32);
+//         CFP25519 mul2(md32);
+//         CFP25519 fpProduct = mul1 * mul2;
+//         BOOST_CHECK(mul1 == fpProduct / mul2);
+//         BOOST_CHECK(mul2 == fpProduct / mul1);
+//     }
 
-    // inverse
-    for (int i = 0; i < 10; i++)
-    {
-        RandGeneretor(md32);
-        CFP25519 fp(md32);
-        CFP25519 fpInverse = fp.Inverse();
-        BOOST_CHECK(CFP25519(1) == fp * fpInverse);
-    }
+//     // inverse
+//     for (int i = 0; i < 10; i++)
+//     {
+//         RandGeneretor(md32);
+//         CFP25519 fp(md32);
+//         CFP25519 fpInverse = fp.Inverse();
+//         BOOST_CHECK(CFP25519(1) == fp * fpInverse);
+//     }
 
-    // sqrt square
-    for (int i = 0; i < 10; i++)
-    {
-        RandGeneretor(md32);
-        CFP25519 fp1(md32);
-        CFP25519 fp2(md32);
-        fp2 = fp2.Square().Sqrt();
-        BOOST_CHECK(fp2.Square() == fp1.Square());
-    }
-}
+//     // sqrt square
+//     for (int i = 0; i < 10; i++)
+//     {
+//         RandGeneretor(md32);
+//         CFP25519 fp1(md32);
+//         CFP25519 fp2(md32);
+//         fp2 = fp2.Square().Sqrt();
+//         BOOST_CHECK(fp2.Square() == fp1.Square());
+//     }
+// }
 
 BOOST_AUTO_TEST_CASE(sc25519)
 {
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(interpolation)
 BOOST_AUTO_TEST_CASE(mpvss)
 {
     srand(time(0));
-    for (size_t count = 30; count <= 30; count++)
+    for (size_t count = 23; count <= 23; count++)
     {
         uint256 nInitValue;
         std::vector<uint256> vID;
