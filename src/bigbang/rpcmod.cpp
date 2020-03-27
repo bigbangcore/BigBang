@@ -935,7 +935,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
         return spResult;
     }
 
-    int nDepth = nHeight < 0 ? 0 : pService->GetBlockCount(hashFork) - nHeight;
+    int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
     if (!pService->GetTxSender(txid, from))
     {
