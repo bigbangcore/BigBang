@@ -142,7 +142,7 @@ bool CDispatcher::HandleInvoke()
     vector<uint256> vActive;
     if (!pForkManager->LoadForkContext(vActive))
     {
-        Error("Failed to load for context");
+        Error("Failed to load fork context");
         return false;
     }
 
@@ -224,21 +224,21 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     pService->NotifyBlockChainUpdate(updateBlockChain);
 
-    // if (!block.IsVacant())
-    // {
-    //     vector<uint256> vActive, vDeactive;
-    //     pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
+    if (!block.IsVacant())
+    {
+        vector<uint256> vActive, vDeactive;
+        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
 
-    //     for (const uint256 hashFork : vActive)
-    //     {
-    //         ActivateFork(hashFork, nNonce);
-    //     }
+        for (const uint256 hashFork : vActive)
+        {
+            ActivateFork(hashFork, nNonce);
+        }
 
-    //     for (const uint256 hashFork : vDeactive)
-    //     {
-    //         pNetChannel->UnsubscribeFork(hashFork);
-    //     }
-    // }
+        for (const uint256 hashFork : vDeactive)
+        {
+            pNetChannel->UnsubscribeFork(hashFork);
+        }
+    }
 
     if (block.IsPrimary())
     {

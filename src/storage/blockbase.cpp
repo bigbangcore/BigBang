@@ -396,7 +396,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
         CForkContext ctxt(hashGenesis, uint64(0), uint64(0), profile);
         if (!dbBlock.AddNewForkContext(ctxt))
         {
-            StdTrace("BlockBase", "Add New Fork COntext %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Fork Context %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 

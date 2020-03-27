@@ -117,10 +117,10 @@ public:
 public:
     uint256 hashFork;
     uint256 hashParent;
-    int nOriginHeight;
+    int32 nOriginHeight;
     uint256 hashLastBlock;
     int64 nLastBlockTime;
-    int nLastBlockHeight;
+    int32 nLastBlockHeight;
     int64 nMoneySupply;
     std::set<uint256> setTxUpdate;
     std::vector<CBlockEx> vBlockAddNew;
