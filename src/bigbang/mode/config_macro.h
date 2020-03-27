@@ -8,7 +8,7 @@
 #include <boost/program_options.hpp>
 
 // basic config
-#define MAINNET_MAGICNUM 0x3b54beae
+#define MAINNET_MAGICNUM 0x3b54beaa
 #define TESTNET_MAGICNUM 0xa006c295
 
 // rpc config
