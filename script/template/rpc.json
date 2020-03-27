@@ -417,6 +417,10 @@
                 "type": "string",
                 "desc": "anchor hash"
             },
+            "blockhash": {
+                "type": "string",
+                "desc": "which block tx located in"
+            },
             "vin": {
                 "type": "array",
                 "desc": "vin list",
