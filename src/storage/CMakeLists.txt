@@ -24,7 +24,7 @@ set(sources
 
 add_library(storage ${sources})
 
-include_directories(../xengine ../crypto ../common ../leveldb/include ../snappy)
+include_directories(../xengine ../crypto ../common ../leveldb/include ../snappy ../delegate ../mpvss)
 
 target_link_libraries(storage
     ${Boost_SYSTEM_LIBRARY}
@@ -43,4 +43,6 @@ target_link_libraries(storage
     common
     leveldb    
     snappy
+    delegate
+    mpvss
 )

@@ -15,39 +15,43 @@
 #include "stream/datastream.h"
 #include "templateid.h"
 #include "util.h"
+#include "xengine.h"
 
 class CSpendableTemplate
 {
 };
 
-//When this kind of template acts as target payment address, leave its destination in signature.
-class CDestInRecordedTemplate
+class CSendToRecordedTemplate
 {
 public:
-    static void RecordDestIn(const CDestination& destIn, const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig)
+    static void RecordDest(const CDestination& sendToDelegate, const CDestination& sendToOwner,
+                           const std::vector<uint8>& vchPreSigIn, std::vector<uint8>& vchSigOut)
     {
-        vchSig.clear();
-        xengine::CODataStream ods(vchSig, CDestination::DESTINATION_SIZE + vchPreSig.size());
-        ods << destIn;
-        ods.Push(&vchPreSig[0], vchPreSig.size());
+        vchSigOut.clear();
+        xengine::CODataStream ods(vchSigOut, CDestination::DESTINATION_SIZE * 2 + vchPreSigIn.size());
+        ods << sendToDelegate << sendToOwner;
+        ods.Push(&vchPreSigIn[0], vchPreSigIn.size());
     }
 
-    static bool ParseDestIn(const std::vector<uint8>& vchSig, CDestination& destIn, std::vector<uint8>& vchSubSig)
+    static bool ParseDest(const std::vector<uint8>& vchSigIn,
+                          CDestination& sendToDelegateOut, CDestination& sendToOwnerOut,
+                          std::vector<uint8>& vchSubSigOut)
     {
-        xengine::CIDataStream is(vchSig);
+        xengine::CIDataStream is(vchSigIn);
         try
         {
-            is >> destIn;
-            vchSubSig.assign(vchSig.begin() + CDestination::DESTINATION_SIZE, vchSig.end());
+            is >> sendToDelegateOut >> sendToOwnerOut;
+            vchSubSigOut.assign(vchSigIn.begin() + (CDestination::DESTINATION_SIZE * 2), vchSigIn.end());
         }
         catch (std::exception& e)
         {
             xengine::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
         }
-
         return true;
     }
+
+    virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const = 0;
 };
 
 class CLockedCoinTemplate
@@ -65,6 +69,8 @@ enum TemplateType
     TEMPLATE_PROOF,
     TEMPLATE_DELEGATE,
     TEMPLATE_EXCHANGE,
+    TEMPLATE_VOTE,
+    TEMPLATE_PAYMENT,
     TEMPLATE_MAX
 };
 
@@ -121,6 +127,9 @@ public:
 
     // Return dest is destIn recorded or not.
     static bool IsDestInRecorded(const CDestination& dest);
+
+    // Return delegate address.
+    static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
 
     // Return dest limits coin on transaction or not.
     static bool IsLockedCoin(const CDestination& dest);

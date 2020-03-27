@@ -4,7 +4,11 @@
 
 #include "core.h"
 
+#include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
+#include "../common/template/mint.h"
+#include "../common/template/payment.h"
+#include "../common/template/vote.h"
 #include "address.h"
 #include "wallet.h"
 
@@ -13,21 +17,35 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
+//#define BBCP_SET_TOKEN_DISTRIBUTION
 
-static const int64 MAX_CLOCK_DRIFT = 10 * 60;
+static const int64 MAX_CLOCK_DRIFT = 20;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
+#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
+#else
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+#endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
 
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN; //30000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
+
+// dpos begin height
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 0;
+
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
+static const int64 BBCP_INIT_REWARD_TOKEN = 20;
 #else
 static const int64 BBCP_TOKEN_INIT = 0;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
@@ -73,6 +91,7 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
     126,
     73
 };
+static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 #endif
 
 namespace bigbang
@@ -87,6 +106,7 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    pBlockChain = nullptr;
 }
 
 CCoreProtocol::~CCoreProtocol()
@@ -98,6 +118,10 @@ bool CCoreProtocol::HandleInitialize()
     CBlock block;
     GetGenesisBlock(block);
     hashGenesisBlock = block.GetHash();
+    if (!GetObject("blockchain", pBlockChain))
+    {
+        return false;
+    }
     return true;
 }
 
@@ -150,7 +174,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBC";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -162,12 +186,11 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
-
-    if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
+    /*if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
         && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
-    }
+    }*/
     if (tx.nType == CTransaction::TX_TOKEN
         && (tx.sendTo.IsPubKey()
             || (tx.sendTo.IsTemplate()
@@ -250,20 +273,14 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 {
     // These are checks that are independent of context
     // Only allow CBlock::BLOCK_PRIMARY type in v1.0.0
-    if (block.nType != CBlock::BLOCK_PRIMARY)
+    /*if (block.nType != CBlock::BLOCK_PRIMARY)
     {
         return DEBUG(ERR_BLOCK_TYPE_INVALID, "Block type error\n");
-    }
+    }*/
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
-    }
-
-    // Extended block should be not empty
-    if (block.nType == CBlock::BLOCK_EXTENDED && block.vtx.empty())
-    {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "empty extended block\n");
     }
 
     // validate vacant block
@@ -385,17 +402,16 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                                  const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING
-        || block.GetBlockTime() >= pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING * 3 / 2)
+    uint32 nTime = DPoSTimestamp(pIndexPrev);
+    if (block.GetBlockTime() != nTime)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u\n", block.GetBlockTime(), nTime);
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
-
     return OK;
 }
 
@@ -417,14 +433,14 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
     else
     {
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
+            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
         }
     }
 
-    int nIndex = (block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING;
-    if (block.txMint.sendTo != agreement.GetBallot(nIndex))
+    if (block.txMint.sendTo != agreement.GetBallot(0))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
     }
@@ -465,11 +481,17 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    // v1.0 function
+    /*if (!tx.vchData.empty())
+    {
+        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
+    }*/
+
     vector<uint8> vchSig;
-    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
-        if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
+        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
         }
@@ -477,6 +499,37 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     else
     {
         vchSig = tx.vchSig;
+    }*/
+    if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        if (templatePtr == nullptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+        }
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
+        {
+            CBlock block;
+            std::multimap<int64, CDestination> mapVotes;
+            CProofOfSecretShare dpos;
+            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            }
+            if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            }
+        }
+        else
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        }
+    }
+    if (!VerifyDestRecorded(tx, vchSig))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
@@ -515,12 +568,18 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    // v1.0 function
+    /*if (!tx.vchData.empty())
+    {
+        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
+    }*/
+
     // record destIn in vchSig
     vector<uint8> vchSig;
-    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
         CDestination recordedDestIn;
-        if (!CDestInRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
+        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
         {
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
         }
@@ -528,11 +587,43 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     else
     {
         vchSig = tx.vchSig;
+    }*/
+    if (!VerifyDestRecorded(tx, vchSig))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
 
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+    }
+
+    if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        if (templatePtr == nullptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+        }
+        auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
+        if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
+        {
+            CBlock block;
+            std::multimap<int64, CDestination> mapVotes;
+            CProofOfSecretShare dpos;
+            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            }
+            if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            }
+        }
+        else
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        }
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
@@ -552,49 +643,87 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement)
+uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
 {
-    if (block.IsOrigin() || block.IsVacant() || block.IsNull() || (pIndexPrev == nullptr))
+    if (block.IsGenesis())
     {
         return uint64(0);
     }
-    else if (block.IsProofOfWork())
+    else if (block.IsVacant())
     {
-        // PoW difficulty = 2 ^ nBits
-        CProofOfHashWorkCompact proof;
-        proof.Load(block.vchProof);
-        uint256 v(1);
-        return v << proof.nBits;
+        return uint64(0);
+    }
+    else if (block.IsPrimary())
+    {
+        if (block.IsProofOfWork())
+        {
+            // PoW difficulty = 2 ^ nBits
+            CProofOfHashWorkCompact proof;
+            proof.Load(block.vchProof);
+            uint256 v(1);
+            return v << proof.nBits;
+        }
+        else if (pIndexPrev != nullptr)
+        {
+            // Get the last PoW block nAlgo
+            int nAlgo;
+            const CBlockIndex* pIndex = pIndexPrev;
+            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+            {
+                pIndex = pIndex->pPrev;
+            }
+            if (!pIndex->IsProofOfWork())
+            {
+                nAlgo = CM_CRYPTONIGHT;
+            }
+            else
+            {
+                nAlgo = pIndex->nProofAlgo;
+            }
+
+            // DPoS difficulty = weight * (2 ^ nBits)
+            int nBits;
+            int64 nReward;
+            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
+            {
+                if (agreement.nWeight == 0 || nBits <= 0)
+                {
+                    StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                }
+                return uint256(uint64(agreement.nWeight)) << nBits;
+            }
+            else
+            {
+                StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return uint64(0);
+            }
+        }
+        else
+        {
+            StdLog("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
+            return uint64(0);
+        }
+    }
+    else if (block.IsOrigin())
+    {
+        return uint64(0);
+    }
+    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
+    {
+        if (pIndexRef->pPrev == nullptr)
+        {
+            StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
+            return pIndexRef->nChainTrust;
+        }
+        else
+        {
+            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
+        }
     }
     else
     {
-        // Get the last PoW block nAlgo
-        int nAlgo;
-        const CBlockIndex* pIndex = pIndexPrev;
-        while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-        {
-            pIndex = pIndex->pPrev;
-        }
-        if (!pIndex->IsProofOfWork())
-        {
-            nAlgo = CM_CRYPTONIGHT;
-        }
-        else
-        {
-            nAlgo = pIndex->nProofAlgo;
-        }
-
-        // DPoS difficulty = weight * (2 ^ nBits)
-        int nBits;
-        int64 nReward;
-        if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
-        {
-            return uint256(uint64(agreement.nWeight)) << nBits;
-        }
-        else
-        {
-            return uint64(0);
-        }
+        StdLog("CCoreProtocol", "GetBlockTrust: block type error");
+        return uint64(0);
     }
 }
 
@@ -602,6 +731,14 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 {
     if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
     {
+        if (!pIndexPrev->IsPrimary())
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: not is primary");
+        }
+        else
+        {
+            StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
+        }
         return false;
     }
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
@@ -666,37 +803,109 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 #endif
 }
 
-void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight,
-                                       const map<CDestination, size_t>& mapBallot, vector<CDestination>& vBallot, int nBlockHeight)
+void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t> mapBallot,
+                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, int nBlockHeight)
 {
     vBallot.clear();
+    if (nAgreement == 0 || mapBallot.size() == 0)
+    {
+        StdTrace("Core", "GetDelegatedBallot: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
+        return;
+    }
+    if (nMoneySupply < 0)
+    {
+        StdTrace("Core", "GetDelegatedBallot: nMoneySupply < 0");
+        return;
+    }
+    if (vecAmount.size() != mapBallot.size())
+    {
+        StdError("Core", "Get delegated ballot: dest ballot size %llu is not equal amount size %llu", mapBallot.size(), vecAmount.size());
+    }
 
     int nSelected = 0;
     for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
     {
         nSelected ^= *p;
     }
-    size_t nWeightWork = ((DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight) * (DELEGATE_THRESH - nWeight))
-                         / (DELEGATE_THRESH * DELEGATE_THRESH);
-    if (nSelected >= nWeightWork * 256 / (nWeightWork + nWeight))
+
+    map<CDestination, size_t> mapSelectBallot;
+    size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
+    size_t nEnrollWeight = 0;
+    for (auto& amount : vecAmount)
     {
-        size_t nTrust = nWeight;
-        for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
+                 CAddress(amount.first).ToString().c_str(), amount.second);
+        if (mapBallot.find(amount.first) != mapBallot.end())
         {
-            nSelected += *p;
-            size_t n = nSelected % nWeight;
-            for (map<CDestination, size_t>::const_iterator it = mapBallot.begin(); it != mapBallot.end(); ++it)
-            {
-                if (n < (*it).second)
-                {
-                    vBallot.push_back((*it).first);
-                    break;
-                }
-                n -= (*it).second;
-            }
-            nTrust >>= 1;
+            size_t nDestWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
+            mapSelectBallot[amount.first] = nDestWeight;
+            nEnrollWeight += nDestWeight;
+            StdTrace("Core", "Get delegated ballot: ballot dest: %s, weight: %lld",
+                     CAddress(amount.first).ToString().c_str(), nDestWeight);
         }
     }
+    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu", mapSelectBallot.size());
+
+    size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
+                         / (nMaxWeight * nMaxWeight);
+    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
+             nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
+    if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
+    {
+        // size_t nTrust = mapSelectBallot.size();
+        size_t total = nEnrollWeight;
+        // set<CDestination> setMaker;
+        // for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
+        // {
+        //     nSelected += *p;
+        size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
+        for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
+        {
+            if (n < it->second)
+            {
+                vBallot.push_back(it->first);
+                // total -= it->second;
+                // mapSelectBallot.erase(it);
+                break;
+            }
+            n -= (*it).second;
+        }
+        //     --nTrust;
+        // }
+    }
+
+    StdTrace("Core", "vBallot size: %lu", vBallot.size());
+    for (auto& ballot : vBallot)
+    {
+        StdTrace("Core", "Get delegated ballot: sequence dest: %s", CAddress(ballot).ToString().c_str());
+    }
+}
+
+int64 CCoreProtocol::MinEnrollAmount()
+{
+    return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+}
+
+uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
+{
+    if (pIndexPrev == nullptr || !pIndexPrev->IsPrimary())
+    {
+        return 0;
+    }
+
+    const CBlockIndex* pIndex = pIndexPrev;
+    while (pIndex->IsProofOfWork() && pIndex->nHeight > DELEGATE_PROOF_OF_STAKE_HEIGHT && pIndex->pPrev != nullptr)
+    {
+        pIndex = pIndex->pPrev;
+    }
+
+    uint32 nTimeStamp = pIndex->nTimeStamp + BLOCK_TARGET_SPACING * (pIndexPrev->nHeight - pIndex->nHeight + 1);
+    if (nTimeStamp <= pIndexPrev->nTimeStamp)
+    {
+        nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+    }
+
+    return nTimeStamp;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
@@ -723,6 +932,51 @@ Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
     return OK;
 }
 
+bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut)
+{
+    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        CDestination sendToDelegateTemplate;
+        CDestination sendToOwner;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSigOut))
+        {
+            StdError("Core", "Verify dest recorded: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        if (sendToDelegateTemplate.IsNull() || sendToOwner.IsNull())
+        {
+            StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        CTemplateId tid;
+        if (!(tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
+        {
+            StdError("Core", "Verify dest recorded: sendTo not is template, txid: %s, sendTo: %s", tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
+            return false;
+        }
+        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(sendToDelegateTemplate, sendToOwner));
+        if (ptr == nullptr)
+        {
+            StdError("Core", "Verify dest recorded: sendTo CreateTemplatePtr fail, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
+                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
+            return false;
+        }
+        if (ptr->GetTemplateId() != tx.sendTo.GetTemplateId())
+        {
+            StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
+                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
+                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        vchSigOut = move(tx.vchSig);
+    }
+    return true;
+}
+
 ///////////////////////////////
 // CTestNetCoreProtocol
 
@@ -744,7 +998,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 {
     using namespace boost::posix_time;
     using namespace boost::gregorian;
-    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("62a401ff58234d2c7543859ed4917a9e85fb431ffb650a4d7694a301234771c4")));
+    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("68e4dca5989876ca64f16537e82d05c103e5695dfaf009a01632cb33639cc530")));
 
     block.SetNull();
 
@@ -764,7 +1018,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.strSymbol = "BBCTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
-    profile.nMintReward = BBCP_REWARD_TOKEN[0] * COIN;
+    profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
     profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
@@ -790,6 +1044,7 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
         nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     }
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
+    nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
 }
 
 } // namespace bigbang

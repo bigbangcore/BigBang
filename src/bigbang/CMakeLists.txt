@@ -23,7 +23,6 @@ add_custom_command(OUTPUT ${auto_files}
 )
 
 set(src
-    bigbang.cpp
     address.cpp         address.h
     blockmaker.cpp      blockmaker.h
     config.cpp          config.h
@@ -33,11 +32,11 @@ set(src
     error.cpp           error.h
     miner.cpp           miner.h
     netchn.cpp          netchn.h
-    # delegatedchn.cpp    delegatedchn.h
+    delegatedchn.cpp    delegatedchn.h
     network.cpp         network.h
     rpcclient.cpp       rpcclient.h
     rpcmod.cpp          rpcmod.h
-    # consensus.cpp       consensus.h
+    consensus.cpp       consensus.h
     blockmaker.cpp      blockmaker.h
     rpcclient.cpp       rpcclient.h
     miner.cpp           miner.h
@@ -72,12 +71,13 @@ set(mode_src
 )
 
 set(sources
-    ${auto_files}
     ${src}
     ${mode_src}
+    ${auto_files}
 )
 
-add_executable(bigbang ${sources})
+add_library(libbigbang ${sources})
+add_executable(bigbang bigbang.cpp)
 
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -100,7 +100,29 @@ target_link_libraries(bigbang
     crypto    
     storage    
     network
-    # delegate    
+    delegate    
+    jsonrpc
+    common
+    libbigbang
+)
+
+target_link_libraries(libbigbang
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${Protobuf_LIBRARIES}
+    ${Readline_LIBRARY}
+    xengine
+    crypto    
+    storage    
+    network
+    delegate    
     jsonrpc
     common
 )

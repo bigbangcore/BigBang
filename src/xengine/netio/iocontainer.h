@@ -86,6 +86,7 @@ public:
     bool Invoke(std::size_t nMaxConnection);
     void Halt();
     bool ConnectTo(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
+    bool ConnectToByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
     void Timeout(uint32 nTimerId);
 
 protected:
@@ -133,6 +134,8 @@ public:
     void Halt();
     bool ConnectTo(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
                    const CIOSSLOption& optSSL = CIOSSLOption());
+    bool ConnectToByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
+                                const CIOSSLOption& optSSL = CIOSSLOption());
     void Timeout(uint32 nTimerId);
 
 protected:

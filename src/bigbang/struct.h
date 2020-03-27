@@ -53,8 +53,14 @@ public:
         nOriginHeight(nOriginHeightIn),
         nLastBlockTime(0),
         nLastBlockHeight(-1),
-        nMoneySupply(0)
+        nMoneySupply(0),
+        nMintType(-1)
     {
+    }
+
+    bool IsNull()
+    {
+        return nLastBlockTime == 0;
     }
 
 public:
@@ -66,6 +72,7 @@ public:
     int64 nLastBlockTime;
     int nLastBlockHeight;
     int64 nMoneySupply;
+    uint16 nMintType;
     std::multimap<int, uint256> mapSubline;
 };
 
@@ -169,11 +176,12 @@ public:
 class CDelegateRoutine
 {
 public:
-    std::vector<std::pair<int, std::map<CDestination, size_t>>> vEnrolledWeight;
+    std::vector<std::pair<uint256, std::map<CDestination, size_t>>> vEnrolledWeight;
 
     std::vector<CTransaction> vEnrollTx;
-    std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
+    std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>> vDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    uint256 hashDistributeOfPublish;
     bool fPublishCompleted;
 
 public:
@@ -189,11 +197,13 @@ public:
     {
         mapWeight.clear();
         mapEnrollData.clear();
+        vecAmount.clear();
     }
 
 public:
     std::map<CDestination, std::size_t> mapWeight;
     std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
+    std::vector<std::pair<CDestination, int64>> vecAmount;
 };
 
 class CDelegateAgreement
@@ -248,6 +258,9 @@ protected:
 class CBlockMakerUpdate
 {
 public:
+    uint256 hashParent;
+    int nOriginHeight;
+
     uint256 hashBlock;
     int64 nBlockTime;
     int nBlockHeight;
