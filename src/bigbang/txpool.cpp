@@ -52,15 +52,13 @@ public:
 
 //////////////////////////////
 // CTxPoolView
-bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
+
+bool CTxPoolView::AddTxIndex(const uint256& txid, CPooledTx& tx)
 {
     CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
 
     if (idxTx.find(txid) != idxTx.end())
     {
-        CPooledTxLinkSetByTxHash::iterator it = idxTx.find(txid);
-        StdTrace("CTxPoolView", "AddNew: setTxLinkIndex erase, txid: %s, old seq: %ld, new seq: %ld",
-                 txid.GetHex().c_str(), it->nSequenceNumber, tx.nSequenceNumber);
         setTxLinkIndex.erase(txid);
     }
 
@@ -137,19 +135,31 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
             return false;
         }
     }
+
     if (!setTxLinkIndex.insert(CPooledTxLink(&tx)).second)
     {
         StdError("CTxPoolView", "AddNew: setTxLinkIndex insert fail, txid: %s, nSequenceNumber: %ld",
                  txid.GetHex().c_str(), tx.nSequenceNumber);
         return false;
     }
-    StdTrace("CTxPoolView", "AddNew: setTxLinkIndex insert success, txid: %s, nSequenceNumber: %ld",
-             txid.GetHex().c_str(), tx.nSequenceNumber);
+
+    return true;
+}
+
+bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
+{
+    if (!AddTxIndex(txid, tx))
+    {
+        StdError("CTxPoolView", "AddNew: Add tx index fail, txid: %s, nSequenceNumber: %ld",
+                 txid.GetHex().c_str(), tx.nSequenceNumber);
+        return false;
+    }
 
     for (std::size_t i = 0; i < tx.vInput.size(); i++)
     {
         mapSpent[tx.vInput[i].prevout].SetSpent(txid);
     }
+
     CTxOut output;
     output = tx.GetOutput(0);
     if (!output.IsNull())
@@ -160,6 +170,32 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
     if (!output.IsNull())
     {
         mapSpent[CTxOutPoint(txid, 1)].SetUnspent(output);
+    }
+
+    vector<pair<uint256, uint64>> vPrevTxid;
+    for (size_t i = 0; i < tx.vInput.size(); i++)
+    {
+        vPrevTxid.push_back(make_pair(tx.vInput[i].prevout.hash, tx.nSequenceNumber));
+    }
+    for (size_t i = 0; i < vPrevTxid.size(); i++)
+    {
+        const uint256& txidPrev = vPrevTxid[i].first;
+        CPooledTx* ptx = Get(txidPrev);
+        if (ptx != nullptr)
+        {
+            if (ptx->nSequenceNumber > vPrevTxid[i].second)
+            {
+                if (!AddTxIndex(txidPrev, *ptx))
+                {
+                    StdError("CTxPoolView", "AddNew: Add prev tx index fail, txidPrev: %s, nSequenceNumber: %ld",
+                             txidPrev.GetHex().c_str(), ptx->nSequenceNumber);
+                }
+                for (size_t j = 0; j < ptx->vInput.size(); j++)
+                {
+                    vPrevTxid.push_back(make_pair(ptx->vInput[j].prevout.hash, ptx->nSequenceNumber));
+                }
+            }
+        }
     }
 
     return true;
@@ -200,8 +236,6 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
                     mapSpent.erase(out1);
                 }
                 viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
-                xengine::StdTrace("CTxPoolView", "InvalidateSpent: setTxLinkIndex erase, txid: %s, seq: %ld",
-                                  txidNextTx.GetHex().c_str(), pNextTx->nSequenceNumber);
                 setTxLinkIndex.erase(txidNextTx);
             }
         }
@@ -620,8 +654,6 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     std::vector<CTransaction> vCacheTx;
     cache.Retrieve(hashPrev, vCacheTx);
 
-    StdTrace("CTxPool", "hashPrev: %s vCacheTx size: %d", hashPrev.ToString().c_str(), vCacheTx.size());
-
     nTotalTxFee = 0;
     size_t currentSize = 0;
     for (const auto& tx : vCacheTx)
@@ -635,10 +667,8 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 
         nTotalTxFee += tx.nTxFee;
         vtx.push_back(tx);
-        StdTrace("CTxPool", "Arrange Tx to block: %s", tx.GetHash().ToString().c_str());
     }
 
-    StdTrace("CTxPool", "\t ------- Arrange Tx to block vtx size: %d", vtx.size());
     return true;
 }
 
@@ -835,14 +865,6 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     int64 nTotalFee = 0;
     const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
     ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee);
-
-    StdTrace("CTxPoolView", "Arrange to cache vtx size: %d blockhash: %s", vtx.size(), lastBlockEx.GetHash().ToString().c_str());
-    for(const auto& tx : vtx)
-    {
-        StdTrace("CTxPoolView", "Arrange To cache tx: %s", tx.GetHash().ToString().c_str());
-    }
-
-    StdTrace("CTxPoolView", "################# Arrange to cache vtx size: %d", vtx.size());
 
     auto& cache = mapTxCache[update.hashFork];
     cache.AddNew(lastBlockEx.GetHash(), vtx);
