@@ -239,6 +239,15 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
                 // StdWarn("vote", "CDelegateVote::Accept exit ...............");
                 return true;
             }
+            else
+            {
+                StdError("vote", "CDelegateVote::Collect witness collect fail");
+            }
+        }
+        else
+        {
+            StdError("vote", "CDelegateVote::Collect fail, delegateData.nIdentFrom == DestToIdentUInt256(destFrom): %d, VerifySignature(delegateData): %d",
+                     delegateData.nIdentFrom == DestToIdentUInt256(destFrom), VerifySignature(delegateData));
         }
     }
     catch (exception& e)

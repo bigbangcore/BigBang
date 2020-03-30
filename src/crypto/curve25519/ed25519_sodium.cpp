@@ -21,8 +21,7 @@ CEdwards25519Sodium::~CEdwards25519Sodium()
 
 void CEdwards25519Sodium::Generate(const uint256& n)
 {
-    crypto_scalarmult_ed25519_base_noclamp(point, n.begin());
-    fInit = true;
+    Generate(CSC25519Sodium(n.begin()));
 }
 
 void CEdwards25519Sodium::Generate(const CSC25519Sodium& n)
@@ -50,13 +49,8 @@ void CEdwards25519Sodium::Pack(uint8_t* md32) const
 
 const CEdwards25519Sodium CEdwards25519Sodium::ScalarMult(const uint256& n) const
 {
-    CEdwards25519Sodium q;
-    uint8_t md32[32];
-    if (crypto_scalarmult_ed25519_noclamp(md32, n.begin(), point) == 0)
-    {
-        q.Unpack(md32);
-    }
-    return q;
+    CSC25519Sodium sc(n.begin());
+    return ScalarMult(sc);
 }
 
 const CEdwards25519Sodium CEdwards25519Sodium::ScalarMult(const CSC25519Sodium& n) const

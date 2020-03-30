@@ -5,11 +5,17 @@
 #include "mpvss.h"
 
 #include <boost/test/unit_test.hpp>
+#include <map>
+#include <vector>
 
+#include "crypto.h"
 #include "mpinterpolation.h"
+#include "stream/datastream.h"
 #include "test_big.h"
 
 using curve25519::Print32;
+using namespace bigbang::crypto;
+using namespace std;
 
 BOOST_FIXTURE_TEST_SUITE(mpvss_tests, BasicUtfSetup)
 
@@ -136,7 +142,7 @@ BOOST_AUTO_TEST_CASE(ed25519)
     CEdwards25519 P;
     P.Generate(k);
     P.Pack((uint8*)md32);
-    std::cout << uint256(md32).ToString() << std::endl;
+    cout << uint256(md32).ToString() << endl;
 
     // sign, verify
     // for (int i = 0; i < 10; i++)
@@ -168,13 +174,13 @@ BOOST_AUTO_TEST_CASE(interpolation)
     // lagrange, newton
     for (int i = 0; i < 1; i++)
     {
-        std::vector<uint32_t> vX;
+        vector<uint32_t> vX;
         for (int i = 1; i < 51; i++)
         {
             vX.push_back(i);
         }
 
-        std::vector<std::pair<uint32_t, uint256>> vShare;
+        vector<pair<uint32_t, uint256>> vShare;
         for (int i = 0; i < 26; i++)
         {
             int index = rand() % vX.size();
@@ -183,11 +189,19 @@ BOOST_AUTO_TEST_CASE(interpolation)
 
             RandGeneretor(md32);
             uint256 y((uint64_t*)md32);
-            vShare.push_back(std::make_pair(x, y));
+            vShare.push_back(make_pair(x, y));
         }
 
         BOOST_CHECK(MPLagrange(vShare) == MPNewton(vShare));
     }
+}
+
+const uint256 GetHash(const map<uint256, vector<uint256>>& mapShare)
+{
+    vector<unsigned char> vch;
+    xengine::CODataStream os(vch);
+    os << mapShare;
+    return CryptoHash(&vch[0], vch.size());
 }
 
 BOOST_AUTO_TEST_CASE(mpvss)
@@ -196,15 +210,15 @@ BOOST_AUTO_TEST_CASE(mpvss)
     for (size_t count = 23; count <= 23; count++)
     {
         uint256 nInitValue;
-        std::vector<uint256> vID;
-        std::map<uint256, CMPSecretShare> mapSS;
-        std::vector<CMPSealedBox> vSBox;
-        std::vector<CMPCandidate> vCandidate;
+        vector<uint256> vID;
+        map<uint256, CMPSecretShare> mapSS;
+        vector<CMPSealedBox> vSBox;
+        vector<CMPCandidate> vCandidate;
 
         CMPSecretShare ssWitness;
 
         boost::posix_time::ptime t0;
-        std::cout << "Test mpvss begin: count " << count << "\n{\n";
+        cout << "Test mpvss begin: count " << count << "\n{\n";
         vID.resize(count);
         vSBox.resize(count);
         vCandidate.resize(count);
@@ -220,8 +234,8 @@ BOOST_AUTO_TEST_CASE(mpvss)
 
             nInitValue = nInitValue ^ mapSS[vID[i]].myBox.vCoeff[0];
         }
-        std::cout << "\tSetup : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
-        std::cout << "\tInit value = " << nInitValue.GetHex() << "\n";
+        cout << "\tSetup : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        cout << "\tInit value = " << nInitValue.GetHex() << "\n";
         {
             CMPSealedBox box;
             ssWitness.Setup(count + 1, box);
@@ -233,32 +247,49 @@ BOOST_AUTO_TEST_CASE(mpvss)
         {
             mapSS[vID[i]].Enroll(vCandidate);
         }
-        std::cout << "\tEnroll : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        cout << "\tEnroll : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
         ssWitness.Enroll(vCandidate);
 
         // Distribute
         t0 = boost::posix_time::microsec_clock::universal_time();
         for (int i = 0; i < count; i++)
         {
-            std::map<uint256, std::vector<uint256>> mapShare;
+            map<uint256, vector<uint256>> mapShare;
             mapSS[vID[i]].Distribute(mapShare);
+
+            uint256 hash, nR, nS;
+            hash = GetHash(mapShare);
+            mapSS[vID[i]].Signature(hash, nR, nS);
+
             for (int j = 0; j < count; j++)
             {
                 if (i != j)
                 {
+                    // check sign
+                    BOOST_CHECK(mapSS[vID[j]].VerifySignature(vID[i], hash, nR, nS));
+                    // accept
                     BOOST_CHECK(mapSS[vID[j]].Accept(vID[i], mapShare[vID[j]]));
                 }
             }
         }
-        std::cout << "\tDistribute : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        cout << "\tDistribute : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
 
         // Publish
         t0 = boost::posix_time::microsec_clock::universal_time();
-        std::vector<std::map<uint256, std::vector<uint256>>> vecMapShare;
+        vector<map<uint256, vector<uint256>>> vecMapShare;
         vecMapShare.resize(count);
+
+        vector<tuple<uint256, uint256, uint256>> vecPublishSign;
+        vecPublishSign.resize(count);
         for (int i = 0; i < count; i++)
         {
             mapSS[vID[i]].Publish(vecMapShare[i]);
+
+            // sign
+            uint256 hash, nR, nS;
+            hash = GetHash(vecMapShare[i]);
+            mapSS[vID[i]].Signature(hash, nR, nS);
+            vecPublishSign[i] = make_tuple(hash, nR, nS);
         }
 
         for (int i = 0; i < count; i++)
@@ -267,6 +298,10 @@ BOOST_AUTO_TEST_CASE(mpvss)
             for (int j = 0; j < count; j++)
             {
                 int indexFrom = (i + j) % count;
+                // check sign
+                auto& sign = vecPublishSign[indexFrom];
+                BOOST_CHECK(mapSS[vID[i]].VerifySignature(vID[indexFrom], get<0>(sign), get<1>(sign), get<2>(sign)));
+                // collect
                 BOOST_CHECK(mapSS[vID[i]].Collect(vID[indexFrom], vecMapShare[indexFrom], fCompleted));
             }
 
@@ -276,38 +311,41 @@ BOOST_AUTO_TEST_CASE(mpvss)
         bool fCompleted = false;
         for (int i = 0; i < count; i++)
         {
+            // check sign
+            auto& sign = vecPublishSign[i];
+            BOOST_CHECK(mapSS[vID[i]].VerifySignature(vID[i], get<0>(sign), get<1>(sign), get<2>(sign)));
+            // collect
             BOOST_CHECK(ssWitness.Collect(vID[i], vecMapShare[i], fCompleted));
         }
         BOOST_CHECK(fCompleted);
 
-        std::cout << "\tPublish : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        cout << "\tPublish : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
 
         // Reconstruct
         t0 = boost::posix_time::microsec_clock::universal_time();
         for (int i = 0; i < count; i++)
         {
             uint256 nRecValue;
-            std::map<uint256, std::pair<uint256, std::size_t>> mapSecret;
+            map<uint256, pair<uint256, size_t>> mapSecret;
             mapSS[vID[i]].Reconstruct(mapSecret);
-            for (std::map<uint256, std::pair<uint256, std::size_t>>::iterator it = mapSecret.begin(); it != mapSecret.end(); ++it)
+            for (map<uint256, pair<uint256, size_t>>::iterator it = mapSecret.begin(); it != mapSecret.end(); ++it)
             {
                 nRecValue = nRecValue ^ (*it).second.first;
             }
-            std::cout << "\tReconstruct candidate " << i << " : " << nRecValue.GetHex() << "\n";
             BOOST_CHECK(nRecValue == nInitValue);
         }
-        std::cout << "\tReconstruct : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        cout << "\tReconstruct : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
         ;
 
         uint256 nRecValue;
-        std::map<uint256, std::pair<uint256, std::size_t>> mapSecret;
+        map<uint256, pair<uint256, size_t>> mapSecret;
         ssWitness.Reconstruct(mapSecret);
-        for (std::map<uint256, std::pair<uint256, std::size_t>>::iterator it = mapSecret.begin(); it != mapSecret.end(); ++it)
+        for (map<uint256, pair<uint256, size_t>>::iterator it = mapSecret.begin(); it != mapSecret.end(); ++it)
         {
             nRecValue = nRecValue ^ (*it).second.first;
         }
-        std::cout << "\tReconstruct witness : " << nRecValue.GetHex() << "\n";
-        std::cout << "}\n";
+        cout << "\tReconstruct witness : " << nRecValue.GetHex() << "\n";
+        cout << "}\n";
 
         BOOST_CHECK(nRecValue == nInitValue);
     }
