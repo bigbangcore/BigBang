@@ -189,6 +189,7 @@ bool CTxPoolView::AddNew(const uint256& txid, CPooledTx& tx)
                 {
                     StdError("CTxPoolView", "AddNew: Add prev tx index fail, txidPrev: %s, nSequenceNumber: %ld",
                              txidPrev.GetHex().c_str(), ptx->nSequenceNumber);
+                    return false;
                 }
                 for (size_t j = 0; j < ptx->vInput.size(); j++)
                 {
