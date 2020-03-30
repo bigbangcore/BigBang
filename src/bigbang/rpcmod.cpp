@@ -845,7 +845,11 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this block's mint transaction");
     }
-    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, hashBlock, fork, nDepth*30, fromMint.ToString());
+    if(fork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        nDepth = nDepth*30;
+    }
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, hashBlock, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
     {
         CProofOfHashWorkCompact proof;
@@ -864,7 +868,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
             throw CRPCException(RPC_INTERNAL_ERROR,
                                 "No information available about the previous ones of this block's transactions");
         }
-        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, hashBlock, nDepth*30, from.ToString()));
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, hashBlock, nDepth, from.ToString()));
     }
     return MakeCgetblockdetailResultPtr(data);
 }
@@ -976,7 +980,11 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR, "Cannot find which block the tx be packed");
     }
 
-    spResult->transaction = TxToJSON(txid, tx, hashFork, hashBlock, nDepth*30, from.ToString());
+    if(hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        nDepth = nDepth * 30;
+    }
+    spResult->transaction = TxToJSON(txid, tx, hashFork, hashBlock, nDepth, from.ToString());
     return spResult;
 }
 
