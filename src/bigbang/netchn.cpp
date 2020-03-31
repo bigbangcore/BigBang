@@ -819,7 +819,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         {
             if (hashForkPrev == hashFork)
             {
-                AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer);
+                vector<pair<uint256, uint256>> vRefNextBlock;
+                AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock);
+
+                if (!vRefNextBlock.empty())
+                {
+                    AddRefNextBlock(vRefNextBlock);
+                }
             }
             else
             {
@@ -840,7 +846,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
                 {
                     if (hashForkPrev == hashFork)
                     {
-                        AddNewBlock(hashFork, hashFirst, sched, setSchedPeer, setMisbehavePeer);
+                        vector<pair<uint256, uint256>> vRefNextBlock;
+                        AddNewBlock(hashFork, hashFirst, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock);
+
+                        if (!vRefNextBlock.empty())
+                        {
+                            AddRefNextBlock(vRefNextBlock);
+                        }
                     }
                     else
                     {
@@ -1197,7 +1209,7 @@ bool CNetChannel::CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint2
 }
 
 void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                              set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
+                              set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer, vector<pair<uint256, uint256>>& vRefNextBlock)
 {
     vector<uint256> vBlockHash;
     vBlockHash.push_back(hash);
@@ -1222,9 +1234,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                            GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(),
                            hashFork.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str());
 
-                    set<uint64> setKnownPeer;
-                    sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
-                    setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+                    sched.AddRefBlock(proof.hashRefBlock, hashFork, hashBlock);
+                    sched.SetDelayedClear(network::CInv(network::CInv::MSG_BLOCK, hashBlock), CSchedule::MAX_SUB_BLOCK_DELAYED_TIME);
                     return;
                 }
                 hashBlockRef = proof.hashRefBlock;
@@ -1251,6 +1262,11 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             {
                 StdDebug("NetChannel", "NetChannel AddNewBlock success, peer: %s, height: %d, block: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+
+                if (pBlock->IsPrimary())
+                {
+                    sched.GetNextRefBlock(hashBlock, vRefNextBlock);
+                }
 
                 {
                     const CTransaction& tx = pBlock->txMint;
@@ -1416,6 +1432,34 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
     if (nAddNewTx)
     {
         BroadcastTxInv(hashFork);
+    }
+}
+
+void CNetChannel::AddRefNextBlock(const vector<pair<uint256, uint256>>& vRefNextBlock)
+{
+    set<uint256> setHash;
+    for (int i = 0; i < vRefNextBlock.size(); i++)
+    {
+        const uint256& hashNextFork = vRefNextBlock[i].first;
+        const uint256& hashNextBlock = vRefNextBlock[i].second;
+        if (setHash.find(hashNextBlock) == setHash.end())
+        {
+            setHash.insert(hashNextBlock);
+
+            try
+            {
+                CSchedule& sched = GetSchedule(hashNextFork);
+
+                set<uint64> setSchedPeer, setMisbehavePeer;
+                vector<pair<uint256, uint256>> vTemp;
+                AddNewBlock(hashNextFork, hashNextBlock, sched, setSchedPeer, setMisbehavePeer, vTemp);
+            }
+            catch (exception& e)
+            {
+                StdError("NetChannel", "AddRefNextBlock fail, fork: %s, block: %s, err: %s",
+                         hashNextFork.GetHex().c_str(), hashNextBlock.GetHex().c_str(), e.what());
+            }
+        }
     }
 }
 
