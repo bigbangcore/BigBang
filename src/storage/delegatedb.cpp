@@ -1,12 +1,12 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include "delegatedb.h"
 
 #include <boost/range/adaptor/reversed.hpp>
 
 #include "leveldbeng.h"
-
-#include "delegatedb.h"
 
 using namespace std;
 using namespace xengine;
@@ -82,6 +82,17 @@ bool CDelegateDB::RetrieveDelegatedVote(const uint256& hashBlock, map<CDestinati
         return false;
     }
     mapVote = ctxtDelegate.mapVote;
+    return true;
+}
+
+bool CDelegateDB::RetrieveDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos)
+{
+    CDelegateContext ctxtDelegate;
+    if (!Retrieve(hashBlock, ctxtDelegate))
+    {
+        return false;
+    }
+    mapEnrollTxPos = ctxtDelegate.mapEnrollTx;
     return true;
 }
 

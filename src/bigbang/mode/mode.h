@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 //
@@ -161,12 +161,12 @@ public:
                 EModuleType::BLOCKCHAIN,
                 EModuleType::TXPOOL,
                 EModuleType::FORKMANAGER,
-                // EModuleType::CONSENSUS,
+                EModuleType::CONSENSUS,
                 EModuleType::WALLET,
                 EModuleType::NETWORK,
                 EModuleType::NETCHANNEL,
                 EModuleType::DISPATCHER,
-                // EModuleType::DELEGATEDCHANNEL,
+                EModuleType::DELEGATEDCHANNEL,
                 EModuleType::SERVICE,
                 EModuleType::HTTPSERVER,
                 EModuleType::RPCMODE,

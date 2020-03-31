@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +12,8 @@
 using namespace std;
 using namespace xengine;
 
-const int64 MORTGAGE_BASE = 10000000000;    // initial mortgage
+static const int64 COIN = 1000000;
+const int64 MORTGAGE_BASE = 10000 * COIN;   // initial mortgage
 const int32 MORTGAGE_DECAY_CYCLE = 525600;  // decay cycle
 const double MORTGAGE_DECAY_QUANTITY = 0.5; // decay quantity
 
@@ -118,7 +119,7 @@ void CTemplateFork::BuildTemplateData()
 }
 
 bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                      const vector<uint8>& vchSig, bool& fCompleted) const
+                                      const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

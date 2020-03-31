@@ -33,6 +33,22 @@
             "desc": "Purge database and blockfile"
         },
         {
+            "name": "fCheckRepair",
+            "type": "bool",
+            "opt": "checkrepair",
+            "default": true,
+            "format": "-checkrepair",
+            "desc": "Check and repair database"
+        },
+        {
+            "name": "fOnlyCheck",
+            "type": "bool",
+            "opt": "onlycheck",
+            "default": false,
+            "format": "-onlycheck",
+            "desc": "Only check database and blockfile"
+        },
+        {
             "name": "strBlocknotify",
             "type": "string",
             "opt": "blocknotify",
@@ -299,6 +315,24 @@
             "desc": "Accept IPv6 connections from outside (default: 0)"
         },
         {
+            "access": "protected",
+            "name": "strListenAddressv4",
+            "type": "string",
+            "opt": "listenaddressv4",
+            "default": "0.0.0.0",
+            "format": "-listenaddressv4=<ip>",
+            "desc": "listens for IPv4 addresses (default: 0.0.0.0)"
+        },
+        {
+            "access": "protected",
+            "name": "strListenAddressv6",
+            "type": "string",
+            "opt": "listenaddressv6",
+            "default": "::",
+            "format": "-listenaddressv6=<ip>",
+            "desc": "listens for IPv6 addresses (default: ::)"
+        },
+        {
             "name": "nPortInt",
             "type": "int",
             "opt": "port",
@@ -327,7 +361,7 @@
             "opt": "timeout",
             "default": "DEFAULT_CONNECT_TIMEOUT",
             "format": "-timeout=<n>",
-            "desc": "Specify connection timeout (in milliseconds)"
+            "desc": "Specify connection timeout (in milliseconds, 5 by default)"
         },
         {
             "name": "vNode",

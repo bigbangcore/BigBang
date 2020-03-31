@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,9 +18,9 @@ public:
     ~CDispatcher();
     Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) override;
     Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) override;
-    bool AddNewDistribute(const int& hashAnchor, const CDestination& dest,
+    bool AddNewDistribute(const uint256& hashAnchor, const CDestination& dest,
                           const std::vector<unsigned char>& vchDistribute) override;
-    bool AddNewPublish(const int& hashAnchor, const CDestination& dest,
+    bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
 
 protected:
@@ -31,19 +31,19 @@ protected:
     void UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce);
     void ActivateFork(const uint256& hashFork, const uint64& nNonce);
     bool ProcessForkTx(const uint256& txid, const CTransaction& tx);
-    // void SyncForkHeight(int nPrimaryHeight);
+    void SyncForkHeight(int nPrimaryHeight);
 
 protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
     IForkManager* pForkManager;
-    // IConsensus* pConsensus;
+    IConsensus* pConsensus;
     IWallet* pWallet;
     IService* pService;
     IBlockMaker* pBlockMaker;
     network::INetChannel* pNetChannel;
-    // network::IDelegatedChannel* pDelegatedChannel;
+    network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
     std::string strCmd;
 };

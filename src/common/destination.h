@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -63,9 +63,9 @@ public:
     const CTemplateId GetTemplateId() const;
 
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                           const std::vector<uint8>& vchSig, bool& fCompleted) const;
+                           const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
     bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                           const std::vector<uint8>& vchSig, int nForkHeight, const uint256& fork) const;
+                           const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork) const;
 
     bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 

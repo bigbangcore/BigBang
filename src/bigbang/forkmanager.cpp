@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,7 +6,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-// #include "template/fork.h"
+#include "template/fork.h"
 
 using namespace std;
 using namespace xengine;
@@ -136,43 +136,43 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
 
 void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)
 {
-    // boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
-    // CForkSchedule& sched = mapForkSched[update.hashFork];
-    // if (!sched.IsJointEmpty())
-    // {
-    //     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-    //     {
-    //         if (!block.IsExtended() && !block.IsVacant())
-    //         {
-    //             sched.RemoveJoint(block.GetHash(), vActive);
-    //             if (sched.IsHalted())
-    //             {
-    //                 vDeactive.push_back(update.hashFork);
-    //             }
-    //         }
-    //     }
-    // }
-    // if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
-    // {
-    // for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-    // {
-    //     for (const CTransaction& tx : block.vtx)
-    //     {
-    //         CTemplateId tid;
-    //         if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-    //             && !tx.vchData.empty()
-    //             && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
-    //         {
-    //             CForkContext ctxt;
-    //             if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
-    //             {
-    //                 AddNewForkContext(ctxt, vActive);
-    //             }
-    //         }
-    //     }
-    // }
-    // }
+    CForkSchedule& sched = mapForkSched[update.hashFork];
+    if (!sched.IsJointEmpty())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            if (!block.IsExtended() && !block.IsVacant())
+            {
+                sched.RemoveJoint(block.GetHash(), vActive);
+                if (sched.IsHalted())
+                {
+                    vDeactive.push_back(update.hashFork);
+                }
+            }
+        }
+    }
+    if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            for (const CTransaction& tx : block.vtx)
+            {
+                CTemplateId tid;
+                if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
+                    && !tx.vchData.empty()
+                    && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
+                {
+                    CForkContext ctxt;
+                    if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
+                    {
+                        AddNewForkContext(ctxt, vActive);
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& vActive)

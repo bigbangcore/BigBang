@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,9 @@
 
 #include "base.h"
 #include "txpooldata.h"
+
+// This macro value is related to DPoS Weight value / PoW weight, if weight ratio changed, you must change it
+#define CACHE_HEIGHT_INTERVAL 23
 
 namespace bigbang
 {
@@ -52,22 +55,67 @@ public:
     {
         hashTX = ptx->GetHash();
         nSequenceNumber = ptx->nSequenceNumber;
+        nType = ptx->nType;
     }
 
 public:
     uint256 hashTX;
     uint64 nSequenceNumber;
+    uint16 nType;
     CPooledTx* ptx;
+};
+
+class ComparePooledTxLinkByTxScore
+{
+public:
+    bool operator()(const CPooledTxLink& a, const CPooledTxLink& b) const
+    {
+        return GetScore(a) > GetScore(b);
+    }
+
+private:
+    double GetScore(const CPooledTxLink& link) const
+    {
+        return (double)((double)link.nType + (double)(1.0f / (double)(link.nSequenceNumber + 1)));
+    }
+};
+
+struct tx_score
+{
 };
 
 typedef boost::multi_index_container<
     CPooledTxLink,
     boost::multi_index::indexed_by<
+        // sorted by Tx ID
         boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>,
+        // sorted by Tx Type
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint16, &CPooledTxLink::nType>>,
+        // sorted by tx score
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<tx_score>,
+            boost::multi_index::identity<CPooledTxLink>,
+            ComparePooledTxLinkByTxScore>>>
+
     CPooledTxLinkSet;
 typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
+typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxType;
+typedef CPooledTxLinkSet::nth_index<3>::type CPooledTxLinkSetByTxScore;
+
+typedef boost::multi_index_container<
+    CPooledTxLink,
+    boost::multi_index::indexed_by<
+        // sorted by Tx ID
+        boost::multi_index::ordered_unique<boost::multi_index::member<CPooledTxLink, uint256, &CPooledTxLink::hashTX>>,
+        // sorted by entry sequence
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CPooledTxLink, uint64, &CPooledTxLink::nSequenceNumber>>>>
+
+    CPooledCertTxLinkSet;
+typedef CPooledCertTxLinkSet::nth_index<0>::type CPooledCertTxLinkSetByTxHash;
+typedef CPooledCertTxLinkSet::nth_index<1>::type CPooledCertTxLinkSetBySequenceNumber;
 
 class CTxPoolView
 {
@@ -172,6 +220,7 @@ public:
     {
         mapSpent[out].SetSpent(txidNextTxIn);
     }
+    bool AddTxIndex(const uint256& txid, CPooledTx& tx);
     bool AddNew(const uint256& txid, CPooledTx& tx);
     void Remove(const uint256& txid)
     {
@@ -182,6 +231,8 @@ public:
             {
                 SetUnspent(pTx->vInput[i].prevout);
             }
+            xengine::StdTrace("CTxPoolView", "Remove: setTxLinkIndex erase, txid: %s, seq: %ld",
+                              txid.GetHex().c_str(), pTx->nSequenceNumber);
             setTxLinkIndex.erase(txid);
         }
     }
@@ -191,11 +242,76 @@ public:
         mapSpent.clear();
     }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
-    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
+    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
+                        std::map<CDestination, int64>& mapVote, int64 nWeightRatio);
+
+private:
+    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
+    bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
+                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nWeightRatio);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
     std::map<CTxOutPoint, CSpent> mapSpent;
+};
+
+class CTxCache
+{
+public:
+    CTxCache(size_t nHeightIntervalIn = 0)
+      : nHeightInterval(nHeightIntervalIn) {}
+    CTxCache(const CTxCache& cache)
+      : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
+    bool Exists(const uint256& hash)
+    {
+        return mapCache.count(hash) > 0;
+    }
+    void AddNew(const uint256& hash, const std::vector<CTransaction>& vtxIn)
+    {
+        mapCache[hash] = vtxIn;
+
+        const uint256& highestHash = mapCache.rbegin()->first;
+        uint32 upperHeight = CBlock::GetBlockHeightByHash(highestHash);
+
+        if (upperHeight > nHeightInterval)
+        {
+            uint32 lowerHeight = upperHeight - (nHeightInterval - 1);
+
+            for (auto iter = mapCache.begin(); iter != mapCache.end();)
+            {
+                uint32 height = CBlock::GetBlockHeightByHash(iter->first);
+                if (height < lowerHeight)
+                {
+                    iter = mapCache.erase(iter);
+                }
+                else
+                {
+                    ++iter;
+                }
+            }
+        }
+    }
+    bool Retrieve(const uint256& hash, std::vector<CTransaction>& vtx)
+    {
+        if (mapCache.find(hash) != mapCache.end())
+        {
+            vtx = mapCache[hash];
+            return true;
+        }
+        return false;
+    }
+    void Remove(const uint256& hash)
+    {
+        mapCache.erase(hash);
+    }
+    void Clear()
+    {
+        mapCache.clear();
+    }
+
+private:
+    size_t nHeightInterval;
+    std::map<uint256, std::vector<CTransaction>> mapCache;
 };
 
 class CTxPool : public ITxPool
@@ -212,7 +328,7 @@ public:
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
-    void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, std::size_t nMaxSize,
+    bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
     bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
@@ -233,6 +349,8 @@ protected:
         }
         return ((++nLastSequenceNumber) << 24);
     }
+    void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
+                        std::vector<CTransaction>& vtx, int64& nTotalTxFee);
 
 protected:
     storage::CTxPoolData datTxPool;
@@ -242,6 +360,7 @@ protected:
     std::map<uint256, CTxPoolView> mapPoolView;
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
+    std::map<uint256, CTxCache> mapTxCache;
 };
 
 } // namespace bigbang

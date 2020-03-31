@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -231,8 +231,8 @@ public:
             }
         }
 
-        if (rwLower.ReadTryLock())
         {
+            xengine::CReadLock rlock(rwLower);
             MapType& mapLower = dblMeta.GetLowerMap();
 
             typename MapType::iterator it = mapLower.find(nTime);
@@ -243,13 +243,10 @@ public:
                 if (mi != mapValue.end())
                 {
                     value = (*mi).second;
-                    rwLower.ReadUnlock();
                     return true;
                 }
-                rwLower.ReadUnlock();
                 return false;
             }
-            rwLower.ReadUnlock();
         }
 
         C chunk;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -105,11 +105,11 @@ public:
     std::vector<uint8> vchSig;
     enum
     {
-        TX_TOKEN = 0x0000,
-        TX_CERT = 0xff00,
-        TX_GENESIS = 0x0100,
-        TX_STAKE = 0x0200,
-        TX_WORK = 0x0300
+        TX_TOKEN = 0x0000,   // normal Tx 0
+        TX_CERT = 0xff00,    // Enroll Tx 65280
+        TX_GENESIS = 0x0100, // 256
+        TX_STAKE = 0x0200,   // DPoS mint tx 512
+        TX_WORK = 0x0300     // PoW mint tx 768
     };
     CTransaction()
     {

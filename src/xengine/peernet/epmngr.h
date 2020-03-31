@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -44,7 +44,7 @@ class CAddressStatus
 public:
     CAddressStatus();
     bool InBoundAttempt(int64 ts, std::string& strFailCause);
-    bool AddConnection(bool fInBound);
+    bool AddConnection(bool fInBound, bool fLimitConnect = true);
     void RemoveConnection();
     void Reward(int nPoints, int64 ts);
     void Penalize(int nPoints, int64 ts);

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -46,12 +46,15 @@ public:
     Errno SendTransaction(CTransaction& tx) override;
     bool RemovePendingTx(const uint256& txid) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
+    bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
+    bool GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause) override;
+    bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) override;
     /* Wallet */
     bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) override;
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) override;
     bool GetKeyStatus(const crypto::CPubKey& pubkey, int& nVersion, bool& fLocked, int64& nAutoLockTime, bool& fPublic) override;
-    bool MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey) override;
-    bool AddKey(const crypto::CKey& key) override;
+    boost::optional<std::string> MakeNewKey(const crypto::CCryptoString& strPassphrase, crypto::CPubKey& pubkey) override;
+    boost::optional<std::string> AddKey(const crypto::CKey& key) override;
     bool ImportKey(const std::vector<unsigned char>& vchKey, crypto::CPubKey& pubkey) override;
     bool ExportKey(const crypto::CPubKey& pubkey, std::vector<unsigned char>& vchKey) override;
     bool EncryptKey(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase,
@@ -65,15 +68,20 @@ public:
     bool AddTemplate(CTemplatePtr& ptr) override;
     CTemplatePtr GetTemplate(const CTemplateId& tid) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) override;
-    bool ListWalletTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
-    bool CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                           const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
-                           const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
+    bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
+    boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
+                                                   const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                   const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;
+    bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
+    Errno SendRawTransaction(CTransaction& tx) override;
     /* Mint */
-    bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight, uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits, CTemplateMintPtr& templMint) override;
-    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, CTemplateMintPtr& templMint, crypto::CKey& keyMint, uint256& hashBlock) override;
+    bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
+                 uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                 const CTemplateMintPtr& templMint) override;
+    Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
+                     crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
     bool GetTxSender(const uint256& txid, CAddress& sender) override;
 

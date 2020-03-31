@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,8 +18,6 @@ public:
     CPubKey();
     CPubKey(const uint256& pubkey);
     bool Verify(const uint256& hash, const std::vector<uint8>& vchSig) const;
-    static bool MultiVerify(const std::set<uint256>& setPubKey, const uint256& seed,
-                            const uint256& hash, const std::vector<uint8>& vchSig);
 };
 
 class CKey
@@ -52,8 +50,9 @@ public:
     const CPubKey GetPubKey() const;
     const CCryptoCipher& GetCipher() const;
     bool Sign(const uint256& hash, std::vector<uint8>& vchSig) const;
-    bool MultiSign(const std::set<CPubKey>& setPubKey, const uint256& seed,
-                   const uint256& hash, std::vector<uint8>& vchSig) const;
+    bool MultiSignDefect(const std::set<CPubKey>& setPubKey, const uint256& seed,
+                         const uint256& hash, std::vector<uint8>& vchSig) const;
+    bool MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const;
     bool Encrypt(const CCryptoString& strPassphrase,
                  const CCryptoString& strCurrentPassphrase = "");
     void Lock();

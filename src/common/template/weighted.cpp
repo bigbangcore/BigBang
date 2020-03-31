@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 
 #include <set>
 
+#include "defs.h"
 #include "rpc/auto_protocol.h"
 #include "template.h"
 #include "util.h"
@@ -15,12 +16,11 @@ using namespace xengine;
 using namespace bigbang::crypto;
 
 static const int MAX_KEY_NUMBER = 16;
-static const int MAX_REQUIRED = 255;
 
 //////////////////////////////
 // CTemplateWeighted
 
-CTemplateWeighted::CTemplateWeighted(const uint8 nRequiredIn, const WeightedMap& mapPubKeyWeightIn)
+CTemplateWeighted::CTemplateWeighted(const uint8 nRequiredIn, const std::map<bigbang::crypto::CPubKey, uint8>& mapPubKeyWeightIn)
   : CTemplate(TEMPLATE_WEIGHTED), nRequired(nRequiredIn), mapPubKeyWeight(mapPubKeyWeightIn)
 {
 }
@@ -61,7 +61,7 @@ void CTemplateWeighted::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
 
 bool CTemplateWeighted::ValidateParam() const
 {
-    if (nRequired == 0)
+    if (nRequired < 1)
     {
         return false;
     }
@@ -74,7 +74,7 @@ bool CTemplateWeighted::ValidateParam() const
     int nWeight = 0;
     for (const auto& keyweight : mapPubKeyWeight)
     {
-        if (keyweight.second == 0)
+        if (keyweight.second < 1)
         {
             return false;
         }
@@ -112,11 +112,11 @@ bool CTemplateWeighted::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         return false;
     }
 
-    if (obj.weighted.nRequired < 1 || obj.weighted.nRequired > MAX_REQUIRED)
+    nRequired = obj.weighted.nRequired;
+    if (nRequired != obj.weighted.nRequired)
     {
         return false;
     }
-    nRequired = obj.weighted.nRequired;
 
     for (auto& keyweight : obj.weighted.vecPubkeys)
     {
@@ -124,16 +124,7 @@ bool CTemplateWeighted::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         {
             return false;
         }
-        if (keyweight.nWeight < 1 || keyweight.nWeight > MAX_REQUIRED)
-        {
-            return false;
-        }
         mapPubKeyWeight.insert(make_pair(destInstance.GetPubKey(), keyweight.nWeight));
-    }
-
-    if (mapPubKeyWeight.size() != obj.weighted.vecPubkeys.size())
-    {
-        return false;
     }
 
     return true;
@@ -146,8 +137,9 @@ void CTemplateWeighted::BuildTemplateData()
     os << nRequired << mapPubKeyWeight;
 }
 
-bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, bool& fCompleted) const
+bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor,
+                                          const CDestination& destTo, const vector<uint8>& vchSig,
+                                          const int32 nForkHeight, bool& fCompleted) const
 {
     set<uint256> setPubKey;
     for (const auto& keyweight : mapPubKeyWeight)
@@ -156,16 +148,30 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint256& ha
     }
 
     set<uint256> setPartKey;
-    if (!CryptoMultiVerify(setPubKey, hashAnchor.begin(), hashAnchor.size(),
-                           hash.begin(), hash.size(), vchSig, setPartKey))
+    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
+    if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
     {
-        return false;
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
+        {
+            return false;
+        }
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+    }
+    else
+    {
+        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
+        {
+            return false;
+        }
+        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
     }
 
     int nWeight = 0;
     for (const uint256& key : setPartKey)
     {
-        WeightedMap::const_iterator it = mapPubKeyWeight.find(CPubKey(key));
+        auto it = mapPubKeyWeight.find(CPubKey(key));
         if (it != mapPubKeyWeight.end())
         {
             nWeight += it->second;

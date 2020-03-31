@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -50,7 +50,7 @@ CTemplateExchange::CTemplateExchange(const std::vector<unsigned char>& vchDataIn
 {
     xengine::CIDataStream is(vchDataIn);
     is >> destSpend_m.prefix >> destSpend_m.data >> destSpend_s.prefix >> destSpend_s.data >> height_m >> height_s >> fork_m >> fork_s;
-    vchData.assign(vchDataIn.begin(), vchDataIn.begin() + 138);
+    vchData.assign(vchDataIn.begin(), vchDataIn.begin() + DataLen);
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(vchData.data(), vchData.size()));
 }
 
@@ -164,7 +164,7 @@ void CTemplateExchange::BuildTemplateData()
 }
 
 bool CTemplateExchange::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, bool& fCompleted) const
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     return true;
 }
@@ -176,12 +176,12 @@ bool CTemplateExchange::GetSignDestination(const CTransaction& tx, const std::ve
     vector<unsigned char> vss;
     uint256 hashFork;
     int height;
-    xengine::CIDataStream ds(vchSig);
+    xengine::CIDataStream ds(tx.vchSig);
     try
     {
         ds >> vsm >> vss >> hashFork >> height;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -235,7 +235,7 @@ bool CTemplateExchange::BuildTxSignature(const uint256& hash,
     {
         ds >> vsm >> vss >> hashFork >> height;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;
@@ -251,8 +251,12 @@ bool CTemplateExchange::BuildTxSignature(const uint256& hash,
 
 bool CTemplateExchange::VerifySignature(const uint256& hash, const std::vector<uint8>& vchSig, int height, const uint256& fork)
 {
+    if (vchSig.size() != 354)
+    {
+        return false;
+    }
     std::vector<unsigned char> temp;
-    temp.assign(vchSig.begin() + 138, vchSig.end());
+    temp.assign(vchSig.begin() + DataLen, vchSig.end());
     CIDataStream is(temp);
     std::vector<unsigned char> sign_m;
     std::vector<unsigned char> sign_s;
@@ -261,7 +265,7 @@ bool CTemplateExchange::VerifySignature(const uint256& hash, const std::vector<u
     {
         is >> sign_m >> sign_s >> vchSig_;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         StdError(__PRETTY_FUNCTION__, e.what());
         return false;

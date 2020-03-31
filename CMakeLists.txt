@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # CMake file for Bigbang
 #
-# Copyright (c) 2019 The Bigbang developers
+# Copyright (c) 2019-2020 The Bigbang developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
@@ -79,6 +79,7 @@ if(UNIX AND NOT CYGWIN)
     set(Protobuf_USE_STATIC_LIBS ON)
 endif()
 
+set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.58.0 REQUIRED COMPONENTS
     program_options
@@ -105,6 +106,7 @@ endif()
 
 if(CYGWIN)
     add_definitions(-DBOOST_LOG_DYN_LINK)
+    add_definitions(-DBOOST_CYGWIN_FS_PATH)
 endif()
 
 # sub directories

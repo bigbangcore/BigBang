@@ -1,9 +1,10 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "crypto.h"
 #include "delegatevote.h"
+
+#include "crypto.h"
 
 using namespace std;
 using namespace xengine;
@@ -66,7 +67,7 @@ CDelegateVote::CDelegateVote()
 {
     witness.SetupWitness();
     is_enroll = false;
-    is_public = false;
+    is_published = false;
 }
 
 CDelegateVote::~CDelegateVote()
@@ -84,8 +85,10 @@ void CDelegateVote::CreateDelegate(const set<CDestination>& setDelegate)
 
 void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned char>>& mapEnrollData, const uint256& block_hash)
 {
+    // StdWarn("vote", "CDelegateVote::Setup enter............... mapDelegate size: %llu", mapDelegate.size());
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
+        // StdWarn("vote", "CDelegateVote::Setup dest: %s", it->first.ToString().c_str());
         CSecretShare& delegate = (*it).second;
         CMPSealedBox sealed;
         delegate.Setup(nMaxThresh, sealed);
@@ -94,13 +97,16 @@ void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned c
         os << sealed.nPubKey << sealed.vEncryptedCoeff << sealed.nR << sealed.nS;
     }
     blockHash = block_hash;
+    // StdWarn("vote", "CDelegateVote::Setup exit.............");
 }
 
 void CDelegateVote::Distribute(map<CDestination, std::vector<unsigned char>>& mapDistributeData)
 {
+    // StdWarn("vote", "CDelegateVote::Distribute enter............... mapDelegate size: %llu", mapDelegate.size());
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
         CSecretShare& delegate = (*it).second;
+        // StdWarn("vote", "CDelegateVote::Distribute dest: %s, delegate.IsEnrolled(): %d", it->first.ToString().c_str(), delegate.IsEnrolled());
         if (delegate.IsEnrolled())
         {
             CDelegateData delegateData;
@@ -110,13 +116,16 @@ void CDelegateVote::Distribute(map<CDestination, std::vector<unsigned char>>& ma
             os << delegateData;
         }
     }
+    // StdWarn("vote", "CDelegateVote::Distribute exit.............");
 }
 
 void CDelegateVote::Publish(map<CDestination, vector<unsigned char>>& mapPublishData)
 {
+    // StdWarn("vote", "CDelegateVote::Publish enter............... mapDelegate size: %llu", mapDelegate.size());
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
         CSecretShare& delegate = (*it).second;
+        // StdWarn("vote", "CDelegateVote::Publish dest: %s, delegate.IsEnrolled(): %d", it->first.ToString().c_str(), delegate.IsEnrolled());
         if (delegate.IsEnrolled())
         {
             CDelegateData delegateData;
@@ -126,11 +135,19 @@ void CDelegateVote::Publish(map<CDestination, vector<unsigned char>>& mapPublish
             os << delegateData;
         }
     }
+    // StdWarn("vote", "CDelegateVote::Publish exit.............");
 }
 
 void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
                            const map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
+    // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s", 
+    //     mapWeight.size(), 
+    //     mapWeight.size() > 0 ? mapWeight.begin()->first.ToString().c_str() : "...",
+    //     mapWeight.size() > 0 ? mapWeight.begin()->second : 0, 
+    //     mapEnrollData.size(),
+    //     mapEnrollData.size() > 0 ? mapEnrollData.begin()->first.ToString().c_str() : "...",
+    //     mapEnrollData.size() > 0 ? xengine::ToHexString(mapEnrollData.begin()->second).c_str() : "...");
     vector<CMPCandidate> vCandidate;
     vCandidate.reserve(mapWeight.size());
     for (map<CDestination, size_t>::const_iterator it = mapWeight.begin(); it != mapWeight.end(); ++it)
@@ -156,15 +173,18 @@ void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
         }
     }
     witness.Enroll(vCandidate);
+    // StdWarn("vote", "CDelegateVote::Enroll ............... vCandidate size: %llu", vCandidate.size());
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
         CSecretShare& delegate = (*it).second;
         delegate.Enroll(vCandidate);
     }
+    // StdWarn("vote", "CDelegateVote::Enroll exit ...............");
 }
 
 bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned char>& vchDistributeData)
 {
+    // StdWarn("vote", "CDelegateVote::Accept enter............... destFrom: %s", destFrom.ToString().c_str());
     CDelegateData delegateData;
     try
     {
@@ -172,6 +192,8 @@ bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned c
         is >> delegateData;
         if (delegateData.nIdentFrom != DestToIdentUInt256(destFrom) || !VerifySignature(delegateData))
         {
+            // StdWarn("vote", "CDelegateVote::Accept error ............... delegateData.nIdentFrom: %s, DestToIdentUInt256(destFrom): %s, VerifySignature(delegateData): %d", 
+            //     delegateData.nIdentFrom.ToString().c_str(), DestToIdentUInt256(destFrom).ToString().c_str(), VerifySignature(delegateData));
             return false;
         }
     }
@@ -191,16 +213,19 @@ bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned c
             {
                 if (!delegate.Accept(delegateData.nIdentFrom, (*mi).second))
                 {
+                    // StdWarn("vote", "CDelegateVote::Accept error ............... delegate.Accept(delegateData.nIdentFrom, (*mi).second) return false");
                     return false;
                 }
             }
         }
     }
+    // StdWarn("vote", "CDelegateVote::Accept exit ...............");
     return true;
 }
 
 bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned char>& vchPublishData, bool& fCompleted)
 {
+    // StdWarn("vote", "CDelegateVote::Accept Collect............... destFrom: %s", destFrom.ToString().c_str());
     try
     {
         CDelegateData delegateData;
@@ -211,6 +236,7 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
             if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
             {
                 vCollected.push_back(delegateData);
+                // StdWarn("vote", "CDelegateVote::Accept exit ...............");
                 return true;
             }
         }
@@ -219,6 +245,7 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
     {
         StdError(__PRETTY_FUNCTION__, e.what());
     }
+    // StdWarn("vote", "CDelegateVote::Accept error ............... witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted) return false");
     return false;
 }
 
@@ -244,6 +271,10 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
             mapBallot.insert(make_pair(DestFromIdentUInt256((*it).first), (*it).second.second));
         }
         nAgreement = crypto::CryptoHash(&vch[0], vch.size());
+    }
+    else
+    {
+        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty");
     }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -107,17 +107,32 @@ void CPeerNet::HeartBeat()
 {
     if (GetOutBoundIdleCount() != 0)
     {
-        tcp::endpoint ep;
-        if (epMngr.FetchOutBound(ep))
+        tcp::endpoint epRemote;
+        if (epMngr.FetchOutBound(epRemote))
         {
-            if (!Connect(ep, CONNECT_TIMEOUT))
+            bool fRet = true;
+            if (epRemote.address().is_v4() && !confNetwork.strSocketBindLocalIpV4.empty())
             {
-                StdLog("CPeerNet", "Connect peer fail, peer: %s", GetEpString(ep).c_str());
-                epMngr.CloseEndpoint(ep, CEndpointManager::CONNECT_FAILURE);
+                tcp::endpoint epLocal(boost::asio::ip::address_v4::from_string(confNetwork.strSocketBindLocalIpV4), 0);
+                fRet = ConnectByBindAddress(epLocal, epRemote, CONNECT_TIMEOUT);
+            }
+            else if (epRemote.address().is_v6() && !confNetwork.strSocketBindLocalIpV6.empty())
+            {
+                tcp::endpoint epLocal(boost::asio::ip::address_v6::from_string(confNetwork.strSocketBindLocalIpV6), 0);
+                fRet = ConnectByBindAddress(epLocal, epRemote, CONNECT_TIMEOUT);
             }
             else
             {
-                StdLog("CPeerNet", "Start connecting peer, peer: %s", GetEpString(ep).c_str());
+                fRet = Connect(epRemote, CONNECT_TIMEOUT);
+            }
+            if (!fRet)
+            {
+                StdLog("CPeerNet", "Connect peer fail, peer: %s", GetEpString(epRemote).c_str());
+                epMngr.CloseEndpoint(epRemote, CEndpointManager::CONNECT_FAILURE);
+            }
+            else
+            {
+                StdLog("CPeerNet", "Start connecting peer, peer: %s", GetEpString(epRemote).c_str());
             }
         }
     }
@@ -285,7 +300,7 @@ void CPeerNet::RewardPeer(CPeer* pPeer, const CEndpointManager::Bonus& bonus)
 
 CPeer* CPeerNet::GetPeer(uint64 nNonce)
 {
-    map<uint64, CPeer*>::iterator it = mapPeer.find(nNonce);
+    auto it = mapPeer.find(nNonce);
     if (it != mapPeer.end())
     {
         return (*it).second;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -157,13 +157,13 @@ bool CBlockDB::UpdateFork(const uint256& hash, const uint256& hashRefBlock, cons
     {
         return false;
     }
-    dbTxIndex.Flush(hash);
+    //dbTxIndex.Flush(hash);
 
     if (!dbUnspent.Update(hash, vAddNew, vRemove))
     {
         return false;
     }
-    dbUnspent.Flush(hash);
+    //dbUnspent.Flush(hash);
 
     return true;
 }
@@ -213,6 +213,11 @@ bool CBlockDB::WalkThroughUnspent(const uint256& hashFork, CForkUnspentDBWalker&
 bool CBlockDB::RetrieveDelegate(const uint256& hash, map<CDestination, int64>& mapDelegate)
 {
     return dbDelegate.RetrieveDelegatedVote(hash, mapDelegate);
+}
+
+bool CBlockDB::RetrieveEnroll(const uint256& hash, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos)
+{
+    return dbDelegate.RetrieveDelegatedEnrollTx(hash, mapEnrollTxPos);
 }
 
 bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,

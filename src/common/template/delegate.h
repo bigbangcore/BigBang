@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,7 +8,7 @@
 #include "destination.h"
 #include "mint.h"
 
-class CTemplateDelegate : virtual public CTemplateMint, virtual public CDestInRecordedTemplate
+class CTemplateDelegate : virtual public CTemplateMint
 {
 public:
     CTemplateDelegate(const bigbang::crypto::CPubKey& keyDelegateIn = bigbang::crypto::CPubKey(),
@@ -26,7 +26,7 @@ protected:
     virtual bool SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, CDestination&& destInstance);
     virtual void BuildTemplateData();
     virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                   const std::vector<uint8>& vchSig, bool& fCompleted) const;
+                                   const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
     virtual bool VerifyBlockSignature(const uint256& hash, const std::vector<uint8>& vchSig) const;
 
 protected:
