@@ -644,7 +644,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         //add this requesting fork node to active list
         if (!mapActiveSuperNode.count(req.ipAddr))
         {
-            mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.forkList);
+            mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.ipAddr, req.forkList);
         }
 
         //processing request from fork node

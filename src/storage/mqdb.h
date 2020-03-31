@@ -7,6 +7,7 @@
 
 #include "uint256.h"
 #include "xengine.h"
+#include <boost/asio.hpp>
 
 namespace bigbang
 {
@@ -19,18 +20,43 @@ class CSuperNode
 
 public:
     std::string superNodeID;
+    uint32 ipAddr;
     std::vector<uint256> vecOwnedForks;
     int8 nodeCat;
 
 public:
-    CSuperNode(std::string id = std::string(), std::vector<uint256> forks = std::vector<uint256>())
-    : superNodeID(id), vecOwnedForks(forks) {}
+    CSuperNode(std::string id = std::string(), uint32 ip = 0,
+               std::vector<uint256> forks = std::vector<uint256>(), int8 cat = 0)
+      : superNodeID(id),
+        ipAddr(ip),
+        vecOwnedForks(forks),
+        nodeCat(cat) {}
+
+    static bool Ip2Int(const std::string& ipStr, unsigned long& ipNum)
+    {
+        boost::system::error_code ec;
+        boost::asio::ip::address_v4 addr = boost::asio::ip::address_v4::from_string(ipStr, ec);
+        if (!ec)
+        {
+            ipNum = addr.to_ulong();
+            return true;
+        }
+        return false;
+    }
+
+    static bool Int2Ip(const unsigned long& ipNum, std::string& ipStr)
+    {
+        boost::asio::ip::address_v4 addr(ipNum);
+        ipStr = addr.to_string();
+        return true;
+    }
 
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
         s.Serialize(superNodeID, opt);
+        s.Serialize(ipAddr, opt);
         s.Serialize(vecOwnedForks, opt);
         s.Serialize(nodeCat, opt);
     }
@@ -50,7 +76,7 @@ public:
 
 protected:
     bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                            std::map<std::string, std::vector<uint256>>& mapCli);
+                             std::map<std::string, std::vector<uint256>>& mapCli);
 };
 
 } // namespace storage

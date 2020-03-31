@@ -2407,8 +2407,15 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     }
 
     auto spParam = CastParamPtr<CEnrollSuperNodeParam>(param);
-    std::vector<std::string> vFork = spParam->vecForks;
+    std::string ipStr = spParam->strClientip;
+    unsigned long ipNum = 0;
+    if (!storage::CSuperNode::Ip2Int(ipStr, ipNum))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid ip address");
+    }
+
     std::string id = spParam->strClientid;
+    std::vector<std::string> vFork = spParam->vecForks;
 
     std::vector<uint256> forks;
     for (const auto& i : vFork)
@@ -2426,6 +2433,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     }
     storage::CSuperNode newNode;
     newNode.superNodeID = std::move(id);
+    newNode.ipAddr = ipNum;
     newNode.vecOwnedForks = std::move(forks);
     newNode.nodeCat = nNodeCat;
 
