@@ -59,6 +59,7 @@ before_script:
 script:
 - ./INSTALL.sh
 - ./build/test/test_big
+- ./build/test/test_ctsdb
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test . ;
   fi
