@@ -975,11 +975,6 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
         }
     }
 
-    if(!hashBlock)
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Cannot find which block the tx be packed");
-    }
-
     if(hashFork != pCoreProtocol->GetGenesisBlockHash())
     {
         nDepth = nDepth * 30;
