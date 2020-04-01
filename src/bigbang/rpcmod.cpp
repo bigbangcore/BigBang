@@ -2453,6 +2453,12 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     {
         CEnrollSuperNodeResult::CNode node;
         node.strClientid = it.superNodeID;
+        string strAddr;
+        if (!storage::CSuperNode::Int2Ip(it.ipAddr, strAddr))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR, "Failed to convert ip address");
+        }
+        node.strClientip = strAddr;
         for (const auto& fork : it.vecOwnedForks)
         {
             node.vecForks.push_back(fork.ToString());
