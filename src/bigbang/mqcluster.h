@@ -156,17 +156,22 @@ private:
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     bool ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
+
     bool fAuth;
     bool fAbort;
-    string srvAddr;
-    string clientID;
+    string addrBroker;
+    NODE_CATEGORY catNode;
+
     string topicReqBlk;
     string topicRespBlk;
     string topicRbBlk;
-    NODE_CATEGORY catNode;
+
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;
     std::map<string, std::vector<uint256>> mapSuperNode;
+    string clientID;
+    uint32 ipAddr;
+
     std::map<uint32, storage::CSuperNode> mapActiveSuperNode;
 
     boost::mutex mtxSend;

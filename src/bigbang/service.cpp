@@ -695,6 +695,7 @@ bool CService::AddSuperNode(const storage::CSuperNode& node)
     if (nullptr != pEvent)
     {
         pEvent->data.superNodeClientID = node.superNodeID;
+        pEvent->data.ipAddr = node.ipAddr;
         pEvent->data.vecForksOwned = node.vecOwnedForks;
         pMQCluster->PostEvent(pEvent);
     }

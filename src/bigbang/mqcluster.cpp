@@ -26,7 +26,7 @@ CMQCluster::CMQCluster(int catNodeIn)
     pService(nullptr),
     fAuth(false),
     fAbort(false),
-    srvAddr("tcp://localhost:1883"),
+    addrBroker("tcp://localhost:1883"),
     nReqBlkTimerID(0),
     nRollNum(0)
 {
@@ -255,12 +255,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         clientID = id;
+        ipAddr = eventMqUpdateEnroll.data.ipAddr;
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
         topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-        Log("CMQCluster::HandleEvent(): fork node clientid [%s] with topics:"
+        Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:"
             "\n[%s]\n[%s]",
-            clientID.c_str(),
+            clientID.c_str(), ipAddr,
             topicRespBlk.c_str(), topicRbBlk.c_str());
         for (const auto& fork : forks)
         {
@@ -369,8 +370,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     Log("CMQCluster::PostBlockRequest(): posting request for block hash[%s]", hash.ToString().c_str());
 
     CSyncBlockRequest req;
-    req.ipAddr = 16777343; //127.0.0.1
-    //req.ipAddr = 1111638320;    //"0ABB"
+    req.ipAddr = ipAddr; //16777343 - 127.0.0.1; 1111638320 - "0ABB"
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
     auto enroll = mapSuperNode.begin();
@@ -869,7 +869,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 {
     try
     {
-        static mqtt::async_client client(srvAddr, clientID);
+        static mqtt::async_client client(addrBroker, clientID);
 
         static mqtt::connect_options connOpts;
         connOpts.set_keep_alive_interval(20);
@@ -884,7 +884,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         {
         case MQ_CLI_ACTION::CONN:
         {
-            cout << "Initializing for server '" << srvAddr << "'..." << endl;
+            cout << "Initializing for server '" << addrBroker << "'..." << endl;
             client.set_callback(cb);
             cout << "  ...OK" << endl;
 

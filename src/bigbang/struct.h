@@ -269,6 +269,7 @@ class CMqSuperNodeUpdate
 {
 public:
     std::string superNodeClientID;
+    uint32 ipAddr;
     std::vector<uint256> vecForksOwned;
 };
 
