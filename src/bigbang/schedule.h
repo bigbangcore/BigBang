@@ -230,7 +230,8 @@ public:
         MAX_OBJ_WAIT_TIME = 7200,
         MAX_REPEAT_BLOCK_TIME = 180,
         MAX_REPEAT_BLOCK_COUNT = 4,
-        MAX_SUB_BLOCK_DELAYED_TIME = 120
+        MAX_SUB_BLOCK_DELAYED_TIME = 120,
+        MAX_CERTTX_DELAYED_TIME = 180
     };
 
 public:
