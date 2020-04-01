@@ -47,7 +47,7 @@ bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
     bool ret = false;
     if (1 == cli.nodeCat)
     {
-        if (!ClearSuperNode())
+        if (!ClearSuperNode(cli))
         {
             return false;
         }
@@ -55,7 +55,7 @@ bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
     }
     else if (2 == cli.nodeCat)
     {
-        if (!ClearSuperNode())
+        if (!ClearSuperNode(cli))
         {
             return false;
         }
@@ -143,7 +143,7 @@ bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli)
     return true;
 }
 
-bool CSuperNodeDB::ClearSuperNode()
+bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
 {
     vector<CSuperNode> vSuperNode;
     if (!FetchSuperNode(vSuperNode))
@@ -151,11 +151,26 @@ bool CSuperNodeDB::ClearSuperNode()
         return false;
     }
 
-    for (auto const& supernode : vSuperNode)
+    if (1 == cli.nodeCat)   //fork node updates self by remove all supernode entries
     {
-        if (!RemoveSuperNode(supernode.superNodeID, supernode.ipAddr))
+        for (auto const& supernode : vSuperNode)
         {
-            return false;
+            if (!RemoveSuperNode(supernode.superNodeID, supernode.ipAddr))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (2 == cli.nodeCat && 0 == cli.ipAddr)    //dpos node updates oneself
+    {
+        for (auto const& supernode : vSuperNode)
+        {
+            if (0 == supernode.ipAddr && !RemoveSuperNode(supernode.superNodeID, supernode.ipAddr)) //need to remove previous one first
+            {
+                return false;
+            }
         }
     }
 

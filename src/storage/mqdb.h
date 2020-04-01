@@ -74,7 +74,7 @@ public:
     bool RetrieveSuperNode(const std::string& superNodeID, const int8& ipNum, CSuperNode& cli);
     bool ListSuperNode(std::vector<CSuperNode>& vCli);  //return all nodes
     void Clear();
-    bool ClearSuperNode();
+    bool ClearSuperNode(const CSuperNode& cli);
     bool FetchSuperNode(std::vector<CSuperNode>& vCli); //only return super nodes including dpos and fork nodes
 
 protected:
