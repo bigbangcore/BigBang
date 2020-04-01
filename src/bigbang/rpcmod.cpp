@@ -941,10 +941,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     }
 
     std::vector<uint256> vHashBlock;
-    if(!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
-    }
+    pService->GetBlockHash(hashFork, nHeight, vHashBlock);
 
     int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
