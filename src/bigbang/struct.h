@@ -140,8 +140,8 @@ class CTxSetChange
 {
 public:
     uint256 hashFork;
-    std::map<uint256, int> mapTxUpdate;
-    std::vector<CAssembledTx> vTxAddNew;
+    std::map<uint256, int> mapTxUpdate;// 打包上链的tx存在txpool中，被BlockView回滚的Tx，所以是加入到maptxupdate字段，表示更新
+    std::vector<CAssembledTx> vTxAddNew; // 打包上链的tx不存在txpool中，所以是加入到vTxAddNew字段，表示新增
     std::vector<std::pair<uint256, std::vector<CTxIn>>> vTxRemove;
 };
 
