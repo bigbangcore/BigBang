@@ -258,6 +258,32 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
     return true;
 }
 
+bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::vector<uint256>& vGroup)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+    if (!fAllowAnyFork)
+    {
+        for (auto const& fork : vFork)
+        {
+            if (fork != 0)
+            {
+                setForkAllowed.insert(fork);
+            }
+        }
+        for (auto const& group : vGroup)
+        {
+            if (group != 0)
+            {
+                setGroupAllowed.insert(group);
+            }
+        }
+    }
+
+    return true;
+}
+
+
 bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const
 {
     if (fAllowAnyFork || setForkAllowed.count(hashFork) || setGroupAllowed.count(hashFork))

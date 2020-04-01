@@ -700,6 +700,8 @@ bool CService::AddSuperNode(const storage::CSuperNode& node)
         pMQCluster->PostEvent(pEvent);
     }
 
+    pForkManager->SetForkFilter(node.vecOwnedForks);
+
     return true;
 }
 
