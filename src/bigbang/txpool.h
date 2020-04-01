@@ -221,6 +221,7 @@ public:
     {
         mapSpent[out].SetSpent(txidNextTxIn);
     }
+    bool AddTxIndex(const uint256& txid, CPooledTx& tx);
     bool AddNew(const uint256& txid, CPooledTx& tx);
     void Remove(const uint256& txid)
     {

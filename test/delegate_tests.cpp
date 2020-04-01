@@ -37,31 +37,31 @@ BOOST_AUTO_TEST_CASE(delegate)
     {
         vote.CreateDelegate(setDelegate);
         vote.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
-        printf("Setup complete\n");
+        std::cout << "Setup complete\n";
     }
 
     // enroll & distribute
     {
         vote.Enroll(mapWeight, result.mapEnrollData);
-        printf("Enroll success\n");
+        std::cout << "Enroll success\n";
 
         vote.Distribute(result.mapDistributeData);
         BOOST_CHECK(!result.mapDistributeData.empty());
-        printf("Distribute complete\n");
+        std::cout << "Distribute complete\n";
     }
 
     // Accept
     {
         const vector<unsigned char>& vchDistributeData = result.mapDistributeData[destDelegate];
         BOOST_CHECK(vote.Accept(destDelegate, vchDistributeData));
-        printf("Accept complete\n");
+        std::cout << "Accept complete\n";
     }
 
     // publish
     {
         vote.Publish(result.mapPublishData);
         BOOST_CHECK(!result.mapPublishData.empty());
-        printf("Publish complete\n");
+        std::cout << "Publish complete\n";
     }
 
     // Collect
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(delegate)
         const vector<unsigned char>& vchPublishData = result.mapPublishData[destDelegate];
         bool fCompleted = false;
         BOOST_CHECK(vote.Collect(destDelegate, vchPublishData, fCompleted));
-        printf("Collect complete: fCompleted: %s\n", (fCompleted ? "true" : "false"));
+        std::cout << "Collect complete: fCompleted: " << (fCompleted ? "true" : "false") << endl;
     }
 
     // GetAgreement
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(delegate)
         map<CDestination, size_t> mapBallot;
         vote.GetAgreement(nAgreement, nWeight, mapBallot);
 
-        printf("nAgreement: %s, nWeight: %ld, mapBallot.size: %ld\n", nAgreement.GetHex().c_str(), nWeight, mapBallot.size());
+        std::cout << "nAgreement: " << nAgreement.GetHex() << ", nWeight: " << nWeight << ", mapBallot.size: " << mapBallot.size() << endl;
     }
 }
 
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(delegate_success)
     {
         vote1.CreateDelegate(setDelegate);
         vote1.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
-        printf("Setup complete\n");
+        std::cout << "Setup complete\n";
     }
 
     // enroll & distribute
@@ -113,25 +113,25 @@ BOOST_AUTO_TEST_CASE(delegate_success)
         vote = vote1;
 
         vote.Enroll(mapWeight, result.mapEnrollData);
-        printf("Enroll complete\n");
+        std::cout << "Enroll complete\n";
 
         vote.Distribute(result.mapDistributeData);
         BOOST_CHECK(!result.mapDistributeData.empty());
-        printf("Distribute complete\n");
+        std::cout << "Distribute complete\n";
     }
 
     // Accept
     {
         const vector<unsigned char>& vchDistributeData = result.mapDistributeData[destDelegate];
         BOOST_CHECK(vote.Accept(destDelegate, vchDistributeData));
-        printf("Accept complete\n");
+        std::cout << "Accept complete\n";
     }
 
     // publish
     {
         vote.Publish(result.mapPublishData);
         BOOST_CHECK(!result.mapPublishData.empty());
-        printf("Publish complete\n");
+        std::cout << "Publish complete\n";
     }
 
     // Collect
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(delegate_success)
         const vector<unsigned char>& vchPublishData = result.mapPublishData[destDelegate];
         bool fCompleted = false;
         BOOST_CHECK(vote.Collect(destDelegate, vchPublishData, fCompleted));
-        printf("Collect complete: fCompleted: %s\n", (fCompleted ? "true" : "false"));
+        std::cout << "Collect complete: fCompleted: " << (fCompleted ? "true" : "false") << endl;
     }
 
     // GetAgreement
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(delegate_success)
         map<CDestination, size_t> mapBallot;
         vote.GetAgreement(nAgreement, nWeight, mapBallot);
 
-        printf("nAgreement: %s, nWeight: %ld, mapBallot.size: %ld\n", nAgreement.GetHex().c_str(), nWeight, mapBallot.size());
+        std::cout << "nAgreement: " << nAgreement.GetHex() << ", nWeight: " << nWeight << ", mapBallot.size: " << mapBallot.size() << endl;
     }
 }
 
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(delegate_fail)
     {
         vote1.CreateDelegate(setDelegate);
         vote1.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
-        printf("Setup complete\n");
+        std::cout << "Setup complete\n";
     }
 
     // enroll & distribute
@@ -185,33 +185,33 @@ BOOST_AUTO_TEST_CASE(delegate_fail)
         vote.Setup(MAX_DELEGATE_THRESH, mapEnrollData, uint256(1));
 
         vote.Enroll(mapWeight, result.mapEnrollData);
-        printf("Enroll complete\n");
+        std::cout << "Enroll complete\n";
 
         vote.Distribute(result.mapDistributeData);
         BOOST_CHECK(!result.mapDistributeData.empty());
-        printf("Distribute complete\n");
+        std::cout << "Distribute complete\n";
     }
 
     // Accept
     {
         const vector<unsigned char>& vchDistributeData = result.mapDistributeData[destDelegate];
-        BOOST_CHECK(vote.Accept(destDelegate, vchDistributeData));
-        printf("Accept complete\n");
+        BOOST_CHECK(!vote.Accept(destDelegate, vchDistributeData));
+        std::cout << "Accept complete\n";
     }
 
     // publish
     {
         vote.Publish(result.mapPublishData);
         BOOST_CHECK(!result.mapPublishData.empty());
-        printf("Publish complete\n");
+        std::cout << "Publish complete\n";
     }
 
     // Collect
     {
         const vector<unsigned char>& vchPublishData = result.mapPublishData[destDelegate];
         bool fCompleted = false;
-        BOOST_CHECK(vote.Collect(destDelegate, vchPublishData, fCompleted));
-        printf("Collect complete: fCompleted: %s\n", (fCompleted ? "true" : "false"));
+        BOOST_CHECK(!vote.Collect(destDelegate, vchPublishData, fCompleted));
+        std::cout << "Collect complete: fCompleted: " << (fCompleted ? "true" : "false") << endl;
     }
 
     // GetAgreement
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(delegate_fail)
         map<CDestination, size_t> mapBallot;
         vote.GetAgreement(nAgreement, nWeight, mapBallot);
 
-        printf("nAgreement: %s, nWeight: %ld, mapBallot.size: %ld\n", nAgreement.GetHex().c_str(), nWeight, mapBallot.size());
+        std::cout << "nAgreement: " << nAgreement.GetHex() << ", nWeight: " << nWeight << ", mapBallot.size: " << mapBallot.size() << endl;
     }
 }
 
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
             mapDelegate[i].insert(vDestDelegate[i]);
             mapWeight.insert(make_pair(vDestDelegate[i], 1));
         }
-        printf("Init data success\n");
+        std::cout << "Init data success\n";
     }
 
     // init vote
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
         {
             mapVote[i].CreateDelegate(mapDelegate[i]);
             mapVote[i].Setup(MAX_DELEGATE_THRESH, mapResult[i].mapEnrollData, uint256(i + 1));
-            printf("[%d] Setup complete, enroll data size: %ld\n", i, mapResult[i].mapEnrollData[vDestDelegate[i]].size());
+            std::cout << "[" << i << "] Setup complete, enroll data size: " << mapResult[i].mapEnrollData[vDestDelegate[i]].size() << endl;
         }
     }
 
@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
             mapVote[i].Distribute(mapResult[i].mapDistributeData);
             BOOST_CHECK(!mapResult[i].mapDistributeData.empty());
         }
-        printf("Distribute complete\n");
+        std::cout << "Distribute complete\n";
     }
 
     // Accept
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
                 const vector<unsigned char>& vchDistributeData = mapResult[j].mapDistributeData[vDestDelegate[j]];
                 BOOST_CHECK(mapVote[i].Accept(vDestDelegate[j], vchDistributeData));
             }
-            printf("[%d] Accept complete\n", i);
+            std::cout << "[" << i << "] Accept complete" << endl;
         }
     }
 
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
             mapVote[i].Publish(mapResult[i].mapPublishData);
             BOOST_CHECK(!mapResult[i].mapPublishData.empty());
         }
-        printf("Publish complete\n");
+        std::cout << "Publish complete\n";
     }
 
     // Collect
@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
                 const vector<unsigned char>& vchPublishData = mapResult[j].mapPublishData[vDestDelegate[j]];
                 BOOST_CHECK(mapVote[i].Collect(vDestDelegate[j], vchPublishData, fCompleted));
             }
-            printf("[%d] Collect complete: fCompleted: %s\n", i, (fCompleted ? "true" : "false"));
+            std::cout << "[" << i << "] Collect complete: fCompleted: " << (fCompleted ? "true" : "false") << endl;
         }
     }
 
@@ -324,7 +324,7 @@ BOOST_AUTO_TEST_CASE(delegate_more)
             map<CDestination, size_t> mapBallot;
             mapVote[i].GetAgreement(nAgreement, nWeight, mapBallot);
 
-            printf("[%d] nAgreement: %s, nWeight: %ld, mapBallot.size: %ld\n", i, nAgreement.GetHex().c_str(), nWeight, mapBallot.size());
+            std::cout << "[" << i << "] nAgreement: " << nAgreement.GetHex() << ", nWeight: " << nWeight << ", mapBallot.size: " << mapBallot.size() << endl;
         }
     }
 }
