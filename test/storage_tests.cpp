@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(timewalk)
 
 BOOST_AUTO_TEST_CASE(fileread)
 {
-    cout << GetLocalTime << "  start...." << endl;
+    cout << GetLocalTime() << "  start...." << endl;
 
     std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/block/block_000001.dat";  
     std::cout << "block file path: " << fullpath << std::endl;
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(fileread)
         nBlockCount++;
         nSyDataLen -= (nSize + 8);
     }
-    cout << GetLocalTime << "  data end, nDataLen: " << nDataLen << ", nBlockCount: " << nBlockCount << ", nSyDataLen: " << nSyDataLen << endl;
+    cout << GetLocalTime() << "  data end, nDataLen: " << nDataLen << ", nBlockCount: " << nBlockCount << ", nSyDataLen: " << nSyDataLen << endl;
     BOOST_CHECK(nBlockCount == 11);
     free(pBuf);
 }
