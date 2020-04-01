@@ -28,7 +28,8 @@ CMQCluster::CMQCluster(int catNodeIn)
     fAbort(false),
     addrBroker("tcp://localhost:1883"),
     nReqBlkTimerID(0),
-    nRollNum(0)
+    nRollNum(0),
+    clientID("")
 {
     switch (catNodeIn)
     {
@@ -113,11 +114,11 @@ bool CMQCluster::HandleInvoke()
         if (1 == node.vecOwnedForks.size()
             && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
         {
-            Log("dpos node of MQ: [%s]", node.superNodeID.c_str());
+            Log("dpos node of MQ: [%s] [%d]", node.superNodeID.c_str(), node.ipAddr);
         }
         else if (0 != node.ipAddr)
         {
-            Log("fork node of MQ: [%s]", node.superNodeID.c_str());
+            Log("fork node of MQ: [%s] [%d]", node.superNodeID.c_str(), node.ipAddr);
         }
         for (const auto& fork : node.vecOwnedForks)
         {
@@ -284,7 +285,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
-        if (1 == forks.size()
+        if (1 == forks.size() && 0 == eventMqUpdateEnroll.data.ipAddr
             && forks[0] == pCoreProtocol->GetGenesisBlockHash())
         { //dpos node
             clientID = id;
@@ -292,6 +293,12 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s]",
                 clientID.c_str(), topicReqBlk.c_str());
+
+            {
+                boost::unique_lock<boost::mutex> lock(mtxStatus);
+                mapSuperNode.insert(make_pair(id, forks));
+            }
+            condStatus.notify_all();
         }
         else
         { //fork nodes either enrolled or p2p
@@ -299,12 +306,6 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             Log("CMQCluster::HandleEvent(): dpos node register clientid [%s] with topic [%s]",
                 clientID.c_str(), topicReqBlk.c_str());
         }
-
-        {
-            boost::unique_lock<boost::mutex> lock(mtxStatus);
-            mapSuperNode.insert(make_pair(id, forks));
-        }
-        condStatus.notify_all();
     }
 
     return true;
@@ -956,7 +957,7 @@ void CMQCluster::MqttThreadFunc()
     if (!fAbort)
     {
         boost::unique_lock<boost::mutex> lock(mtxStatus);
-        while (mapSuperNode.empty())
+        while ("" == clientID)
         {
             Log("there is no enrollment info, waiting for it coming...");
             condStatus.wait(lock);
