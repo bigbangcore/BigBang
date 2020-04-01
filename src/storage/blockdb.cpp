@@ -261,5 +261,10 @@ bool CBlockDB::ListSuperNode(std::vector<CSuperNode>& nodes)
     return dbSuperNode.ListSuperNode(nodes);
 }
 
+bool CBlockDB::FetchSuperNode(std::vector<CSuperNode>& nodes)
+{
+    return dbSuperNode.FetchSuperNode(nodes);
+}
+
 } // namespace storage
 } // namespace bigbang

@@ -235,6 +235,7 @@ public:
     bool AddNewForkContext(const CForkContext& ctxt);
     bool AddNewSuperNode(const CSuperNode& superNode);
     bool ListSuperNode(std::vector<storage::CSuperNode>& nodes);
+    bool FetchSuperNode(std::vector<storage::CSuperNode>& nodes);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
     bool Retrieve(const uint256& hash, CBlockEx& block);

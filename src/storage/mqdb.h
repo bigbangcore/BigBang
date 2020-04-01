@@ -5,9 +5,10 @@
 #ifndef BIGBANG_MQDB_H
 #define BIGBANG_MQDB_H
 
+#include <boost/asio.hpp>
+
 #include "uint256.h"
 #include "xengine.h"
-#include <boost/asio.hpp>
 
 namespace bigbang
 {
@@ -69,14 +70,18 @@ public:
     bool Initialize(const boost::filesystem::path& pathData);
     void Deinitialize();
     bool AddNewSuperNode(const CSuperNode& cli);
-    bool RemoveSuperNode(const std::string& cliID);
-    bool RetrieveSuperNode(const std::string& superNodeID, CSuperNode& cli);
-    bool ListSuperNode(std::vector<CSuperNode>& vCli);
+    bool RemoveSuperNode(const std::string& cliID, const int8& ipNum);
+    bool RetrieveSuperNode(const std::string& superNodeID, const int8& ipNum, CSuperNode& cli);
+    bool ListSuperNode(std::vector<CSuperNode>& vCli);  //return all nodes
     void Clear();
+    bool ClearSuperNode();
+    bool FetchSuperNode(std::vector<CSuperNode>& vCli); //only return super nodes including dpos and fork nodes
 
 protected:
     bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                             std::map<std::string, std::vector<uint256>>& mapCli);
+                             std::map<std::pair<std::string, uint32>, std::vector<uint256>>& mapCli);
+    bool FetchSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
+                              std::map<std::pair<std::string, uint32>, std::vector<uint256>>& mapCli);
 };
 
 } // namespace storage

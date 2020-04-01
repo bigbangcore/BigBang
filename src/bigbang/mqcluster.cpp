@@ -102,7 +102,7 @@ bool CMQCluster::HandleInvoke()
     }
 
     std::vector<storage::CSuperNode> nodes;
-    if (!pBlockChain->ListSuperNode(nodes))
+    if (!pBlockChain->FetchSuperNode(nodes))
     {
         Log("CMQCluster::HandleInvoke(): list super node failed");
         return false;
@@ -111,12 +111,11 @@ bool CMQCluster::HandleInvoke()
     {
         mapSuperNode.insert(make_pair(node.superNodeID, node.vecOwnedForks));
         if (1 == node.vecOwnedForks.size()
-            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash()
-            && 2 == node.nodeCat)
+            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
         {
             Log("dpos node of MQ: [%s]", node.superNodeID.c_str());
         }
-        else if (1 == node.nodeCat)
+        else if (0 != node.ipAddr)
         {
             Log("fork node of MQ: [%s]", node.superNodeID.c_str());
         }

@@ -50,6 +50,7 @@ public:
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool AddNewSuperNode(const CSuperNode& superNode);
     bool ListSuperNode(std::vector<CSuperNode>& nodes);
+    bool FetchSuperNode(std::vector<CSuperNode>& nodes);
 
 protected:
     bool LoadFork();

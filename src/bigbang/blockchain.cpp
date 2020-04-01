@@ -660,6 +660,16 @@ bool CBlockChain::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
     return true;
 }
 
+bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes)
+{
+    if (!cntrBlock.FetchSuperNode(nodes))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 // uint320 GetBlockTrust() const
 // {
 //     if (IsVacant() && vchProof.empty())

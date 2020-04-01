@@ -92,6 +92,7 @@ public:
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewSuperNode(const storage::CSuperNode& node) = 0;
     virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
+    virtual bool FetchSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;

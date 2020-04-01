@@ -521,8 +521,27 @@ bool CBlockBase::ListSuperNode(vector<storage::CSuperNode>& nodes)
     {
         for (const auto& fork : node.vecOwnedForks)
         {
-            Log("CBlockBase::ListSuperNode", "supernode client ID [%s] : fork [%s]",
-                node.superNodeID.c_str(), fork.ToString().c_str());
+            Log("CBlockBase::ListSuperNode", "supernode client ID [%s] IP [%d]: fork [%s]",
+                node.superNodeID.c_str(), node.ipAddr, fork.ToString().c_str());
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes)
+{
+    if (!dbBlock.FetchSuperNode(nodes))
+    {
+        Error("CBlockBase::FetchSuperNode", "Failed to fetch supernode");
+        return false;
+    }
+    Log("CBlockBase::FetchSuperNode", "Fetch supernode successfully");
+    for (const auto& node : nodes)
+    {
+        for (const auto& fork : node.vecOwnedForks)
+        {
+            Log("CBlockBase::FetchSuperNode", "supernode client ID [%s] IP [%d]: fork [%s]",
+                node.superNodeID.c_str(), node.ipAddr, fork.ToString().c_str());
         }
     }
     return true;
