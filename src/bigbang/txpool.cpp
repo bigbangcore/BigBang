@@ -390,14 +390,14 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
 }
 
 //////////////////////////////
-// CCertTxDest
+// CCertTxDestCache
 
-void CCertTxDest::AddDelegate(const CDestination& dest)
+void CCertTxDestCache::AddDelegate(const CDestination& dest)
 {
     setDelegate.insert(dest);
 }
 
-void CCertTxDest::AddCertTx(const CDestination& dest, const uint256& txid)
+void CCertTxDestCache::AddCertTx(const CDestination& dest, const uint256& txid)
 {
     if (setDelegate.find(dest) == setDelegate.end())
     {
@@ -417,7 +417,7 @@ void CCertTxDest::AddCertTx(const CDestination& dest, const uint256& txid)
     }
 }
 
-void CCertTxDest::RemoveCertTx(const CDestination& dest, const uint256& txid)
+void CCertTxDestCache::RemoveCertTx(const CDestination& dest, const uint256& txid)
 {
     auto mt = mapCertTxDest.find(dest);
     if (mt != mapCertTxDest.end())
@@ -430,7 +430,7 @@ void CCertTxDest::RemoveCertTx(const CDestination& dest, const uint256& txid)
     }
 }
 
-bool CCertTxDest::GetTimeoutCertTx(const CDestination& dest, uint256& txid)
+bool CCertTxDestCache::GetTimeoutCertTx(const CDestination& dest, uint256& txid)
 {
     auto mt = mapCertTxDest.find(dest);
     if (mt != mapCertTxDest.end())
@@ -455,7 +455,7 @@ bool CCertTxDest::GetTimeoutCertTx(const CDestination& dest, uint256& txid)
     return false;
 }
 
-bool CCertTxDest::CheckCertTxCache(const CDestination& dest)
+bool CCertTxDestCache::IsOverMaxCertCount(const CDestination& dest)
 {
     auto mt = mapCertTxDest.find(dest);
     if (mt != mapCertTxDest.end() && mt->second.size() >= MAX_CACHE_CERTTX_COUNT)
@@ -1061,7 +1061,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
 
     if (tx.nType == CTransaction::TX_CERT)
     {
-        if (!certTxDest.CheckCertTxCache(tx.sendTo))
+        if (!certTxDest.IsOverMaxCertCount(tx.sendTo))
         {
             StdLog("CTxPool", "AddNew: too many certtx, txid: %s, sendto: %s", txid.GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
             return ERR_TRANSACTION_TOO_MANY_CERTTX;

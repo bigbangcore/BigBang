@@ -317,10 +317,10 @@ private:
     std::map<uint256, std::vector<CTransaction>> mapCache;
 };
 
-class CCertTxDest
+class CCertTxDestCache
 {
 public:
-    CCertTxDest() {}
+    CCertTxDestCache() {}
 
     enum
     {
@@ -332,7 +332,7 @@ public:
     void AddCertTx(const CDestination& dest, const uint256& txid);
     void RemoveCertTx(const CDestination& dest, const uint256& txid);
     bool GetTimeoutCertTx(const CDestination& dest, uint256& txid);
-    bool CheckCertTxCache(const CDestination& dest);
+    bool IsOverMaxCertCount(const CDestination& dest);
 
 protected:
     std::set<CDestination> setDelegate;
@@ -388,7 +388,7 @@ protected:
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
     std::map<uint256, CTxCache> mapTxCache;
-    CCertTxDest certTxDest;
+    CCertTxDestCache certTxDest;
 };
 
 } // namespace bigbang
