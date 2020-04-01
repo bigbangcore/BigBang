@@ -87,7 +87,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.nTime = tx.nTimeStamp;
     ret.nLockuntil = tx.nLockUntil;
     ret.strAnchor = tx.hashAnchor.GetHex();
-    ret.strBlockhash = (!blockHash) ? std::string() : blockHash.GetHex();
+    ret.strBlockhash = blockHash.GetHex();
     for (const CTxIn& txin : tx.vInput)
     {
         CTransactionData::CVin vin;
@@ -941,7 +941,10 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     }
 
     std::vector<uint256> vHashBlock;
-    pService->GetBlockHash(hashFork, nHeight, vHashBlock);
+    if(!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
+    }
 
     int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
@@ -970,6 +973,11 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
             hashBlock = hash;
             break;
         }
+    }
+
+    if(!hashBlock)
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Cannot find which block the tx be packed");
     }
 
     if(hashFork != pCoreProtocol->GetGenesisBlockHash())
