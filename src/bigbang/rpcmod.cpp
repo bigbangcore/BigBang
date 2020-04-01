@@ -87,7 +87,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.nTime = tx.nTimeStamp;
     ret.nLockuntil = tx.nLockUntil;
     ret.strAnchor = tx.hashAnchor.GetHex();
-    ret.strBlockhash = blockHash.GetHex();
+    ret.strBlockhash = (!blockHash) ? std::string() : blockHash.GetHex();
     for (const CTxIn& txin : tx.vInput)
     {
         CTransactionData::CVin vin;
@@ -973,11 +973,6 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
             hashBlock = hash;
             break;
         }
-    }
-
-    if(!hashBlock)
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Cannot find which block the tx be packed");
     }
 
     if(hashFork != pCoreProtocol->GetGenesisBlockHash())
