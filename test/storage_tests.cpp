@@ -25,9 +25,12 @@ BOOST_AUTO_TEST_CASE(filetest)
     cout << GetLocalTime() << "  file test.........." << endl;
     int64 nBeginTime = GetTime();
 
+    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/block/block_000001.dat";  
+    std::cout << "block file path: " << fullpath << std::endl;
+
     try
     {
-        xengine::CFileStream fs("./.bigbang/block/block_000001.dat");
+        xengine::CFileStream fs(fullpath.c_str());
         fs.Seek(0);
 
         uint32 nOffset = 0;
@@ -42,24 +45,22 @@ BOOST_AUTO_TEST_CASE(filetest)
             {
                 fs >> nMagic >> nSize >> t;
             }
-            catch (std::exception& e)
+            catch (const std::exception& e)
             {
-                cout << "error: " << e.what();
                 break;
             }
-            if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize)
-            {
-                cout << "nMagic error, nMagic: " << nMagic << ", nMagicNum: " << nMagicNum << ", GetCurPos: " << fs.GetCurPos() << ", nOffset: " << nOffset << ", nSize: " << nSize << endl;
-                break;
-            }
+            cout << "nMagic error, nMagic: " << nMagic << ", nMagicNum: " << nMagicNum << ", GetCurPos: " << fs.GetCurPos() << ", nOffset: " << nOffset << ", nSize: " << nSize << endl;
+            BOOST_CHECK(nMagic == nMagicNum);
+            BOOST_CHECK(fs.GetCurPos() - nOffset - 8 == nSize);
             nOffset = fs.GetCurPos();
             nBlockCount++;
         }
         cout << GetLocalTime() << " file test success: nBlockCount: " << nBlockCount << ", time: " << GetTime() - nBeginTime << endl;
+        BOOST_CHECK(nBlockCount == 11);
     }
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
-        cout << "error: " << e.what();
+        BOOST_FAIL(e.what());
     }
 }
 
