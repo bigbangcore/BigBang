@@ -88,8 +88,7 @@ BOOST_AUTO_TEST_CASE(timewalk)
     CTimeSeriesCached tsBlock;
     if (!tsBlock.Initialize(path("./.bigbang") / "block", BLOCKFILE_PREFIX))
     {
-        cout << "Initialize fail" << endl;
-        return;
+        BOOST_FAIL("Initialize fail");
     }
 
     cout << GetLocalTime() << "  WalkThrough start...." << endl;
@@ -105,12 +104,11 @@ BOOST_AUTO_TEST_CASE(fileread)
 {
     cout << GetLocalTime << "  start...." << endl;
 
-    FILE* f = fopen("./.bigbang/block/block_000001.dat", "rb");
-    if (f == nullptr)
-    {
-        cout << "fopen fail" << endl;
-        return;
-    }
+    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/block/block_000001.dat";  
+    std::cout << "block file path: " << fullpath << std::endl;
+    
+    FILE* f = fopen(fullpath.c_str(), "rb");
+    BOOST_CHECK(f != nullptr);
     fseek(f, 0, SEEK_END);
     int filesize = ftell(f);
     cout << GetLocalTime() << "  filesize: " << filesize << endl;
@@ -118,11 +116,7 @@ BOOST_AUTO_TEST_CASE(fileread)
 
     uint32 nDataLen = 0;
     uint8* pBuf = (uint8*)malloc(filesize);
-    if (pBuf == NULL)
-    {
-        cout << "malloc fail" << endl;
-        return;
-    }
+    BOOST_CHECK(pBuf != nullptr);
     uint8* pos = pBuf;
     while (!feof(f))
     {
@@ -163,14 +157,13 @@ BOOST_AUTO_TEST_CASE(fileread)
         }
         catch (std::exception& e)
         {
-            cout << "error: " << e.what() << endl;
             break;
         }
         nBlockCount++;
         nSyDataLen -= (nSize + 8);
     }
     cout << GetLocalTime << "  data end, nDataLen: " << nDataLen << ", nBlockCount: " << nBlockCount << ", nSyDataLen: " << nSyDataLen << endl;
-
+    BOOST_CHECK(nBlockCount == 11);
     free(pBuf);
 }
 
