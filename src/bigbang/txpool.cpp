@@ -267,7 +267,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
 }
 
 bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nWeightRatio)
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -306,7 +306,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
             std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
             if (iter != mapVote.end())
             {
-                if (iter->second < nWeightRatio)
+                if (iter->second < nMinEnrollAmount)
                 {
                     setUnTx.insert(ptx->GetHash());
                     return true;
@@ -333,7 +333,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nWeightRatio)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
@@ -363,7 +363,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         if (i.ptx)
         {
             StdDebug("CTxPoolView", "Cert tx related tx, tx seqnum: %llu, type: %d, tx hash: %s", i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount))
             {
                 return;
             }
@@ -381,12 +381,88 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nWeightRatio))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount))
             {
                 return;
             }
         }
     }
+}
+
+//////////////////////////////
+// CCertTxDest
+
+void CCertTxDest::AddDelegate(const CDestination& dest)
+{
+    setDelegate.insert(dest);
+}
+
+void CCertTxDest::AddCertTx(const CDestination& dest, const uint256& txid)
+{
+    if (setDelegate.find(dest) == setDelegate.end())
+    {
+        auto mt = mapCertTxDest.find(dest);
+        if (mt != mapCertTxDest.end())
+        {
+            auto it = mt->second.find(txid);
+            if (it != mt->second.end())
+            {
+                it->second = GetTime();
+            }
+            else
+            {
+                mt->second.insert(std::make_pair(txid, GetTime()));
+            }
+        }
+    }
+}
+
+void CCertTxDest::RemoveCertTx(const CDestination& dest, const uint256& txid)
+{
+    auto mt = mapCertTxDest.find(dest);
+    if (mt != mapCertTxDest.end())
+    {
+        mt->second.erase(txid);
+        if (mt->second.size() == 0)
+        {
+            mapCertTxDest.erase(mt);
+        }
+    }
+}
+
+bool CCertTxDest::GetTimeoutCertTx(const CDestination& dest, uint256& txid)
+{
+    auto mt = mapCertTxDest.find(dest);
+    if (mt != mapCertTxDest.end())
+    {
+        int64 nMinTime = 0;
+        for (auto it = mt->second.begin(); it != mt->second.end(); ++it)
+        {
+            if (GetTime() - it->second >= CACHE_CERTTX_TIMEOUT)
+            {
+                if (nMinTime == 0 || it->second < nMinTime)
+                {
+                    nMinTime = it->second;
+                    txid = it->first;
+                }
+            }
+        }
+        if (nMinTime != 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CCertTxDest::CheckCertTxCache(const CDestination& dest)
+{
+    auto mt = mapCertTxDest.find(dest);
+    if (mt != mapCertTxDest.end() && mt->second.size() >= MAX_CACHE_CERTTX_COUNT)
+    {
+        return false;
+    }
+    return true;
 }
 
 //////////////////////////////
@@ -536,36 +612,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
 void CTxPool::Pop(const uint256& txid)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-    map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
-    if (it == mapTx.end())
-    {
-        StdError("CTxPool", "Pop: find fail, txid: %s", txid.GetHex().c_str());
-        return;
-    }
-
-    CPooledTx& tx = (*it).second;
-    uint256 hashFork;
-    int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
-    {
-        StdError("CTxPool", "Pop: GetBlockLocation fail, txid: %s", txid.GetHex().c_str());
-        return;
-    }
-
-    CTxPoolView& txView = mapPoolView[hashFork];
-    txView.Remove(txid);
-
-    CTxPoolView viewInvolvedTx;
-    txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
-    txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
-
-    const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
-    for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
-    {
-        mapTx.erase((*mi).hashTX);
-    }
-
-    StdTrace("CTxPool", "Pop success, txid: %s", txid.GetHex().c_str());
+    RemoveTx(txid);
 }
 
 bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
@@ -678,7 +725,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
 {
     map<CDestination, int> mapVoteCert;
     std::map<CDestination, int64> mapVote;
-    int64 nWeightRatio = 0;
+    int64 nMinEnrollAmount = 0;
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
@@ -693,15 +740,15 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
             return;
         }
 
-        nWeightRatio = pBlockChain->GetDelegateWeightRatio(hashBlock);
-        if (nWeightRatio < 0)
+        nMinEnrollAmount = pBlockChain->GetDelegateMinEnrollAmount(hashBlock);
+        if (nMinEnrollAmount < 0)
         {
-            StdError("CTxPool", "ArrangeBlockTx: GetDelegateWeightRatio fail");
+            StdError("CTxPool", "ArrangeBlockTx: GetDelegateMinEnrollAmount fail");
             return;
         }
     }
 
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nWeightRatio);
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
@@ -780,6 +827,10 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 if (txView.Exists(txid))
                 {
                     txView.Remove(txid);
+                    if (tx.nType == CTransaction::TX_CERT)
+                    {
+                        certTxDest.RemoveCertTx(tx.sendTo, txid);
+                    }
                     mapTx.erase(txid);
                     change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
@@ -851,6 +902,10 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         if (it != mapTx.end())
         {
             change.vTxRemove.push_back(make_pair(txseq.hashTX, (*it).second.vInput));
+            if (it->second.nType == CTransaction::TX_CERT)
+            {
+                certTxDest.RemoveCertTx(it->second.sendTo, txseq.hashTX);
+            }
             mapTx.erase(it);
         }
     }
@@ -873,6 +928,11 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     return true;
 }
 
+void CTxPool::AddDestDelegate(const CDestination& destDeleage)
+{
+    certTxDest.AddDelegate(destDeleage);
+}
+
 bool CTxPool::LoadData()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
@@ -892,6 +952,11 @@ bool CTxPool::LoadData()
 
         map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
         mapPoolView[hashFork].AddNew(txid, (*mi).second);
+
+        if (tx.nType == CTransaction::TX_CERT)
+        {
+            certTxDest.AddCertTx(tx.sendTo, txid);
+        }
     }
 
     std::map<uint256, CForkStatus> mapForkStatus;
@@ -946,6 +1011,15 @@ bool CTxPool::SaveData()
 
 Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        uint256 txidRemove;
+        if (certTxDest.GetTimeoutCertTx(tx.sendTo, txidRemove))
+        {
+            RemoveTx(txidRemove);
+        }
+    }
+
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
     for (int i = 0; i < tx.vInput.size(); i++)
@@ -985,6 +1059,15 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         return err;
     }
 
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        if (!certTxDest.CheckCertTxCache(tx.sendTo))
+        {
+            StdLog("CTxPool", "AddNew: too many certtx, txid: %s, sendto: %s", txid.GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
+            return ERR_TRANSACTION_TOO_MANY_CERTTX;
+        }
+    }
+
     CDestination destIn = vPrevOutput[0].destTo;
     map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
     if (!txView.AddNew(txid, (*mi).second))
@@ -992,7 +1075,49 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         StdTrace("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
         return ERR_NOT_FOUND;
     }
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        certTxDest.AddCertTx(tx.sendTo, txid);
+    }
     return OK;
+}
+
+void CTxPool::RemoveTx(const uint256& txid)
+{
+    map<uint256, CPooledTx>::iterator it = mapTx.find(txid);
+    if (it == mapTx.end())
+    {
+        StdError("CTxPool", "RemoveTx: find fail, txid: %s", txid.GetHex().c_str());
+        return;
+    }
+
+    CPooledTx& tx = (*it).second;
+    uint256 hashFork;
+    int nHeight;
+    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    {
+        StdError("CTxPool", "RemoveTx: GetBlockLocation fail, txid: %s", txid.GetHex().c_str());
+        return;
+    }
+
+    CTxPoolView& txView = mapPoolView[hashFork];
+    txView.Remove(txid);
+
+    CTxPoolView viewInvolvedTx;
+    txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
+    txView.InvalidateSpent(CTxOutPoint(txid, 1), viewInvolvedTx);
+
+    const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
+    for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
+    {
+        if (mi->ptx && mi->ptx->nType == CTransaction::TX_CERT)
+        {
+            certTxDest.RemoveCertTx(mi->ptx->sendTo, mi->hashTX);
+        }
+        mapTx.erase(mi->hashTX);
+    }
+
+    StdTrace("CTxPool", "RemoveTx success, txid: %s", txid.GetHex().c_str());
 }
 
 } // namespace bigbang
