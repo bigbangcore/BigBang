@@ -22,7 +22,7 @@ const uint32 nMagicNum = 0x5E33A1EF;
 
 BOOST_AUTO_TEST_CASE(filetest)
 {
-    printf("%s  file test..........\n", GetLocalTime().c_str());
+    cout << GetLocalTime() << "  file test.........." << endl;
     int64 nBeginTime = GetTime();
 
     try
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(filetest)
 
         while (!fs.IsEOF())
         {
-            //printf("file test: nBlockCount: %d..........\n", nBlockCount);
+            cout << "file test: nBlockCount: " << nBlockCount << endl;
             uint32 nMagic, nSize;
             CBlockEx t;
             try
@@ -44,13 +44,12 @@ BOOST_AUTO_TEST_CASE(filetest)
             }
             catch (std::exception& e)
             {
-                // BOOST_ERROR("error: " << e.what());
+                cout << "error: " << e.what();
                 break;
             }
             if (nMagic != nMagicNum || fs.GetCurPos() - nOffset - 8 != nSize)
             {
-                printf("nMagic error, nMagic: %x, nMagicNum: %x, GetCurPos: %ld, nOffset: %d, nSize: %d\n",
-                       nMagic, nMagicNum, fs.GetCurPos(), nOffset, nSize);
+                cout << "nMagic error, nMagic: " << nMagic << ", nMagicNum: " << nMagicNum << ", GetCurPos: " << fs.GetCurPos() << ", nOffset: " << nOffset << ", nSize: " << nSize << endl;
                 break;
             }
             nOffset = fs.GetCurPos();
@@ -60,7 +59,7 @@ BOOST_AUTO_TEST_CASE(filetest)
     }
     catch (std::exception& e)
     {
-        xengine::StdError(__PRETTY_FUNCTION__, e.what());
+        cout << "error: " << e.what();
     }
 }
 
@@ -86,37 +85,41 @@ public:
 BOOST_AUTO_TEST_CASE(timewalk)
 {
     CTimeSeriesCached tsBlock;
-    BOOST_CHECK(tsBlock.Initialize(path("./.bigbang") / "block", BLOCKFILE_PREFIX));
+    if (!tsBlock.Initialize(path("./.bigbang") / "block", BLOCKFILE_PREFIX))
+    {
+        cout << "Initialize fail" << endl;
+        return;
+    }
 
-    printf("%s  WalkThrough start....\n", GetLocalTime().c_str());
+    cout << GetLocalTime() << "  WalkThrough start...." << endl;
 
     uint32 nLastFileRet = 0;
     uint32 nLastPosRet = 0;
     CMyBlockWalker walker;
     BOOST_CHECK(tsBlock.WalkThrough(walker, nLastFileRet, nLastPosRet, false));
-    printf("%s  WalkThrough success, count: %d\n", GetLocalTime().c_str(), walker.nBlockCount);
+    cout << GetLocalTime() << "  WalkThrough success, count: " << walker.nBlockCount << endl;
 }
 
 BOOST_AUTO_TEST_CASE(fileread)
 {
-    printf("%s  start....\n", GetLocalTime().c_str());
+    cout << GetLocalTime << "  start...." << endl;
 
     FILE* f = fopen("./.bigbang/block/block_000001.dat", "rb");
     if (f == nullptr)
     {
-        printf("fopen fail\n");
+        cout << "fopen fail" << endl;
         return;
     }
     fseek(f, 0, SEEK_END);
     int filesize = ftell(f);
-    printf("%s  filesize: %d\n", GetLocalTime().c_str(), filesize);
+    cout << GetLocalTime() << "  filesize: " << filesize << endl;
     fseek(f, 0, SEEK_SET);
 
     uint32 nDataLen = 0;
     uint8* pBuf = (uint8*)malloc(filesize);
     if (pBuf == NULL)
     {
-        printf("malloc fail\n");
+        cout << "malloc fail" << endl;
         return;
     }
     uint8* pos = pBuf;
@@ -142,7 +145,7 @@ BOOST_AUTO_TEST_CASE(fileread)
         }
     }
     fclose(f);
-    printf("%s  read end, nDataLen: %d.\n", GetLocalTime().c_str(), nDataLen);
+    cout << GetLocalTime() << "  read end, nDataLen: " << nDataLen << endl;
 
     CBufStream is;
     is.Write((const char*)pBuf, nDataLen);
@@ -159,13 +162,13 @@ BOOST_AUTO_TEST_CASE(fileread)
         }
         catch (std::exception& e)
         {
-            BOOST_ERROR("error: " << e.what());
+            cout << "error: " << e.what() << endl;
             break;
         }
         nBlockCount++;
         nSyDataLen -= (nSize + 8);
     }
-    printf("%s  data end, nDataLen: %d, nBlockCount: %d, nSyDataLen: %d.\n", GetLocalTime().c_str(), nDataLen, nBlockCount, nSyDataLen);
+    cout << GetLocalTime << "  data end, nDataLen: " << nDataLen << ", nBlockCount: " << nBlockCount << ", nSyDataLen: " << nSyDataLen << endl;
 
     free(pBuf);
 }

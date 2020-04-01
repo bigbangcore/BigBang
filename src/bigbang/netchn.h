@@ -286,9 +286,10 @@ protected:
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer, std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
     void PostAddNew(const uint256& hashFork, CSchedule& sched,
                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
