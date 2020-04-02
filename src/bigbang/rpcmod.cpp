@@ -87,7 +87,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.nTime = tx.nTimeStamp;
     ret.nLockuntil = tx.nLockUntil;
     ret.strAnchor = tx.hashAnchor.GetHex();
-    ret.strBlockhash = blockHash.GetHex();
+    ret.strBlockhash = (!blockHash) ? std::string() : blockHash.GetHex();
     for (const CTxIn& txin : tx.vInput)
     {
         CTransactionData::CVin vin;
@@ -940,12 +940,6 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
         return spResult;
     }
 
-    std::vector<uint256> vHashBlock;
-    if(!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
-    }
-
     int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
     if (!pService->GetTxSender(txid, from))
@@ -954,36 +948,41 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     }
 
     uint256 hashBlock;
-    for(const auto& hash : vHashBlock)
-    {
-        CBlock block;
-        uint256 tempHashFork;
-        int tempHeight = 0;
-        if(!pService->GetBlock(hash, block, tempHashFork, tempHeight))
-        {
-            throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the block");
-        }
-
-        auto iter = std::find_if(block.vtx.begin(), block.vtx.end(), [&txid](const CTransaction& tx) -> bool {
-            return txid == tx.GetHash();
-        });
-
-        if(iter != block.vtx.end())
-        {
-            hashBlock = hash;
-            break;
-        }
-    }
-
-    if(!hashBlock)
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Cannot find which block the tx be packed");
-    }
-
     if(hashFork != pCoreProtocol->GetGenesisBlockHash())
     {
         nDepth = nDepth * 30;
     }
+
+    if(nHeight != -1)
+    {
+        std::vector<uint256> vHashBlock;
+        if(!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
+        }
+
+        for(const auto& hash : vHashBlock)
+        {
+            CBlock block;
+            uint256 tempHashFork;
+            int tempHeight = 0;
+            if(!pService->GetBlock(hash, block, tempHashFork, tempHeight))
+            {
+                throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the block");
+            }
+
+            auto iter = std::find_if(block.vtx.begin(), block.vtx.end(), [&txid](const CTransaction& tx) -> bool {
+                return txid == tx.GetHash();
+            });
+
+            if(iter != block.vtx.end())
+            {
+                hashBlock = hash;
+                break;
+            }
+        }
+    }
+
     spResult->transaction = TxToJSON(txid, tx, hashFork, hashBlock, nDepth, from.ToString());
     return spResult;
 }

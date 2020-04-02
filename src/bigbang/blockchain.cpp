@@ -885,7 +885,7 @@ bool CBlockChain::GetBlockDelegateVote(const uint256& hashBlock, map<CDestinatio
     return cntrBlock.GetBlockDelegateVote(hashBlock, mapVote);
 }
 
-int64 CBlockChain::GetDelegateWeightRatio(const uint256& hashBlock)
+int64 CBlockChain::GetDelegateMinEnrollAmount(const uint256& hashBlock)
 {
     return pCoreProtocol->MinEnrollAmount();
 }
@@ -937,7 +937,7 @@ bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDest
         pIndex = pIndex->pPrev;
     }
 
-    int nMaxCertCount = CONSENSUS_ENROLL_INTERVAL + 2;
+    int nMaxCertCount = CONSENSUS_ENROLL_INTERVAL * 4 / 3;
     if (nMaxCertCount > pLastIndex->GetBlockHeight())
     {
         nMaxCertCount = pLastIndex->GetBlockHeight();
@@ -1301,7 +1301,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
 bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 {
-    std::map<CDestination, int> mapBlockCert;
+    map<CDestination, int> mapBlockCert;
     for (const auto& d : block.vtx)
     {
         if (d.nType == CTransaction::TX_CERT)
@@ -1311,17 +1311,35 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
     }
     if (!mapBlockCert.empty())
     {
-        std::map<CDestination, int> mapVoteCert;
-        if (GetDelegateCertTxCount(block.hashPrev, mapVoteCert))
+        map<CDestination, int64> mapVote;
+        if (!GetBlockDelegateVote(block.hashPrev, mapVote))
         {
-            for (const auto& d : mapBlockCert)
+            StdError("CBlockChain", "VerifyBlockCertTx: GetBlockDelegateVote fail");
+            return false;
+        }
+        map<CDestination, int> mapVoteCert;
+        if (!GetDelegateCertTxCount(block.hashPrev, mapVoteCert))
+        {
+            StdError("CBlockChain", "VerifyBlockCertTx: GetBlockDelegateVote fail");
+            return false;
+        }
+        int64 nMinAmount = pCoreProtocol->MinEnrollAmount();
+        for (const auto& d : mapBlockCert)
+        {
+            const CDestination& dest = d.first;
+            map<CDestination, int64>::iterator mt = mapVote.find(dest);
+            if (mt == mapVote.end() || mt->second < nMinAmount)
             {
-                std::map<CDestination, int>::iterator it = mapVoteCert.find(d.first);
-                if (it != mapVoteCert.end() && d.second > it->second)
-                {
-                    StdLog("CBlockChain", "VerifyBlockCertTx: block cert count: %d, prev cert count: %d, dest: %s", d.second > it->second, CAddress(d.first).ToString().c_str());
-                    return false;
-                }
+                StdLog("CBlockChain", "VerifyBlockCertTx: not enough votes, votes: %ld, dest: %s",
+                       (mt == mapVote.end() ? 0 : mt->second), CAddress(dest).ToString().c_str());
+                return false;
+            }
+            map<CDestination, int>::iterator it = mapVoteCert.find(dest);
+            if (it != mapVoteCert.end() && d.second > it->second)
+            {
+                StdLog("CBlockChain", "VerifyBlockCertTx: more than votes, block cert count: %d, available cert count: %d, dest: %s",
+                       d.second, it->second, CAddress(dest).ToString().c_str());
+                return false;
             }
         }
     }
