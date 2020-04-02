@@ -12,8 +12,8 @@
 #include "mpinterpolation.h"
 #include "stream/datastream.h"
 #include "test_big.h"
+#include "util.h"
 
-using curve25519::Print32;
 using namespace bigbang::crypto;
 using namespace std;
 
@@ -40,54 +40,54 @@ void KeyGenerator(uint256& priv, uint256& pub)
     P.Pack(pub.begin());
 }
 
-// BOOST_AUTO_TEST_CASE(fp25519)
-// {
-//     srand(time(0));
-//     uint8_t md32[32];
+BOOST_AUTO_TEST_CASE(fp25519)
+{
+    srand(time(0));
+    uint8_t md32[32];
 
-//     // add, minus
-//     for (int i = 0; i < 10; i++)
-//     {
-//         RandGeneretor(md32);
-//         CFP25519 add1(md32);
-//         RandGeneretor(md32);
-//         CFP25519 add2(md32);
-//         CFP25519 fpSum = add1 + add2;
-//         BOOST_CHECK(add1 == fpSum - add2);
-//         BOOST_CHECK(add2 == fpSum - add1);
-//     }
+    // add, minus
+    for (int i = 0; i < 10; i++)
+    {
+        RandGeneretor(md32);
+        CFP25519 add1(md32);
+        RandGeneretor(md32);
+        CFP25519 add2(md32);
+        CFP25519 fpSum = add1 + add2;
+        BOOST_CHECK(add1 == fpSum - add2);
+        BOOST_CHECK(add2 == fpSum - add1);
+    }
 
-//     // multiply, divide
-//     for (int i = 0; i < 10; i++)
-//     {
-//         RandGeneretor(md32);
-//         CFP25519 mul1(md32);
-//         RandGeneretor(md32);
-//         CFP25519 mul2(md32);
-//         CFP25519 fpProduct = mul1 * mul2;
-//         BOOST_CHECK(mul1 == fpProduct / mul2);
-//         BOOST_CHECK(mul2 == fpProduct / mul1);
-//     }
+    // multiply, divide
+    for (int i = 0; i < 10; i++)
+    {
+        RandGeneretor(md32);
+        CFP25519 mul1(md32);
+        RandGeneretor(md32);
+        CFP25519 mul2(md32);
+        CFP25519 fpProduct = mul1 * mul2;
+        BOOST_CHECK(mul1 == fpProduct / mul2);
+        BOOST_CHECK(mul2 == fpProduct / mul1);
+    }
 
-//     // inverse
-//     for (int i = 0; i < 10; i++)
-//     {
-//         RandGeneretor(md32);
-//         CFP25519 fp(md32);
-//         CFP25519 fpInverse = fp.Inverse();
-//         BOOST_CHECK(CFP25519(1) == fp * fpInverse);
-//     }
+    // inverse
+    for (int i = 0; i < 10; i++)
+    {
+        RandGeneretor(md32);
+        CFP25519 fp(md32);
+        CFP25519 fpInverse = fp.Inverse();
+        BOOST_CHECK(CFP25519(1) == fp * fpInverse);
+    }
 
-//     // sqrt square
-//     for (int i = 0; i < 10; i++)
-//     {
-//         RandGeneretor(md32);
-//         CFP25519 fp1(md32);
-//         CFP25519 fp2(md32);
-//         fp2 = fp2.Square().Sqrt();
-//         BOOST_CHECK(fp2.Square() == fp1.Square());
-//     }
-// }
+    // sqrt square
+    for (int i = 0; i < 10; i++)
+    {
+        RandGeneretor(md32);
+        CFP25519 fp1(md32);
+        CFP25519 fp2(md32);
+        fp2 = fp2.Square().Sqrt();
+        BOOST_CHECK(fp2.Square() == fp1.Square());
+    }
+}
 
 BOOST_AUTO_TEST_CASE(sc25519)
 {
@@ -294,7 +294,6 @@ BOOST_AUTO_TEST_CASE(mpvss)
 
         for (int i = 0; i < count; i++)
         {
-            bool fCompleted = false;
             for (int j = 0; j < count; j++)
             {
                 int indexFrom = (i + j) % count;
@@ -302,24 +301,22 @@ BOOST_AUTO_TEST_CASE(mpvss)
                 auto& sign = vecPublishSign[indexFrom];
                 BOOST_CHECK(mapSS[vID[i]].VerifySignature(vID[indexFrom], get<0>(sign), get<1>(sign), get<2>(sign)));
                 // collect
-                BOOST_CHECK(mapSS[vID[i]].Collect(vID[indexFrom], vecMapShare[indexFrom], fCompleted));
+                BOOST_CHECK(mapSS[vID[i]].Collect(vID[indexFrom], vecMapShare[indexFrom]));
             }
-
-            BOOST_CHECK(fCompleted);
+            BOOST_CHECK(mapSS[vID[i]].IsCollectCompleted());
         }
 
-        bool fCompleted = false;
-        for (int i = 0; i < count; i++)
+        cout << "\tPublish : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+
+        for (int i = 0; i < count && !ssWitness.IsCollectCompleted(); i++)
         {
             // check sign
             auto& sign = vecPublishSign[i];
             BOOST_CHECK(mapSS[vID[i]].VerifySignature(vID[i], get<0>(sign), get<1>(sign), get<2>(sign)));
             // collect
-            BOOST_CHECK(ssWitness.Collect(vID[i], vecMapShare[i], fCompleted));
+            BOOST_CHECK(ssWitness.Collect(vID[i], vecMapShare[i]));
         }
-        BOOST_CHECK(fCompleted);
-
-        cout << "\tPublish : " << ((boost::posix_time::microsec_clock::universal_time() - t0).ticks() / count) << "\n";
+        BOOST_CHECK(ssWitness.IsCollectCompleted());
 
         // Reconstruct
         t0 = boost::posix_time::microsec_clock::universal_time();

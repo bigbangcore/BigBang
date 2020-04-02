@@ -233,10 +233,17 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
         is >> delegateData;
         if (delegateData.nIdentFrom == DestToIdentUInt256(destFrom) && VerifySignature(delegateData))
         {
-            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
+            fCompleted = witness.IsCollectCompleted();
+            if (fCompleted)
+            {
+                StdTrace("vote", "CDelegateVote::Collect is enough");
+                return true;
+            }
+
+            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare))
             {
                 vCollected.push_back(delegateData);
-                // StdWarn("vote", "CDelegateVote::Accept exit ...............");
+                fCompleted = witness.IsCollectCompleted();
                 return true;
             }
             else

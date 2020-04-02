@@ -31,6 +31,7 @@ public:
     void Unpack(const uint8_t* md32);
     void Pack(uint8_t* md32) const;
     const uint64_t* Data() const;
+    const uint8_t* Begin() const;
 
     CSC25519& Negative();
     const CSC25519 operator-() const;

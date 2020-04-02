@@ -106,6 +106,11 @@ const uint64_t* CSC25519::Data() const
     return value;
 }
 
+const uint8_t* CSC25519::Begin() const
+{
+    return (uint8_t*)value;
+}
+
 CSC25519& CSC25519::Negative()
 {
     Sub32(value, prime, value);

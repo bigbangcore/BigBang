@@ -43,8 +43,6 @@ set(curve25519
     curve25519/fp25519.cpp              curve25519/fp25519.h
     curve25519/sc25519.cpp              curve25519/sc25519.h
     curve25519/ed25519.cpp              curve25519/ed25519.h
-    curve25519/sc25519_sodium.cpp       curve25519/sc25519_sodium.h
-    curve25519/ed25519_sodium.cpp       curve25519/ed25519_sodium.h
     curve25519/curve25519.h
 )
 
