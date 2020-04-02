@@ -72,6 +72,7 @@ public:
     bool AddNewSuperNode(const CSuperNode& cli);
     bool RemoveSuperNode(const std::string& cliID, const uint32& ipNum);
     bool RetrieveSuperNode(const std::string& superNodeID, const uint32& ipNum, std::vector<uint256>& vFork);
+    bool UpdateSuperNode(const std::string& cliID, const uint32& ipNum, const std::vector<uint256>& vFork);
     bool ListSuperNode(std::vector<CSuperNode>& vCli);  //return all nodes
     void Clear();
     bool ClearSuperNode(const CSuperNode& cli);

@@ -310,11 +310,11 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
     eventSubscribe.data.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        for (const auto& p : mapPeer)
         {
-            eventSubscribe.nNonce = (*it).first;
+            eventSubscribe.nNonce = p.first;
             pPeerNet->DispatchEvent(&eventSubscribe);
-            DispatchGetBlocksEvent(it->first, hashFork);
+            DispatchGetBlocksEvent(p.first, hashFork);
             BroadcastTxInv(hashFork);
         }
     }

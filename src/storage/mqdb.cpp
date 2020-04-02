@@ -45,25 +45,21 @@ void CSuperNodeDB::Deinitialize()
 bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
 {
     bool ret = false;
-    if (1 == cli.nodeCat)
+    switch(cli.nodeCat)
     {
-        if (!ClearSuperNode(cli))
-        {
-            return false;
-        }
-        ret = Write(make_pair(cli.superNodeID, cli.ipAddr), cli.vecOwnedForks, true);
-    }
-    else if (2 == cli.nodeCat)
-    {
-        if (!ClearSuperNode(cli))
-        {
-            return false;
-        }
-        ret = Write(make_pair(cli.superNodeID, cli.ipAddr), cli.vecOwnedForks, true);
-    }
-    else if (0 == cli.nodeCat)
+    case 0:
     {
         ret = Write(make_pair(CLIENT_ID_OUT_OF_MQ_CLUSTER, cli.ipAddr), cli.vecOwnedForks, true);
+        break;
+    }
+    case 1: case 2:
+    {
+        if (!ClearSuperNode(cli))
+        {
+            return false;
+        }
+        ret = Write(make_pair(cli.superNodeID, cli.ipAddr), cli.vecOwnedForks, true);
+    }
     }
     return ret;
 }
@@ -76,6 +72,11 @@ bool CSuperNodeDB::RemoveSuperNode(const string& cliID, const uint32& ipNum)
 bool CSuperNodeDB::RetrieveSuperNode(const string& cliID, const uint32& ipNum, vector<uint256>& vFork)
 {
     return Read(make_pair(cliID, ipNum), vFork);
+}
+
+bool CSuperNodeDB::UpdateSuperNode(const string& cliID, const uint32& ipNum, const vector<uint256>& vFork)
+{
+    return Write(make_pair(cliID, ipNum), vFork, true);
 }
 
 bool CSuperNodeDB::ListSuperNode(std::vector<CSuperNode>& vCli)
