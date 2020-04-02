@@ -68,14 +68,14 @@ bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
     return ret;
 }
 
-bool CSuperNodeDB::RemoveSuperNode(const string& cliID, const int8& ipNum)
+bool CSuperNodeDB::RemoveSuperNode(const string& cliID, const uint32& ipNum)
 {
     return Erase(make_pair(cliID, ipNum));
 }
 
-bool CSuperNodeDB::RetrieveSuperNode(const string& cliID, const int8& ipNum, CSuperNode& cli)
+bool CSuperNodeDB::RetrieveSuperNode(const string& cliID, const uint32& ipNum, vector<uint256>& vFork)
 {
-    return Read(make_pair(cliID, ipNum), cli);
+    return Read(make_pair(cliID, ipNum), vFork);
 }
 
 bool CSuperNodeDB::ListSuperNode(std::vector<CSuperNode>& vCli)
