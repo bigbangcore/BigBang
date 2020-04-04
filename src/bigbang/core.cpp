@@ -40,7 +40,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 0;
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
@@ -783,6 +783,15 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
     {
         nBits++;
+    }
+    return true;
+}
+
+bool CCoreProtocol::IsDposHeight(int height)
+{
+    if (height < DELEGATE_PROOF_OF_STAKE_HEIGHT)
+    {
+        return false;
     }
     return true;
 }

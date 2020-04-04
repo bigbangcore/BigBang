@@ -477,7 +477,7 @@ bool CConsensus::AddNewPublish(const uint256& hashDistributeAnchor, const CDesti
 
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
-    if (nTargetHeight >= CONSENSUS_INTERVAL)
+    if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         uint256 hashBlock;

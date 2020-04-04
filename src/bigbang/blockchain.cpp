@@ -1219,19 +1219,15 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_COINBASE_INVALID;
         }
 
-        /*if (pCoreProtocol->CheckSpecialHeight(pIndexPrev->GetBlockHeight() + 1))
+        if (!pCoreProtocol->IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
         {
-            if (!pCoreProtocol->VerifySpecialAddress(pIndexPrev->GetBlockHeight() + 1, block))
-            {
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
-            }
             if (!agreement.IsProofOfWork())
             {
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
             return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
         }
-        else*/
+        else
         {
             if (agreement.IsProofOfWork())
             {
