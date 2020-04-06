@@ -367,7 +367,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
         if (pMqChainUpdate != nullptr)
         {
-            pMqChainUpdate->data.shortLen = updateBlockChain.vBlockRemove.size();
+            pMqChainUpdate->data.actRollBackLen = updateBlockChain.vBlockAddNew.size();
             pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
             for (const auto& rb : updateBlockChain.vBlockRemove)
             {
@@ -375,7 +375,8 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
                     rb.GetHash().ToString().c_str());
                 pMqChainUpdate->data.vShort.emplace_back(rb.GetHash());
             }
-            pMqChainUpdate->data.triHeight = pMqChainUpdate->data.vShort.back().Get32(7) - 1;
+            reverse(pMqChainUpdate->data.vShort.begin(), pMqChainUpdate->data.vShort.end());
+            pMqChainUpdate->data.triHeight = pMqChainUpdate->data.vShort.front().Get32(7) - 1;
             pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
                                       pMqChainUpdate->data.triHeight,
                                       pMqChainUpdate->data.triHash);

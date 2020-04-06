@@ -74,7 +74,7 @@ class CRollbackBlock
 public:
     int32 rbHeight;
     uint256 rbHash;
-    uint8 rbSize;
+    int rbSize;
     std::vector<uint256> hashList;
 
 protected:
@@ -182,7 +182,8 @@ private:
     std::deque<std::pair<std::string, xengine::CBufStream>> deqRecvBuff; //topic vs. payload
 
     std::atomic<int> lastHeightResp;
-    uint32 nReqBlkTimerID;
+//    uint32 nReqBlkTimerID;
+    std::atomic<uint32> nReqBlkTimerID;
 
     boost::mutex mtxRoll;
     std::vector<uint256> vLongFork;

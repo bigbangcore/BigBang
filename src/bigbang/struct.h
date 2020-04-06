@@ -261,7 +261,7 @@ class CMqRollbackUpdate
 public:
     int32 triHeight;
     uint256 triHash;
-    uint8 shortLen;
+    int actRollBackLen;
     std::vector<uint256> vShort;
 };
 
