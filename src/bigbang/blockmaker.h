@@ -85,7 +85,7 @@ protected:
     void ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, const int64& nPrimaryBlockTime,
                                      const int& nPrimaryBlockHeight, const uint16& nPrimaryMintType,
                                      const CDelegateAgreement& agreement);
-    void ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
+    bool ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
                                       int& nPrimaryBlockHeight, uint16& nPrimaryMintType,
                                       const CDelegateAgreement& agreement);
     void ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,

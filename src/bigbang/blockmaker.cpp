@@ -435,7 +435,7 @@ void CBlockMaker::ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, c
     DispatchBlock(block);
 }
 
-void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
+bool CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
                                                int& nPrimaryBlockHeight, uint16& nPrimaryMintType,
                                                const CDelegateAgreement& agreement)
 {
@@ -454,14 +454,14 @@ void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64&
             if (block.nTimeStamp == 0)
             {
                 Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                return;
+                return false;
             }
 
             // create DPoS primary block
             if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
             {
                 Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                return;
+                return false;
             }
 
             // dispatch DPoS primary block
@@ -469,11 +469,11 @@ void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64&
             {
                 // create sub fork blocks
                 ProcessSubFork(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrimaryBlockHeight, nPrimaryMintType);
-                return;
+                return true;
             }
             else if (fExit)
             {
-                return;
+                return true;
             }
             else
             {
@@ -490,11 +490,12 @@ void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64&
                 else
                 {
                     Error("Dispatch DPoS Primary block error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                    return;
+                    return false;
                 }
             }
         }
     }
+    return false;
 }
 
 void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
@@ -793,14 +794,14 @@ void CBlockMaker::BlockMakerThreadFunc()
 
         try
         {
-
-            if (agree.IsProofOfWork())
+            bool fDPoS = !agree.IsProofOfWork();
+            if (fDPoS)
+            {
+                fDPoS = ProcessDelegatedProofOfStake(hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType, agree);
+            }
+            if (!fDPoS)
             {
                 ProcessDelegatedProofOfWork(hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType, agree);
-            }
-            else
-            {
-                ProcessDelegatedProofOfStake(hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType, agree);
             }
         }
         catch (exception& e)
