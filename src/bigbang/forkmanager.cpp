@@ -53,26 +53,34 @@ void CForkManager::HandleDeinitialize()
 
 bool CForkManager::HandleInvoke()
 {
-    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-
-    fAllowAnyFork = ForkConfig()->fAllowAnyFork;
-    if (!fAllowAnyFork)
+    int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (2 == nodeCat)
     {
-        setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
-        for (const string& strFork : ForkConfig()->vFork)
+        return true;
+    }
+
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+        fAllowAnyFork = ForkConfig()->fAllowAnyFork;
+        if (!fAllowAnyFork)
         {
-            uint256 hashFork(strFork);
-            if (hashFork != 0)
+            setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
+            for (const string& strFork : ForkConfig()->vFork)
             {
-                setForkAllowed.insert(hashFork);
+                uint256 hashFork(strFork);
+                if (hashFork != 0)
+                {
+                    setForkAllowed.insert(hashFork);
+                }
             }
-        }
-        for (const string& strFork : ForkConfig()->vGroup)
-        {
-            uint256 hashFork(strFork);
-            if (hashFork != 0)
+            for (const string& strFork : ForkConfig()->vGroup)
             {
-                setGroupAllowed.insert(hashFork);
+                uint256 hashFork(strFork);
+                if (hashFork != 0)
+                {
+                    setGroupAllowed.insert(hashFork);
+                }
             }
         }
     }
