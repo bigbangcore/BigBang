@@ -42,6 +42,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 // dpos begin height
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -691,7 +692,14 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
                 {
                     StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
                 }
-                return uint256(uint64(agreement.nWeight)) << nBits;
+                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
+                {
+                    return uint256(uint64(agreement.nWeight + 5)) << nBits;
+                }
+                else
+                {
+                    return uint256(uint64(agreement.nWeight)) << nBits;
+                }
             }
             else
             {
