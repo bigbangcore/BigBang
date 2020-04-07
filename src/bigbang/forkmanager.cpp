@@ -56,6 +56,7 @@ bool CForkManager::HandleInvoke()
     int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
     if (2 == nodeCat)
     {
+        setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
         return true;
     }
 
@@ -268,22 +269,30 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
 
 bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::vector<uint256>& vGroup)
 {
-    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-
-    if (!fAllowAnyFork)
+    int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (2 == nodeCat)
     {
-        for (auto const& fork : vFork)
+        return true;
+    }
+
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+        if (!fAllowAnyFork)
         {
-            if (fork != 0)
+            for (auto const& fork : vFork)
             {
-                setForkAllowed.insert(fork);
+                if (fork != 0)
+                {
+                    setForkAllowed.insert(fork);
+                }
             }
-        }
-        for (auto const& group : vGroup)
-        {
-            if (group != 0)
+            for (auto const& group : vGroup)
             {
-                setGroupAllowed.insert(group);
+                if (group != 0)
+                {
+                    setGroupAllowed.insert(group);
+                }
             }
         }
     }
