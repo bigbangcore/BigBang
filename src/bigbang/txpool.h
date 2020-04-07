@@ -7,6 +7,9 @@
 
 #include "base.h"
 #include "txpooldata.h"
+#include "util.h"
+
+using namespace xengine;
 
 // This macro value is related to DPoS Weight value / PoW weight, if weight ratio changed, you must change it
 #define CACHE_HEIGHT_INTERVAL 23
@@ -244,12 +247,12 @@ public:
     }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
-                        std::map<CDestination, int64>& mapVote, int64 nWeightRatio);
+                        std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount);
 
 private:
     void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
     bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
-                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nWeightRatio);
+                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
@@ -315,6 +318,28 @@ private:
     std::map<uint256, std::vector<CTransaction>> mapCache;
 };
 
+class CCertTxDestCache
+{
+public:
+    CCertTxDestCache() {}
+
+    enum
+    {
+        MAX_CACHE_CERTTX_COUNT = 60,
+        CACHE_CERTTX_TIMEOUT = 3600 * 24
+    };
+
+    void AddDelegate(const CDestination& dest);
+    void AddCertTx(const CDestination& dest, const uint256& txid);
+    void RemoveCertTx(const CDestination& dest, const uint256& txid);
+    bool GetTimeoutCertTx(const CDestination& dest, uint256& txid);
+    bool IsOverMaxCertCount(const CDestination& dest);
+
+protected:
+    std::set<CDestination> setDelegate;
+    std::map<CDestination, std::map<uint256, int64>> mapCertTxDest;
+};
+
 class CTxPool : public ITxPool
 {
 public:
@@ -333,6 +358,7 @@ public:
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
     bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+    void AddDestDelegate(const CDestination& destDeleage) override;
 
 protected:
     bool HandleInitialize() override;
@@ -342,6 +368,7 @@ protected:
     bool LoadData();
     bool SaveData();
     Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight);
+    void RemoveTx(const uint256& txid);
     uint64 GetSequenceNumber()
     {
         if (mapTx.empty())
@@ -362,6 +389,7 @@ protected:
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
     std::map<uint256, CTxCache> mapTxCache;
+    CCertTxDestCache certTxDest;
 };
 
 } // namespace bigbang

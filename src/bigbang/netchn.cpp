@@ -1421,6 +1421,12 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                            GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str(), err, ErrorString(err));
                 }
             }
+            else if (err == ERR_TRANSACTION_TOO_MANY_CERTTX)
+            {
+                StdLog("NetChannel", "NetChannel AddNewTx fail, too many cert tx, peer: %s, txid: %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                sched.SetDelayedClear(network::CInv(network::CInv::MSG_TX, hashTx), CSchedule::MAX_CERTTX_DELAYED_TIME);
+            }
             else
             {
                 StdLog("NetChannel", "NetChannel AddNewTx fail, invalidate tx, peer: %s, txid: %s, err: [%d] %s",

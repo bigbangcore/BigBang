@@ -271,6 +271,8 @@ bool CConsensus::HandleInitialize()
 
         delegate.AddNewDelegate(ctxt.GetDestination());
 
+        pTxPool->AddDestDelegate(ctxt.GetDestination());
+
         Log("AddNew delegate : %s", CAddress(ctxt.GetDestination()).ToString().c_str());
     }
 
@@ -371,14 +373,14 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
 
             std::map<CDestination, int64> mapDelegateVote;
-            int64 nDelegateWeightRatio = pBlockChain->GetDelegateWeightRatio(hash);
+            int64 nDelegateMinAmount = pBlockChain->GetDelegateMinEnrollAmount(hash);
             bool fGetVote = pBlockChain->GetBlockDelegateVote(hash, mapDelegateVote);
-            if (nDelegateWeightRatio < 0 || !fGetVote)
+            if (nDelegateMinAmount < 0 || !fGetVote)
             {
-                if (nDelegateWeightRatio < 0)
+                if (nDelegateMinAmount < 0)
                 {
-                    StdError("CConsensus", "PrimaryUpdate: GetDelegateWeightRatio fail, nDelegateWeightRatio: %.6f, hash: %s",
-                             ValueFromToken(nDelegateWeightRatio), hash.GetHex().c_str());
+                    StdError("CConsensus", "PrimaryUpdate: GetDelegateMinEnrollAmount fail, nDelegateMinAmount: %.6f, hash: %s",
+                             ValueFromToken(nDelegateMinAmount), hash.GetHex().c_str());
                 }
                 if (!fGetVote)
                 {
@@ -403,17 +405,17 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                         StdTrace("CConsensus", "PrimaryUpdate: mapDelegateVote find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
                         continue;
                     }
-                    if (dt->second < nDelegateWeightRatio)
+                    if (dt->second < nDelegateMinAmount)
                     {
                         StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
+                                 ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
                         continue;
                     }
                     CTransaction tx;
                     if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), 0, (*it).second))
                     {
                         StdTrace("CConsensus", "PrimaryUpdate: BuildEnrollTx success, vote token: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateWeightRatio), CAddress((*it).first).ToString().c_str());
+                                 ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
                         routine.vEnrollTx.push_back(tx);
                     }
                 }
@@ -476,7 +478,7 @@ bool CConsensus::AddNewPublish(const uint256& hashDistributeAnchor, const CDesti
 // 获得目标高度的共识结果(nAgreement nWeight vBallot)
 void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
 {
-    if (nTargetHeight >= CONSENSUS_INTERVAL)
+    if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
         boost::unique_lock<boost::mutex> lock(mutex);
         uint256 hashBlock;

@@ -313,6 +313,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         static std::future<int> fut;
         fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
     }
+
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
