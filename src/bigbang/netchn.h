@@ -123,7 +123,8 @@ class CNetChannelPeer
         {
             SYNTXINV_STATUS_INIT,
             SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
-            SYNTXINV_STATUS_WAIT_PEER_COMPLETE
+            SYNTXINV_STATUS_WAIT_PEER_COMPLETE,
+            SYNTXINV_STATUS_UNKONWN
         };
         enum
         {
@@ -178,14 +179,25 @@ public:
     }
     void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
     {
-        mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+        if(IsSubscribed(hashFork))
+        {
+            mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+        }
     }
     void SetWaitGetTxComplete(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+        if(IsSubscribed(hashFork))
+        {
+            mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+        }
     }
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
+        if(!IsSubscribed(hashFork))
+        {
+            return false;
+        }
+        
         CNetChannelPeerFork& peer = mapSubscribedFork[hashFork];
         if (peer.fWaitGetTxComplete)
         {
@@ -196,7 +208,10 @@ public:
     }
     void SetPeerGetDataTime(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].SetPeerGetDataTime();
+        if(IsSubscribed(hashFork))
+        {
+            mapSubscribedFork[hashFork].SetPeerGetDataTime();
+        }
     }
     std::string GetRemoteAddress()
     {
@@ -204,6 +219,11 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
+        if(!IsSubscribed(hashFork))
+        {
+            return CNetChannelPeerFork::SYNTXINV_STATUS_UNKONWN;
+        }
+        
         return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
