@@ -285,6 +285,7 @@ bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::v
                 if (fork != 0)
                 {
                     setForkAllowed.insert(fork);
+                    Log("CForkManager::SetForkFilter: set fork filter[%s]", fork.ToString().c_str());
                 }
             }
             for (auto const& group : vGroup)
@@ -292,6 +293,7 @@ bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::v
                 if (group != 0)
                 {
                     setGroupAllowed.insert(group);
+                    Log("CForkManager::SetForkFilter: set fork group filter[%s]", group.ToString().c_str());
                 }
             }
         }

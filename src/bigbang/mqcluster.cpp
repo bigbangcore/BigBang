@@ -147,8 +147,8 @@ bool CMQCluster::HandleInvoke()
 
         if (mapSuperNode.size() > 1)
         {
-            Error("CMQCluster::HandleInvoke(): fork node should have one "
-                  "single enrollment[%d]",
+            Error("CMQCluster::HandleInvoke(): fork node should only have one "
+                  "single enrollment but [%d]",
                   mapSuperNode.size());
             return false;
         }
@@ -172,11 +172,11 @@ bool CMQCluster::HandleInvoke()
                     fork.ToString().c_str(), clientID.c_str());
             }
 
-            if (!PostBlockRequest(-1))
+/*            if (!PostBlockRequest(-1))
             {
                 Error("CMQCluster::HandleInvoke(): failed to post requesting block");
                 return false;
-            }
+            }*/
         }
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
