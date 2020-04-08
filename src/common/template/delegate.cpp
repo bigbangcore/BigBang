@@ -34,14 +34,7 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
         return false;
     }
     setSubDest.clear();
-    if (tx.sendTo.GetTemplateId() == nId)
-    {
-        setSubDest.insert(CDestination(keyDelegate));
-    }
-    else
-    {
-        setSubDest.insert(destOwner);
-    }
+    setSubDest.insert(destOwner);
     return true;
 }
 
@@ -127,14 +120,7 @@ void CTemplateDelegate::BuildTemplateData()
 bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    if (destTo.GetTemplateId() == nId)
-    {
-        return CDestination(keyDelegate).VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
-    }
-    else
-    {
-        return destOwner.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
-    }
+    return destOwner.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }
 
 bool CTemplateDelegate::VerifyBlockSignature(const uint256& hash, const vector<uint8>& vchSig) const
