@@ -82,6 +82,12 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
+        return false;
+    }
+
     Log("CMQCluster::HandleInitialize() successfully");
     return true;
 }
@@ -92,6 +98,7 @@ void CMQCluster::HandleDeinitialize()
     pBlockChain = nullptr;
     pDispatcher = nullptr;
     pService = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CMQCluster::HandleInvoke()
@@ -137,6 +144,7 @@ bool CMQCluster::HandleInvoke()
                 "itself to dpos node yet[%d]",
                 mapSuperNode.size());
         }
+
         if (mapSuperNode.size() > 1)
         {
             Error("CMQCluster::HandleInvoke(): fork node should have one "
@@ -144,8 +152,11 @@ bool CMQCluster::HandleInvoke()
                   mapSuperNode.size());
             return false;
         }
+
         if (1 == mapSuperNode.size())
         {
+            pForkManager->SetForkFilter(mapSuperNode.begin()->second);
+
             clientID = mapSuperNode.begin()->first;
             topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
             topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";

@@ -66,7 +66,7 @@ protected:
 class CSuperNodeDB : public xengine::CKVDB
 {
 public:
-    CSuperNodeDB() {}
+    CSuperNodeDB() = default;
     bool Initialize(const boost::filesystem::path& pathData);
     void Deinitialize();
     bool AddNewSuperNode(const CSuperNode& cli);

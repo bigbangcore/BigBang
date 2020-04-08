@@ -144,6 +144,7 @@ protected:
     IBlockChain* pBlockChain;
     IDispatcher* pDispatcher;
     IService* pService;
+    IForkManager* pForkManager;
 
     boost::mutex mutex;
     boost::condition_variable condMQ;
