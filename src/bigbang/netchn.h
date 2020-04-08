@@ -319,6 +319,8 @@ protected:
     uint32 nTimerPushTx;
     bool fStartIdlePushTxTimer;
     std::set<uint256> setPushTxFork;
+
+    std::atomic<int8> nNodeCat;
 };
 
 } // namespace bigbang
