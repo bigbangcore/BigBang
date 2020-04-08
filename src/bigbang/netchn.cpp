@@ -58,7 +58,7 @@ void CNetChannelPeer::CNetChannelPeerFork::ClearExpiredTx()
 bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
 {
     map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
-    if (it != mapSubscribedFork.end())
+    if (IsSubscribed(hashFork))
     {
         return (*it).second.fSynchronized;
     }
@@ -67,11 +67,10 @@ bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
 
 bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-    if (it != mapSubscribedFork.end())
+    if (IsSubscribed(hashFork))
     {
-        fInverted = ((*it).second.fSynchronized != fSync);
-        (*it).second.fSynchronized = fSync;
+        fInverted = (mapSubscribedFork[hashFork].fSynchronized != fSync);
+        mapSubscribedFork[hashFork].fSynchronized = fSync;
         return true;
     }
     return false;
@@ -79,19 +78,17 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
 
 void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>& vTxHash, size_t nTotalSynTxCount)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-    if (it != mapSubscribedFork.end())
+    if (IsSubscribed(hashFork))
     {
-        (*it).second.AddKnownTx(vTxHash, nTotalSynTxCount);
+        mapSubscribedFork[hashFork].AddKnownTx(vTxHash, nTotalSynTxCount);
     }
 }
 
 bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& vTxPool, vector<network::CInv>& vInv)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-    if (it != mapSubscribedFork.end())
+    if (IsSubscribed(hashFork))
     {
-        CNetChannelPeerFork& peerFork = (*it).second;
+        CNetChannelPeerFork& peerFork = mapSubscribedFork[hashFork];
         switch (peerFork.CheckTxInvSynStatus())
         {
         case CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
@@ -107,7 +104,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
                 {
                     break;
                 }
-                else if (!(*it).second.IsKnownTx(txid))
+                else if (!peerFork.IsKnownTx(txid))
                 {
                     vInv.push_back(network::CInv(network::CInv::MSG_TX, txid));
                     vTxHash.push_back(txid);
