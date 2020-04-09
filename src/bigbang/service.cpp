@@ -20,7 +20,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr),pDbpSocket(nullptr)
 {
 }
 
@@ -66,6 +66,12 @@ bool CService::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("dbpservice", pDbpSocket))
+    {
+         Error("Failed to request DbpSocket\n");
+         return false;
+    }
+
     if (!GetObject("forkmanager", pForkManager))
     {
         Error("Failed to request forkmanager");
@@ -83,6 +89,7 @@ void CService::HandleDeinitialize()
     pDispatcher = nullptr;
     pWallet = nullptr;
     pNetwork = nullptr;
+    pDbpSocket = nullptr;
     pForkManager = nullptr;
 }
 
@@ -123,6 +130,10 @@ void CService::NotifyBlockChainUpdate(const CBlockChainUpdate& update)
         status.nLastBlockHeight = update.nLastBlockHeight;
         status.nMoneySupply = update.nMoneySupply;
     }
+    uint64 nNonce = 0;
+    CBbEventDbpUpdateNewBlock *pUpdateNewBlockEvent = new CBbEventDbpUpdateNewBlock(nNonce, update.hashFork, 0);
+    pUpdateNewBlockEvent->data = update.vBlockAddNew[update.vBlockAddNew.size() - 1];
+    pDbpSocket->PostEvent(pUpdateNewBlockEvent);
 }
 
 void CService::NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update)
@@ -132,7 +143,10 @@ void CService::NotifyNetworkPeerUpdate(const CNetworkPeerUpdate& update)
 
 void CService::NotifyTransactionUpdate(const CTransactionUpdate& update)
 {
-    (void)update;
+    uint64 nNonce = 0;
+    CBbEventDbpUpdateNewTx *pUpdateNewTxEvent = new CBbEventDbpUpdateNewTx(nNonce, update.hashFork, update.nChange);
+    pUpdateNewTxEvent->data = update.txUpdate;
+    pDbpSocket->PostEvent(pUpdateNewTxEvent);
 }
 
 void CService::Stop()
