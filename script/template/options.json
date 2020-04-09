@@ -271,6 +271,142 @@
             "desc": "Allow JSON-RPC connections from specified <ip> address"
         }
     ],
+
+    "CBbDbpBasicConfigOption": [
+        {
+            "access": "protected",
+            "name": "nDbpPortInt",
+            "type": "int",
+            "opt": "dbpport",
+            "default": 0,
+            "format": "-dbpport=port",
+            "desc": "Listen for DBP connections on <port> (default: 9905)"
+        },
+        {
+            "name": "fDbpListen4",
+            "type": "bool",
+            "opt": "dbplisten4",
+            "default": false,
+            "format": "-dbplisten4",
+            "desc": "Accept DBP IPv4 connections (default: 0)"
+        },
+        {
+            "name": "fDbpListen6",
+            "type": "bool",
+            "opt": "dbplisten6",
+            "default": false,
+            "format": "-dbplisten6",
+            "desc": "Accept DBP IPv6 connections (default: 0)"
+        },
+        {
+            "name": "strDbpUser",
+            "type": "string",
+            "opt": "dbpuser",
+            "format": "-dbpuser=<user>",
+            "desc": "<user> name for DBP connections"
+        },
+        {
+            "name": "strDbpPass",
+            "type": "string",
+            "opt": "dbppassword",
+            "format": "-dbppassword=<password>",
+            "desc": "<password> for DBP connections"
+        },
+        {
+            "name": "fDbpSSLEnable",
+            "type": "bool",
+            "opt": "dbpssl",
+            "default": false,
+            "format": "-dbpssl",
+            "desc": "Use OpenSSL (https) for DBP connections or not (default false)"
+        },
+        {
+            "name": "fDbpSSLVerify",
+            "type": "bool",
+            "opt": "dbpsslverify",
+            "default": false,
+            "format": "-nodbpsslverify",
+            "desc": "Verify SSL or not (default no)"
+        },
+        {
+            "name": "strDbpCAFile",
+            "type": "string",
+            "opt": "dbpcafile",
+            "default": "dbpca.crt",
+            "format": "-dbpcafile=<file.cert>",
+            "desc": "SSL CA file name (default dbpca.crt)"
+        },
+        {
+            "name": "strDbpCertFile",
+            "type": "string",
+            "opt": "dbpcertfile",
+            "default": "dbpserver.crt",
+            "format": "-dbpcertfile=<file.cert>",
+            "desc": "Server certificate file (default: dbpserver.cert)"
+        },
+        {
+            "name": "strDbpPKFile",
+            "type": "string",
+            "opt": "dbppkfile",
+            "default": "dbpserver.key",
+            "format": "-dbppkfile=<file.pem>",
+            "desc": "Server private key (default: dbpserver.pem)"
+        },
+        {
+            "name": "strDbpCiphers",
+            "type": "string",
+            "opt": "dbpciphers",
+            "default": "TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH",
+            "format": "-dbpciphers=<ciphers>",
+            "desc": "Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)"
+        }
+    ],
+
+    "CBbDbpServerConfigOption": [
+        {
+            "name": "nDbpMaxConnections",
+            "type": "unsigned int",
+            "opt": "dbpmaxconnections",
+            "default": "DEFAULT_DBP_MAX_CONNECTIONS",
+            "format": "-dbpmaxconnections=<num>",
+            "desc": "Set dbp max connections to <num> (default: 20)"
+        },
+        {
+            "name": "nDbpSessionTimeout",
+            "type": "unsigned int",
+            "opt": "dbpsessiontimeout",
+            "default": "DEFAULT_DBP_SESSION_TIMEOUT",
+            "format": "-dbpsessiontimeout=<num>",
+            "desc": "Set max timeout to <num>  seconds (default: 60*5)"
+        },
+        {
+            "name": "vDbpAllowIP",
+            "type": "vector<string>",
+            "opt": "dbpallowip",
+            "format": "-dbpallowip=<ip>",
+            "desc": "Allow DBP connections from specified <ip> address"
+        }
+    ],
+
+    "CBbDbpClientConfigOption": [
+        {
+            "name": "strParentHost",
+            "type": "string",
+            "opt": "dbpparentnodeip",
+            "default": "",
+            "format": "-dbpparentnodeip=<ip>",
+            "desc": "Set dbp parent node ip to <ip> for super node(default: empty)"
+        },
+        {
+            "name": "strSupportForks",
+            "type": "string",
+            "opt": "supernodeforks",
+            "default": "",
+            "format": "-supernodeforks=<forkids>",
+            "desc": "Set Support Fork List to <forkids> for super node(default: empty)"
+        }
+    ],
+
     "CStorageConfigOption": [
         {
             "name": "nCheckLevel",
