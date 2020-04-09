@@ -22,11 +22,6 @@ add_custom_command(OUTPUT ${auto_files}
             "${CMAKE_SOURCE_DIR}/script/auto_protocol.py"
 )
 
-#dbptype.h
-#	dbputils.h
-#	dbpserver.cpp dbpserver.h
-#	dbpservice.cpp dbpservice.h
-#	dbpclient.cpp dbpclient.h
 
 set(src
     address.cpp         address.h
@@ -58,6 +53,7 @@ set(src
     dbputils.h
     dbpserver.cpp       dbpserver.h
     dbpclient.cpp       dbpclient.h
+    dbpservice.cpp      dbpservice.h
     event.h
     base.h
     struct.h
