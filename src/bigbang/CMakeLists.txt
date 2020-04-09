@@ -57,6 +57,7 @@ set(src
     dbptype.h
     dbputils.h
     dbpserver.cpp       dbpserver.h
+    dbpclient.cpp       dbpclient.h
     event.h
     base.h
     struct.h
