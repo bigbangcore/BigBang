@@ -15,11 +15,11 @@ namespace bigbang
 CDbpService::CDbpService()
     : IIOModule("dbpservice")
 {
-    pService = NULL;
-    pCoreProtocol = NULL;
-    pWallet = NULL;
-    pDbpServer = NULL;
-    pNetChannel = NULL;
+    pService = nullptr;
+    pCoreProtocol = nullptr;
+    pWallet = nullptr;
+    pDbpServer = nullptr;
+    pNetChannel = nullptr;
 
     std::unordered_map<std::string, bool> temp_map = boost::assign::map_list_of("all-block", true)("all-tx", true)("changed", true)("removed", true);
 

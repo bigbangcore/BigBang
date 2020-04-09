@@ -7,8 +7,9 @@
 
 #include <boost/filesystem.hpp>
 #include <xengine.h>
-
 #include "config.h"
+#include "dbpserver.h"
+#include "dbpclient.h"
 
 namespace bigbang
 {
@@ -29,6 +30,9 @@ protected:
     bool AttachModule(xengine::IBase* pBase);
 
     xengine::CHttpHostConfig GetRPCHostConfig();
+
+    CDbpHostConfig GetDbpHostConfig();
+    CDbpClientConfig GetDbpClientConfig();
 
     void PurgeStorage();
 

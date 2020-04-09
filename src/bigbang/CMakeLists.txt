@@ -68,6 +68,7 @@ set(mode_src
     mode/network_config.cpp mode/network_config.h
     mode/rpc_config.cpp     mode/rpc_config.h
     mode/storage_config.cpp mode/storage_config.h
+    mode/dbp_config.cpp     mode/dbp_config.h
     mode/config_macro.h
     mode/config_type.h
     mode/mode.h
