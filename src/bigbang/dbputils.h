@@ -10,6 +10,7 @@
 #include <random>
 #include <vector>
 
+#include "dbptype.h"
 #include "dbp.pb.h"
 #include "lws.pb.h"
 #include "sn.pb.h"
@@ -72,7 +73,7 @@ public:
         }
         return ret;
     }
-/*
+
     static void DbpToLwsTransaction(const CBbDbpTransaction* dbptx, lws::Transaction* tx)
     {
         tx->set_nversion(dbptx->nVersion);
@@ -342,7 +343,7 @@ public:
 
         block.nHeight = pBlock->nheight();
         block.hash = std::vector<unsigned char>(pBlock->hash().begin(), pBlock->hash().end());
-    }*/
+    }
 
 };
 } // namespace bigbang

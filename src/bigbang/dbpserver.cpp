@@ -14,7 +14,7 @@
 
 using namespace xengine;
 
-/*
+
 namespace bigbang
 {
 
@@ -795,7 +795,7 @@ void CDbpServer::AddNewHost(const CDbpHostConfig& confHost)
     vecHostConfig.push_back(confHost);
 }
 
-bool CDbpServer::BlockheadHandleInitialize()
+bool CDbpServer::HandleInitialize()
 {
     for (const CDbpHostConfig& confHost : vecHostConfig)
     {
@@ -807,7 +807,7 @@ bool CDbpServer::BlockheadHandleInitialize()
     return true;
 }
 
-void CDbpServer::BlockheadHandleDeinitialize()
+void CDbpServer::HandleDeinitialize()
 {
     for (std::map<boost::asio::ip::tcp::endpoint, CDbpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
@@ -819,22 +819,22 @@ void CDbpServer::BlockheadHandleDeinitialize()
 
 void CDbpServer::EnterLoop()
 {
-    BlockheadLog("Dbp Server starting:\n");
+    //BlockheadLog("Dbp Server starting:\n");
 
     for (std::map<boost::asio::ip::tcp::endpoint, CDbpProfile>::iterator it = mapProfile.begin();
          it != mapProfile.end(); ++it)
     {
         if (!StartService((*it).first, (*it).second.nMaxConnections, (*it).second.vAllowMask))
         {
-            BlockheadError("Setup service %s failed, listen port = %d, connection limit %d\n",
-                       (*it).second.pIOModule->BlockheadGetOwnKey().c_str(),
-                       (*it).first.port(), (*it).second.nMaxConnections);
+            //BlockheadError("Setup service %s failed, listen port = %d, connection limit %d\n",
+            //           (*it).second.pIOModule->BlockheadGetOwnKey().c_str(),
+            //           (*it).first.port(), (*it).second.nMaxConnections);
         }
         else
         {
-            BlockheadLog("Setup service %s success, listen port = %d, connection limit %d\n",
-                       (*it).second.pIOModule->BlockheadGetOwnKey().c_str(),
-                       (*it).first.port(), (*it).second.nMaxConnections);
+            //BlockheadLog("Setup service %s success, listen port = %d, connection limit %d\n",
+            //           (*it).second.pIOModule->BlockheadGetOwnKey().c_str(),
+            //           (*it).first.port(), (*it).second.nMaxConnections);
         }
     }
 }
@@ -851,10 +851,10 @@ void CDbpServer::LeaveLoop()
     {
         RemoveClient(pClient);
     }
-    BlockheadLog("Dbp Server stop\n");
+    //BlockheadLog("Dbp Server stop\n");
 }
 
-bool CDbpServer::ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient)
+bool CDbpServer::ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient,std::string& strFailCause)
 {
     std::map<boost::asio::ip::tcp::endpoint, CDbpProfile>::iterator it = mapProfile.find(epService);
     if (it == mapProfile.end())
@@ -867,9 +867,9 @@ bool CDbpServer::ClientAccepted(const boost::asio::ip::tcp::endpoint& epService,
 bool CDbpServer::CreateProfile(const CDbpHostConfig& confHost)
 {
     CDbpProfile profile;
-    if (!BlockheadGetObject(confHost.strIOModule, profile.pIOModule))
+    if (!GetObject(confHost.strIOModule, profile.pIOModule))
     {
-        BlockheadError("Failed to request %s\n", confHost.strIOModule.c_str());
+        //BlockheadError("Failed to request %s\n", confHost.strIOModule.c_str());
         return false;
     }
 
@@ -878,16 +878,16 @@ bool CDbpServer::CreateProfile(const CDbpHostConfig& confHost)
         profile.pSSLContext = new boost::asio::ssl::context(boost::asio::ssl::context::sslv23);
         if (!profile.pSSLContext)
         {
-            BlockheadError("Failed to alloc ssl context for %s:%u\n",
-                       confHost.epHost.address().to_string().c_str(),
-                       confHost.epHost.port());
+            //BlockheadError("Failed to alloc ssl context for %s:%u\n",
+            //           confHost.epHost.address().to_string().c_str(),
+            //           confHost.epHost.port());
             return false;
         }
         if (!confHost.optSSL.SetupSSLContext(*profile.pSSLContext))
         {
-            BlockheadError("Failed to setup ssl context for %s:%u\n",
-                       confHost.epHost.address().to_string().c_str(),
-                       confHost.epHost.port());
+            //BlockheadError("Failed to setup ssl context for %s:%u\n",
+            //           confHost.epHost.address().to_string().c_str(),
+            //           confHost.epHost.port());
             delete profile.pSSLContext;
             return false;
         }
@@ -1219,7 +1219,7 @@ void CDbpServer::UpdateSession(const std::string& session, CDbpClient* pDbpClien
 {
     if (bimapSessionClient.left.find(session) != bimapSessionClient.left.end())
     {
-        auto pDbplient = bimapSessionClient.left.at(session);
+        //auto pDbplient = bimapSessionClient.left.at(session);
         bimapSessionClient.left.erase(session);
         bimapSessionClient.right.erase(pDbpClient);
     }
@@ -1230,4 +1230,3 @@ void CDbpServer::UpdateSession(const std::string& session, CDbpClient* pDbpClien
 }
 
 } //namespace bigbang
-*/

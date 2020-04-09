@@ -60,7 +60,7 @@ public:
     unsigned int nMaxConnections;
     unsigned int nSessionTimeout;
 };
-/*
+
 class CDbpClient
 {
 public:
@@ -147,12 +147,12 @@ public:
     void AddNewHost(const CDbpHostConfig& confHost);
 
 protected:
-    bool BlockheadHandleInitialize() override;
-    void BlockheadHandleDeinitialize() override;
+    bool HandleInitialize() override;
+    void HandleDeinitialize() override;
     void EnterLoop() override;
     void LeaveLoop() override;
 
-    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient) override;
+    bool ClientAccepted(const boost::asio::ip::tcp::endpoint& epService, CIOClient* pClient,std::string& strFailCause) override;
 
     bool CreateProfile(const CDbpHostConfig& confHost);
     CDbpClient* AddNewClient(CIOClient* pClient, CDbpProfile* pDbpProfile);
@@ -188,6 +188,6 @@ protected:
     typedef SessionClientBimapType::value_type position_pair;
     SessionClientBimapType bimapSessionClient;                // session id <=> CDbpClient
     std::map<std::string, CSessionProfile> mapSessionProfile; // session id => session profile
-};*/
+};
 } //namespace bigbang
 #endif //BIGBANG_DBP_SERVER_H
