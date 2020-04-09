@@ -270,6 +270,8 @@ protected:
 
     bool HandleEvent(network::CEventPeerActive& eventActive) override;
     bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
+    bool HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks) override;
+    bool HandleEvent(network::CEventPeerBizForks& eventBizForks) override;
     bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(network::CEventPeerInv& eventInv) override;

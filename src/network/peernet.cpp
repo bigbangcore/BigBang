@@ -70,6 +70,20 @@ void CBbPeerNet::HandleDeinitialize()
     // pDelegatedChannel = nullptr;
 }
 
+bool CBbPeerNet::HandleEvent(CEventPeerGetBizForks& eventGetBizForks)
+{
+    CBufStream ssPayload;
+    ssPayload << eventGetBizForks;
+    return SendDataMessage(eventGetBizForks.nNonce, PROTO_CMD_GETBIZFORK, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerBizForks& eventBizForks)
+{
+    CBufStream ssPayload;
+    ssPayload << eventBizForks;
+    return SendDataMessage(eventBizForks.nNonce, PROTO_CMD_BIZFORK, ssPayload);
+}
+
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)
 {
     CBufStream ssPayload;
@@ -425,6 +439,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_ADDRESS, ss);
         }
         case PROTO_CMD_ADDRESS:
+        {
             if (!fEnclosed)
             {
                 vector<CAddress> vAddr;
@@ -467,6 +482,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 return true;
             }
             break;
+        }
         case PROTO_CMD_PING:
         {
             uint32 nSeq;
@@ -494,6 +510,28 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 pBbPeer->nPingSeq = 0;
             }
             return true;
+        }
+        case PROTO_CMD_GETBIZFORK:
+        {
+            CEventPeerGetBizForks* pEvent = new CEventPeerGetBizForks(pBbPeer->GetNonce());
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pNetChannel->PostEvent(pEvent);
+                return true;
+            }
+            break;
+        }
+        case PROTO_CMD_BIZFORK:
+        {
+            CEventPeerBizForks* pEvent = new CEventPeerBizForks(pBbPeer->GetNonce());
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pNetChannel->PostEvent(pEvent);
+                return true;
+            }
+            break;
         }
         default:
             break;

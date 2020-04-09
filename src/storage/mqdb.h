@@ -15,6 +15,31 @@ namespace bigbang
 namespace storage
 {
 
+const std::string CLIENT_ID_OUT_OF_MQ_CLUSTER = "OUTER-NODE";
+
+class CForkKnownIP
+{
+public:
+    CForkKnownIP() {}
+    CForkKnownIP(const uint256& forkidIn, const uint32& nodeipIn)
+        : forkID(forkidIn), nodeIP(nodeipIn) {}
+
+public:
+    uint256 forkID;
+    uint32 nodeIP;
+};
+
+typedef boost::multi_index_container<
+    CForkKnownIP,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkKnownIP, uint256, &CForkKnownIP::forkID>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkKnownIP, uint32, &CForkKnownIP::nodeIP>>
+        >
+> CForkKnownIPSet;
+
+typedef CForkKnownIPSet::nth_index<0>::type CForkKnownIpSetById;
+typedef CForkKnownIPSet::nth_index<1>::type CForkKnownIpSetByIp;
+
 class CSuperNode
 {
     friend class xengine::CStream;
@@ -50,6 +75,25 @@ public:
         boost::asio::ip::address_v4 addr(ipNum);
         ipStr = addr.to_string();
         return true;
+    }
+
+    static std::string Int2Ip(const unsigned long& ipNum)
+    {
+        boost::asio::ip::address_v4 addr(ipNum);
+        return addr.to_string();
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "CSuperNode : superNodeID=" << superNodeID
+            << " ipAddr=" << Int2Ip(ipAddr) << "\n";
+        for (auto const& f : vecOwnedForks)
+        {
+            oss << " ownedFork=" << f.ToString() << "\n";
+        }
+        oss << " nodeCat=" << nodeCat << "\n";
+        return oss.str();
     }
 
 protected:

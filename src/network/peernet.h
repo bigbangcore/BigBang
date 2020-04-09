@@ -55,6 +55,8 @@ public:
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
+    bool HandleEvent(CEventPeerGetBizForks& eventGetBizForks) override;
+    bool HandleEvent(CEventPeerBizForks& eventBizForks) override;
     bool HandleEvent(CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(CEventPeerUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(CEventPeerInv& eventInv) override;

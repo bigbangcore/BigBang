@@ -14,7 +14,6 @@ namespace bigbang
 namespace storage
 {
 
-const string CLIENT_ID_OUT_OF_MQ_CLUSTER = "OUTER-NODE";
 //////////////////////////////
 // CSuperNodeDB
 

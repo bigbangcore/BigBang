@@ -378,7 +378,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         else
         {
             StdLog("NetChannel", "CEventPeerActive: succeed in filtering to "
-                                 "get main chain from peer[%s]", GetPeerAddressInfo(nNonce).c_str());
+                                 "get main chain from peer[%s]",
+                   GetPeerAddressInfo(nNonce).c_str());
         }
 
         network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -434,6 +435,151 @@ bool CNetChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
         }
     }
     NotifyPeerUpdate(nNonce, false, eventDeactive.data);
+
+    return true;
+}
+
+bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
+{
+    uint64 nNonce = eventGetBizForks.nNonce;
+    vector<uint256>& bizForks = eventGetBizForks.data;
+    StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for total [%d] biz forks",
+           GetPeerAddressInfo(nNonce).c_str(), bizForks.size());
+    for (auto const& f : bizForks)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for fork[%s]",
+               GetPeerAddressInfo(nNonce).c_str(), f.ToString().c_str());
+    }
+
+    vector<storage::CSuperNode> nodes;
+    if (!pBlockChain->ListSuperNode(nodes))
+    {
+        StdError("NetChannel", "CEventPeerGetBizForks: ListSuperNode failed");
+        return false;
+    }
+
+    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] node(s) all", nodes.size());
+    for (auto const& node : nodes)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s]", node.ToString().c_str());
+    }
+
+    //filter out dpos node itself
+    for (auto it = nodes.begin(); it != nodes.end(); ++it)
+    {
+        if (0 == it->ipAddr)
+        {
+            nodes.erase(it);
+            break;
+        }
+    }
+
+    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] node(s) without dpos node", nodes.size());
+    for (auto const& node : nodes)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s] w/o dpos node", node.ToString().c_str());
+    }
+
+    storage::CForkKnownIPSet setForkIp;
+    for (auto const& node : nodes)
+    {
+        for (auto const& fork : node.vecOwnedForks)
+        {
+            setForkIp.emplace(storage::CForkKnownIP(fork, node.ipAddr));
+        }
+    }
+
+    if (bizForks.empty())
+    {   //get all to peer
+        map<uint256, vector<uint32>> mapForkIp;
+        const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
+        for (auto const& it : idxForkID)
+        {
+            mapForkIp[it.forkID].emplace_back(it.nodeIP);
+        }
+
+        network::CEventPeerBizForks eventFork(nNonce);
+        eventFork.data = mapForkIp;
+        pPeerNet->DispatchEvent(&eventFork);
+
+        return true;
+    }
+
+    for (auto const& fork : bizForks)
+    {
+        map<uint256, vector<uint32>> mapForkIp;
+        const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
+        auto itBegin = idxForkID.equal_range(fork).first;
+        auto itEnd = idxForkID.equal_range(fork).second;
+
+        while (itBegin != itEnd)
+        {
+            mapForkIp[fork].emplace_back(itBegin->nodeIP);
+            ++itBegin;
+        }
+
+        network::CEventPeerBizForks eventFork(nNonce);
+        eventFork.data = mapForkIp;
+        pPeerNet->DispatchEvent(&eventFork);
+    }
+
+    return true;
+}
+
+bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
+{
+    uint64 nNonce = eventBizForks.nNonce;
+    map<uint256, vector<uint32>> mapForkIp = eventBizForks.data.mapFork;
+
+    StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding total [%d] biz forks",
+           GetPeerAddressInfo(nNonce).c_str(), mapForkIp.size());
+    for (auto const& fork : mapForkIp)
+    {
+        StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding total [%d] IPs for fork[%s]",
+               fork.second.size(), GetPeerAddressInfo(nNonce).c_str());
+        for (auto const& ip : fork.second)
+        {
+            StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding IP[%s] for fork[%s]",
+                   storage::CSuperNode::Int2Ip(ip).c_str(), GetPeerAddressInfo(nNonce).c_str());
+        }
+    }
+
+    storage::CForkKnownIPSet setForkIp;
+    for (auto const& fork : mapForkIp)
+    {
+        for (auto const ip : fork.second)
+        {
+            setForkIp.emplace(storage::CForkKnownIP(fork.first, ip));
+        }
+    }
+
+    map<uint32, vector<uint256>> mapIpForks;
+    const storage::CForkKnownIpSetByIp& idxNodeID = setForkIp.get<1>();
+    for (auto const& it : idxNodeID)
+    {
+        mapIpForks[it.nodeIP].emplace_back(it.forkID);
+    }
+
+    vector<storage::CSuperNode> nodes;
+    for (auto const& it : mapIpForks)
+    {
+        nodes.emplace_back(storage::CSuperNode(storage::CLIENT_ID_OUT_OF_MQ_CLUSTER, it.first, it.second, 0));
+    }
+
+    for (auto const& node : nodes)
+    {
+        if (!pBlockChain->AddNewSuperNode(node))
+        {
+            StdError("NetChannel", "CEventPeerBizForks: AddNewSuperNode failed");
+            return false;
+        }
+    }
+
+    //if dpos node self, dispatch them to fork nodes by MQ
+    if (2 == nNodeCat)
+    {
+        ;
+    }
 
     return true;
 }
