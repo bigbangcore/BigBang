@@ -68,6 +68,7 @@
 #include "mode/network_config.h"
 #include "mode/rpc_config.h"
 #include "mode/storage_config.h"
+#include "mode/dbp_config.h"
 
 namespace bigbang
 {
@@ -129,7 +130,9 @@ public:
                 EConfigType::MINT,
                 EConfigType::NETWORK,
                 EConfigType::RPCSERVER,
-                EConfigType::STORAGE>(cmd);
+                EConfigType::STORAGE,
+                EConfigType::DBPSERVER,
+                EConfigType::DBPCLIENT>(cmd);
         }
         case EModeType::CONSOLE:
         {
@@ -171,7 +174,10 @@ public:
                 EModuleType::HTTPSERVER,
                 EModuleType::RPCMODE,
                 EModuleType::BLOCKMAKER,
-                EModuleType::DATASTAT } },
+                EModuleType::DATASTAT,
+                EModuleType::DBPCLIENT,
+                EModuleType::DBPSERVER,
+                EModuleType::DBPSERVICE } },
             { EModeType::CONSOLE,
               { EModuleType::HTTPGET,
                 EModuleType::RPCCLIENT } },

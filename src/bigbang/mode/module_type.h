@@ -29,6 +29,9 @@ enum class EModuleType
     CONSENSUS,        // CConsensus
     FORKMANAGER,      // CForkManager
     DATASTAT,         // CDataStat
+    DBPCLIENT,        // CBbDbpClient
+    DBPSERVER,        // CDbpServer
+    DBPSERVICE,       // CDbpService
 };
 
 } // namespace bigbang

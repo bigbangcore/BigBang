@@ -27,6 +27,9 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "dbpclient.h"
+#include "dbpserver.h"
+#include "dbpservice.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -398,6 +401,44 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
+        case EModuleType::DBPSERVER:
+        {
+            if (!AttachModule(new CDbpServer()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::DBPCLIENT:
+        {
+            if(!AttachModule(new CBbDbpClient()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::DBPSERVICE:
+        {   
+            auto pBase = docker.GetObject("dbpserver");
+            if (!pBase)
+            {
+                return false;
+            }
+            dynamic_cast<CDbpServer*>(pBase)->AddNewHost(GetDbpHostConfig());
+
+            auto pClientBase = docker.GetObject("dbpclient");
+            if(!pClientBase)
+            {
+                return false;
+            }
+            dynamic_cast<CBbDbpClient*>(pClientBase)->AddNewClient(GetDbpClientConfig());
+
+            if (!AttachModule(new CDbpService()))
+            {
+                return false;
+            }
+            break;
+        }
         default:
             cerr << "Unknown module:%d" << CMode::IntValue(m) << endl;
             break;
@@ -422,6 +463,33 @@ CHttpHostConfig CBbEntry::GetRPCHostConfig()
 
     return CHttpHostConfig(pConfig->epRPC, pConfig->nRPCMaxConnections, sslRPC, mapUsrRPC,
                            pConfig->vRPCAllowIP, "rpcmod");
+}
+
+CDbpHostConfig CBbEntry::GetDbpHostConfig()
+{
+    
+    const CBbDbpServerConfig* pConfig = CastConfigPtr<CBbDbpServerConfig*>(config.GetConfig());
+    CIOSSLOption sslDbp(pConfig->fDbpSSLEnable, pConfig->fDbpSSLVerify,
+                        pConfig->strDbpCAFile, pConfig->strDbpCertFile,
+                        pConfig->strDbpPKFile, pConfig->strDbpCiphers);
+
+    map<string, string> mapUsrDbp;
+    if (!pConfig->strDbpUser.empty())
+    {
+        mapUsrDbp[pConfig->strDbpUser] = pConfig->strDbpPass;
+    }
+    return CDbpHostConfig(pConfig->epDbp, pConfig->nDbpMaxConnections, pConfig->nDbpSessionTimeout,
+                          sslDbp, mapUsrDbp, pConfig->vDbpAllowIP, "dbpservice");
+}
+
+CDbpClientConfig CBbEntry::GetDbpClientConfig()
+{
+    const CBbDbpClientConfig* pConfig =  CastConfigPtr<CBbDbpClientConfig*>(config.GetConfig());
+    CIOSSLOption sslDbp(pConfig->fDbpSSLEnable, pConfig->fDbpSSLVerify,
+                        pConfig->strDbpCAFile, pConfig->strDbpCertFile,
+                        pConfig->strDbpPKFile, pConfig->strDbpCiphers);
+    
+    return CDbpClientConfig(pConfig->epParentHost,pConfig->strSupportForks,sslDbp,"dbpservice");
 }
 
 void CBbEntry::PurgeStorage()
