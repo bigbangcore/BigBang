@@ -16,6 +16,8 @@ class CNetworkConfig;
 class CRPCServerConfig;
 class CRPCClientConfig;
 class CStorageConfig;
+class CBbDbpServerConfig;
+class CBbDbpClientConfig;
 
 ///
 // When add new config, add type to EConfigType add class pointer to ___ConfigTypeTemplate
@@ -30,7 +32,9 @@ enum class EConfigType
     NETWORK,   // CNetworkConfig
     RPCSERVER, // CRPCServerConfig
     RPCCLIENT, // CRPCClientConfig
-    STORAGE    // CStorageConfig
+    STORAGE,    // CStorageConfig
+    DBPSERVER,  // CBbDbpServerConfig
+    DBPCLIENT   // CBbDbpClientConfig
 };
 
 namespace config_type
@@ -43,7 +47,9 @@ static const auto ___ConfigTypeTemplate = std::make_tuple(
     (CNetworkConfig*)nullptr,
     (CRPCServerConfig*)nullptr,
     (CRPCClientConfig*)nullptr,
-    (CStorageConfig*)nullptr);
+    (CStorageConfig*)nullptr,
+    (CBbDbpServerConfig*)nullptr,
+    (CBbDbpClientConfig*)nullptr);
 } // namespace config_type
 
 } // namespace bigbang
