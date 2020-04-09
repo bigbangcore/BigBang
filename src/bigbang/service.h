@@ -99,6 +99,7 @@ protected:
     CNetwork* pNetwork;
     IForkManager* pForkManager;
     network::INetChannel* pNetChannel;
+    IIOModule* pDbpSocket;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;
 };

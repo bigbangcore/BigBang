@@ -30,6 +30,9 @@ enum class EModuleType
     FORKMANAGER,      // CForkManager
     DATASTAT,         // CDataStat
     RECOVERY,         // CRecovery
+    DBPCLIENT,        // CBbDbpClient
+    DBPSERVER,        // CDbpServer
+    DBPSERVICE,       // CDbpService
 };
 
 } // namespace bigbang
