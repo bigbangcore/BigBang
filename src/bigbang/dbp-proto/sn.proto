@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package sn;
+
+message ForkID 
+{
+    repeated string ids = 1;
+}
+
+message Transaction 
+{
+uint32 nVersion = 1; //版本号,目前交易版本为 0x0001
+    uint32 nType = 2; //类型, 区分公钥地址交易、模板地址交易、即时业务交易和跨分支交易
+    uint32 nLockUntil = 3; //交易冻结至高度为 nLockUntil 区块
+    bytes hashAnchor = 4; //交易有效起始区块 HASH
+    message CTxIn
+    {
+        bytes hash = 1;
+        uint32 n = 2;
+    }
+    repeated CTxIn vInput = 5; //前序交易输出列表,包含前序交易 ID 和输出点序号
+    message CDestination
+    {
+        enum PREFIX
+        {
+            PREFIX_NULL = 0;
+            PREFIX_PUBKEY = 1;
+            PREFIX_TEMPLATE = 2;
+            //PREFIX_MAX = 3;
+        }
+        uint32 prefix = 1;
+        bytes data = 2;
+        uint32 size = 3; //设置为33
+    }
+    CDestination cDestination = 6; //输出地址
+    int64 nAmount = 7; //输出金额
+    int64 nTxFee = 8; //网络交易费 
+    bytes vchData = 9; //输出参数(模板地址参数、跨分支交易共轭交易)
+    bytes vchSig = 10; //交易签名
+    bytes hash = 11; //当前tx hash
+}
+
+message Block
+{
+    uint32 nVersion = 1; //版本号，目前区块版本为 0x0001
+    uint32 nType = 2; // 类型,区分创世纪块、主链区块、业务区块和业务子区块
+    uint32  nTimeStamp = 3; //时间戳，采用UTC秒单位
+    bytes hashPrev = 4; //前一区块的hash
+    bytes hashMerkle = 5; //Merkle tree的根
+    bytes vchProof = 6;  //用于校验共识合法性数据
+    Transaction txMint = 7; // 出块奖励交易
+    repeated Transaction vtx = 8; //区块打包的所有交易
+    bytes vchSig = 9; //区块签名
+    uint32 nHeight = 10; //区块高度
+    bytes hash = 11; //当前区块hash
+}
+
+message SendBlockArg 
+{
+    Block block = 1;
+}
+
+message SendBlockRet
+{
+    bytes hash = 1;
+}
+
+message SendTxArg
+{
+    Transaction tx = 1;
+}
+
+message SendTxRet
+{
+    bytes hash = 1;
+}
+
+message RegisterForkIDArg 
+{
+    string id = 1;
+}
+
+message RegisterForkIDRet
+{
+    string id = 1;
+}

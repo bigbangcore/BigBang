@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package dbp;
+import "google/protobuf/any.proto";
+
+enum Msg
+{
+	CONNECT = 0;
+	CONNECTED = 1;
+	FAILED = 2;
+
+	PING = 3;
+	PONG = 4;
+
+	SUB = 5;
+	UNSUB = 6;
+	NOSUB = 7;
+	READY = 8;
+
+	ADDED = 9;
+	CHANGED = 10;
+	REMOVED = 11;
+
+	METHOD = 12;
+	RESULT = 13;
+    ERROR = 14;
+}
+
+message Base
+{
+	Msg msg = 1;    
+	google.protobuf.Any object = 2;
+}
+
+message Connect
+{
+    string session = 1;
+    int32 version = 2;
+    string client = 3;
+    map<string, google.protobuf.Any> udata = 4;
+}
+
+message Connected
+{
+    string session = 1;
+}
+
+message Failed
+{
+    string reason = 1;
+    string session = 2;
+    repeated int32 version = 3;
+}
+
+message Ping
+{
+    string id = 1;
+}
+
+message Pong
+{
+    string id = 1;
+}
+
+message Sub
+{
+    string id = 1;
+    string name = 2;
+}
+
+message Unsub
+{
+    string id = 1;
+}
+
+message Nosub
+{
+    string id = 1;
+    string error = 2;
+}
+
+message Ready
+{
+    string id = 1;
+}
+
+message Added
+{
+    string name = 1;
+    string id = 2;
+    google.protobuf.Any object = 3;
+}
+
+message Changed
+{
+    string name = 1;
+    string id = 2;
+    google.protobuf.Any object = 3;
+}
+
+message Removed 
+{
+    string name = 1;
+    string id = 2;
+    google.protobuf.Any object = 3;
+}
+
+message Method 
+{
+    string method = 1;
+    string id = 2;
+    google.protobuf.Any params = 3;
+}
+
+message Result
+{
+    string id = 1;
+    string error = 2;
+    repeated google.protobuf.Any result = 3;
+}
+
+message Error
+{
+    string reason = 1;
+    string explain = 2;
+}
