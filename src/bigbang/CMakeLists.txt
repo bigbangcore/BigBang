@@ -22,6 +22,12 @@ add_custom_command(OUTPUT ${auto_files}
             "${CMAKE_SOURCE_DIR}/script/auto_protocol.py"
 )
 
+#dbptype.h
+#	dbputils.h
+#	dbpserver.cpp dbpserver.h
+#	dbpservice.cpp dbpservice.h
+#	dbpclient.cpp dbpclient.h
+
 set(src
     address.cpp         address.h
     blockmaker.cpp      blockmaker.h
@@ -48,6 +54,9 @@ set(src
     forkmanager.cpp     forkmanager.h
     datastat.cpp        datastat.h
     checkrepair.cpp     checkrepair.h
+    dbptype.h
+    dbputils.h
+    dbpserver.cpp       dbpserver.h
     event.h
     base.h
     struct.h
@@ -76,8 +85,16 @@ set(sources
     ${auto_files}
 )
 
-add_library(libbigbang ${sources})
+
+
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
+dbp-proto/dbp.proto 
+dbp-proto/lws.proto
+dbp-proto/sn.proto)
+
 add_executable(bigbang bigbang.cpp)
+
+add_library(libbigbang ${sources} ${PROTO_SRCS} ${PROTO_HDRS})
 
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
