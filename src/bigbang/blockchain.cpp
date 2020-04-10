@@ -571,8 +571,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
-        Log("AddNew Block : Short chain, new block height: %d, fork chain trust: %s, fork last block: %s",
-            pIndexNew->GetBlockHeight(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
+        Log("AddNew Block : Short chain, new block height: %d, block: %s, fork chain trust: %s, fork last block: %s",
+            pIndexNew->GetBlockHeight(), hash.GetHex().c_str(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
         return OK;
     }
 
@@ -1067,6 +1067,119 @@ uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
         return 0;
     }
     return pCoreProtocol->DPoSTimestamp(pIndexPrev);
+}
+
+Errno CBlockChain::VerifyPowBlock(const CBlock& block)
+{
+    uint256 hash = block.GetHash();
+    Errno err = OK;
+
+    if (cntrBlock.Exists(hash))
+    {
+        Log("VerifyPowBlock Already Exists : %s ", hash.ToString().c_str());
+        return ERR_ALREADY_HAVE;
+    }
+
+    err = pCoreProtocol->ValidateBlock(block);
+    if (err != OK)
+    {
+        Log("VerifyPowBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
+        return err;
+    }
+
+    CBlockIndex* pIndexPrev;
+    if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
+    {
+        Log("VerifyPowBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
+        return ERR_SYS_STORAGE_ERROR;
+    }
+
+    int64 nReward;
+    CDelegateAgreement agreement;
+    CBlockIndex* pIndexRef = nullptr;
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, &pIndexRef);
+    if (err != OK)
+    {
+        Log("VerifyPowBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
+        return err;
+    }
+
+    storage::CBlockView view;
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
+    {
+        Log("VerifyPowBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
+        return ERR_SYS_STORAGE_ERROR;
+    }
+
+    if (!block.IsVacant())
+    {
+        view.AddTx(block.txMint.GetHash(), block.txMint);
+    }
+
+    CBlockEx blockex(block);
+    vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
+
+    int64 nTotalFee = 0;
+
+    vTxContxt.reserve(block.vtx.size());
+
+    int nForkHeight;
+    if (block.nType == block.BLOCK_EXTENDED)
+    {
+        nForkHeight = pIndexPrev->nHeight;
+    }
+    else
+    {
+        nForkHeight = pIndexPrev->nHeight + 1;
+    }
+
+    for (const CTransaction& tx : block.vtx)
+    {
+        uint256 txid = tx.GetHash();
+        CTxContxt txContxt;
+        err = GetTxContxt(view, tx, txContxt);
+        if (err != OK)
+        {
+            Log("VerifyPowBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
+            return err;
+        }
+        if (!pTxPool->Exists(txid))
+        {
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+            if (err != OK)
+            {
+                Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+                return err;
+            }
+        }
+
+        vTxContxt.push_back(txContxt);
+        view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
+
+        StdTrace("BlockChain", "VerifyPowBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
+
+        nTotalFee += tx.nTxFee;
+    }
+
+    if (block.txMint.nAmount > nTotalFee + nReward)
+    {
+        Log("VerifyPowBlock Mint tx amount invalid : (%ld > %ld + %ld)", block.txMint.nAmount, nTotalFee, nReward);
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
+    }
+
+    // Get block trust
+    uint256 nNewBlockChainTrust = pIndexPrev->nChainTrust + pCoreProtocol->GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
+
+    CBlockIndex* pIndexFork = nullptr;
+    if (cntrBlock.RetrieveFork(pIndexPrev->GetOriginHash(), &pIndexFork)
+        && pIndexFork->nChainTrust > nNewBlockChainTrust)
+    {
+        Log("VerifyPowBlock : Short chain, new block height: %d, block: %s, fork chain trust: %s, fork last block: %s",
+            block.GetBlockHeight(), hash.GetHex().c_str(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
+        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
+    }
+
+    return OK;
 }
 
 bool CBlockChain::CheckContainer()

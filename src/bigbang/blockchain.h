@@ -62,6 +62,7 @@ public:
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
+    Errno VerifyPowBlock(const CBlock& block) override;
 
 protected:
     bool HandleInitialize() override;

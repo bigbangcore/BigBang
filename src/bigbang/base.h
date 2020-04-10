@@ -59,6 +59,7 @@ public:
         = 0;
     virtual int64 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
+    virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp) = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -111,6 +112,7 @@ public:
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
+    virtual Errno VerifyPowBlock(const CBlock& block) = 0;
 
     const CBasicConfig* Config()
     {
@@ -180,6 +182,7 @@ public:
     virtual bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
+    virtual bool GetNextConsensus(CAgreementBlock& consParam) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc
@@ -255,6 +258,7 @@ public:
     virtual bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                                const std::vector<unsigned char>& vchPublish)
         = 0;
+    virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
 };
 
 class IService : public xengine::IBase

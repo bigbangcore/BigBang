@@ -102,6 +102,7 @@ protected:
     IWallet* pWallet;
     CNetwork* pNetwork;
     IForkManager* pForkManager;
+    network::INetChannel* pNetChannel;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;
 };

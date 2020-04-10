@@ -266,6 +266,14 @@ public:
     void RemoveRefBlock(const uint256& hash);
     void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
     bool SetDelayedClear(const network::CInv& inv, int64 nDelayedTime);
+    bool GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash);
+    bool GetFirstCachePowBlock(int nHeight, uint256& hashFirstBlock);
+    bool AddCacheLocalPowBlock(const CBlock& block, bool& fFirst);
+    bool CheckCacheLocalPowBlock(int nHeight);
+    bool GetCacheLocalPowBlock(const uint256& hash, CBlock& block);
+    void RemoveCacheLocalPowBlock(const uint256& hash);
+    bool GetCachePowBlock(const uint256& hash, CBlock& block);
+    void RemoveHeightBlock(int nHeight, const uint256& hash);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);
@@ -279,6 +287,8 @@ protected:
     std::map<network::CInv, CInvState> mapState;
     std::set<network::CInv> setMissPrevTxInv;
     std::multimap<uint256, std::pair<uint256, uint256>> mapRefBlock;
+    std::map<int, std::vector<std::pair<uint256, int>>> mapHeightBlock;
+    std::map<int, CBlock> mapKcPowBlock;
 };
 
 } // namespace bigbang

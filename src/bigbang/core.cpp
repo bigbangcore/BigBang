@@ -19,7 +19,7 @@ using namespace xengine;
 
 //#define BBCP_SET_TOKEN_DISTRIBUTION
 
-static const int64 MAX_CLOCK_DRIFT = 20;
+static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
@@ -360,12 +360,22 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 {
     if (block.vchProof.size() < CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+    if (IsDposHeight(block.GetBlockHeight()))
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1.");
+        }
+    }
+    else
+    {
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2.");
+        }
     }
 
     CProofOfHashWorkCompact proof;
@@ -375,16 +385,16 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     int64 nReward = 0;
     if (!GetProofOfWorkTarget(pIndexPrev, proof.nAlgo, nBits, nReward))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.");
     }
 
     if (nBits != proof.nBits || proof.nAlgo != CM_CRYPTONIGHT)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.\n", proof.nAlgo, proof.nBits, block.vchProof.size());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.", proof.nAlgo, proof.nBits, block.vchProof.size());
     }
     if (proof.destMint != block.txMint.sendTo)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.\n", proof.destMint.ToString().c_str());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.", proof.destMint.ToString().c_str());
     }
 
     uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
@@ -395,7 +405,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (hash > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.");
     }
 
     return OK;
@@ -407,12 +417,12 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     uint32 nTime = DPoSTimestamp(pIndexPrev);
     if (block.GetBlockTime() != nTime)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u\n", block.GetBlockTime(), nTime);
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u", block.GetBlockTime(), nTime);
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
     return OK;
 }
@@ -422,14 +432,14 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
 {
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
     }
 
     if (!block.IsExtended())
     {
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
         }
     }
     else
@@ -438,13 +448,13 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
             || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
         }
     }
 
     if (block.txMint.sendTo != agreement.GetBallot(0))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
 
     return OK;
@@ -911,7 +921,7 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         return 0;
     }
 
-    uint32 nTimeStamp = 0;
+    /*uint32 nTimeStamp = 0;
     if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT)
     {
         nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
@@ -929,9 +939,18 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         {
             nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
         }
-    }
+    }*/
 
-    return nTimeStamp;
+    return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+}
+
+uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)
+{
+    if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+    {
+        return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+    }
+    return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
