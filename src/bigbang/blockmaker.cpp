@@ -784,11 +784,11 @@ void CBlockMaker::BlockMakerThreadFunc()
             // log
             if (agree.IsProofOfWork())
             {
-                Log("GetAgreement: height: %d, consensus: pow", nPrimaryBlockHeight + 1);
+                Log("GetAgreement height: %d, consensus: pow", nPrimaryBlockHeight + 1);
             }
             else
             {
-                Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", nPrimaryBlockHeight + 1, CAddress(agree.vBallot[0]).ToString().c_str());
+                Log("GetAgreement height: %d, consensus: dpos, ballot address: %s", nPrimaryBlockHeight + 1, CAddress(agree.vBallot[0]).ToString().c_str());
             }
         }
 
