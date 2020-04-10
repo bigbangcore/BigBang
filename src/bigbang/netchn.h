@@ -179,26 +179,29 @@ public:
     }
     void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
     {
-        if(IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
         {
-            mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+            it->second.ResetTxInvSynStatus(fIsComplete);
         }
     }
     void SetWaitGetTxComplete(const uint256& hashFork)
     {
-        if(IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
         {
-            mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+            it->second.fWaitGetTxComplete = true;
         }
     }
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
-        if(!IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it == mapSubscribedFork.end())
         {
             return false;
         }
         
-        CNetChannelPeerFork& peer = mapSubscribedFork[hashFork];
+        CNetChannelPeerFork& peer = it->second;
         if (peer.fWaitGetTxComplete)
         {
             peer.fWaitGetTxComplete = false;
@@ -208,9 +211,10 @@ public:
     }
     void SetPeerGetDataTime(const uint256& hashFork)
     {
-        if(IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
         {
-            mapSubscribedFork[hashFork].SetPeerGetDataTime();
+            it->second.SetPeerGetDataTime();
         }
     }
     std::string GetRemoteAddress()

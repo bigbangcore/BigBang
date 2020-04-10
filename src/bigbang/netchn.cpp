@@ -58,19 +58,20 @@ void CNetChannelPeer::CNetChannelPeerFork::ClearExpiredTx()
 bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
 {
     map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
-    if (IsSubscribed(hashFork))
+    if (it != mapSubscribedFork.end())
     {
-        return (*it).second.fSynchronized;
+        return it->second.fSynchronized;
     }
     return false;
 }
 
 bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted)
 {
-    if (IsSubscribed(hashFork))
+    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
     {
-        fInverted = (mapSubscribedFork[hashFork].fSynchronized != fSync);
-        mapSubscribedFork[hashFork].fSynchronized = fSync;
+        fInverted = (it->second.fSynchronized != fSync);
+        it->second.fSynchronized = fSync;
         return true;
     }
     return false;
@@ -78,17 +79,19 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
 
 void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>& vTxHash, size_t nTotalSynTxCount)
 {
-    if (IsSubscribed(hashFork))
+    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
     {
-        mapSubscribedFork[hashFork].AddKnownTx(vTxHash, nTotalSynTxCount);
+        it->second.AddKnownTx(vTxHash, nTotalSynTxCount);
     }
 }
 
 bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& vTxPool, vector<network::CInv>& vInv)
 {
-    if (IsSubscribed(hashFork))
+    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
     {
-        CNetChannelPeerFork& peerFork = mapSubscribedFork[hashFork];
+        CNetChannelPeerFork& peerFork = it->second;
         switch (peerFork.CheckTxInvSynStatus())
         {
         case CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
