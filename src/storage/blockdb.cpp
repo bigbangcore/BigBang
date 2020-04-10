@@ -261,9 +261,9 @@ bool CBlockDB::ListSuperNode(std::vector<CSuperNode>& nodes)
     return dbSuperNode.ListSuperNode(nodes);
 }
 
-bool CBlockDB::FetchSuperNode(std::vector<CSuperNode>& nodes)
+bool CBlockDB::FetchSuperNode(std::vector<CSuperNode>& nodes, const uint8 mask)
 {
-    return dbSuperNode.FetchSuperNode(nodes);
+    return dbSuperNode.FetchSuperNode(nodes, mask);
 }
 
 } // namespace storage

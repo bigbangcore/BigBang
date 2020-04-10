@@ -256,6 +256,7 @@ public:
     uint16 nMintType;
 };
 
+/* Super node */
 class CMqRollbackUpdate
 {
 public:

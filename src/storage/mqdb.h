@@ -120,13 +120,13 @@ public:
     bool ListSuperNode(std::vector<CSuperNode>& vCli);  //return all nodes
     void Clear();
     bool ClearSuperNode(const CSuperNode& cli);
-    bool FetchSuperNode(std::vector<CSuperNode>& vCli); //only return super nodes including dpos and fork nodes
+    bool FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& mask); //only return super nodes on request
 
 protected:
     bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
                              std::map<std::pair<std::string, uint32>, std::vector<uint256>>& mapCli);
     bool FetchSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                              std::map<std::pair<std::string, uint32>, std::vector<uint256>>& mapCli);
+                              std::map<std::pair<std::string, uint32>, std::vector<uint256>>& mapCli, const uint8& mask);
 };
 
 } // namespace storage

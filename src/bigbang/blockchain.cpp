@@ -660,9 +660,9 @@ bool CBlockChain::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
     return true;
 }
 
-bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes)
+bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask)
 {
-    if (!cntrBlock.FetchSuperNode(nodes))
+    if (!cntrBlock.FetchSuperNode(nodes, mask))
     {
         return false;
     }

@@ -170,11 +170,12 @@ private:
 
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;
-    std::map<string, std::vector<uint256>> mapSuperNode;
     string clientID;
     uint32 ipAddr;
+    std::set<uint256> setBizFork;
 
-    std::map<uint32, storage::CSuperNode> mapActiveSuperNode;
+    std::map<string, storage::CSuperNode> mapActiveMQForkNode;  //nil if bbc or fork nodes
+    std::map<uint32, storage::CSuperNode> mapOuterNode;  //nil if bbc nodes
 
     boost::mutex mtxSend;
     boost::condition_variable condSend;
@@ -184,7 +185,6 @@ private:
     std::deque<std::pair<std::string, xengine::CBufStream>> deqRecvBuff; //topic vs. payload
 
     std::atomic<int> lastHeightResp;
-//    uint32 nReqBlkTimerID;
     std::atomic<uint32> nReqBlkTimerID;
 
     boost::mutex mtxRoll;

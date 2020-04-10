@@ -110,7 +110,7 @@ bool CDispatcher::HandleInitialize()
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
 
     nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
-    if (2 == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         if (!GetObject("mqcluster", pMQCluster))
         {

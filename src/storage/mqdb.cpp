@@ -106,13 +106,23 @@ void CSuperNodeDB::Clear()
 }
 
 bool CSuperNodeDB::FetchSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                                        map<pair<string, uint32>, vector<uint256>>& mapCli)
+                                        map<pair<string, uint32>, vector<uint256>>& mapCli, const uint8& mask)
 {
     string strCliID;
     uint32 nIP;
     ssKey >> strCliID >> nIP;
 
-    if (strCliID == CLIENT_ID_OUT_OF_MQ_CLUSTER)
+    if (((mask & 0x1 << 0) == 0) && strCliID == CLIENT_ID_OUT_OF_MQ_CLUSTER)
+    {
+        return true;
+    }
+
+    if (((mask & 0x1 << 1) == 0) && strCliID != CLIENT_ID_OUT_OF_MQ_CLUSTER && 0 != nIP)
+    {
+        return true;
+    }
+
+    if (((mask & 0x1 << 2) == 0) && strCliID != CLIENT_ID_OUT_OF_MQ_CLUSTER && 0 == nIP)
     {
         return true;
     }
@@ -123,11 +133,11 @@ bool CSuperNodeDB::FetchSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBu
     return true;
 }
 
-bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli)
+bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& mask)
 {
     map<pair<string, uint32>, vector<uint256>> mapCli;
 
-    if (!WalkThrough(boost::bind(&CSuperNodeDB::FetchSuperNodeWalker, this, _1, _2, boost::ref(mapCli))))
+    if (!WalkThrough(boost::bind(&CSuperNodeDB::FetchSuperNodeWalker, this, _1, _2, boost::ref(mapCli), mask)))
     {
         return false;
     }
@@ -147,7 +157,7 @@ bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli)
 bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
 {
     vector<CSuperNode> vSuperNode;
-    if (!FetchSuperNode(vSuperNode))
+    if (!FetchSuperNode(vSuperNode, 6))
     {
         return false;
     }

@@ -109,91 +109,105 @@ bool CMQCluster::HandleInvoke()
         return true;
     }
 
-    std::vector<storage::CSuperNode> nodes;
-    if (!pBlockChain->FetchSuperNode(nodes))
-    {
-        Log("CMQCluster::HandleInvoke(): list super node failed");
-        return false;
-    }
-    for (const auto& node : nodes)
-    {
-        mapSuperNode.insert(make_pair(node.superNodeID, node.vecOwnedForks));
-        if (1 == node.vecOwnedForks.size()
-            && node.vecOwnedForks[0] == pCoreProtocol->GetGenesisBlockHash())
-        {
-            Log("dpos node of MQ: [%s] [%d]", node.superNodeID.c_str(), node.ipAddr);
-        }
-        else if (0 != node.ipAddr)
-        {
-            Log("fork node of MQ: [%s] [%d]", node.superNodeID.c_str(), node.ipAddr);
-        }
-        for (const auto& fork : node.vecOwnedForks)
-        {
-            Log("CMQCluster::HandleInvoke(): list fork/dpos node [%s] with fork [%s]",
-                node.superNodeID.c_str(), fork.ToString().c_str());
-        }
-    }
-
+    uint8 mask = 0;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
-
-        if (mapSuperNode.size() == 0)
+        mask = 2;
+    }
+    if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        mask = 4;
+    }
+    std::vector<storage::CSuperNode> nodes;
+    if (!pBlockChain->FetchSuperNode(nodes, mask))
+    {
+        Error("CMQCluster::HandleInvoke(): fetch super node failed");
+        return false;
+    }
+    if (nodes.size() > 1)
+    {
+        Error("CMQCluster::HandleInvoke(): there are nodes enrollment info greater than one");
+        return false;
+    }
+    if (nodes.empty())
+    {
+        Log("CMQCluster::HandleInvoke(): this super node has not enrolled yet");
+    }
+    else
+    {
         {
-            Log("CMQCluster::HandleInvoke(): this fork node has not enrolled "
-                "itself to dpos node yet[%d]",
-                mapSuperNode.size());
+            boost::unique_lock<boost::mutex> lock(mtxStatus);
+            clientID = nodes[0].superNodeID;
+            ipAddr = nodes[0].ipAddr;
+            for (auto const& fork : nodes[0].vecOwnedForks)
+            {
+                setBizFork.emplace(fork);
+                Log("CMQCluster::HandleInvoke(): super node enrolled fork:[%s]", fork.ToString().c_str());
+            }
         }
+        Log("CMQCluster::HandleInvoke(): load super node status info "
+            "successfully[%s]",
+            nodes[0].ToString().c_str());
 
-        if (mapSuperNode.size() > 1)
+        if (NODE_CATEGORY::FORKNODE == catNode)
         {
-            Error("CMQCluster::HandleInvoke(): fork node should only have one "
-                  "single enrollment but [%d]",
-                  mapSuperNode.size());
-            return false;
-        }
+            lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+            pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
-        if (1 == mapSuperNode.size())
-        {
-            pForkManager->SetForkFilter(mapSuperNode.begin()->second);
-
-            clientID = mapSuperNode.begin()->first;
             topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
             topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
             Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
                 "\t[%s]\n\t[%s]",
-                clientID.c_str(),
-                topicRespBlk.c_str(), topicRbBlk.c_str());
-            for (const auto& fork : mapSuperNode.begin()->second)
-            {
-                Log("CMQCluster::HandleInvoke(): fork [%s] intended to be produced "
-                    "by this node [%s]:",
-                    fork.ToString().c_str(), clientID.c_str());
-            }
+                clientID.c_str(), topicRespBlk.c_str(), topicRbBlk.c_str());
 
-/*            if (!PostBlockRequest(-1))
+            if (!PostBlockRequest(-1))
             {
                 Error("CMQCluster::HandleInvoke(): failed to post requesting block");
                 return false;
-            }*/
-        }
-    }
-    else if (NODE_CATEGORY::DPOSNODE == catNode)
-    {
-        lastHeightResp = -1;
-        for (const auto& node : mapSuperNode)
-        {
-            if (1 == node.second.size()
-                && node.second[0] == pCoreProtocol->GetGenesisBlockHash())
-            { //dpos node
-                clientID = node.first;
-                topicReqBlk = "Cluster01/+/SyncBlockReq";
-                topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-                Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
-                    clientID.c_str(), topicReqBlk.c_str());
             }
         }
+        else if (NODE_CATEGORY::DPOSNODE == catNode)
+        {
+            lastHeightResp = -1;
+            topicReqBlk = "Cluster01/+/SyncBlockReq";
+            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+            Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
+                clientID.c_str(), topicReqBlk.c_str());
+        }
+    }
+
+    if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        nodes.clear();
+        if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
+        {
+            Error("CMQCluster::HandleInvoke(): list all mq fork nodes failed");
+            return false;
+        }
+        for (auto const& node : nodes)
+        {
+            mapActiveMQForkNode.emplace(make_pair(node.superNodeID,
+                                                  storage::CSuperNode(node.superNodeID, node.ipAddr,
+                                                                      node.vecOwnedForks,
+                                                                      static_cast<int8>(NODE_CATEGORY::FORKNODE))));
+            Log("CMQCluster::HandleInvoke(): load fork node [%s]", node.ToString().c_str());
+        }
+    }
+
+    nodes.clear();
+    if (!pBlockChain->FetchSuperNode(nodes, 1 << 0))
+    {
+        Error("CMQCluster::HandleInvoke(): list all other outer nodes failed");
+        return false;
+    }
+    for (auto const& node : nodes)
+    {
+        mapOuterNode.emplace(make_pair(node.ipAddr,
+                                       storage::CSuperNode(node.superNodeID, node.ipAddr,
+                                                           node.vecOwnedForks,
+                                                           static_cast<int8>(NODE_CATEGORY::BBCNODE))));
+        Log("CMQCluster::HandleInvoke(): load outer node [%s]", node.ToString().c_str());
     }
 
     if (!ThreadStart(thrMqttClient))
@@ -268,14 +282,12 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        clientID = id;
-        ipAddr = eventMqUpdateEnroll.data.ipAddr;
         topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
         topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:"
             "\n[%s]\n[%s]",
-            clientID.c_str(), ipAddr,
+            id.c_str(), eventMqUpdateEnroll.data.ipAddr,
             topicRespBlk.c_str(), topicRbBlk.c_str());
         for (const auto& fork : forks)
         {
@@ -286,8 +298,12 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 
         {
             boost::unique_lock<boost::mutex> lock(mtxStatus);
-            mapSuperNode.clear();
-            mapSuperNode.insert(make_pair(id, forks));
+            clientID = id;
+            ipAddr = eventMqUpdateEnroll.data.ipAddr;
+            for (auto const& fork : forks)
+            {
+                setBizFork.emplace(fork);
+            }
         }
         condStatus.notify_all();
 
@@ -301,25 +317,37 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     {
         if (1 == forks.size() && 0 == eventMqUpdateEnroll.data.ipAddr
             && forks[0] == pCoreProtocol->GetGenesisBlockHash())
-        { //dpos node
-            clientID = id;
+        { //dpos node enrolled by self
             topicReqBlk = "Cluster01/+/SyncBlockReq";
             topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s]",
-                clientID.c_str(), topicReqBlk.c_str());
+            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
+                id.c_str(), topicReqBlk.c_str(), topicRbBlk.c_str());
 
             {
                 boost::unique_lock<boost::mutex> lock(mtxStatus);
-                mapSuperNode.insert(make_pair(id, forks));
+                clientID = id;
+                ipAddr = 0;
+                setBizFork.emplace(forks[0]);
             }
             condStatus.notify_all();
+            return true;
         }
-        else
-        { //fork nodes either enrolled or p2p
-            //mapActiveSuperNode[ip] = storage::CSuperNode();
-            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s] with topic [%s]",
-                clientID.c_str(), topicReqBlk.c_str());
+
+        if (storage::CLIENT_ID_OUT_OF_MQ_CLUSTER != id)
+        { //fork node enrolled by dpos node
+            mapActiveMQForkNode[id] = storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks);
+            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]",
+                clientID.c_str());
+            return true;
         }
+
+        //biz fork nodes by p2p
+        mapOuterNode.insert(make_pair(eventMqUpdateEnroll.data.ipAddr,
+                                      storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks)));
+        Log("CMQCluster::HandleEvent(): dpos node register biz fork nodes by p2p [%s - %s]",
+            clientID.c_str(), storage::CSuperNode::Int2Ip(eventMqUpdateEnroll.data.ipAddr).c_str());
+
+        return true;
     }
 
     return true;
@@ -352,16 +380,10 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
 {
     Log("CMQCluster::PostBlockRequest(): posting request for block #%d", syncHeight);
 
-    if (mapSuperNode.empty())
+    if ("" == clientID)
     {
         Log("CMQCluster::PostBlockRequest(): enrollment is empty for this fork node");
         return true;
-    }
-
-    if (mapSuperNode.size() > 1)
-    {
-        Error("CMQCluster::PostBlockRequest(): enrollment is incorrect for this fork node");
-        return false;
     }
 
     uint256 hash;
@@ -398,9 +420,11 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     req.ipAddr = ipAddr; //16777343 - 127.0.0.1; 1111638320 - "0ABB"
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
-    auto enroll = mapSuperNode.begin();
-    req.forkNum = (*enroll).second.size();
-    req.forkList = (*enroll).second;
+    req.forkNum = setBizFork.size();
+    for (auto const& fork : setBizFork)
+    {
+        req.forkList.emplace_back(fork);
+    }
     req.lastHeight = height;
     req.lastHash = hash;
     req.tsRequest = GetTime();
@@ -633,7 +657,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                         }
                     }
                     Log("CMQCluster::OnReceiveMessage(): fork node blkhsh[%s] vs. dpos node blkhsh[%s] "
-                        "at height of [%d]", rb.hashList[i].ToString().c_str(), hash.ToString().c_str(),
+                        "at height of [%d]",
+                        rb.hashList[i].ToString().c_str(), hash.ToString().c_str(),
                         rb.rbHeight + i + 1);
                     if (hash == rb.hashList[i])
                     {
@@ -690,22 +715,22 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
 
         //check if requesting fork node has been enrolled
-        auto node = mapSuperNode.find(req.forkNodeId);
-        if (node == mapSuperNode.end())
+        auto node = mapActiveMQForkNode.find(req.forkNodeId);
+        if (node == mapActiveMQForkNode.end())
         {
             Error("CMQCluster::OnReceiveMessage(): requesting fork node has not enrolled yet");
             return;
         }
         //check if requesting fork node matches the corresponding one enrolled
-        if (node->second.size() != req.forkNum)
+        if (node->second.vecOwnedForks.size() != req.forkNum)
         {
             Error("CMQCluster::OnReceiveMessage(): requesting fork node number does not match");
             return;
         }
         for (const auto& fork : req.forkList)
         {
-            auto pos = find(node->second.begin(), node->second.end(), fork);
-            if (pos == node->second.end())
+            auto pos = find(node->second.vecOwnedForks.begin(), node->second.vecOwnedForks.end(), fork);
+            if (pos == node->second.vecOwnedForks.end())
             {
                 Error("CMQCluster::OnReceiveMessage(): requesting fork node detailed forks does not match");
                 return;
@@ -713,9 +738,9 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
 
         //add this requesting fork node to active list
-        if (!mapActiveSuperNode.count(req.ipAddr))
+        if (!mapActiveMQForkNode.count(req.forkNodeId))
         {
-            mapActiveSuperNode[req.ipAddr] = storage::CSuperNode(req.forkNodeId, req.ipAddr, req.forkList);
+            mapActiveMQForkNode[req.forkNodeId] = storage::CSuperNode(req.forkNodeId, req.ipAddr, req.forkList);
         }
 
         //processing request from fork node
@@ -746,13 +771,15 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
             {
                 Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match "
-                      "at height of #%d", req.lastHeight);
+                      "at height of #%d",
+                      req.lastHeight);
                 return;
             }
             if (hash != req.lastHash)
             {
                 Error("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
-                      "at height of [%d]", hash.ToString().c_str(), req.lastHash.ToString().c_str(), req.lastHeight);
+                      "at height of [%d]",
+                      hash.ToString().c_str(), req.lastHash.ToString().c_str(), req.lastHeight);
                 return;
             }
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))

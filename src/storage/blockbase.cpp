@@ -528,9 +528,9 @@ bool CBlockBase::ListSuperNode(vector<storage::CSuperNode>& nodes)
     return true;
 }
 
-bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes)
+bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes, const uint8 mask)
 {
-    if (!dbBlock.FetchSuperNode(nodes))
+    if (!dbBlock.FetchSuperNode(nodes, mask))
     {
         Error("CBlockBase::FetchSuperNode", "Failed to fetch supernode");
         return false;
