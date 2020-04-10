@@ -112,6 +112,7 @@ public:
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
+    virtual void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) = 0;
 
     const CBasicConfig* Config()
     {
@@ -181,7 +182,6 @@ public:
     virtual bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
-    virtual bool GetWitness(const uint256& hashBlock, delegate::CSecretShare& witness) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc

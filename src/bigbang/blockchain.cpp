@@ -12,6 +12,7 @@ using namespace xengine;
 
 #define ENROLLED_CACHE_COUNT (120)
 #define AGREEMENT_CACHE_COUNT (16)
+#define WITNESS_CACHE_COUNT (120)
 
 namespace bigbang
 {
@@ -20,11 +21,10 @@ namespace bigbang
 // CBlockChain
 
 CBlockChain::CBlockChain()
-  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
+  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT), cacheWitness(WITNESS_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
-    pConsensus = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -58,7 +58,6 @@ void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
-    pConsensus = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -1044,7 +1043,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
 
     delegate::CSecretShare witness;
     delegate::CDelegateVerify verifier;
-    if(pConsensus->GetWitness(hashBlock, witness))
+    if(cacheWitness.Retrieve(hashBlock, witness))
     {
         delegate::CDelegateVerify verifierWitness(witness);
         verifier = verifierWitness;
@@ -1087,6 +1086,11 @@ uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
         return 0;
     }
     return pCoreProtocol->DPoSTimestamp(pIndexPrev);
+}
+
+void CBlockChain::AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness)
+{
+    cacheWitness.AddNew(hashBlock, witness);
 }
 
 bool CBlockChain::CheckContainer()

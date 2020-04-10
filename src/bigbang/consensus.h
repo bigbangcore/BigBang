@@ -100,7 +100,6 @@ public:
     bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
     void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
-    bool GetWitness(const uint256& hashBlock, delegate::CSecretShare& witness) override;
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -117,7 +116,6 @@ protected:
     ITxPool* pTxPool;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
-    std::map<uint256, delegate::CSecretShare> mapSecretShare;
 };
 
 } // namespace bigbang

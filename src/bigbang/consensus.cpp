@@ -371,7 +371,8 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
-            mapSecretShare[hash] = result.witness;
+            pBlockChain->AddNewWitness(hash, result.witness);
+
 
             std::map<CDestination, int64> mapDelegateVote;
             int64 nDelegateMinAmount = pBlockChain->GetDelegateMinEnrollAmount(hash);
@@ -511,18 +512,6 @@ void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
     delegate.GetProof(nTargetHeight, vchProof);
-}
-
-bool CConsensus::GetWitness(const uint256& hashBlock, delegate::CSecretShare& witness)
-{
-    boost::unique_lock<boost::mutex> lock(mutex);
-    auto iter = mapSecretShare.find(hashBlock);
-    if(iter == mapSecretShare.end())
-    {
-        return false;
-    }
-    witness = mapSecretShare[hashBlock];
-    return true;
 }
 
 bool CConsensus::LoadDelegateTx()

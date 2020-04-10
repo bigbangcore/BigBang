@@ -62,7 +62,7 @@ public:
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
-
+    void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) override;
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -88,6 +88,7 @@ protected:
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
+    xengine::CCache<uint256, delegate::CSecretShare> cacheWitness;
 };
 
 } // namespace bigbang
