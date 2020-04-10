@@ -152,6 +152,11 @@ bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
         return false;
     }
 
+    if (vSuperNode.empty())
+    {
+        return true;
+    }
+
     if (NODE_CAT_FORKNODE == cli.nodeCat) //fork node updates self by remove all supernode entries
     {
         for (auto const& supernode : vSuperNode)

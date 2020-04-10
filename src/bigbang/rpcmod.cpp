@@ -2415,6 +2415,16 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid ip address");
     }
 
+    if (NODE_CAT_FORKNODE == nNodeCat && 0 == ipNum)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of fork node must not be 0.0.0.0");
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat && 0 != ipNum)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");
+    }
+
     std::string id = spParam->strClientid;
     std::vector<std::string> vFork = spParam->vecForks;
 
