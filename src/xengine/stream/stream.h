@@ -466,28 +466,37 @@ inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, SaveType&)
 template <typename T, typename A>
 inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, LoadType&)
 {
+    t.clear();
+
     CVarInt var;
     *this >> var;
 
     // prevent huge & bad length
-    std::list<T> l;
-    for (uint64 i = 0; i < var.nValue; i++)
+    if (boost::is_fundamental<T>::value)
     {
-        T data;
-        if (boost::is_fundamental<T>::value)
+        size_t length = sizeof(T) * var.nValue;
+        if (GetSize() < length)
         {
-            Read((char*)&data, sizeof(T));
+            throw std::runtime_error((std::string("stream read size error. left size: ") + std::to_string(GetSize()) + " < read size: " + std::to_string(length)).c_str());
         }
-        else
+
+        t.resize(var.nValue);
+        Read((char*)&t[0], length);
+    }
+    else
+    {
+        std::list<T> l;
+        for (uint64 i = 0; i < var.nValue; i++)
         {
+            T data;
             *this >> data;
+            l.push_back(std::move(data));
         }
-        l.push_back(std::move(data));
+
+        t.reserve(var.nValue);
+        t.insert(t.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
     }
 
-    t.clear();
-    t.reserve(var.nValue);
-    t.insert(t.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
     return (*this);
 }
 
