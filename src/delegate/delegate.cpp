@@ -54,6 +54,8 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
     result.Clear();
 
+    CSecretShare witness;
+
     if (nDelete > 0)
     {
         map<int, CDelegateVote>::iterator it = mapVote.find(nDelete);
@@ -120,7 +122,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             auto t0 = boost::posix_time::microsec_clock::universal_time();
 
             vote.is_enroll = true;
-            vote.Enroll(mapWeight, mapEnrollData);
+            result.witness = vote.Enroll(mapWeight, mapEnrollData);
             vote.Distribute(result.mapDistributeData);
             vote.hashDistributeBlock = hashBlock;
 

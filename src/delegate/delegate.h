@@ -29,6 +29,7 @@ public:
     std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
     uint256 hashDistributeOfPublish;
+    CSecretShare witness;
 };
 
 class CDelegate

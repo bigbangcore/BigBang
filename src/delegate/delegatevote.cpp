@@ -138,7 +138,7 @@ void CDelegateVote::Publish(map<CDestination, vector<unsigned char>>& mapPublish
     // StdWarn("vote", "CDelegateVote::Publish exit.............");
 }
 
-void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
+CSecretShare CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
                            const map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
     // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s", 
@@ -173,12 +173,15 @@ void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
         }
     }
     witness.Enroll(vCandidate);
+
     // StdWarn("vote", "CDelegateVote::Enroll ............... vCandidate size: %llu", vCandidate.size());
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
         CSecretShare& delegate = (*it).second;
         delegate.Enroll(vCandidate);
     }
+
+    return witness;
     // StdWarn("vote", "CDelegateVote::Enroll exit ...............");
 }
 

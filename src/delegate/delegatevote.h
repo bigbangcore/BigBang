@@ -85,7 +85,7 @@ public:
     void Distribute(std::map<CDestination, std::vector<unsigned char>>& mapDistributeData);
     void Publish(std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
 
-    void Enroll(const std::map<CDestination, size_t>& mapWeight,
+    CSecretShare Enroll(const std::map<CDestination, size_t>& mapWeight,
                 const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
     bool Accept(const CDestination& destFrom, const std::vector<unsigned char>& vchDistributeData);
     bool Collect(const CDestination& destFrom, const std::vector<unsigned char>& vchPublishData, bool& fCompleted);

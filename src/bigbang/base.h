@@ -26,6 +26,7 @@
 #include "transaction.h"
 #include "uint256.h"
 #include "wallettx.h"
+#include "delegatevote.h"
 
 namespace bigbang
 {
@@ -180,6 +181,7 @@ public:
     virtual bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
+    virtual bool GetWitness(const uint256& hashBlock, delegate::CSecretShare& witness) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc
