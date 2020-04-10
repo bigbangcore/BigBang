@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "mqdb.h"
-
+#include "defs.h"
 #include "leveldbeng.h"
 
 using namespace std;
@@ -44,14 +44,15 @@ void CSuperNodeDB::Deinitialize()
 bool CSuperNodeDB::AddNewSuperNode(const CSuperNode& cli)
 {
     bool ret = false;
-    switch(cli.nodeCat)
+    switch (cli.nodeCat)
     {
-    case 0:
+    case NODE_CAT_BBCNODE:
     {
         ret = Write(make_pair(CLIENT_ID_OUT_OF_MQ_CLUSTER, cli.ipAddr), cli.vecOwnedForks, true);
         break;
     }
-    case 1: case 2:
+    case NODE_CAT_FORKNODE:
+    case NODE_CAT_DPOSNODE:
     {
         if (!ClearSuperNode(cli))
         {
@@ -105,7 +106,7 @@ void CSuperNodeDB::Clear()
 }
 
 bool CSuperNodeDB::FetchSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                                       map<pair<string, uint32>, vector<uint256>>& mapCli)
+                                        map<pair<string, uint32>, vector<uint256>>& mapCli)
 {
     string strCliID;
     uint32 nIP;
@@ -151,7 +152,7 @@ bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
         return false;
     }
 
-    if (1 == cli.nodeCat)   //fork node updates self by remove all supernode entries
+    if (NODE_CAT_FORKNODE == cli.nodeCat) //fork node updates self by remove all supernode entries
     {
         for (auto const& supernode : vSuperNode)
         {
@@ -163,7 +164,7 @@ bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
         return true;
     }
 
-    if (2 == cli.nodeCat && 0 == cli.ipAddr)    //dpos node updates oneself
+    if (NODE_CAT_DPOSNODE == cli.nodeCat && 0 == cli.ipAddr) //dpos node updates oneself
     {
         for (auto const& supernode : vSuperNode)
         {
@@ -178,7 +179,7 @@ bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
 }
 
 bool CSuperNodeDB::LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                                     map<pair<string, uint32>, vector<uint256>>& mapCli)
+                                       map<pair<string, uint32>, vector<uint256>>& mapCli)
 {
     string strCliID;
     uint32 nIP;

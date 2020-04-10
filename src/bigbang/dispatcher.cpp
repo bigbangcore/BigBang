@@ -8,6 +8,7 @@
 #include <future>
 #include <thread>
 
+#include "defs.h"
 #include "event.h"
 
 using namespace std;
@@ -362,7 +363,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
 
     // SyncForkHeight(updateBlockChain.nLastBlockHeight);
 
-    if (2 == nNodeCat && !updateBlockChain.vBlockRemove.empty())
+    if (NODE_CAT_DPOSNODE == nNodeCat && !updateBlockChain.vBlockRemove.empty())
     {
         CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
         if (pMqChainUpdate != nullptr)

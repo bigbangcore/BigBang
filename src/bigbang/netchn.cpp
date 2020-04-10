@@ -5,6 +5,7 @@
 #include "netchn.h"
 
 #include <boost/bind.hpp>
+#include <defs.h>
 
 #include "schedule.h"
 
@@ -140,7 +141,7 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     fStartIdlePushTxTimer = false;
-    nNodeCat = 0;
+    nNodeCat = NODE_CAT_BBCNODE;
 }
 
 CNetChannel::~CNetChannel()
@@ -308,13 +309,13 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         StdLog("NetChannel", "SubscribeFork: mapSched insert success, hashFork: %s", hashFork.GetHex().c_str());
     }
 
-    if (hashFork == pCoreProtocol->GetGenesisBlockHash() && 1 == nNodeCat)
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash() && NODE_CAT_FORKNODE == nNodeCat)
     {
         StdLog("NetChannel", "SubscribeFork: succeed in filtering the main chain for fork nodes with nonce[%d]", nNonce);
         return;
     }
 
-    if (hashFork != pCoreProtocol->GetGenesisBlockHash() && 2 == nNodeCat)
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash() && NODE_CAT_DPOSNODE == nNodeCat)
     {
         StdLog("NetChannel", "SubscribeFork: succeed in filtering biz chains for dpos nodes with nonce[%d]", nNonce);
         return;
@@ -370,7 +371,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
     StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
-        if (1 != nNodeCat)
+        if (NODE_CAT_FORKNODE != nNodeCat)
         {
             DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
             BroadcastTxInv(pCoreProtocol->GetGenesisBlockHash());
@@ -490,7 +491,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     }
 
     if (bizForks.empty())
-    {   //get all to peer
+    { //get all to peer
         map<uint256, vector<uint32>> mapForkIp;
         const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
         for (auto const& it : idxForkID)
@@ -576,7 +577,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
     }
 
     //if dpos node self, dispatch them to fork nodes by MQ
-    if (2 == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         ;
     }
@@ -597,7 +598,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
         {
             for (const uint256& hash : eventSubscribe.data)
             {
-                if (2 == nNodeCat)
+                if (NODE_CAT_DPOSNODE == nNodeCat)
                 {
                     if (hash == pCoreProtocol->GetGenesisBlockHash())
                     {
@@ -841,7 +842,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     uint64 nNonce = eventGetBlocks.nNonce;
     uint256& hashFork = eventGetBlocks.hashFork;
 
-    if (1 == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat)
     {
         if (hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
@@ -851,7 +852,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
             return true;
         }
     }
-    if (2 == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         if (hashFork != pCoreProtocol->GetGenesisBlockHash())
         {
@@ -917,7 +918,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
     uint64 nNonce = eventTx.nNonce;
     uint256& hashFork = eventTx.hashFork;
 
-    if (1 == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat)
     {
         if (hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
@@ -927,7 +928,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
             return true;
         }
     }
-    if (2 == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         if (hashFork != pCoreProtocol->GetGenesisBlockHash())
         {
@@ -991,7 +992,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     uint64 nNonce = eventBlock.nNonce;
     uint256& hashFork = eventBlock.hashFork;
 
-    if (1 == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat)
     {
         if (hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
@@ -1001,7 +1002,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             return true;
         }
     }
-    if (2 == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         if (hashFork != pCoreProtocol->GetGenesisBlockHash())
         {

@@ -14,6 +14,7 @@
 //#include <algorithm>
 
 #include "address.h"
+#include "defs.h"
 #include "mqdb.h"
 #include "rpc/auto_protocol.h"
 #include "template/proof.h"
@@ -2401,7 +2402,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
 CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
 {
     int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
-    if (1 != nNodeCat && 2 != nNodeCat)
+    if (NODE_CAT_FORKNODE != nNodeCat && NODE_CAT_DPOSNODE != nNodeCat)
     {
         throw CRPCException(RPC_INVALID_REQUEST, "Only super node has the feature");
     }
