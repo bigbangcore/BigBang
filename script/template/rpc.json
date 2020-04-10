@@ -713,6 +713,10 @@
             "{\"code\":-6,\"message\":\"Failed: IP of fork node must not be 0.0.0.0\"}",
             "{\"code\":-6,\"message\":\"Failed: IP of dpos node must be 0.0.0.0\"}",
             "{\"code\":-6,\"message\":\"Invalid fork(s)\"}",
+            "{\"code\":-6,\"message\":\"No fork hash parameter\"}",
+            "{\"code\":-6,\"message\":\"Dpos node must have only main chain to enroll\"}",
+            "{\"code\":-6,\"message\":\"The main fork dpos node enrolls does not match\"}",
+            "{\"code\":-6,\"message\":\"The main fork fork node watches should not be the main fork\"}",
             "{\"code\":-32603,\"message\":\"Add super node enrollment failed\"}",
             "{\"code\":-32603,\"message\":\"List super node enrollment failed\"}",
             "{\"code\":-32603,\"message\":\"Failed to convert ip address\"}"

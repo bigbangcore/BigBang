@@ -2442,6 +2442,33 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         }
         forks.emplace_back(fork);
     }
+
+    if (forks.empty())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "No fork hash parameter");
+    }
+
+    uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (forks.size() > 1)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Dpos node must have only main chain to enroll");
+        }
+        else if (forks[0] != hashGenesis)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "The main fork dpos node enrolls does not match:[ " + hashGenesis.ToString() + " ]");
+        }
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (forks.end() != find(forks.begin(), forks.end(), hashGenesis))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "The main fork fork node watches should not be the main fork:[ " + hashGenesis.ToString() + " ]");
+        }
+    }
+
     storage::CSuperNode newNode;
     newNode.superNodeID = std::move(id);
     newNode.ipAddr = ipNum;
