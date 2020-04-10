@@ -24,6 +24,7 @@ CBlockChain::CBlockChain()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pConsensus = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -44,6 +45,12 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
+    if(!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus");
+        return false;
+    }
+
     return true;
 }
 
@@ -51,6 +58,7 @@ void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pConsensus = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -1031,10 +1039,22 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
     CDelegateEnrolled enrolled;
     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
     {
-        return false;
+         return false;
     }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    delegate::CSecretShare witness;
+    delegate::CDelegateVerify verifier;
+    if(pConsensus->GetWitness(hashBlock, witness))
+    {
+        delegate::CDelegateVerify verifierWitness(witness);
+        verifier = verifierWitness;
+    }
+    else
+    {
+        delegate::CDelegateVerify verifierEnroll(enrolled.mapWeight, enrolled.mapEnrollData);
+        verifier = verifierEnroll;
+    }
+    
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {

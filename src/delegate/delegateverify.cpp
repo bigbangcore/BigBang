@@ -21,6 +21,11 @@ CDelegateVerify::CDelegateVerify(const map<CDestination, size_t>& mapWeight,
     Enroll(mapWeight, mapEnrollData);
 }
 
+CDelegateVerify::CDelegateVerify(const CSecretShare& witnessIn)
+{
+    witness = witnessIn;
+}
+
 bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,
                                   size_t& nWeight, map<CDestination, size_t>& mapBallot)
 {
