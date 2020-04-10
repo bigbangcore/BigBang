@@ -19,7 +19,8 @@ enum
     EVENT_MQ_SYNCBLOCK,
     EVENT_MQ_UPDATEBLOCK,   //dpos node deliver rollback block
     EVENT_MQ_ENROLLUPDATE,
-    EVENT_MQ_AGREEMENT
+    EVENT_MQ_AGREEMENT,
+    EVENT_MQ_UPDATEBIZFORK
 };
 
 class CMQEventListener;
@@ -30,6 +31,8 @@ typedef TYPE_MQEVENT(EVENT_MQ_SYNCBLOCK, std::string) CEventMQSyncBlock;
 typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBLOCK, CMqRollbackUpdate) CEventMQChainUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_ENROLLUPDATE, CMqSuperNodeUpdate) CEventMQEnrollUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_AGREEMENT, CDelegateAgreement) CEventMQAgreement;
+//typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBIZFORK, std::vector<storage::CSuperNode>) CEventMQBizForkUpdate;
+typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBIZFORK, storage::CForkKnownIPSet) CEventMQBizForkUpdate;
 
 class CMQEventListener : virtual public CEventListener
 {
@@ -39,6 +42,7 @@ public:
     DECLARE_EVENTHANDLER(CEventMQChainUpdate);
     DECLARE_EVENTHANDLER(CEventMQEnrollUpdate);
     DECLARE_EVENTHANDLER(CEventMQAgreement);
+    DECLARE_EVENTHANDLER(CEventMQBizForkUpdate);
 };
 
 } // namespace bigbang

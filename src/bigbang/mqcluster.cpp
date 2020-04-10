@@ -325,6 +325,17 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     return true;
 }
 
+bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
+{
+    Log("CMQCluster::HandleEvent(): biz forks payload is coming");
+    if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        ;
+    }
+
+    return true;
+}
+
 bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
 {
     return true;
