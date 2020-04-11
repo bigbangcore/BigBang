@@ -650,7 +650,7 @@ void CBlockMaker::BlockMakerThreadFunc()
     int64 nWaitTime = 1;
     while (!fExit)
     {
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: nWaitTime=%ld", nWaitTime);
+        StdDebug("BlockMaker", "BlockMakerThreadFunc: last height: %d, wait time: %ld s", lastStatus.nLastBlockHeight, nWaitTime);
         if (nWaitTime < 1)
         {
             nWaitTime = 1;

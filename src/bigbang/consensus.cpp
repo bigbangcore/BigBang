@@ -552,6 +552,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     else
     {
         consParam = cacheAgreementBlock;
+        consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
     }
     consParam.ret = true;
     return true;
