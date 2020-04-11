@@ -105,6 +105,7 @@ public:
     uint256 blockHash;
     bool is_enroll;
     bool is_published;
+    bool is_completed;
     uint256 hashDistributeBlock;
     uint256 hashPublishBlock;
 };

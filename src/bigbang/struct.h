@@ -250,7 +250,7 @@ class CAgreementBlock
 {
 public:
     CAgreementBlock()
-      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), ret(false) {}
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fCompleted(false), ret(false) {}
 
     uint256 hashPrev;
     int64 nPrevTime;
@@ -258,6 +258,7 @@ public:
     uint16 nPrevMintType;
     CDelegateAgreement agreement;
     int64 nWaitTime;
+    bool fCompleted;
     bool ret;
 };
 

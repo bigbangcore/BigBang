@@ -646,11 +646,11 @@ bool CBlockMaker::CreateProofOfWork()
 
 void CBlockMaker::BlockMakerThreadFunc()
 {
-    uint256 hashPrev;
+    uint256 hashCachePrev;
+    bool fCachePow = false;
     int64 nWaitTime = 1;
     while (!fExit)
     {
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: last height: %d, wait time: %ld s", lastStatus.nLastBlockHeight, nWaitTime);
         if (nWaitTime < 1)
         {
             nWaitTime = 1;
@@ -663,14 +663,19 @@ void CBlockMaker::BlockMakerThreadFunc()
         CAgreementBlock consParam;
         if (!pConsensus->GetNextConsensus(consParam))
         {
+            StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+                     consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
             nWaitTime = consParam.nWaitTime;
             continue;
         }
+        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
 
-        if (hashPrev != consParam.hashPrev)
+        if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())
         {
-            hashPrev = consParam.hashPrev;
+            hashCachePrev = consParam.hashPrev;
+            fCachePow = consParam.agreement.IsProofOfWork();
             if (consParam.agreement.IsProofOfWork())
             {
                 Log("GetAgreement: height: %d, consensus: pow", consParam.nPrevHeight + 1);

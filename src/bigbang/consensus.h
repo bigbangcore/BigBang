@@ -110,7 +110,7 @@ protected:
 
     bool LoadDelegateTx();
     bool LoadChain();
-    bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot);
+    bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted);
 
 protected:
     boost::mutex mutex;

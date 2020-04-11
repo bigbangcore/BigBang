@@ -941,7 +941,8 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         }
     }*/
 
-    return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+    //return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
+    return GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
 }
 
 uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)

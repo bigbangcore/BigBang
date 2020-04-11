@@ -542,7 +542,8 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
 
     if (hashLastBlock != cacheAgreementBlock.hashPrev)
     {
-        if (!GetInnerAgreement(nLastHeight + 1, consParam.agreement.nAgreement, consParam.agreement.nWeight, consParam.agreement.vBallot))
+        if (!GetInnerAgreement(nLastHeight + 1, consParam.agreement.nAgreement, consParam.agreement.nWeight,
+                               consParam.agreement.vBallot, consParam.fCompleted))
         {
             Error("GetNextConsensus GetInnerAgreement fail");
             return false;
@@ -551,6 +552,19 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     }
     else
     {
+        if (cacheAgreementBlock.agreement.IsProofOfWork() && !cacheAgreementBlock.fCompleted)
+        {
+            if (!GetInnerAgreement(nLastHeight + 1, cacheAgreementBlock.agreement.nAgreement, cacheAgreementBlock.agreement.nWeight,
+                                   cacheAgreementBlock.agreement.vBallot, cacheAgreementBlock.fCompleted))
+            {
+                Error("GetNextConsensus GetInnerAgreement fail");
+                return false;
+            }
+            if (!cacheAgreementBlock.agreement.IsProofOfWork())
+            {
+                StdDebug("CConsensus", "GetNextConsensus: consensus change dpos, target height: %d", cacheAgreementBlock.nPrevHeight + 1);
+            }
+        }
         consParam = cacheAgreementBlock;
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
     }
@@ -598,7 +612,7 @@ bool CConsensus::LoadChain()
     return true;
 }
 
-bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot)
+bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted)
 {
     if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
@@ -608,23 +622,32 @@ bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_
             Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
             return false;
         }
-        CDelegateEnrolled enrolled;
-        if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-        {
-            Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
-            return false;
-        }
-        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
-        if (nMoneySupply < 0)
-        {
-            Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
-            return false;
-        }
+
+        fCompleted = delegate.IsCompleted(nTargetHeight);
 
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+        if (nAgreement != 0 && mapBallot.size() > 0)
+        {
+            CDelegateEnrolled enrolled;
+            if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+            {
+                Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+            int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+            if (nMoneySupply < 0)
+            {
+                Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+        }
+    }
+    else
+    {
+        fCompleted = true;
     }
     return true;
 }

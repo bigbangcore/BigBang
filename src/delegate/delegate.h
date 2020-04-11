@@ -51,6 +51,7 @@ public:
                        const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
     void GetAgreement(int nTargetHeight, const uint256& hashDistributeAnchor, uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof);
+    bool IsCompleted(int nTargetHeight);
 
 protected:
     std::set<CDestination> setDelegate;
