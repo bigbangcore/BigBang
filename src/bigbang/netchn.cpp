@@ -364,50 +364,67 @@ void CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
 {
     try
     {
-        uint256 hashFork = pCoreProtocol->GetGenesisBlockHash();
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+
+        uint256 hashFork = pCoreProtocol->GetGenesisBlockHash();
         CSchedule& sched = GetSchedule(hashFork);
 
         vector<std::pair<uint256, int>> vPowBlockHash;
         sched.GetSubmitCachePowBlock(consParam, vPowBlockHash);
 
+        set<uint64> setSchedPeer;
+        set<uint64> setMisbehavePeer;
         for (auto& chash : vPowBlockHash)
         {
+            const uint256& hashBlock = chash.first;
             if (chash.second == 1)
             {
-                set<uint64> setSchedPeer;
-                set<uint64> setMisbehavePeer;
-                vector<pair<uint256, uint256>> vRefNextBlock;
-                AddNewBlock(hashFork, chash.first, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock, false);
-                StdTrace("NetChannel", "SubmitCachePowBlock: add p2p pow block over, block: %s", chash.first.GetHex().c_str());
-                if (!vRefNextBlock.empty())
+                uint64 nNonceSender = 0;
+                CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
+                if (pBlock)
                 {
-                    AddRefNextBlock(vRefNextBlock);
+                    uint256 hashForkPrev;
+                    int nHeightPrev;
+                    if (pBlockChain->GetBlockLocation(pBlock->hashPrev, hashForkPrev, nHeightPrev)
+                        && hashForkPrev == hashFork)
+                    {
+                        vector<pair<uint256, uint256>> vRefNextBlock;
+                        AddNewBlock(hashFork, hashBlock, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock, false);
+                        StdTrace("NetChannel", "SubmitCachePowBlock: add p2p pow block over, height: %d, block: %s",
+                                 CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+
+                        if (!vRefNextBlock.empty())
+                        {
+                            AddRefNextBlock(vRefNextBlock);
+                        }
+                    }
                 }
             }
             else
             {
                 CBlock block;
-                if (sched.GetCacheLocalPowBlock(chash.first, block))
+                if (sched.GetCacheLocalPowBlock(hashBlock, block))
                 {
                     Errno err = pDispatcher->AddNewBlock(block, 0);
                     if (err != OK)
                     {
                         StdLog("NetChannel", "SubmitCachePowBlock AddNewBlock fail, block: %s, err: [%d] %s",
-                               chash.first.GetHex().c_str(), err, ErrorString(err));
+                               hashBlock.GetHex().c_str(), err, ErrorString(err));
                     }
                     else
                     {
-                        StdTrace("NetChannel", "SubmitCachePowBlock: add local pow block success, block: %s", chash.first.GetHex().c_str());
+                        StdTrace("NetChannel", "SubmitCachePowBlock: add local pow block success, block: %s", hashBlock.GetHex().c_str());
                     }
-                    sched.RemoveCacheLocalPowBlock(chash.first);
+                    sched.RemoveCacheLocalPowBlock(hashBlock);
                 }
             }
         }
+
+        PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
     }
     catch (exception& e)
     {
-        StdError("NetChannel", "SubmitCachePowBlock: GetSchedule fail, error: %s", e.what());
+        StdError("NetChannel", "SubmitCachePowBlock error: %s", e.what());
     }
 }
 
@@ -1391,6 +1408,10 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 }
                 StdDebug("NetChannel", "AddNewBlock cache pow block: height: %d, block: %s",
                          CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+
+                set<uint64> setKnownPeer;
+                sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+                setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
                 continue;
             }
 

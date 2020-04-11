@@ -699,6 +699,11 @@ void CBlockMaker::BlockMakerThreadFunc()
 
 void CBlockMaker::PowThreadFunc()
 {
+    if (!WaitExit(5))
+    {
+        Log("Pow exited non");
+        return;
+    }
     while (WaitExit(1))
     {
         CreateProofOfWork();
