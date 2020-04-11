@@ -428,6 +428,7 @@ bool CNetChannel::IsLocalCachePowBlock(int nHeight)
 
 bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
 {
+    bool ret = false;
     try
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
@@ -441,14 +442,18 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
                 StdDebug("NetChannel", "AddCacheLocalPowBlock InnerBroadcastBlockInv: height: %d, block: %s",
                          block.GetBlockHeight(), block.GetHash().GetHex().c_str());
             }
-            return true;
+            ret = true;
         }
     }
     catch (exception& e)
     {
         StdError("NetChannel", "AddCacheLocalPowBlock: GetSchedule fail, block: %s, error: %s", block.GetHash().GetHex().c_str(), e.what());
     }
-    return false;
+    if (ret)
+    {
+        InnerSubmitCachePowBlock();
+    }
+    return ret;
 }
 
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
@@ -1372,7 +1377,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 }
             }
 
-            if (fCheckPow && pBlock->IsPrimary() && pBlock->IsProofOfWork())
+            if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
             {
                 uint256 hashFirstBlock;
                 if (sched.GetFirstCachePowBlock(pBlock->GetBlockHeight(), hashFirstBlock) && hashFirstBlock == hashBlock)
@@ -1384,6 +1389,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                                  CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                     }
                 }
+                StdDebug("NetChannel", "AddNewBlock cache pow block: height: %d, block: %s",
+                         CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                 continue;
             }
 

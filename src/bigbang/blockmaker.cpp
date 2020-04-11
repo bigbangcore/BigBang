@@ -275,7 +275,6 @@ bool CBlockMaker::WaitExit(const long nSeconds)
 
 bool CBlockMaker::WaitUpdateEvent(const long nSeconds)
 {
-    StdTrace("blockmaker", "WaitUpdateEvent wait time: %ld", nSeconds);
     boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(nSeconds);
     boost::unique_lock<boost::mutex> lock(mutex);
     while (!fExit)
@@ -651,6 +650,7 @@ void CBlockMaker::BlockMakerThreadFunc()
     int64 nWaitTime = 1;
     while (!fExit)
     {
+        StdDebug("BlockMaker", "BlockMakerThreadFunc: nWaitTime=%ld", nWaitTime);
         if (nWaitTime < 1)
         {
             nWaitTime = 1;
@@ -679,27 +679,19 @@ void CBlockMaker::BlockMakerThreadFunc()
             {
                 Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", consParam.nPrevHeight + 1, CAddress(consParam.agreement.vBallot[0]).ToString().c_str());
             }
-
-            try
-            {
-                if (consParam.agreement.IsProofOfWork())
-                {
-                    pDispatcher->SetConsensus(consParam);
-                }
-                else
-                {
-                    ProcessDelegatedProofOfStake(consParam);
-                }
-            }
-            catch (exception& e)
-            {
-                Error("Block maker error: %s", e.what());
-                break;
-            }
         }
-        else
+        try
         {
+            if (!consParam.agreement.IsProofOfWork())
+            {
+                ProcessDelegatedProofOfStake(consParam);
+            }
             pDispatcher->SetConsensus(consParam);
+        }
+        catch (exception& e)
+        {
+            Error("Block maker error: %s", e.what());
+            break;
         }
     }
     Log("Block maker exited");

@@ -599,8 +599,7 @@ bool CSchedule::CheckCacheLocalPowBlock(int nHeight)
 
 bool CSchedule::GetCacheLocalPowBlock(const uint256& hash, CBlock& block)
 {
-    int nHeight = CBlock::GetBlockHeightByHash(hash);
-    auto it = mapKcPowBlock.find(nHeight);
+    auto it = mapKcPowBlock.find(CBlock::GetBlockHeightByHash(hash));
     if (it != mapKcPowBlock.end() && it->second.GetHash() == hash)
     {
         block = it->second;
@@ -611,8 +610,7 @@ bool CSchedule::GetCacheLocalPowBlock(const uint256& hash, CBlock& block)
 
 void CSchedule::RemoveCacheLocalPowBlock(const uint256& hash)
 {
-    int nHeight = CBlock::GetBlockHeightByHash(hash);
-    auto it = mapKcPowBlock.find(nHeight);
+    auto it = mapKcPowBlock.find(CBlock::GetBlockHeightByHash(hash));
     if (it != mapKcPowBlock.end() && it->second.GetHash() == hash)
     {
         RemoveHeightBlock(it->first, it->second.GetHash());
@@ -622,8 +620,7 @@ void CSchedule::RemoveCacheLocalPowBlock(const uint256& hash)
 
 bool CSchedule::GetCachePowBlock(const uint256& hash, CBlock& block)
 {
-    int nHeight = CBlock::GetBlockHeightByHash(hash);
-    auto it = mapHeightBlock.find(nHeight);
+    auto it = mapHeightBlock.find(CBlock::GetBlockHeightByHash(hash));
     if (it != mapHeightBlock.end())
     {
         if (it->second.size() > 0)
