@@ -123,7 +123,8 @@ class CNetChannelPeer
         {
             SYNTXINV_STATUS_INIT,
             SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
-            SYNTXINV_STATUS_WAIT_PEER_COMPLETE
+            SYNTXINV_STATUS_WAIT_PEER_COMPLETE,
+            SYNTXINV_STATUS_UNKONWN
         };
         enum
         {
@@ -178,15 +179,29 @@ public:
     }
     void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
     {
-        mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.ResetTxInvSynStatus(fIsComplete);
+        }
     }
     void SetWaitGetTxComplete(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.fWaitGetTxComplete = true;
+        }
     }
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
-        CNetChannelPeerFork& peer = mapSubscribedFork[hashFork];
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it == mapSubscribedFork.end())
+        {
+            return false;
+        }
+        
+        CNetChannelPeerFork& peer = it->second;
         if (peer.fWaitGetTxComplete)
         {
             peer.fWaitGetTxComplete = false;
@@ -196,7 +211,11 @@ public:
     }
     void SetPeerGetDataTime(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].SetPeerGetDataTime();
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.SetPeerGetDataTime();
+        }
     }
     std::string GetRemoteAddress()
     {
@@ -204,6 +223,11 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
+        if(!IsSubscribed(hashFork))
+        {
+            return CNetChannelPeerFork::SYNTXINV_STATUS_UNKONWN;
+        }
+        
         return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
