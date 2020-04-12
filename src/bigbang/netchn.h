@@ -178,25 +178,37 @@ public:
     }
     void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
     {
-        mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.ResetTxInvSynStatus(fIsComplete);
+        }
     }
     void SetWaitGetTxComplete(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.fWaitGetTxComplete = true;
+        }
     }
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
-        CNetChannelPeerFork& peer = mapSubscribedFork[hashFork];
-        if (peer.fWaitGetTxComplete)
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
         {
-            peer.fWaitGetTxComplete = false;
+            it->second.fWaitGetTxComplete = false;
             return true;
         }
         return false;
     }
     void SetPeerGetDataTime(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].SetPeerGetDataTime();
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.SetPeerGetDataTime();
+        }
     }
     std::string GetRemoteAddress()
     {
@@ -204,7 +216,12 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
-        return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            return it->second.CheckTxInvSynStatus();
+        }
+        return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
 
