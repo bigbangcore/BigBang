@@ -44,6 +44,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 180000;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 187000;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 187000;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 187000;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -281,9 +282,19 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         return DEBUG(ERR_BLOCK_TYPE_INVALID, "Block type error\n");
     }*/
     // Check timestamp
-    if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
+    if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
+        if (block.GetBlockTime() > GetNetTime() + 20)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
+        }
+    }
+    else
+    {
+        if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
+        }
     }
 
     // validate vacant block
@@ -366,7 +377,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (IsDposHeight(block.GetBlockHeight()))
     {
-        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
+        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->GetBlockHeight() + 1, pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1.");
         }
@@ -952,16 +963,23 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
     }*/
 
     //return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
-    return GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
+    return GetNextBlockTimeStamp(pIndexPrev->GetBlockHeight() + 1, pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
 }
 
-uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)
+uint32 CCoreProtocol::GetNextBlockTimeStamp(int nTargetHeight, uint16 nPrevMintType, uint32 nPrevTimeStamp)
 {
-    if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
     {
-        return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
     }
-    return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    else
+    {
+        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+        {
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

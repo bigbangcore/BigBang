@@ -533,7 +533,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     consParam.nPrevHeight = nLastHeight;
     consParam.nPrevMintType = nLastMintType;
 
-    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime);
+    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastHeight + 1, nLastMintType, nLastTime);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
     if (consParam.nWaitTime > 0)
     {
