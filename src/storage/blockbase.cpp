@@ -521,8 +521,8 @@ bool CBlockBase::ListSuperNode(vector<storage::CSuperNode>& nodes)
     {
         for (const auto& fork : node.vecOwnedForks)
         {
-            Log("CBlockBase::ListSuperNode", "supernode client ID [%s] IP [%d]: fork [%s]",
-                node.superNodeID.c_str(), node.ipAddr, fork.ToString().c_str());
+            Log("CBlockBase::ListSuperNode", "supernode client ID [%s] IP [%s]: fork [%s]",
+                node.superNodeID.c_str(), CSuperNode::Int2Ip(node.ipAddr).c_str(), fork.ToString().c_str());
         }
     }
     return true;
@@ -540,8 +540,8 @@ bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes, const uint8 
     {
         for (const auto& fork : node.vecOwnedForks)
         {
-            Log("CBlockBase::FetchSuperNode", "supernode client ID [%s] IP [%d]: fork [%s]",
-                node.superNodeID.c_str(), node.ipAddr, fork.ToString().c_str());
+            Log("CBlockBase::FetchSuperNode", "supernode client ID [%s] IP [%s]: fork [%s]",
+                node.superNodeID.c_str(), CSuperNode::Int2Ip(node.ipAddr).c_str(), fork.ToString().c_str());
         }
     }
     return true;
