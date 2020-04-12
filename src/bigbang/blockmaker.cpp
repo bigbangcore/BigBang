@@ -151,19 +151,21 @@ bool CBlockMaker::HandleInitialize()
     for (map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s",
+        Log("Profile [%s] : dest=%s,pubkey=%s,pow=%s",
             ConsensusMethodName[(*it).first],
             CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+            profile.keyMint.GetPubKey().GetHex().c_str(),
+            CAddress(profile.templMint->GetTemplateId()).ToString().c_str());
     }
     for (map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.begin();
          it != mapDelegatedProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s\n",
+        Log("Profile [%s] : dest=%s,pubkey=%s,dpos=%s",
             ConsensusMethodName[CM_MPVSS],
             CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+            profile.keyMint.GetPubKey().GetHex().c_str(),
+            CAddress(profile.templMint->GetTemplateId()).ToString().c_str());
     }
 
     return true;

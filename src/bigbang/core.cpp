@@ -10,6 +10,7 @@
 #include "../common/template/payment.h"
 #include "../common/template/vote.h"
 #include "address.h"
+#include "defs.h"
 #include "wallet.h"
 
 using namespace std;
@@ -17,7 +18,7 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-//#define BBCP_SET_TOKEN_DISTRIBUTION
+#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 80;
 
@@ -40,9 +41,9 @@ static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 180000;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 187000;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 187000;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -802,6 +803,10 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     {
         nBits++;
     }
+    if (HEIGHT_TEST_REWARD == pIndexPrev->GetBlockHeight() + 1)
+    {
+        nBits = 13;
+    }
     return true;
 }
 
@@ -818,6 +823,11 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
+
+    if (HEIGHT_TEST_REWARD == pIndexPrev->GetBlockHeight() + 1)
+    {
+        return 200000000 * COIN;
+    }
     for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
     {
         if (nBlockHeight <= BBCP_END_HEIGHT[i])
