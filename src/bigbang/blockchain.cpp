@@ -1069,7 +1069,7 @@ uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
     return pCoreProtocol->DPoSTimestamp(pIndexPrev);
 }
 
-Errno CBlockChain::VerifyPowBlock(const CBlock& block)
+Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 {
     uint256 hash = block.GetHash();
     Errno err = OK;
@@ -1176,7 +1176,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block)
     {
         Log("VerifyPowBlock : Short chain, new block height: %d, block: %s, fork chain trust: %s, fork last block: %s",
             block.GetBlockHeight(), hash.GetHex().c_str(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
-        return ERR_BLOCK_PROOF_OF_WORK_INVALID;
+        fLongChain = false;
+    }
+    else
+    {
+        fLongChain = true;
     }
 
     return OK;
