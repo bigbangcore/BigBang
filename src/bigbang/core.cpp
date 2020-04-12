@@ -369,14 +369,18 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     {
         if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
     else
     {
         if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()), block.GetHash().GetHex().c_str());
         }
     }
 
