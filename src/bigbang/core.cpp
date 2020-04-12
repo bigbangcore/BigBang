@@ -932,10 +932,17 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         return 0;
     }
 
-    /*uint32 nTimeStamp = 0;
+    uint32 nTimeStamp = 0;
     if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT)
     {
-        nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
+        {
+            nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        }
+        else
+        {
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
+        }
     }
     else
     {
@@ -950,16 +957,8 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         {
             nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
         }
-    }*/
-
-    if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
-    {
-        return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
     }
-    else
-    {
-        return GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
-    }
+    return nTimeStamp;
 }
 
 uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)
