@@ -585,7 +585,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
     }
 
     //if dpos node self, dispatch them to fork nodes by MQ later
-    if (NODE_CAT_DPOSNODE == nNodeCat)
+    if (NODE_CAT_DPOSNODE == nNodeCat || NODE_CAT_FORKNODE == nNodeCat)
     {
         CEventMQBizForkUpdate* pEvent = new CEventMQBizForkUpdate(nNonce);
         if (pEvent != nullptr)
@@ -595,6 +595,25 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
             StdLog("NetChannel", "CEventPeerBizForks: post biz forks by peer[%s] "
                                  "with total [%d] ips, [%d] forks",
                    GetPeerAddressInfo(nNonce).c_str(), mapIpForks.size(), mapForkIp.size());
+        }
+    }
+
+    for (auto const& node : nodes)
+    {
+        string ip = storage::CSuperNode::Int2Ip(node.ipAddr);
+        CNetHost host(ip, DEFAULT_P2PPORT);
+        CEventPeerNetAddNode eventAddNode(0);
+        eventAddNode.data = host;
+        if (!pPeerNet->DispatchEvent(&eventAddNode))
+        {
+            StdError("NetChannel", "CEventPeerBizForks: Add peer node[%s] failed",
+                   storage::CSuperNode::Int2Ip(node.ipAddr).c_str());
+            return false;
+        }
+        else
+        {
+            StdLog("NetChannel", "CEventPeerBizForks: Add peer node[%s] succeeded",
+                     storage::CSuperNode::Int2Ip(node.ipAddr).c_str());
         }
     }
 
