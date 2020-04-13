@@ -141,9 +141,8 @@ const CTemplateId CDestination::GetTemplateId() const
     return (prefix == PREFIX_TEMPLATE) ? CTemplateId(data) : CTemplateId(uint64(0));
 }
 
-bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor,
-                                     const CDestination& destTo, const std::vector<uint8>& vchSig,
-                                     const int32 nForkHeight, bool& fCompleted) const
+bool CDestination::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                     const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     if (IsPubKey())
     {
@@ -152,12 +151,12 @@ bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnc
     }
     else if (IsTemplate())
     {
-        return CTemplate::VerifyTxSignature(GetTemplateId(), hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+        return CTemplate::VerifyTxSignature(GetTemplateId(), nType, hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
     return false;
 }
 
-bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CDestination::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                      const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork) const
 {
     if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
@@ -168,7 +167,7 @@ bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnc
     else
     {
         bool fCompleted = false;
-        return VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted) && fCompleted;
+        return VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted) && fCompleted;
     }
 }
 

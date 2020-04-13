@@ -118,8 +118,8 @@ void CTemplateFork::BuildTemplateData()
     os << destRedeem << hashFork;
 }
 
-bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                       const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+    return destRedeem.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

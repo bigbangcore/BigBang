@@ -1580,11 +1580,11 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         {
             CTemplateExchangePtr pe = boost::dynamic_pointer_cast<CTemplateExchange>(ptr);
             vchSig = tx.vchSig;
-            return pe->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, vchSubSig, vchSig);
+            return pe->BuildTxSignature(hash, tx.nType, tx.hashAnchor, tx.sendTo, vchSubSig, vchSig);
         }
         else
         {
-            if (!ptr->BuildTxSignature(hash, tx.hashAnchor, tx.sendTo, nForkHeight, vchSubSig, vchSig, fCompleted))
+            if (!ptr->BuildTxSignature(hash, tx.nType, tx.hashAnchor, tx.sendTo, nForkHeight, vchSubSig, vchSig, fCompleted))
             {
                 StdError("CWallet", "SignDestination: BuildTxSignature fail, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
