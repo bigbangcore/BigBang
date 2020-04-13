@@ -596,25 +596,36 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
                                  "with total [%d] ips, [%d] forks",
                    GetPeerAddressInfo(nNonce).c_str(), mapIpForks.size(), mapForkIp.size());
         }
+        return true;
     }
 
-    for (auto const& node : nodes)
+    vector<uint32> vIP;
+    for (auto const& it : mapForkIp)
     {
-        string ip = storage::CSuperNode::Int2Ip(node.ipAddr);
-        CNetHost host(ip, DEFAULT_P2PPORT);
+        bool fOwned = false;
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            fOwned = mapSched.count(it.first);
+        }
+        if (fOwned)
+        {
+            vIP.insert(vIP.end(), it.second.begin(), it.second.end());
+            StdLog("NetChannel", "CEventPeerBizForks: Add [%d] peer node(s) with biz fork[%s]",
+                   it.second.size(), it.first.ToString().c_str());
+        }
+    }
+    for (auto const& nIP : vIP)
+    {
+        string strIP = storage::CSuperNode::Int2Ip(nIP);
+        CNetHost host(strIP, DEFAULT_P2PPORT);
         CEventPeerNetAddNode eventAddNode(0);
         eventAddNode.data = host;
         if (!pPeerNet->DispatchEvent(&eventAddNode))
         {
-            StdError("NetChannel", "CEventPeerBizForks: Add peer node[%s] failed",
-                   storage::CSuperNode::Int2Ip(node.ipAddr).c_str());
+            StdError("NetChannel", "CEventPeerBizForks: Add peer node[%s] failed", strIP.c_str());
             return false;
         }
-        else
-        {
-            StdLog("NetChannel", "CEventPeerBizForks: Add peer node[%s] succeeded",
-                     storage::CSuperNode::Int2Ip(node.ipAddr).c_str());
-        }
+        StdLog("NetChannel", "CEventPeerBizForks: Add peer node[%s] succeeded", strIP.c_str());
     }
 
     return true;
