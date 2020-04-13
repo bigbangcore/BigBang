@@ -45,12 +45,6 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
-    if(!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus");
-        return false;
-    }
-
     return true;
 }
 
