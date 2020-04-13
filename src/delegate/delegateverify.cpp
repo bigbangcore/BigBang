@@ -45,7 +45,6 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
                 return false;
             }
         }
-        is_completed = witness.IsCollectCompleted();
     }
     catch (exception& e)
     {

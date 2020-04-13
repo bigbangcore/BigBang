@@ -288,7 +288,6 @@ bool CDelegate::HandlePublish(int nTargetHeight, const uint256& hashDistributeAn
     auto t0 = boost::posix_time::microsec_clock::universal_time();
     bool ret = vote.Collect(destFrom, vchPublishData, fCompleted);
     auto t1 = boost::posix_time::microsec_clock::universal_time();
-    vote.is_completed = fCompleted;
 
     StdDebug("CDelegate", "HandlePublish: Collect target height: %d, time: %ld us, ret: %s, completed: %s, distribute block: [%d] %s",
              nTargetHeight, (t1 - t0).ticks(), (ret ? "true" : "false"), (fCompleted ? "true" : "false"),
@@ -378,7 +377,7 @@ bool CDelegate::IsCompleted(int nTargetHeight)
         StdError("CDelegate", "Get proof: find distribute vote fail, target height: %d", nTargetHeight);
         return false;
     }
-    return mt->second.is_completed;
+    return mt->second.IsCollectCompleted();
 }
 
 } // namespace delegate
