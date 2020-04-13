@@ -123,8 +123,7 @@ class CNetChannelPeer
         {
             SYNTXINV_STATUS_INIT,
             SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
-            SYNTXINV_STATUS_WAIT_PEER_COMPLETE,
-            SYNTXINV_STATUS_UNKONWN
+            SYNTXINV_STATUS_WAIT_PEER_COMPLETE
         };
         enum
         {
@@ -200,7 +199,7 @@ public:
         {
             return false;
         }
-        
+
         CNetChannelPeerFork& peer = it->second;
         if (peer.fWaitGetTxComplete)
         {
@@ -223,12 +222,12 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
-        if(!IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
         {
-            return CNetChannelPeerFork::SYNTXINV_STATUS_UNKONWN;
+            return it->second.CheckTxInvSynStatus();
         }
-        
-        return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
+        return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
 
