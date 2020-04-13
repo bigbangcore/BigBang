@@ -163,7 +163,7 @@ void CTemplateExchange::BuildTemplateData()
     os << destSpend_m.prefix << destSpend_m.data << destSpend_s.prefix << destSpend_s.data << height_m << height_s << fork_m << fork_s;
 }
 
-bool CTemplateExchange::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplateExchange::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     return true;
@@ -219,7 +219,7 @@ bool CTemplateExchange::GetSignDestination(const CTransaction& tx, const std::ve
     return true;
 }
 
-bool CTemplateExchange::BuildTxSignature(const uint256& hash,
+bool CTemplateExchange::BuildTxSignature(const uint256& hash, const uint16 nType,
                                          const uint256& hashAnchor,
                                          const CDestination& destTo,
                                          const vector<uint8>& vchPreSig,
