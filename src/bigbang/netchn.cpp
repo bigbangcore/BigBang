@@ -360,7 +360,7 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
     }
 }
 
-void CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
+bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
 {
     try
     {
@@ -421,11 +421,17 @@ void CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
         }
 
         PostAddNew(hashFork, sched, setSchedPeer, setMisbehavePeer);
+
+        if (setMisbehavePeer.empty() && !vPowBlockHash.empty())
+        {
+            return true;
+        }
     }
     catch (exception& e)
     {
         StdError("NetChannel", "SubmitCachePowBlock error: %s", e.what());
     }
+    return false;
 }
 
 bool CNetChannel::IsLocalCachePowBlock(int nHeight)
@@ -1405,22 +1411,34 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
 
             if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
             {
-                bool fLongChain = false;
-                if (pBlockChain->VerifyPowBlock(*pBlock, fLongChain) != OK)
+                bool fVerifyPowBlock = false;
+                if (!sched.GetPowBlockState(hashBlock, fVerifyPowBlock))
                 {
-                    StdLog("NetChannel", "AddNewBlock VerifyPowBlock fail, peer: %s, height: %d, block: %s",
+                    StdLog("NetChannel", "NetChannel AddNewBlock: GetPowBlockState fail, peer: %s, height: %d, block: %s",
                            GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                     setMisbehavePeer.insert(nNonceSender);
                     return;
                 }
-
-                uint256 hashFirstBlock;
-                if (sched.GetFirstCachePowBlock(pBlock->GetBlockHeight(), hashFirstBlock)
-                    && hashFirstBlock == hashBlock && fLongChain)
+                if (!fVerifyPowBlock)
                 {
-                    InnerBroadcastBlockInv(hashFork, hashBlock);
-                    StdDebug("NetChannel", "AddNewBlock InnerBroadcastBlockInv: height: %d, block: %s",
-                             CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    bool fLongChain = false;
+                    if (pBlockChain->VerifyPowBlock(*pBlock, fLongChain) != OK)
+                    {
+                        StdLog("NetChannel", "AddNewBlock VerifyPowBlock fail, peer: %s, height: %d, block: %s",
+                               GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                        setMisbehavePeer.insert(nNonceSender);
+                        return;
+                    }
+                    sched.SetPowBlockVerifyState(hashBlock, true);
+
+                    uint256 hashFirstBlock;
+                    if (sched.GetFirstCachePowBlock(pBlock->GetBlockHeight(), hashFirstBlock)
+                        && hashFirstBlock == hashBlock && fLongChain)
+                    {
+                        InnerBroadcastBlockInv(hashFork, hashBlock);
+                        StdDebug("NetChannel", "AddNewBlock InnerBroadcastBlockInv: height: %d, block: %s",
+                                 CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    }
                 }
 
                 set<uint64> setKnownPeer;
@@ -1854,20 +1872,24 @@ void CNetChannel::InnerBroadcastBlockInv(const uint256& hashFork, const uint256&
 
 void CNetChannel::InnerSubmitCachePowBlock()
 {
-    CAgreementBlock agreeBlock;
-    pConsensus->GetNextConsensus(agreeBlock);
-    if (agreeBlock.hashPrev != 0)
+    bool fContinue = false;
+    do
     {
-        CConsensusParam consParam;
-        consParam.hashPrev = agreeBlock.hashPrev;
-        consParam.nPrevTime = agreeBlock.nPrevTime;
-        consParam.nPrevHeight = agreeBlock.nPrevHeight;
-        consParam.nPrevMintType = agreeBlock.nPrevMintType;
-        consParam.nWaitTime = agreeBlock.nWaitTime;
-        consParam.fPow = agreeBlock.agreement.IsProofOfWork();
-        consParam.ret = agreeBlock.ret;
-        SubmitCachePowBlock(consParam);
-    }
+        CAgreementBlock agreeBlock;
+        pConsensus->GetNextConsensus(agreeBlock);
+        if (agreeBlock.hashPrev != 0)
+        {
+            CConsensusParam consParam;
+            consParam.hashPrev = agreeBlock.hashPrev;
+            consParam.nPrevTime = agreeBlock.nPrevTime;
+            consParam.nPrevHeight = agreeBlock.nPrevHeight;
+            consParam.nPrevMintType = agreeBlock.nPrevMintType;
+            consParam.nWaitTime = agreeBlock.nWaitTime;
+            consParam.fPow = agreeBlock.agreement.IsProofOfWork();
+            consParam.ret = agreeBlock.ret;
+            fContinue = SubmitCachePowBlock(consParam);
+        }
+    } while (fContinue);
 }
 
 } // namespace bigbang

@@ -202,7 +202,8 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nClearObjTime(0), nGetDataCount(0), fRepeatMintBlock(false) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nClearObjTime(0),
+            nGetDataCount(0), fRepeatMintBlock(false), fVerifyPowBlock(false) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -217,6 +218,7 @@ class CSchedule
         int64 nClearObjTime;
         int nGetDataCount;
         bool fRepeatMintBlock;
+        bool fVerifyPowBlock;
     };
 
 public:
@@ -266,7 +268,7 @@ public:
     void RemoveRefBlock(const uint256& hash);
     void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
     bool SetDelayedClear(const network::CInv& inv, int64 nDelayedTime);
-    bool GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash);
+    void GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash);
     bool GetFirstCachePowBlock(int nHeight, uint256& hashFirstBlock);
     bool AddCacheLocalPowBlock(const CBlock& block, bool& fFirst);
     bool CheckCacheLocalPowBlock(int nHeight);
@@ -274,6 +276,8 @@ public:
     void RemoveCacheLocalPowBlock(const uint256& hash);
     bool GetCachePowBlock(const uint256& hash, CBlock& block);
     void RemoveHeightBlock(int nHeight, const uint256& hash);
+    bool GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut);
+    void SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);

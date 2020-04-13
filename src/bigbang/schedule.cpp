@@ -525,7 +525,7 @@ bool CSchedule::SetDelayedClear(const network::CInv& inv, int64 nDelayedTime)
     return false;
 }
 
-bool CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash)
+void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash)
 {
     for (auto it = mapHeightBlock.begin(); it != mapHeightBlock.end(); ++it)
     {
@@ -547,7 +547,6 @@ bool CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::ve
             }
         }
     }
-    return true;
 }
 
 bool CSchedule::GetFirstCachePowBlock(int nHeight, uint256& hashFirstBlock)
@@ -665,6 +664,25 @@ void CSchedule::RemoveHeightBlock(int nHeight, const uint256& hash)
         {
             mapHeightBlock.erase(it);
         }
+    }
+}
+
+bool CSchedule::GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut)
+{
+    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
+    if (it != mapState.end() && it->second.IsReceived())
+    {
+        fVerifyPowBlockOut = it->second.fVerifyPowBlock;
+        return true;
+    }
+    return false;
+}
+void CSchedule::SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn)
+{
+    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
+    if (it != mapState.end() && it->second.IsReceived())
+    {
+        it->second.fVerifyPowBlock = fVerifyPowBlockIn;
     }
 }
 

@@ -195,15 +195,9 @@ public:
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
         std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it == mapSubscribedFork.end())
+        if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
         {
-            return false;
-        }
-
-        CNetChannelPeerFork& peer = it->second;
-        if (peer.fWaitGetTxComplete)
-        {
-            peer.fWaitGetTxComplete = false;
+            it->second.fWaitGetTxComplete = false;
             return true;
         }
         return false;
@@ -257,7 +251,7 @@ public:
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
-    void SubmitCachePowBlock(const CConsensusParam& consParam) override;
+    bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
     bool IsLocalCachePowBlock(int nHeight) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
 
