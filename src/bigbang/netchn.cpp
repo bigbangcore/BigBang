@@ -60,7 +60,7 @@ bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
     map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        return (*it).second.fSynchronized;
+        return it->second.fSynchronized;
     }
     return false;
 }
@@ -70,8 +70,8 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        fInverted = ((*it).second.fSynchronized != fSync);
-        (*it).second.fSynchronized = fSync;
+        fInverted = (it->second.fSynchronized != fSync);
+        it->second.fSynchronized = fSync;
         return true;
     }
     return false;
@@ -82,7 +82,7 @@ void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>&
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        (*it).second.AddKnownTx(vTxHash, nTotalSynTxCount);
+        it->second.AddKnownTx(vTxHash, nTotalSynTxCount);
     }
 }
 
@@ -91,7 +91,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        CNetChannelPeerFork& peerFork = (*it).second;
+        CNetChannelPeerFork& peerFork = it->second;
         switch (peerFork.CheckTxInvSynStatus())
         {
         case CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
@@ -107,7 +107,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
                 {
                     break;
                 }
-                else if (!(*it).second.IsKnownTx(txid))
+                else if (!peerFork.IsKnownTx(txid))
                 {
                     vInv.push_back(network::CInv(network::CInv::MSG_TX, txid));
                     vTxHash.push_back(txid);

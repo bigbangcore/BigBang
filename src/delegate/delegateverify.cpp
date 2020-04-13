@@ -36,17 +36,16 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
             return true;
         }
         is >> vPublish;
-        bool fCompleted = false;
         for (int i = 0; i < vPublish.size(); i++)
         {
             const CDelegateData& delegateData = vPublish[i];
-            if (!VerifySignature(delegateData)
-                || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
+            if (!witness.IsCollectCompleted()
+                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare)))
             {
                 return false;
             }
         }
-        is_completed = fCompleted;
+        is_completed = witness.IsCollectCompleted();
     }
     catch (exception& e)
     {
