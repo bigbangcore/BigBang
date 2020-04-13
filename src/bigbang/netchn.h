@@ -6,6 +6,7 @@
 #define BIGBANG_NETCHN_H
 
 #include "base.h"
+#include "mqcluster.h"
 #include "peernet.h"
 #include "schedule.h"
 
@@ -309,6 +310,7 @@ protected:
     ITxPool* pTxPool;
     IDispatcher* pDispatcher;
     IService* pService;
+    IMQCluster* pMQCluster;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;

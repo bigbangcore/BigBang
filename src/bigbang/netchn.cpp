@@ -140,6 +140,7 @@ CNetChannel::CNetChannel()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pMQCluster = nullptr;
     fStartIdlePushTxTimer = false;
     nNodeCat = NODE_CAT_BBCNODE;
 }
@@ -186,6 +187,12 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("mqcluster", pMQCluster))
+    {
+        Error("Failed to request mqcluster");
+        return false;
+    }
+
     return true;
 }
 
@@ -197,6 +204,7 @@ void CNetChannel::HandleDeinitialize()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()
@@ -576,10 +584,18 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
         }
     }
 
-    //if dpos node self, dispatch them to fork nodes by MQ
+    //if dpos node self, dispatch them to fork nodes by MQ later
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        ;
+        CEventMQBizForkUpdate* pEvent = new CEventMQBizForkUpdate(nNonce);
+        if (pEvent != nullptr)
+        {
+            pEvent->data = setForkIp;
+            pMQCluster->PostEvent(pEvent);
+            StdLog("NetChannel", "CEventPeerBizForks: post biz forks by peer[%s] "
+                                 "with total [%d] ips, [%d] forks",
+                   GetPeerAddressInfo(nNonce).c_str(), mapIpForks.size(), mapForkIp.size());
+        }
     }
 
     return true;
