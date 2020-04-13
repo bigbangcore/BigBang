@@ -2461,11 +2461,11 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         }
     }
 
-    if (NODE_CAT_DPOSNODE == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat)
     {
         if (forks.end() != find(forks.begin(), forks.end(), hashGenesis))
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "The main fork fork node watches should not be the main fork:[ " + hashGenesis.ToString() + " ]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "The fork fork node enrolls should not be the main fork:[ " + hashGenesis.ToString() + " ]");
         }
     }
 
