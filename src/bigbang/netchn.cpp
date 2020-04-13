@@ -450,10 +450,19 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         CSchedule& sched = GetSchedule(pCoreProtocol->GetGenesisBlockHash());
+
+        bool fLongChain = false;
+        if (pBlockChain->VerifyPowBlock(block, fLongChain) != OK)
+        {
+            StdError("NetChannel", "AddCacheLocalPowBlock VerifyPowBlock fail: height: %d, block: %s",
+                     block.GetBlockHeight(), block.GetHash().GetHex().c_str());
+            return false;
+        }
+
         bool fFirst = false;
         if (sched.AddCacheLocalPowBlock(block, fFirst))
         {
-            if (fFirst)
+            if (fFirst && fLongChain)
             {
                 InnerBroadcastBlockInv(pCoreProtocol->GetGenesisBlockHash(), block.GetHash());
                 StdDebug("NetChannel", "AddCacheLocalPowBlock InnerBroadcastBlockInv: height: %d, block: %s",
@@ -1396,22 +1405,30 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
 
             if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
             {
-                uint256 hashFirstBlock;
-                if (sched.GetFirstCachePowBlock(pBlock->GetBlockHeight(), hashFirstBlock) && hashFirstBlock == hashBlock)
+                bool fLongChain = false;
+                if (pBlockChain->VerifyPowBlock(*pBlock, fLongChain) != OK)
                 {
-                    if (pBlockChain->VerifyPowBlock(*pBlock) == OK)
-                    {
-                        InnerBroadcastBlockInv(hashFork, hashBlock);
-                        StdDebug("NetChannel", "AddNewBlock InnerBroadcastBlockInv: height: %d, block: %s",
-                                 CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
-                    }
+                    StdLog("NetChannel", "AddNewBlock VerifyPowBlock fail, peer: %s, height: %d, block: %s",
+                           GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                    setMisbehavePeer.insert(nNonceSender);
+                    return;
                 }
-                StdDebug("NetChannel", "AddNewBlock cache pow block: height: %d, block: %s",
-                         CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+
+                uint256 hashFirstBlock;
+                if (sched.GetFirstCachePowBlock(pBlock->GetBlockHeight(), hashFirstBlock)
+                    && hashFirstBlock == hashBlock && fLongChain)
+                {
+                    InnerBroadcastBlockInv(hashFork, hashBlock);
+                    StdDebug("NetChannel", "AddNewBlock InnerBroadcastBlockInv: height: %d, block: %s",
+                             CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+                }
 
                 set<uint64> setKnownPeer;
                 sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
                 setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+
+                StdDebug("NetChannel", "AddNewBlock cache pow block, peer: %s, height: %d, block: %s",
+                         GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                 continue;
             }
 

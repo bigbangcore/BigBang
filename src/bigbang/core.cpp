@@ -43,6 +43,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -363,18 +364,23 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    if (IsDposHeight(block.GetBlockHeight()))
+    if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
     {
-        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
     else
     {
-        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()),
+                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
 
@@ -921,10 +927,17 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         return 0;
     }
 
-    /*uint32 nTimeStamp = 0;
+    uint32 nTimeStamp = 0;
     if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT)
     {
-        nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
+        {
+            nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        }
+        else
+        {
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
+        }
     }
     else
     {
@@ -939,10 +952,8 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         {
             nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
         }
-    }*/
-
-    //return pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
-    return GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
+    }
+    return nTimeStamp;
 }
 
 uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)

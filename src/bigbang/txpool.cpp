@@ -704,8 +704,8 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     const CTxPoolView& viewTx = mapPoolView[hashFork];
     if (hashPrev == viewTx.hashLastBlock)
     {
-        ArrangeBlockTx(hashFork, viewTx.nLastBlockTime, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee);
-        cache.AddNew(viewTx.hashLastBlock, vtx);
+        ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee);
+        //cache.AddNew(viewTx.hashLastBlock, vtx);
         StdDebug("CTxPool", "ArrangeBlockTx: hashPrev is last block, target height: %d, new vtx size: %ld, old vtx size: %ld, view tx count: %ld",
                  CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1, vtx.size(), vCacheTx.size(), viewTx.Count());
     }
