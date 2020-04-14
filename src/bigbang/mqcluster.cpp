@@ -52,7 +52,7 @@ bool CMQCluster::IsAuthenticated()
 
 bool CMQCluster::HandleInitialize()
 {
-    if (NODE_CATEGORY::BBCNODE == catNode)
+    if (NODE_CATEGORY::BBCNODE == catNode) // todo:
     {
         Log("CMQCluster::HandleInitialize(): bbc node so bypass");
         return true;
@@ -103,7 +103,7 @@ void CMQCluster::HandleDeinitialize()
 
 bool CMQCluster::HandleInvoke()
 {
-    if (NODE_CATEGORY::BBCNODE == catNode)
+    if (NODE_CATEGORY::BBCNODE == catNode) // todo:
     {
         Log("CMQCluster::HandleInvoke(): bbc node so bypass");
         return true;
@@ -206,7 +206,7 @@ bool CMQCluster::HandleInvoke()
         Error("CMQCluster::HandleInvoke(): list all other outer nodes failed");
         return false;
     }
-    for (auto const& node : nodes)
+    for (auto const& node : nodes) // todo: should send event to add peers to netchannel module if fork node itself
     {
         mapOuterNode.emplace(make_pair(node.ipAddr,
                                        storage::CSuperNode(node.superNodeID, node.ipAddr,
@@ -361,9 +361,39 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
 {
     Log("CMQCluster::HandleEvent(): biz forks payload is coming");
-    if (NODE_CATEGORY::DPOSNODE == catNode)
+
+    const storage::CForkKnownIpSetByIp& idxIP = eventMqBizFork.data.get<1>();
+    for (auto const& i : idxIP)
     {
-        ;
+        auto& node = mapOuterNode[i.nodeIP];
+        node.ipAddr = i.nodeIP;
+        node.vecOwnedForks.push_back(i.forkID);
+    }
+
+    if (NODE_CATEGORY::DPOSNODE == catNode)
+    {   //spread ip/fork through mq broker
+        const storage::CForkKnownIpSetById& idxID = eventMqBizFork.data.get<0>();
+        for (auto const& cli : mapActiveMQForkNode)
+        {
+            CAssignBizFork biz;
+            auto& it = biz.mapBizForkIP;
+            for (auto const& fork : cli.second.vecOwnedForks)
+            {
+                auto itBegin = idxID.equal_range(fork).first;
+                auto itEnd = idxID.equal_range(fork).second;
+
+                while (itBegin != itEnd)
+                {
+                    it[itBegin->forkID].push_back(itBegin->nodeIP);
+                    ++itBegin;
+                }
+            }
+            if (!it.empty())
+            {
+                string topic = "Cluster01/" + cli.second.superNodeID + "/AssignBizFork";
+                PostBizForkAssign(topic, biz);
+            }
+        }
     }
 
     return true;
@@ -442,8 +472,16 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     return true;
 }
 
-bool CMQCluster::AppendSendQueue(const std::string& topic,
-                                 CBufferPtr payload)
+bool CMQCluster::PostBizForkAssign(const std::string& topic, CAssignBizFork assign)
+{
+    CBufferPtr spSS(new CBufStream);
+    *spSS.get() << assign;
+
+    AppendSendQueue(topic, spSS);
+    return true;
+}
+
+bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
 {
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
@@ -479,7 +517,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
     case NODE_CATEGORY::FORKNODE:
     {
         Log("CMQCluster::OnReceiveMessage(): current sync height is [%d]", int(lastHeightResp));
-        if (topicRbBlk != topic)
+        if (topicRbBlk != topic)  //todo: to refactor
         { //respond to request block of main chain
             //unpack payload
             CSyncBlockResponse resp;
@@ -1009,7 +1047,14 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     mqtt::message_ptr pubmsg = mqtt::make_message(
                         buf.first, buf.second->GetData(), buf.second->GetSize());
                     pubmsg->set_qos(QOS1);
-                    pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
+                    if (buf.first.find("AssignBizFork"))
+                    {
+                        pubmsg->set_retained(true);
+                    }
+                    else
+                    {
+                        pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
+                    }
                     delitok = client.publish(pubmsg, nullptr, cb);
                     delitok->wait_for(100);
                     cout << "_._._OK" << endl;

@@ -88,6 +88,21 @@ protected:
     }
 };
 
+class CAssignBizFork
+{
+    friend xengine::CStream;
+
+public:
+    std::map<uint256, std::vector<uint32>> mapBizForkIP;
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(mapBizForkIP, opt);
+    }
+};
+
 class IMQCluster : public xengine::IIOModule, virtual public CMQEventListener
 {
 public:
@@ -102,18 +117,21 @@ class CMQCluster : public IMQCluster
 
     typedef std::shared_ptr<CBufStream> CBufferPtr;
 
-    enum class NODE_CATEGORY : char {
+    enum class NODE_CATEGORY : char
+    {
         BBCNODE = 0,
         FORKNODE,
         DPOSNODE
     };
-    enum class MQ_CLI_ACTION : char {
+    enum class MQ_CLI_ACTION : char
+    {
         CONN = 0,
         SUB,
         PUB,
         DISCONN
     };
-    enum {
+    enum
+    {
         QOS0 = 0,
         QOS1,
         QOS2
@@ -153,6 +171,7 @@ protected:
 
 private:
     bool PostBlockRequest(int syncHeight = -1);
+    bool PostBizForkAssign(const std::string& topic, CAssignBizFork assign);
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
     void RequestBlockTimerFunc(uint32 nTimer);
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
@@ -174,8 +193,9 @@ private:
     uint32 ipAddr;
     std::set<uint256> setBizFork;
 
-    std::map<string, storage::CSuperNode> mapActiveMQForkNode;  //nil if bbc or fork nodes
-    std::map<uint32, storage::CSuperNode> mapOuterNode;  //nil if bbc nodes
+    std::map<string, storage::CSuperNode> mapActiveMQForkNode; //only for dpos node
+    std::map<uint32, storage::CSuperNode> mapOuterNode;        //for dpos/fork node
+    std::map<std::string, std::string> mapBizForkUpdateTopic;
 
     boost::mutex mtxSend;
     boost::condition_variable condSend;
