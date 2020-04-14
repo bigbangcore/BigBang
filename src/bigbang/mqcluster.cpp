@@ -742,12 +742,6 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             }
         }
 
-        //add this requesting fork node to active list
-        if (!mapActiveMQForkNode.count(req.forkNodeId))
-        {
-            mapActiveMQForkNode[req.forkNodeId] = storage::CSuperNode(req.forkNodeId, req.ipAddr, req.forkList);
-        }
-
         //processing request from fork node
 
         //check height requested
