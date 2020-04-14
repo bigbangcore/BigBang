@@ -102,6 +102,12 @@ public:
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
     bool GetNextConsensus(CAgreementBlock& consParam) override;
 
+public:
+    enum
+    {
+        WAIT_AGREEMENT_PUBLISH_TIMEOUT = 10
+    };
+
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;

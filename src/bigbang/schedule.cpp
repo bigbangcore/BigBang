@@ -538,7 +538,7 @@ void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::ve
         }
         else if (consParam.ret && it->first == consParam.nPrevHeight + 1)
         {
-            if (consParam.fPow || consParam.nWaitTime < -10)
+            if (consParam.fPow || (consParam.nWaitTime < 0 && std::abs(consParam.nWaitTime) > MAX_SUBMIT_POW_TIMEOUT))
             {
                 for (auto& chash : it->second)
                 {
@@ -677,6 +677,7 @@ bool CSchedule::GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut)
     }
     return false;
 }
+
 void CSchedule::SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn)
 {
     map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));

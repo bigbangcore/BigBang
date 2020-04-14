@@ -1872,13 +1872,17 @@ void CNetChannel::InnerBroadcastBlockInv(const uint256& hashFork, const uint256&
 
 void CNetChannel::InnerSubmitCachePowBlock()
 {
-    bool fContinue = false;
+    bool fContinue;
+    uint256 hashPrevBlock;
     do
     {
+        fContinue = false;
         CAgreementBlock agreeBlock;
         pConsensus->GetNextConsensus(agreeBlock);
-        if (agreeBlock.hashPrev != 0)
+        if (agreeBlock.hashPrev != 0 && agreeBlock.hashPrev != hashPrevBlock)
         {
+            hashPrevBlock = agreeBlock.hashPrev;
+
             CConsensusParam consParam;
             consParam.hashPrev = agreeBlock.hashPrev;
             consParam.nPrevTime = agreeBlock.nPrevTime;
@@ -1887,6 +1891,7 @@ void CNetChannel::InnerSubmitCachePowBlock()
             consParam.nWaitTime = agreeBlock.nWaitTime;
             consParam.fPow = agreeBlock.agreement.IsProofOfWork();
             consParam.ret = agreeBlock.ret;
+
             fContinue = SubmitCachePowBlock(consParam);
         }
     } while (fContinue);
