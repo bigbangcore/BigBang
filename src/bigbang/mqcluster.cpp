@@ -132,53 +132,49 @@ bool CMQCluster::HandleInvoke()
     if (nodes.empty())
     {
         Log("CMQCluster::HandleInvoke(): this super node has not enrolled yet");
-    }
-    else
-    {
-        {
-            boost::unique_lock<boost::mutex> lock(mtxStatus);
-            clientID = nodes[0].superNodeID;
-            ipAddr = nodes[0].ipAddr;
-            for (auto const& fork : nodes[0].vecOwnedForks)
-            {
-                setBizFork.emplace(fork);
-                Log("CMQCluster::HandleInvoke(): super node enrolled fork:[%s]", fork.ToString().c_str());
-            }
-        }
-        Log("CMQCluster::HandleInvoke(): load super node status info "
-            "successfully[%s]",
-            nodes[0].ToString().c_str());
-
-        if (NODE_CATEGORY::FORKNODE == catNode)
-        {
-            lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
-            pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
-
-            topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-            topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
-            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-            Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
-                "\t[%s]\n\t[%s]",
-                clientID.c_str(), topicRespBlk.c_str(), topicRbBlk.c_str());
-
-            if (!PostBlockRequest(-1))
-            {
-                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
-                return false;
-            }
-        }
-        else if (NODE_CATEGORY::DPOSNODE == catNode)
-        {
-            lastHeightResp = -1;
-            topicReqBlk = "Cluster01/+/SyncBlockReq";
-            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
-            Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
-                clientID.c_str(), topicReqBlk.c_str());
-        }
+        return true;
     }
 
-    if (NODE_CATEGORY::DPOSNODE == catNode)
     {
+        boost::unique_lock<boost::mutex> lock(mtxStatus);
+        clientID = nodes[0].superNodeID;
+        ipAddr = nodes[0].ipAddr;
+        for (auto const& fork : nodes[0].vecOwnedForks)
+        {
+            setBizFork.emplace(fork);
+            Log("CMQCluster::HandleInvoke(): super node enrolled fork:[%s]", fork.ToString().c_str());
+        }
+    }
+    Log("CMQCluster::HandleInvoke(): load super node status info "
+        "successfully[%s]",
+        nodes[0].ToString().c_str());
+
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+        pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
+
+        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
+        topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
+        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock"; // todo: should configure DPOSNODE
+        Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
+            "\t[%s]\n\t[%s]",
+            clientID.c_str(), topicRespBlk.c_str(), topicRbBlk.c_str());
+
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+            return false;
+        }
+    }
+    else if (NODE_CATEGORY::DPOSNODE == catNode)
+    {
+        lastHeightResp = -1;
+        topicReqBlk = "Cluster01/+/SyncBlockReq";
+        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock"; // todo: DPOSNODE should come from storage
+        Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
+            clientID.c_str(), topicReqBlk.c_str());
+
         nodes.clear();
         if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
         {
