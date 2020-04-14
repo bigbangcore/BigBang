@@ -582,14 +582,10 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     {
         nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE);
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
-    }
-    if (nAgreementWaitTime > 0 && consParam.nWaitTime < nAgreementWaitTime)
-    {
-        consParam.nWaitTime = nAgreementWaitTime;
-    }
-    if (consParam.nWaitTime > 0)
-    {
-        return false;
+        if (consParam.nWaitTime > 0)
+        {
+            return false;
+        }
     }
     consParam.ret = true;
     return true;
