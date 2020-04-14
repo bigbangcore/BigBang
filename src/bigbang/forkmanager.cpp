@@ -6,6 +6,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
+#include "defs.h"
 #include "template/fork.h"
 
 using namespace std;
@@ -54,7 +55,7 @@ void CForkManager::HandleDeinitialize()
 bool CForkManager::HandleInvoke()
 {
     int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
-    if (2 == nodeCat)
+    if (NODE_CAT_DPOSNODE == nodeCat)
     {
         setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
         return true;
@@ -270,7 +271,7 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
 bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::vector<uint256>& vGroup)
 {
     int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
-    if (2 == nodeCat)
+    if (NODE_CAT_DPOSNODE == nodeCat)
     {
         return true;
     }
@@ -301,7 +302,6 @@ bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::v
 
     return true;
 }
-
 
 bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const
 {
