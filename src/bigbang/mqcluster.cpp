@@ -169,6 +169,15 @@ bool CMQCluster::HandleInvoke()
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
+        {
+            boost::unique_lock<boost::mutex> lock(mtxStatus);
+            if (setBizFork.size() != 1 || *(setBizFork.begin()) != pCoreProtocol->GetGenesisBlockHash())
+            {
+                Error("CMQCluster::HandleInvoke(): dpos node enrollment info "
+                      "invalid [%d] for self", setBizFork.size());
+                return false;
+            }
+        }
         lastHeightResp = -1;
         topicReqBlk = "Cluster01/+/SyncBlockReq";
         topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock"; // todo: DPOSNODE should come from storage
