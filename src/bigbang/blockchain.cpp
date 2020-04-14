@@ -1193,13 +1193,11 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     delegate::CDelegateVerify verifier;
     if (cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
     {
-        delegate::CDelegateVerify verifierWitness(witness);
-        verifier = verifierWitness;
+        verifier.Enroll(witness);
     }
     else
     {
-        delegate::CDelegateVerify verifierEnroll(enrolled.mapWeight, enrolled.mapEnrollData);
-        verifier = verifierEnroll;
+        verifier.Enroll(enrolled.mapWeight, enrolled.mapEnrollData);
     }
 
     map<CDestination, size_t> mapBallot;
