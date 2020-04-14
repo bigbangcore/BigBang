@@ -44,6 +44,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -373,12 +374,22 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
                          pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
+    else if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
+    {
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), CTransaction::TX_WORK);
+        if (block.GetBlockTime() < nNextTimestamp)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
+                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+        }
+    }
     else
     {
         uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType);
         if (block.GetBlockTime() < nNextTimestamp)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 3, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
                          block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
                          pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
@@ -933,6 +944,10 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
         {
             nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        }
+        else if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
+        {
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_WORK);
         }
         else
         {
