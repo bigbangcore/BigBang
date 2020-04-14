@@ -68,6 +68,7 @@ CDelegateVote::CDelegateVote()
     witness.SetupWitness();
     is_enroll = false;
     is_published = false;
+    nPublishedTime = 0;
 }
 
 CDelegateVote::~CDelegateVote()

@@ -106,6 +106,7 @@ public:
     uint256 blockHash;
     bool is_enroll;
     bool is_published;
+    int64 nPublishedTime;
     uint256 hashDistributeBlock;
     uint256 hashPublishBlock;
 };

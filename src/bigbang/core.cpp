@@ -375,11 +375,11 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     }
     else
     {
-        if (block.GetBlockTime() < GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()))
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType);
+        if (block.GetBlockTime() < nNextTimestamp)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
-                         block.GetBlockHeight(), block.GetBlockTime(),
-                         GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime()),
+                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
                          pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
@@ -936,7 +936,7 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         }
         else
         {
-            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp);
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_STAKE);
         }
     }
     else
@@ -956,10 +956,14 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
     return nTimeStamp;
 }
 
-uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp)
+uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType)
 {
     if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
     {
+        if (nTargetMintType == CTransaction::TX_STAKE)
+        {
+            return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+        }
         return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
     }
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;

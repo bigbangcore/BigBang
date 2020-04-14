@@ -328,6 +328,11 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
+    if (mapContext.empty())
+    {
+        return;
+    }
+
     int nStartHeight = update.nLastBlockHeight - update.vBlockAddNew.size();
     if (!update.vBlockRemove.empty())
     {
@@ -533,8 +538,13 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     consParam.nPrevHeight = nLastHeight;
     consParam.nPrevMintType = nLastMintType;
 
-    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime);
+    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+    int64 nAgreementWaitTime = GetAgreementWaitTime(nLastHeight + 1);
+    if (nAgreementWaitTime > 0 && consParam.nWaitTime < nAgreementWaitTime)
+    {
+        consParam.nWaitTime = nAgreementWaitTime;
+    }
     if (consParam.nWaitTime > 0)
     {
         return false;
@@ -567,6 +577,15 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
         }
         consParam = cacheAgreementBlock;
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+    }
+    if (!cacheAgreementBlock.agreement.IsProofOfWork())
+    {
+        nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE);
+        consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+        if (consParam.nWaitTime > 0)
+        {
+            return false;
+        }
     }
     consParam.ret = true;
     return true;
@@ -614,6 +633,11 @@ bool CConsensus::LoadChain()
 
 bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted)
 {
+    if (mapContext.empty())
+    {
+        fCompleted = true;
+        return true;
+    }
     if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
         uint256 hashBlock;
@@ -650,6 +674,24 @@ bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_
         fCompleted = true;
     }
     return true;
+}
+
+int64 CConsensus::GetAgreementWaitTime(int nTargetHeight)
+{
+    if (mapContext.empty())
+    {
+        return 0;
+    }
+    if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
+    {
+        int64 nPublishedTime = delegate.GetPublishedTime(nTargetHeight);
+        if (nPublishedTime <= 0)
+        {
+            return -1;
+        }
+        return nPublishedTime + 10 - GetTime();
+    }
+    return 0;
 }
 
 } // namespace bigbang

@@ -111,6 +111,7 @@ protected:
     bool LoadDelegateTx();
     bool LoadChain();
     bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted);
+    int64 GetAgreementWaitTime(int nTargetHeight);
 
 protected:
     boost::mutex mutex;
