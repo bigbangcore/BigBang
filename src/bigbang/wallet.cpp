@@ -654,7 +654,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     set<crypto::CPubKey> setSignedKey;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
-        if (!SignDestination(destIn, tx, tx.GetSignatureHash(), vchSig, nForkHeight, fCompleted, setSignedKey))
+        if (!SignDestination(destIn, tx, tx.GetSignatureHash(), vchSig, nForkHeight, setSignedKey, fCompleted))
         {
             StdError("CWallet", "SignTransaction: SignDestination fail, destIn: %s, txid: %s",
                      destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
@@ -1528,7 +1528,7 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
 
 bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx,
                               const uint256& hash, vector<uint8>& vchSig,
-                              const int32 nForkHeight, bool& fCompleted, std::set<crypto::CPubKey>& setSignedKey)
+                              const int32 nForkHeight, std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {
@@ -1564,7 +1564,7 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         }
         else if (setSubDest.size() == 1)
         {
-            if (!SignDestination(*setSubDest.begin(), tx, hash, vchSubSig, nForkHeight, fCompleted, setSignedKey))
+            if (!SignDestination(*setSubDest.begin(), tx, hash, vchSubSig, nForkHeight, setSignedKey, fCompleted))
             {
                 StdError("CWallet", "SignDestination: SignDestination fail, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
