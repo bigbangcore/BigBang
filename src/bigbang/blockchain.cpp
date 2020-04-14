@@ -1032,22 +1032,20 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
     CDelegateEnrolled enrolled;
     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
     {
-         return false;
+        return false;
     }
 
     delegate::CSecretShare witness;
     delegate::CDelegateVerify verifier;
-    if(cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
+    if (cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
     {
-        delegate::CDelegateVerify verifierWitness(witness);
-        verifier = verifierWitness;
+        verifier.Enroll(witness);
     }
     else
     {
-        delegate::CDelegateVerify verifierEnroll(enrolled.mapWeight, enrolled.mapEnrollData);
-        verifier = verifierEnroll;
+        verifier.Enroll(enrolled.mapWeight, enrolled.mapEnrollData);
     }
-    
+
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
@@ -1193,7 +1191,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 
     delegate::CSecretShare witness;
     delegate::CDelegateVerify verifier;
-    if(cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
+    if (cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
     {
         delegate::CDelegateVerify verifierWitness(witness);
         verifier = verifierWitness;
@@ -1203,7 +1201,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
         delegate::CDelegateVerify verifierEnroll(enrolled.mapWeight, enrolled.mapEnrollData);
         verifier = verifierEnroll;
     }
-    
+
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
