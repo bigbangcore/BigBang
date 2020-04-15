@@ -1180,7 +1180,7 @@ bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockInde
 }
 
 bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                            CDelegateAgreement& agreement, size_t& nEnrollWeight, CBlockIndex** ppIndexRef)
+                                            CDelegateAgreement& agreement, size_t& nEnrollWeight)
 {
     agreement.Clear();
 
@@ -1296,7 +1296,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
-        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollWeight, ppIndexRef))
+        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollWeight))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
