@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include "base.h"
 #include "rpc/rpc.h"
@@ -49,6 +50,8 @@ protected:
     std::vector<std::string> vArgs;
     uint64 nLastNonce;
     xengine::CIOCompletion ioComplt;
+    std::atomic<bool> isConsoleRunning;
+
 };
 
 } // namespace bigbang

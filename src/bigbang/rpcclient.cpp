@@ -54,6 +54,7 @@ CRPCClient::CRPCClient(bool fConsole)
 {
     nLastNonce = 0;
     pHttpGet = nullptr;
+    isConsoleRunning = false;
 }
 
 CRPCClient::~CRPCClient()
@@ -96,6 +97,7 @@ void CRPCClient::HandleHalt()
         thrDispatch.Interrupt();
     }
     thrDispatch.Interrupt();
+    isConsoleRunning = false;
     ThreadExit(thrDispatch);
 }
 
@@ -265,7 +267,8 @@ void CRPCClient::LaunchConsole()
 
     fd_set fs;
     timeval timeout;
-    while (true)
+    isConsoleRunning = true;
+    while (isConsoleRunning)
     {
         FD_ZERO(&fs);
         FD_SET(STDIN_FILENO, &fs);
