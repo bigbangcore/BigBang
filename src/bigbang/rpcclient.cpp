@@ -50,11 +50,10 @@ static const char* prompt = "bigbang> ";
 
 CRPCClient::CRPCClient(bool fConsole)
   : IIOModule("rpcclient"),
-    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this))
+    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this)), isConsoleRunning(false)
 {
     nLastNonce = 0;
     pHttpGet = nullptr;
-    isConsoleRunning = false;
 }
 
 CRPCClient::~CRPCClient()
