@@ -43,6 +43,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
 
@@ -672,15 +673,15 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
+bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollWeight)
 {
     if (block.IsGenesis())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsVacant())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsPrimary())
     {
@@ -690,7 +691,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
             uint256 v(1);
-            return v << proof.nBits;
+            nChainTrust = v << proof.nBits;
         }
         else if (pIndexPrev != nullptr)
         {
@@ -717,50 +718,58 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             {
                 if (agreement.nWeight == 0 || nBits <= 0)
                 {
-                    StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    StdError("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    return false;
                 }
-                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
+                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT)
                 {
-                    return uint256(uint64(agreement.nWeight + 5)) << nBits;
+                    if (nEnrollWeight <= 0)
+                    {
+                        StdError("CCoreProtocol", "GetBlockTrust: nEnrollWeight error, nEnrollWeight: %lu", nEnrollWeight);
+                        return false;
+                    }
+                    nChainTrust = uint256(uint64(nEnrollWeight)) << nBits;
+                }
+                else if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
+                {
+                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
                 }
                 else
                 {
-                    return uint256(uint64(agreement.nWeight)) << nBits;
+                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
                 }
             }
             else
             {
-                StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
-                return uint64(0);
+                StdError("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return false;
             }
         }
         else
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
-            return uint64(0);
+            StdError("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
+            return false;
         }
     }
     else if (block.IsOrigin())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
     {
         if (pIndexRef->pPrev == nullptr)
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return pIndexRef->nChainTrust;
+            StdError("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
+            return false;
         }
-        else
-        {
-            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
-        }
+        nChainTrust = pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
     }
     else
     {
-        StdLog("CCoreProtocol", "GetBlockTrust: block type error");
-        return uint64(0);
+        StdError("CCoreProtocol", "GetBlockTrust: block type error");
+        return false;
     }
+    return true;
 }
 
 bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward)
@@ -849,7 +858,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t> mapBallot,
-                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, int nBlockHeight)
+                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollWeight, int nBlockHeight)
 {
     vBallot.clear();
     if (nAgreement == 0 || mapBallot.size() == 0)
@@ -875,7 +884,7 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
 
     map<CDestination, size_t> mapSelectBallot;
     size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
-    size_t nEnrollWeight = 0;
+    nEnrollWeight = 0;
     for (auto& amount : vecAmount)
     {
         StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
@@ -1121,6 +1130,8 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     }
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    nDelegateProofOfStakeNewTrustHeight = DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT;
+    nDelegateProofOfStakeEnrollTrustHeight = DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT;
 }
 
 } // namespace bigbang

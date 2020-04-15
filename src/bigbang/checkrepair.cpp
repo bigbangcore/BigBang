@@ -997,7 +997,11 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
         {
             if (block.IsProofOfWork())
             {
-                nChainTrust = GetBlockTrust(block);
+                if (!GetBlockTrust(block, nChainTrust))
+                {
+                    StdError("check", "Block walk: Get block trust fail 1, block: %s.", hashBlock.GetHex().c_str());
+                    return false;
+                }
             }
             else
             {
@@ -1034,7 +1038,11 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
                         return false;
                     }
                 }
-                nChainTrust = GetBlockTrust(block, pIndexPrev, agreement, pIndexRef);
+                if (!GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef))
+                {
+                    StdError("check", "Block walk: Get block trust fail 2, block: %s.", hashBlock.GetHex().c_str());
+                    return false;
+                }
             }
         }
         pNewBlockIndex = AddNewIndex(hashBlock, static_cast<const CBlock&>(checkBlock), nFile, nOffset, nChainTrust);
@@ -1083,15 +1091,15 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     return true;
 }
 
-uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
+bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollWeight)
 {
     if (block.IsGenesis())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsVacant())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsPrimary())
     {
@@ -1101,7 +1109,7 @@ uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockInde
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
             uint256 v(1);
-            return v << proof.nBits;
+            nChainTrust = v << proof.nBits;
         }
         else if (pIndexPrev != nullptr)
         {
@@ -1127,43 +1135,58 @@ uint256 CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, const CBlockInde
             {
                 if (agreement.nWeight == 0 || nBits <= 0)
                 {
-                    StdLog("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    return false;
                 }
-                return uint256(uint64(agreement.nWeight)) << nBits;
+                if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeEnrollTrustHeight)
+                {
+                    if (nEnrollWeight <= 0)
+                    {
+                        StdError("check", "GetBlockTrust: nEnrollWeight error, nEnrollWeight: %lu", nEnrollWeight);
+                        return false;
+                    }
+                    nChainTrust = uint256(uint64(nEnrollWeight)) << nBits;
+                }
+                else if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeNewTrustHeight)
+                {
+                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
+                }
+                else
+                {
+                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
+                }
             }
             else
             {
-                StdLog("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-                return uint64(0);
+                StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return false;
             }
         }
         else
         {
-            StdLog("check", "GetBlockTrust: Primary pIndexPrev is null");
-            return uint64(0);
+            StdError("check", "GetBlockTrust: Primary pIndexPrev is null");
+            return false;
         }
     }
     else if (block.IsOrigin())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
     {
         if (pIndexRef->pPrev == nullptr)
         {
-            StdLog("check", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return uint64(0);
+            StdError("check", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
+            return false;
         }
-        else
-        {
-            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
-        }
+        nChainTrust = pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
     }
     else
     {
-        StdLog("check", "GetBlockTrust: block type error");
-        return uint64(0);
+        StdError("check", "GetBlockTrust: block type error");
+        return false;
     }
+    return true;
 }
 
 bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits)
