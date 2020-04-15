@@ -83,6 +83,7 @@ bool CRPCClient::HandleInvoke()
         return false;
     }
     pClient = this;
+    isConsoleRunning = true;
     return IIOModule::HandleInvoke();
 }
 
@@ -267,7 +268,6 @@ void CRPCClient::LaunchConsole()
 
     fd_set fs;
     timeval timeout;
-    isConsoleRunning = true;
     while (isConsoleRunning)
     {
         FD_ZERO(&fs);
