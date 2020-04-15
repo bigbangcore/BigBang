@@ -168,7 +168,15 @@ public:
     uint256 GetSignatureHash() const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << nLockUntil << hashAnchor << vInput << sendTo << nAmount << nTxFee << vchData;
+        if (nTimeStamp > 1585818000 /* 2020-04-02 17:00:00 */)
+        {
+            uint16 v = -1;
+            ss << v << nType << nTimeStamp << nLockUntil << hashAnchor << vInput << sendTo << nAmount << nTxFee << vchData;
+        }
+        else
+        {
+            ss << nVersion << nType << nTimeStamp << nLockUntil << hashAnchor << vInput << sendTo << nAmount << nTxFee << vchData;
+        }
         return bigbang::crypto::CryptoHash(ss.GetData(), ss.GetSize());
     }
 
