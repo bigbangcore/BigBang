@@ -846,11 +846,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         CBufferPtr spSS(new CBufStream);
         *spSS.get() << resp;
         string topicRsp = "Cluster01/" + req.forkNodeId + "/SyncBlockResp";
-        {
-            boost::unique_lock<boost::mutex> lock(mtxSend);
-            deqSendBuff.emplace_back(make_pair(topicRsp, spSS));
-        }
-        condSend.notify_all();
+        AppendSendQueue(topicRsp, spSS);
 
         break;
     }
