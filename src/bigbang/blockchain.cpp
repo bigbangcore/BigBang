@@ -428,9 +428,9 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     int64 nReward;
     CDelegateAgreement agreement;
-    size_t nEnrollWeight = 0;
+    size_t nEnrollTrust = 0;
     CBlockIndex* pIndexRef = nullptr;
-    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, nEnrollWeight, &pIndexRef);
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, nEnrollTrust, &pIndexRef);
     if (err != OK)
     {
         Log("AddNewBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
@@ -503,7 +503,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     // Get block trust
     uint256 nChainTrust;
-    if (!pCoreProtocol->GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef))
+    if (!pCoreProtocol->GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
     {
         Log("AddNewBlock get block trust fail, block: %s", hash.GetHex().c_str());
         return ERR_BLOCK_TRANSACTIONS_INVALID;
@@ -998,9 +998,9 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 
     int64 nReward;
     CDelegateAgreement agreement;
-    size_t nEnrollWeight = 0;
+    size_t nEnrollTrust = 0;
     CBlockIndex* pIndexRef = nullptr;
-    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, nEnrollWeight, &pIndexRef);
+    err = VerifyBlock(hash, block, pIndexPrev, nReward, agreement, nEnrollTrust, &pIndexRef);
     if (err != OK)
     {
         Log("VerifyPowBlock Verify Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
@@ -1072,7 +1072,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 
     // Get block trust
     uint256 nNewBlockChainTrust;
-    if (!pCoreProtocol->GetBlockTrust(block, nNewBlockChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollWeight))
+    if (!pCoreProtocol->GetBlockTrust(block, nNewBlockChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
     {
         Log("VerifyPowBlock get block trust fail, block: %s", hash.GetHex().c_str());
         return ERR_BLOCK_TRANSACTIONS_INVALID;
@@ -1180,7 +1180,7 @@ bool CBlockChain::GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockInde
 }
 
 bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                            CDelegateAgreement& agreement, size_t& nEnrollWeight)
+                                            CDelegateAgreement& agreement, size_t& nEnrollTrust)
 {
     agreement.Clear();
 
@@ -1211,7 +1211,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     }
 
     pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, enrolled.vecAmount,
-                                      pIndex->GetMoneySupply(), agreement.vBallot, nEnrollWeight, pIndexPrev->GetBlockHeight() + 1);
+                                      pIndex->GetMoneySupply(), agreement.vBallot, nEnrollTrust, pIndexPrev->GetBlockHeight() + 1);
 
     cacheAgreement.AddNew(hashBlock, agreement);
 
@@ -1266,9 +1266,9 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    size_t nEnrollWeight = 0;
+    size_t nEnrollTrust = 0;
     pCoreProtocol->GetDelegatedBallot(agreement.nAgreement, agreement.nWeight, mapBallot, enrolled.vecAmount,
-                                      pIndex->GetMoneySupply(), agreement.vBallot, nEnrollWeight, pIndexRef->GetBlockHeight());
+                                      pIndex->GetMoneySupply(), agreement.vBallot, nEnrollTrust, pIndexRef->GetBlockHeight());
 
     cacheAgreement.AddNew(hashBlock, agreement);
 
@@ -1276,7 +1276,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
 }
 
 Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                               int64& nReward, CDelegateAgreement& agreement, size_t& nEnrollWeight, CBlockIndex** ppIndexRef)
+                               int64& nReward, CDelegateAgreement& agreement, size_t& nEnrollTrust, CBlockIndex** ppIndexRef)
 {
     nReward = 0;
     if (block.IsOrigin())
@@ -1296,7 +1296,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
-        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollWeight))
+        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollTrust))
         {
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }

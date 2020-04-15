@@ -673,7 +673,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollWeight)
+bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollTrust)
 {
     if (block.IsGenesis())
     {
@@ -723,12 +723,12 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
                 }
                 if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT)
                 {
-                    if (nEnrollWeight <= 0)
+                    if (nEnrollTrust <= 0)
                     {
-                        StdError("CCoreProtocol", "GetBlockTrust: nEnrollWeight error, nEnrollWeight: %lu", nEnrollWeight);
+                        StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
                         return false;
                     }
-                    nChainTrust = uint256(uint64(nEnrollWeight)) << nBits;
+                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
                 }
                 else if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
                 {
@@ -863,7 +863,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t> mapBallot,
-                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollWeight, int nBlockHeight)
+                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollTrust, int nBlockHeight)
 {
     vBallot.clear();
     if (nAgreement == 0 || mapBallot.size() == 0)
@@ -889,21 +889,24 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
 
     map<CDestination, size_t> mapSelectBallot;
     size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
-    nEnrollWeight = 0;
+    size_t nEnrollWeight = 0;
+    nEnrollTrust = 0;
     for (auto& amount : vecAmount)
     {
         StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
                  CAddress(amount.first).ToString().c_str(), amount.second);
         if (mapBallot.find(amount.first) != mapBallot.end())
         {
-            size_t nDestWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
+            size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
             mapSelectBallot[amount.first] = nDestWeight;
             nEnrollWeight += nDestWeight;
+            nEnrollTrust += (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT));
             StdTrace("Core", "Get delegated ballot: ballot dest: %s, weight: %lld",
                      CAddress(amount.first).ToString().c_str(), nDestWeight);
         }
     }
-    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu", mapSelectBallot.size());
+    nEnrollTrust /= DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu, enroll trust: %llu", mapSelectBallot.size(), nEnrollTrust);
 
     size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
                          / (nMaxWeight * nMaxWeight);
@@ -1135,6 +1138,7 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     }
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
     nDelegateProofOfStakeNewTrustHeight = DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT;
     nDelegateProofOfStakeEnrollTrustHeight = DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT;
 }

@@ -507,8 +507,8 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        size_t nEnrollWeight = 0;
-        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollWeight, nTargetHeight);
+        size_t nEnrollTrust = 0;
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
     }
 }
 
@@ -541,7 +541,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
 
     int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
-    if (nNextBlockTime < -60)
+    if (consParam.nWaitTime >= -60)
     {
         int64 nAgreementWaitTime = GetAgreementWaitTime(nLastHeight + 1);
         if (nAgreementWaitTime > 0 && consParam.nWaitTime < nAgreementWaitTime)
@@ -670,8 +670,8 @@ bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_
                 Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
                 return false;
             }
-            size_t nEnrollWeight = 0;
-            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollWeight, nTargetHeight);
+            size_t nEnrollTrust = 0;
+            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
         }
     }
     else

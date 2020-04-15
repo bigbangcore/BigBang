@@ -75,10 +75,10 @@ protected:
     bool GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                          std::vector<CBlockEx>& vBlockAddNew, std::vector<CBlockEx>& vBlockRemove);
     bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                   CDelegateAgreement& agreement, std::size_t& nEnrollWeight);
+                                   CDelegateAgreement& agreement, std::size_t& nEnrollTrust);
     bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                      int64& nReward, CDelegateAgreement& agreement, std::size_t& nEnrollWeight, CBlockIndex** ppIndexRef);
+                      int64& nReward, CDelegateAgreement& agreement, std::size_t& nEnrollTrust, CBlockIndex** ppIndexRef);
     bool VerifyBlockCertTx(const CBlock& block);
 
 protected:

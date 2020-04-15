@@ -1007,9 +1007,10 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
             {
                 CBlockIndex* pIndexRef = nullptr;
                 CDelegateAgreement agreement;
+                size_t nEnrollTrust = 0;
                 if (block.IsPrimary())
                 {
-                    if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement))
+                    if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement, nEnrollTrust))
                     {
                         StdError("check", "Block walk: GetBlockDelegateAgreement fail, block: %s.", hashBlock.GetHex().c_str());
                         return false;
@@ -1038,7 +1039,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
                         return false;
                     }
                 }
-                if (!GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef))
+                if (!GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
                 {
                     StdError("check", "Block walk: Get block trust fail 2, block: %s.", hashBlock.GetHex().c_str());
                     return false;
@@ -1091,7 +1092,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     return true;
 }
 
-bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollWeight)
+bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollTrust)
 {
     if (block.IsGenesis())
     {
@@ -1140,12 +1141,12 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
                 }
                 if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeEnrollTrustHeight)
                 {
-                    if (nEnrollWeight <= 0)
+                    if (nEnrollTrust <= 0)
                     {
-                        StdError("check", "GetBlockTrust: nEnrollWeight error, nEnrollWeight: %lu", nEnrollWeight);
+                        StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
                         return false;
                     }
-                    nChainTrust = uint256(uint64(nEnrollWeight)) << nBits;
+                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
                 }
                 else if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeNewTrustHeight)
                 {
@@ -1239,7 +1240,7 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
     return true;
 }
 
-bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement)
+bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust)
 {
     agreement.Clear();
     if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
@@ -1272,6 +1273,16 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
         StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
         return false;
     }
+
+    nEnrollTrust = 0;
+    for (auto& amount : enrolled.vecAmount)
+    {
+        if (mapBallot.find(amount.first) != mapBallot.end())
+        {
+            nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
+        }
+    }
+    nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
     return true;
 }
 

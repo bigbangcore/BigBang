@@ -194,11 +194,6 @@ bool CBlockMaker::HandleInvoke()
     if (!mapDelegatedProfile.empty())
     {
         fExit = false;
-        {
-            boost::unique_lock<boost::mutex> lock(mutex);
-            pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), lastStatus.hashLastBlock,
-                                      lastStatus.nLastBlockHeight, lastStatus.nLastBlockTime, lastStatus.nMintType);
-        }
         if (!ThreadDelayStart(thrMaker))
         {
             return false;
@@ -211,6 +206,13 @@ bool CBlockMaker::HandleInvoke()
         {
             return false;
         }
+    }
+
+    if (!fExit)
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), lastStatus.hashLastBlock,
+                                  lastStatus.nLastBlockHeight, lastStatus.nLastBlockTime, lastStatus.nMintType);
     }
     return true;
 }
