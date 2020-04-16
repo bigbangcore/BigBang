@@ -105,11 +105,11 @@ public:
     std::vector<uint8> vchSig;
     enum
     {
-        TX_TOKEN = 0x0000,
-        TX_CERT = 0xff00,
-        TX_GENESIS = 0x0100,
-        TX_STAKE = 0x0200,
-        TX_WORK = 0x0300
+        TX_TOKEN = 0x0000,   // normal Tx 0
+        TX_CERT = 0xff00,    // Enroll Tx 65280
+        TX_GENESIS = 0x0100, // 256
+        TX_STAKE = 0x0200,   // DPoS mint tx 512
+        TX_WORK = 0x0300     // PoW mint tx 768
     };
     CTransaction()
     {

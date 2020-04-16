@@ -197,6 +197,7 @@ bool CSchedule::ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBloc
         {
             state.objReceived = block;
             state.nRecvObjTime = GetTime();
+            state.nClearObjTime = GetTime() + MAX_OBJ_WAIT_TIME;
             setSchedPeer.insert(state.setKnownPeer.begin(), state.setKnownPeer.end());
             mapPeer[nPeerNonce].Completed((*it).first);
             return true;
@@ -215,6 +216,7 @@ bool CSchedule::ReceiveTx(uint64 nPeerNonce, const uint256& txid, const CTransac
         {
             state.objReceived = tx;
             state.nRecvObjTime = GetTime();
+            state.nClearObjTime = GetTime() + MAX_OBJ_WAIT_TIME;
             setSchedPeer.insert(state.setKnownPeer.begin(), state.setKnownPeer.end());
             mapPeer[nPeerNonce].Completed((*it).first);
             setMissPrevTxInv.erase((*it).first);
@@ -451,7 +453,7 @@ bool CSchedule::SetRepeatBlock(uint64 nNonce, const uint256& hash)
     if (it != mapState.end())
     {
         it->second.fRepeatMintBlock = true;
-        it->second.nRecvObjTime = GetTime() - MAX_OBJ_WAIT_TIME + MAX_REPEAT_BLOCK_TIME;
+        it->second.nClearObjTime = GetTime() + MAX_REPEAT_BLOCK_TIME;
     }
     if (mapPeer[nNonce].AddRepeatBlock(hash) >= MAX_REPEAT_BLOCK_COUNT)
     {
@@ -470,6 +472,47 @@ bool CSchedule::IsRepeatBlock(const uint256& hash)
     return false;
 }
 
+void CSchedule::AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashBlock)
+{
+    mapRefBlock.insert(make_pair(hashRefBlock, make_pair(hashFork, hashBlock)));
+}
+
+void CSchedule::RemoveRefBlock(const uint256& hash)
+{
+    multimap<uint256, pair<uint256, uint256>>::iterator it = mapRefBlock.begin();
+    while (it != mapRefBlock.end())
+    {
+        if (it->second.second == hash)
+        {
+            mapRefBlock.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
+void CSchedule::GetNextRefBlock(const uint256& hashRefBlock, vector<pair<uint256, uint256>>& vNext)
+{
+    for (multimap<uint256, pair<uint256, uint256>>::iterator it = mapRefBlock.lower_bound(hashRefBlock);
+         it != mapRefBlock.upper_bound(hashRefBlock); ++it)
+    {
+        vNext.push_back(it->second);
+    }
+}
+
+bool CSchedule::SetDelayedClear(const network::CInv& inv, int64 nDelayedTime)
+{
+    map<network::CInv, CInvState>::iterator it = mapState.find(inv);
+    if (it != mapState.end())
+    {
+        it->second.nClearObjTime = GetTime() + nDelayedTime;
+        return true;
+    }
+    return false;
+}
+
 void CSchedule::RemoveOrphan(const network::CInv& inv)
 {
     if (inv.nType == network::CInv::MSG_TX)
@@ -479,6 +522,7 @@ void CSchedule::RemoveOrphan(const network::CInv& inv)
     else if (inv.nType == network::CInv::MSG_BLOCK)
     {
         orphanBlock.Remove(inv.nHash);
+        RemoveRefBlock(inv.nHash);
     }
 }
 
@@ -562,7 +606,8 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
                 }
                 else if (state.IsReceived())
                 {
-                    if (nCurTime - state.nRecvObjTime >= MAX_OBJ_WAIT_TIME)
+                    //if (nCurTime - state.nRecvObjTime >= MAX_OBJ_WAIT_TIME)
+                    if (nCurTime >= state.nClearObjTime)
                     {
                         StdLog("Schedule", "ScheduleKnownInv: object timeout, peer nonce: %ld, inv: [%d] %s, waittime: %ld",
                                nPeerNonce, inv.nType, inv.nHash.GetHex().c_str(), nCurTime - state.nRecvObjTime);

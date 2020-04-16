@@ -60,7 +60,7 @@ bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
     map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        return (*it).second.fSynchronized;
+        return it->second.fSynchronized;
     }
     return false;
 }
@@ -70,8 +70,8 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        fInverted = ((*it).second.fSynchronized != fSync);
-        (*it).second.fSynchronized = fSync;
+        fInverted = (it->second.fSynchronized != fSync);
+        it->second.fSynchronized = fSync;
         return true;
     }
     return false;
@@ -82,7 +82,7 @@ void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>&
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        (*it).second.AddKnownTx(vTxHash, nTotalSynTxCount);
+        it->second.AddKnownTx(vTxHash, nTotalSynTxCount);
     }
 }
 
@@ -91,7 +91,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        CNetChannelPeerFork& peerFork = (*it).second;
+        CNetChannelPeerFork& peerFork = it->second;
         switch (peerFork.CheckTxInvSynStatus())
         {
         case CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
@@ -107,7 +107,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
                 {
                     break;
                 }
-                else if (!(*it).second.IsKnownTx(txid))
+                else if (!peerFork.IsKnownTx(txid))
                 {
                     vInv.push_back(network::CInv(network::CInv::MSG_TX, txid));
                     vTxHash.push_back(txid);
@@ -184,6 +184,12 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -232,7 +238,8 @@ int CNetChannel::GetPrimaryChainHeight()
     uint256 hashBlock = uint64(0);
     int nHeight = 0;
     int64 nTime = 0;
-    if (pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime))
+    uint16 nMintType = 0;
+    if (pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
     {
         return nHeight;
     }
@@ -306,18 +313,27 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         StdLog("NetChannel", "SubscribeFork: mapSched insert success, hashFork: %s", hashFork.GetHex().c_str());
     }
 
+    vector<uint64> vPeerNonce;
     network::CEventPeerSubscribe eventSubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
     eventSubscribe.data.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
+            vPeerNonce.push_back((*it).first);
             eventSubscribe.nNonce = (*it).first;
             pPeerNet->DispatchEvent(&eventSubscribe);
-            DispatchGetBlocksEvent(it->first, hashFork);
-            BroadcastTxInv(hashFork);
         }
     }
+    if (!vPeerNonce.empty())
+    {
+        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        for (const uint64& nPeer : vPeerNonce)
+        {
+            DispatchGetBlocksEvent(nPeer, hashFork);
+        }
+    }
+    BroadcastTxInv(hashFork);
 }
 
 void CNetChannel::UnsubscribeFork(const uint256& hashFork)
@@ -334,7 +350,6 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
 
     network::CEventPeerUnsubscribe eventUnsubscribe(0ULL, pCoreProtocol->GetGenesisBlockHash());
     eventUnsubscribe.data.push_back(hashFork);
-
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
         for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
@@ -356,7 +371,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
     StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
-        DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+        }
         BroadcastTxInv(pCoreProtocol->GetGenesisBlockHash());
 
         network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -422,22 +440,32 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
-        if (it != mapPeer.end())
+        vector<uint256> vDispatchHash;
         {
-            for (const uint256& hash : eventSubscribe.data)
+            boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+            map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+            if (it != mapPeer.end())
             {
-                (*it).second.Subscribe(hash);
-                mapUnsync[hash].insert(nNonce);
-
+                for (const uint256& hash : eventSubscribe.data)
                 {
-                    boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-                    if (mapSched.count(hash))
+                    (*it).second.Subscribe(hash);
+                    mapUnsync[hash].insert(nNonce);
                     {
-                        DispatchGetBlocksEvent(nNonce, hash);
+                        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                        if (mapSched.count(hash))
+                        {
+                            vDispatchHash.push_back(hash);
+                        }
                     }
                 }
+            }
+        }
+        if (!vDispatchHash.empty())
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            for (const uint256& hash : vDispatchHash)
+            {
+                DispatchGetBlocksEvent(nNonce, hash);
             }
         }
     }
@@ -445,7 +473,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     {
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, string("eventSubscribe: ") + hashFork.GetHex());
     }
-
     return true;
 }
 
@@ -524,7 +551,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                         {
                             uint256 hashLastBlock;
                             int64 nLastTime = 0;
-                            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastTime))
+                            uint16 nMintType = 0;
+                            if (!pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastBlockHeight, nLastTime, nMintType))
                             {
                                 StdError("NetChannel", "CEventPeerInv: peer: %s, GetLastBlock fail, fork: %s",
                                          GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
@@ -685,7 +713,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
         uint256 hashLastBlock;
         int nLastHeight = 0;
         int64 nLastTime = 0;
-        if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime))
+        uint16 nMintType = 0;
+        if (pBlockChain->GetLastBlock(hashFork, hashLastBlock, nLastHeight, nLastTime, nMintType))
         {
             for (const uint256& hash : eventGetBlocks.data.vBlockHash)
             {
@@ -790,7 +819,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         {
             if (hashForkPrev == hashFork)
             {
-                AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer);
+                vector<pair<uint256, uint256>> vRefNextBlock;
+                AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock);
+
+                if (!vRefNextBlock.empty())
+                {
+                    AddRefNextBlock(vRefNextBlock);
+                }
             }
             else
             {
@@ -811,7 +846,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
                 {
                     if (hashForkPrev == hashFork)
                     {
-                        AddNewBlock(hashFork, hashFirst, sched, setSchedPeer, setMisbehavePeer);
+                        vector<pair<uint256, uint256>> vRefNextBlock;
+                        AddNewBlock(hashFork, hashFirst, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock);
+
+                        if (!vRefNextBlock.empty())
+                        {
+                            AddRefNextBlock(vRefNextBlock);
+                        }
                     }
                     else
                     {
@@ -1168,7 +1209,7 @@ bool CNetChannel::CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint2
 }
 
 void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                              set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer)
+                              set<uint64>& setSchedPeer, set<uint64>& setMisbehavePeer, vector<pair<uint256, uint256>>& vRefNextBlock)
 {
     vector<uint256> vBlockHash;
     vBlockHash.push_back(hash);
@@ -1179,7 +1220,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
         CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
         if (pBlock != nullptr)
         {
-            if (!pBlock->IsPrimary() && !pBlock->IsVacant())
+            uint256 hashBlockRef;
+            if (pBlock->IsSubsidiary() || pBlock->IsExtended())
             {
                 CProofOfPiggyback proof;
                 proof.Load(pBlock->vchProof);
@@ -1192,16 +1234,16 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                            GetPeerAddressInfo(nNonceSender).c_str(), hashBlock.GetHex().c_str(),
                            hashFork.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str());
 
-                    set<uint64> setKnownPeer;
-                    sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
-                    setSchedPeer.insert(setKnownPeer.begin(), setKnownPeer.end());
+                    sched.AddRefBlock(proof.hashRefBlock, hashFork, hashBlock);
+                    sched.SetDelayedClear(network::CInv(network::CInv::MSG_BLOCK, hashBlock), CSchedule::MAX_SUB_BLOCK_DELAYED_TIME);
                     return;
                 }
+                hashBlockRef = proof.hashRefBlock;
             }
 
-            if (!sched.IsRepeatBlock(hashBlock))
+            if (!pBlock->IsVacant() && !sched.IsRepeatBlock(hashBlock))
             {
-                if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock))
+                if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock, hashBlockRef))
                 {
                     StdLog("NetChannel", "NetChannel AddNewBlock: block repeat mint, peer: %s, height: %d, block: %s",
                            GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
@@ -1220,6 +1262,11 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
             {
                 StdDebug("NetChannel", "NetChannel AddNewBlock success, peer: %s, height: %d, block: %s",
                          GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
+
+                if (pBlock->IsPrimary())
+                {
+                    sched.GetNextRefBlock(hashBlock, vRefNextBlock);
+                }
 
                 {
                     const CTransaction& tx = pBlock->txMint;
@@ -1336,6 +1383,13 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 continue;
             }
 
+            /*if (pTx->nType == CTransaction::TX_CERT && !pBlockChain->Exists(pTx->hashAnchor))
+            {
+                StdWarn("NetChannel", "NetChannel AddNewTx: Enroll Tx hashAchor doest not exist. peer: %s, txid: %s",
+                        GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                continue;
+            }*/
+
             Errno err = pDispatcher->AddNewTx(*pTx, nNonceSender);
             if (err == OK)
             {
@@ -1345,6 +1399,11 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                 sched.RemoveInv(network::CInv(network::CInv::MSG_TX, hashTx), setSchedPeer);
                 DispatchAwardEvent(nNonceSender, CEndpointManager::MAJOR_DATA);
                 nAddNewTx++;
+
+                // {
+                //     boost::unique_lock<boost::mutex> lock(mtxHashAnchorSendTo);
+                //     setHashAnchorSendTo.insert(std::make_pair(pTx->hashAnchor, pTx->sendTo));
+                // }
             }
             else if (err == ERR_MISSING_PREV
                      || err == ERR_TRANSACTION_CONFLICTING_INPUT
@@ -1362,6 +1421,12 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
                            GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str(), err, ErrorString(err));
                 }
             }
+            else if (err == ERR_TRANSACTION_TOO_MANY_CERTTX)
+            {
+                StdLog("NetChannel", "NetChannel AddNewTx fail, too many cert tx, peer: %s, txid: %s",
+                       GetPeerAddressInfo(nNonceSender).c_str(), hashTx.GetHex().c_str());
+                sched.SetDelayedClear(network::CInv(network::CInv::MSG_TX, hashTx), CSchedule::MAX_CERTTX_DELAYED_TIME);
+            }
             else
             {
                 StdLog("NetChannel", "NetChannel AddNewTx fail, invalidate tx, peer: %s, txid: %s, err: [%d] %s",
@@ -1373,6 +1438,34 @@ void CNetChannel::AddNewTx(const uint256& hashFork, const uint256& txid, CSchedu
     if (nAddNewTx)
     {
         BroadcastTxInv(hashFork);
+    }
+}
+
+void CNetChannel::AddRefNextBlock(const vector<pair<uint256, uint256>>& vRefNextBlock)
+{
+    set<uint256> setHash;
+    for (int i = 0; i < vRefNextBlock.size(); i++)
+    {
+        const uint256& hashNextFork = vRefNextBlock[i].first;
+        const uint256& hashNextBlock = vRefNextBlock[i].second;
+        if (setHash.find(hashNextBlock) == setHash.end())
+        {
+            setHash.insert(hashNextBlock);
+
+            try
+            {
+                CSchedule& sched = GetSchedule(hashNextFork);
+
+                set<uint64> setSchedPeer, setMisbehavePeer;
+                vector<pair<uint256, uint256>> vTemp;
+                AddNewBlock(hashNextFork, hashNextBlock, sched, setSchedPeer, setMisbehavePeer, vTemp);
+            }
+            catch (exception& e)
+            {
+                StdError("NetChannel", "AddRefNextBlock fail, fork: %s, block: %s, err: %s",
+                         hashNextFork.GetHex().c_str(), hashNextBlock.GetHex().c_str(), e.what());
+            }
+        }
     }
 }
 

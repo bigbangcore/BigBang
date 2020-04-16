@@ -202,7 +202,7 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0), fRepeatMintBlock(false) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nClearObjTime(0), nGetDataCount(0), fRepeatMintBlock(false) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -214,6 +214,7 @@ class CSchedule
         std::set<uint64> setKnownPeer;
         int64 nRecvInvTime;
         int64 nRecvObjTime;
+        int64 nClearObjTime;
         int nGetDataCount;
         bool fRepeatMintBlock;
     };
@@ -228,7 +229,9 @@ public:
         MAX_INV_WAIT_TIME = 3600,
         MAX_OBJ_WAIT_TIME = 7200,
         MAX_REPEAT_BLOCK_TIME = 180,
-        MAX_REPEAT_BLOCK_COUNT = 4
+        MAX_REPEAT_BLOCK_COUNT = 4,
+        MAX_SUB_BLOCK_DELAYED_TIME = 120,
+        MAX_CERTTX_DELAYED_TIME = 180
     };
 
 public:
@@ -259,6 +262,10 @@ public:
     void SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime);
     bool SetRepeatBlock(uint64 nNonce, const uint256& hash);
     bool IsRepeatBlock(const uint256& hash);
+    void AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashBlock);
+    void RemoveRefBlock(const uint256& hash);
+    void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
+    bool SetDelayedClear(const network::CInv& inv, int64 nDelayedTime);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);
@@ -271,6 +278,7 @@ protected:
     std::map<uint64, CInvPeer> mapPeer;
     std::map<network::CInv, CInvState> mapState;
     std::set<network::CInv> setMissPrevTxInv;
+    std::multimap<uint256, std::pair<uint256, uint256>> mapRefBlock;
 };
 
 } // namespace bigbang

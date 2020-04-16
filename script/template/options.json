@@ -315,6 +315,24 @@
             "desc": "Accept IPv6 connections from outside (default: 0)"
         },
         {
+            "access": "protected",
+            "name": "strListenAddressv4",
+            "type": "string",
+            "opt": "listenaddressv4",
+            "default": "0.0.0.0",
+            "format": "-listenaddressv4=<ip>",
+            "desc": "listens for IPv4 addresses (default: 0.0.0.0)"
+        },
+        {
+            "access": "protected",
+            "name": "strListenAddressv6",
+            "type": "string",
+            "opt": "listenaddressv6",
+            "default": "::",
+            "format": "-listenaddressv6=<ip>",
+            "desc": "listens for IPv6 addresses (default: ::)"
+        },
+        {
             "name": "nPortInt",
             "type": "int",
             "opt": "port",

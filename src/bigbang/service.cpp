@@ -6,6 +6,7 @@
 
 #include "defs.h"
 #include "event.h"
+#include "template/delegate.h"
 
 using namespace std;
 using namespace xengine;
@@ -367,6 +368,53 @@ bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::m
     return pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspent);
 }
 
+bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause)
+{
+    CTemplateId tid;
+    if (!destDelegate.GetTemplateId(tid)
+        || (tid.GetType() != TEMPLATE_DELEGATE && tid.GetType() != TEMPLATE_VOTE))
+    {
+        strFailCause = "Not a delegate or vote template address";
+        return false;
+    }
+    if (tid.GetType() == TEMPLATE_DELEGATE)
+    {
+        if (!pBlockChain->GetVotes(destDelegate, nVotes))
+        {
+            strFailCause = "Query failed";
+            return false;
+        }
+    }
+    else
+    {
+        CTemplatePtr ptr = pWallet->GetTemplate(tid);
+        if (ptr == nullptr)
+        {
+            strFailCause = "Vote template address not imported";
+            return false;
+        }
+        CDestination destDelegateTemplateOut;
+        CDestination destOwnerOut;
+        boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
+        if (destDelegateTemplateOut.IsNull())
+        {
+            strFailCause = "Vote template address not imported";
+            return false;
+        }
+        if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
+        {
+            strFailCause = "Query failed";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CService::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
+{
+    return pBlockChain->ListDelegate(nCount, mapVotes);
+}
+
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
 {
     return pWallet->Have(pubkey, nVersion);
@@ -683,7 +731,10 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
     int64 nTotalTxFee = 0;
-    pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee);
+    if(!pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.hashPrev, block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee))
+    {
+        return FAILED;
+    }
     block.hashMerkle = block.CalcMerkleTreeRoot();
     block.txMint.nAmount += nTotalTxFee;
 
@@ -728,7 +779,7 @@ CAddress CService::GetBackSender(const uint256& txid)
         throw std::runtime_error("get tx failed.");
     }
 
-    while (tx.nType != CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/
+    while ((tx.nType != CTransaction::TX_WORK && tx.nType != CTransaction::TX_STAKE)
            && (tx.vInput.size() > 0 ? 0 != tx.vInput[0].prevout.n : false))
     {
         uint256 txHash = tx.vInput[0].prevout.hash;
@@ -738,7 +789,7 @@ CAddress CService::GetBackSender(const uint256& txid)
         }
     }
 
-    if (tx.nType == CTransaction::TX_WORK /* || tx.nType == CTransaction::TX_STAKE*/)
+    if (tx.nType == CTransaction::TX_WORK || tx.nType == CTransaction::TX_STAKE)
     {
         return CAddress(CDestination());
     }

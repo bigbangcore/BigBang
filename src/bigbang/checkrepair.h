@@ -9,6 +9,8 @@
 #include "block.h"
 #include "blockindexdb.h"
 #include "core.h"
+#include "delegatecomm.h"
+#include "delegateverify.h"
 #include "param.h"
 #include "struct.h"
 #include "timeseries.h"
@@ -192,6 +194,7 @@ public:
       : nSeqCreate(0), hashFork(hashForkIn) {}
 
     bool LocalTxExist(const uint256& txid);
+    CCheckWalletTx* GetLocalWalletTx(const uint256& txid);
     bool AddTx(const CWalletTx& wtx);
     void RemoveTx(const uint256& txid);
 
@@ -226,6 +229,7 @@ public:
     bool Walk(const CWalletTx& wtx) override;
 
     bool Exist(const uint256& hashFork, const uint256& txid);
+    CCheckWalletTx* GetWalletTx(const uint256& hashFork, const uint256& txid);
     bool AddWalletTx(const CWalletTx& wtx);
     void RemoveWalletTx(const uint256& hashFork, int nHeight, const uint256& txid);
     bool UpdateUnspent();
@@ -265,6 +269,36 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
+// CCheckDelegateDB
+
+class CCheckDelegateDB : public CDelegateDB
+{
+public:
+    CCheckDelegateDB() {}
+    ~CCheckDelegateDB()
+    {
+        Deinitialize();
+    }
+
+public:
+    bool CheckDelegate(const uint256& hashBlock);
+    bool UpdateDelegate(const uint256& hashBlock, CBlockEx& block, uint32 nBlockFile, uint32 nBlockOffset);
+};
+
+/////////////////////////////////////////////////////////////////////////
+// CCheckTsBlock
+
+class CCheckTsBlock : public CTimeSeriesCached
+{
+public:
+    CCheckTsBlock() {}
+    ~CCheckTsBlock()
+    {
+        Deinitialize();
+    }
+};
+
+/////////////////////////////////////////////////////////////////////////
 // CCheckBlockIndexWalker
 
 class CCheckBlockIndexWalker : public CBlockDBWalker
@@ -291,6 +325,15 @@ public:
             return false;
         }
         return true;
+    }
+    CBlockOutline* GetBlockOutline(const uint256& hashBlock)
+    {
+        map<uint256, CBlockOutline>::iterator it = mapBlockIndex.find(hashBlock);
+        if (it == mapBlockIndex.end())
+        {
+            return nullptr;
+        }
+        return &(it->second);
     }
 
 public:
@@ -368,20 +411,17 @@ class CCheckBlockFork
 {
 public:
     CCheckBlockFork()
-      : nMaxTrustHeight(0), pOrigin(nullptr), pLast(nullptr) {}
+      : nMaxTrustHeight(0), nMaxTrustTimeStamp(0), pOrigin(nullptr), pLast(nullptr) {}
 
     void UpdateMaxTrust(CBlockIndex* pBlockIndex);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn);
     bool AddBlockSpent(const CTxOutPoint& txPoint, const uint256& txidSpent, const CDestination& sendTo);
     bool AddBlockUnspent(const CTxOutPoint& txPoint, const CTxOut& txOut);
-
-    bool CheckTxExist(const uint256& txid)
-    {
-        return (mapBlockTx.find(txid) != mapBlockTx.end());
-    }
+    bool CheckTxExist(const uint256& txid, int& nHeight);
 
 public:
     uint32 nMaxTrustHeight;
+    uint32 nMaxTrustTimeStamp;
     uint256 hashMaxTrustBlock;
     uint256 nMaxChainTrust;
     CBlockIndex* pOrigin;
@@ -395,28 +435,34 @@ public:
 class CCheckBlockWalker : public CTSWalker<CBlockEx>
 {
 public:
-    CCheckBlockWalker(bool fTestnetIn)
-      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn)
-    {
-    }
-    ~CCheckBlockWalker()
-    {
-        ClearBlockIndex();
-    }
+    CCheckBlockWalker(bool fTestnetIn, bool fOnlyCheckIn)
+      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn), fOnlyCheck(fOnlyCheckIn) {}
+    ~CCheckBlockWalker();
+
+    bool Initialize(const string& strPath);
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
-    uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement());
+    uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr);
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement);
+    bool GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled);
+    bool RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange, int64 nMinEnrollAmount,
+                               map<CDestination, size_t>& mapWeight, map<CDestination, vector<unsigned char>>& mapEnrollData,
+                               vector<pair<CDestination, int64>>& vecAmount);
+
     bool UpdateBlockNext();
     bool UpdateBlockTx(CCheckForkManager& objForkMn);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
+    CBlockIndex* AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline);
     void ClearBlockIndex();
-    bool CheckTxExist(const uint256& hashFork, const uint256& txid);
+    bool CheckTxExist(const uint256& hashFork, const uint256& txid, int& nHeight);
     bool GetBlockWalletTx(const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
+    bool CheckBlockIndex();
 
 public:
+    bool fOnlyCheck;
     int64 nBlockCount;
     uint32 nMainChainHeight;
     int64 nMainChainTxCount;
@@ -425,6 +471,10 @@ public:
     map<uint256, CCheckBlockFork> mapCheckFork;
     map<uint256, CBlockEx> mapBlock;
     map<uint256, CBlockIndex*> mapBlockIndex;
+    CBlockIndexDB dbBlockIndex;
+    CCheckBlockIndexWalker objBlockIndexWalker;
+    CCheckDelegateDB objDelegateDB;
+    CCheckTsBlock objTsBlock;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -434,7 +484,7 @@ class CCheckRepairData
 {
 public:
     CCheckRepairData(const string& strPath, bool fTestnetIn, bool fOnlyCheckIn)
-      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn) {}
+      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn, fOnlyCheckIn) {}
 
 protected:
     bool FetchBlockData();

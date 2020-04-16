@@ -57,9 +57,6 @@ public:
     bool VerifyPolynomial(uint32_t nX, const uint256& v);
     void PrecalcPolynomial(std::size_t nThresh, std::size_t nLastIndex);
 
-protected:
-    CEdwards25519& CachedEdPoint(const uint256& pubkey);
-
 public:
     std::vector<uint256> vEncryptedCoeff;
     std::vector<uint256> vEncryptedShare;

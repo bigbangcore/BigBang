@@ -76,8 +76,11 @@ protected:
     void StopService(const boost::asio::ip::tcp::endpoint& epLocal);
 
     bool Connect(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
+    bool ConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
     bool SSLConnect(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
                     const CIOSSLOption& optSSL = CIOSSLOption());
+    bool SSLConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
+                                 const CIOSSLOption& optSSL = CIOSSLOption());
     std::size_t GetOutBoundIdleCount();
     void ResolveHost(const CNetHost& host);
     virtual void EnterLoop();

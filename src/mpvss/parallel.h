@@ -44,7 +44,7 @@ public:
      * fnTrans, function "T (U)" or "T (U1, U2...)" transforms data from "U" or "U1,U2...".
      * 
      * NOTICE: All data about fnInput, fnOutput, fnTrans will be used by multi-threads, confirm they are visited(heap, global)
-     * NOTICE: Impletation is without mutex, so suggest to use [vector] instead of [map]
+     * NOTICE: fnOutput is multithread safety.
      */
     template <typename InputFunc, typename OutputFunc, typename TransFunc>
     bool Transform(const uint32_t nTotal, InputFunc fnInput, OutputFunc fnOutput, TransFunc fnTrans)
@@ -55,6 +55,7 @@ public:
         uint8_t nThreads = std::min(nTotal, (uint32_t)nParallelNum);
         std::vector<std::future<bool>> vFuture(nThreads);
 
+        std::mutex mtx;
         for (int i = 0; i < nThreads; ++i)
         {
             vFuture[i] = std::async(std::launch::async, [&] {
@@ -65,7 +66,10 @@ public:
                     {
                         auto params = fnInput(nIndex);
                         auto result = CallFunction(fnTrans, params, IsTuple<typename std::decay<decltype(params)>::type>());
-                        fnOutput(nIndex, result);
+                        {
+                            std::unique_lock<std::mutex> lock(mtx);
+                            fnOutput(nIndex, result);
+                        }
                     }
                     return true;
                 }
@@ -90,7 +94,7 @@ public:
      * itOutBegin, begin iterator of transformed data. Confirm reserved enough space from [itOutBegin], at least diff(itInBegin, itInEnd)
      * fnTrans, function "T (U)" or "T (U1, U2...)" transforms data from "U" or "U1,U2...".
      * 
-     * NOTICE: Impletation is without mutex, so suggest to use [random iterator] instead of [forward iterator].
+     * NOTICE: Multithread safety.
      */
     template <typename InputIterator, typename OutputIterator, typename TransFunc>
     bool Transform(InputIterator itInBegin, InputIterator itInEnd, OutputIterator itOutBegin, TransFunc fnTrans)
@@ -103,6 +107,7 @@ public:
         uint8_t nThreads = std::min(nTotal, (uint32_t)nParallelNum);
         std::vector<std::future<bool>> vFuture(nThreads);
 
+        std::mutex mtx;
         for (int i = 0; i < nThreads; ++i)
         {
             vFuture[i] = std::async(std::launch::async, [&] {
@@ -113,7 +118,10 @@ public:
                     {
                         auto& params = *IteratorIncrease(itInBegin, nIndex, typename std::iterator_traits<InputIterator>::iterator_category());
                         auto result = CallFunction(fnTrans, params, IsTuple<typename std::decay<decltype(params)>::type>());
-                        *IteratorIncrease(itOutBegin, nIndex, typename std::iterator_traits<OutputIterator>::iterator_category()) = result;
+                        {
+                            std::unique_lock<std::mutex> lock(mtx);
+                            *IteratorIncrease(itOutBegin, nIndex, typename std::iterator_traits<OutputIterator>::iterator_category()) = result;
+                        }
                     }
                     return true;
                 }
@@ -138,7 +146,7 @@ public:
      * fnTrans, function "T (U)" or "T (U1, U2...)" executes data with "U" or "U1,U2...".
      * 
      * NOTICE: All data about fnInput, fnTrans will be used by multi-threads, confirm they are visited(heap, global)
-     * NOTICE: Impletation is without mutex, so suggest to use [vector] instead of [map]
+     * NOTICE: Impletation is without mutex, so must confirm [fnTrans] is multi-threads safety.
      */
     template <typename InputFunc, typename TransFunc>
     bool Execute(const uint32_t nTotal, InputFunc fnInput, TransFunc fnTrans)
@@ -182,6 +190,7 @@ public:
      * fnTrans, function "T (U)" or "T (U1, U2...)" executes data with "U" or "U1,U2...".
      * 
      * NOTICE: Impletation is without mutex, so suggest to use [random iterator] instead of [forward iterator].
+     * NOTICE: Impletation is without mutex, so must confirm [fnTrans] is multi-threads safety.
      */
     template <typename InputIterator, typename TransFunc>
     bool Execute(InputIterator itInBegin, InputIterator itInEnd, TransFunc fnTrans)
@@ -228,7 +237,7 @@ public:
      * fnTrans, function "T (U)" or "T (U1, U2...)" executes data with "U" or "U1,U2...". Return bool.
      * 
      * NOTICE: All data about fnInput, fnTrans will be used by multi-threads, confirm they are visited(heap, global)
-     * NOTICE: Impletation is without mutex, so suggest to use [vector] instead of [map]
+     * NOTICE: Impletation is without mutex, so must confirm [fnTrans] is multi-threads safety.
      */
     template <typename InputFunc, typename TransFunc>
     bool ExecuteUntil(const uint32_t nTotal, InputFunc fnInput, TransFunc fnTrans)
@@ -277,6 +286,7 @@ public:
      * fnTrans, function "T (U)" or "T (U1, U2...)" executes data with "U" or "U1,U2...". Return bool.
      * 
      * NOTICE: Impletation is without mutex, so suggest to use [random iterator] instead of [forward iterator].
+     * NOTICE: Impletation is without mutex, so must confirm [fnTrans] is multi-threads safety.
      */
     template <typename InputIterator, typename TransFunc>
     bool ExecuteUntil(InputIterator itInBegin, InputIterator itInEnd, TransFunc fnTrans)

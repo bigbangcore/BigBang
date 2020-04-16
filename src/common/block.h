@@ -70,6 +70,10 @@ public:
     {
         return (nType & 1);
     }
+    bool IsSubsidiary() const
+    {
+        return (nType == BLOCK_SUBSIDIARY);
+    }
     bool IsExtended() const
     {
         return (nType == BLOCK_EXTENDED);

@@ -30,17 +30,21 @@ public:
                                               const CDelegateAgreement& agreement) override;
     virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                    const CDelegateAgreement& agreement) override;
-    virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement()) override;
+    virtual uint256 GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
+    virtual bool IsDposHeight(int height) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight,
-                                    const std::map<CDestination, size_t>& mapBallot, std::vector<CDestination>& vBallot, int nBlockHeight) override;
+    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t> mapBallot,
+                                    const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, int nBlockHeight) override;
+    virtual int64 MinEnrollAmount() override;
+    virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
 
 protected:
     bool HandleInitialize() override;
     Errno Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...);
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
+    bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
 
 protected:
     uint256 hashGenesisBlock;
@@ -49,6 +53,7 @@ protected:
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
+    IBlockChain* pBlockChain;
 };
 
 class CTestNetCoreProtocol : public CCoreProtocol
@@ -70,6 +75,7 @@ public:
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
     int nProofOfWorkAdjustCount;
+    int64 nDelegateProofOfStakeEnrollMinimumAmount;
 };
 
 } // namespace bigbang
