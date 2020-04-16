@@ -31,7 +31,6 @@ typedef TYPE_MQEVENT(EVENT_MQ_SYNCBLOCK, std::string) CEventMQSyncBlock;
 typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBLOCK, CMqRollbackUpdate) CEventMQChainUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_ENROLLUPDATE, CMqSuperNodeUpdate) CEventMQEnrollUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_AGREEMENT, CDelegateAgreement) CEventMQAgreement;
-//typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBIZFORK, std::vector<storage::CSuperNode>) CEventMQBizForkUpdate;
 typedef TYPE_MQEVENT(EVENT_MQ_UPDATEBIZFORK, storage::CForkKnownIPSet) CEventMQBizForkUpdate;
 
 class CMQEventListener : virtual public CEventListener

@@ -238,6 +238,7 @@ public:
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
+    bool AddBizForkNodes(const std::vector<uint32>& nodes) override;
 
 protected:
     enum

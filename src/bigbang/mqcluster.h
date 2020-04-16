@@ -9,6 +9,7 @@
 #include "mqdb.h"
 #include "mqevent.h"
 #include "xengine.h"
+#include "netchn.h"
 
 namespace bigbang
 {
@@ -93,13 +94,13 @@ class CAssignBizFork
     friend xengine::CStream;
 
 public:
-    std::map<uint256, std::vector<uint32>> mapBizForkIP;
+    std::map<uint32, std::vector<uint256>> mapIpBizFork;
 
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
-        s.Serialize(mapBizForkIP, opt);
+        s.Serialize(mapIpBizFork, opt);
     }
 };
 
@@ -164,6 +165,7 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     IForkManager* pForkManager;
+    INetChannel* pNetChannel;
 
     boost::mutex mutex;
     boost::condition_variable condMQ;
@@ -208,6 +210,7 @@ private:
     std::string clientID;
     uint32 ipAddr;
     std::set<uint256> setBizFork;
+    std::atomic_bool isMainChainBlockBest;
 
     std::map<string, storage::CSuperNode> mapActiveMQForkNode; //only for dpos node
     std::map<uint32, storage::CSuperNode> mapOuterNode;        //for dpos/fork node

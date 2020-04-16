@@ -24,6 +24,7 @@ CMQCluster::CMQCluster(int catNodeIn)
     pCoreProtocol(nullptr),
     pBlockChain(nullptr),
     pService(nullptr),
+    pNetChannel(nullptr),
     fAuth(false),
     fAbort(false),
     addrBroker("tcp://localhost:1883"),
@@ -43,6 +44,7 @@ CMQCluster::CMQCluster(int catNodeIn)
         catNode = NODE_CATEGORY::DPOSNODE;
         break;
     }
+    std::atomic_init(&isMainChainBlockBest, false);
 }
 
 bool CMQCluster::IsAuthenticated()
@@ -88,6 +90,12 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("netchannel", pNetChannel))
+    {
+        Error("Failed to request peer net datachannel\n");
+        return false;
+    }
+
     Log("CMQCluster::HandleInitialize() successfully");
     return true;
 }
@@ -99,6 +107,7 @@ void CMQCluster::HandleDeinitialize()
     pDispatcher = nullptr;
     pService = nullptr;
     pForkManager = nullptr;
+    pNetChannel = nullptr;
 }
 
 bool CMQCluster::HandleInvoke()
@@ -173,7 +182,8 @@ bool CMQCluster::HandleInvoke()
             if (setBizFork.size() != 1 || *(setBizFork.begin()) != pCoreProtocol->GetGenesisBlockHash())
             {
                 Error("CMQCluster::HandleInvoke(): dpos node enrollment info "
-                      "invalid [%d] for self", setBizFork.size());
+                      "invalid [%d] for self",
+                      setBizFork.size());
                 return false;
             }
         }
@@ -357,6 +367,11 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     return true;
 }
 
+bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
+{
+    return true;
+}
+
 bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
 {
     Log("CMQCluster::HandleEvent(): biz forks payload is coming");
@@ -370,12 +385,12 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
     }
 
     if (NODE_CATEGORY::DPOSNODE == catNode)
-    {   //spread ip/fork through mq broker
+    { //spread ip/fork through mq broker
         const storage::CForkKnownIpSetById& idxID = eventMqBizFork.data.get<0>();
         for (auto const& cli : mapActiveMQForkNode)
         {
             CAssignBizFork biz;
-            auto& it = biz.mapBizForkIP;
+            auto& it = biz.mapIpBizFork;
             for (auto const& fork : cli.second.vecOwnedForks)
             {
                 auto itBegin = idxID.equal_range(fork).first;
@@ -383,23 +398,18 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
 
                 while (itBegin != itEnd)
                 {
-                    it[itBegin->forkID].push_back(itBegin->nodeIP);
+                    it[itBegin->nodeIP].push_back(itBegin->forkID);
                     ++itBegin;
                 }
             }
             if (!it.empty())
             {
-                string topic = "Cluster01/" + cli.second.superNodeID + "/AssignBizFork";
+                string topic = prefixTopic + cli.second.superNodeID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
                 PostBizForkAssign(topic, biz);
             }
         }
     }
 
-    return true;
-}
-
-bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
-{
     return true;
 }
 
@@ -601,12 +611,14 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 
             if (resp.isBest)
             { //when reach best height, send request by timer
+                std::atomic_store(&isMainChainBlockBest, true);
                 nReqBlkTimerID = SetTimer(1000 * 60,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
                 return;
             }
             else
             {
+                std::atomic_store(&isMainChainBlockBest, false);
                 if (0 != nReqBlkTimerID)
                 {
                     CancelTimer(nReqBlkTimerID);
@@ -620,7 +632,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             }
 
             return;
-        }   // end of dealing with response of requesting block
+        } // end of dealing with response of requesting block
 
         if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]) && topic.find(prefixTopic))
         { //roll back blocks on main chain
@@ -742,7 +754,66 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             }
 
             return;
-        }   // end of dealing with rollback of main chain
+        } // end of dealing with rollback of main chain
+
+        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]) && topic.find(prefixTopic))
+        { //receive biz fork list from dpos node by MQ broker
+            //unpack payload
+            CAssignBizFork biz;
+            try
+            {
+                payload >> biz;
+            }
+            catch (exception& e)
+            {
+                StdError(__PRETTY_FUNCTION__, e.what());
+                Error("CMQCluster::OnReceiveMessage(): failed to unpack bizfork msg");
+                return;
+            }
+
+            //populate to memory
+            for (auto const& it : biz.mapIpBizFork)
+            {
+                mapOuterNode[it.first].ipAddr = it.first;
+                mapOuterNode[it.first].nodeCat = 0;
+                mapOuterNode[it.first].vecOwnedForks = it.second;
+                Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker "
+                    "by dpos node succeeded [%s]",
+                    mapOuterNode[it.first].ToString().c_str());
+            }
+
+            //save to db storage
+            for (auto const& it : mapOuterNode)
+            {
+                if (!pBlockChain->AddNewSuperNode(it.second))
+                {
+                    Error("CMQCluster::OnReceiveMessage(): failed to add new outer nodes from mq broker by dpos node");
+                    return;
+                }
+                Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker by dpos node succeeded");
+            }
+
+            //launch connecting those outer nodes if main chain has been best block
+            if (std::atomic_load(&isMainChainBlockBest))
+            {
+                vector<uint32> ips;
+                for (auto const& node : mapOuterNode)
+                {
+                    ips.push_back(node.first);
+                }
+                if (!ips.empty())
+                {
+                    if (!pNetChannel->AddBizForkNodes(ips))
+                    {
+                        Error("CMQCluster::OnReceiveMessage(): failed to post add new node msg");
+                        return;
+                    }
+                    Log("CMQCluster::OnReceiveMessage(): posting add new node msg succeeded");
+                }
+            }
+
+            return;
+        } // end of dealing with biz fork assignment
 
         break;
     }
@@ -957,8 +1028,8 @@ public:
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            asynCli.subscribe(mqCluster.topicRbBlk, CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.topicRbBlk << "'\n"
+            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }

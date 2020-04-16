@@ -368,6 +368,25 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
     }
 }
 
+bool CNetChannel::AddBizForkNodes(const std::vector<uint32>& nodes)
+{
+    for (auto const& node : nodes)
+    {
+        string strIP = storage::CSuperNode::Int2Ip(node);
+        CNetHost host(strIP, DEFAULT_P2PPORT);
+        CEventPeerNetAddNode eventAddNode(0);
+        eventAddNode.data = host;
+        if (!pPeerNet->DispatchEvent(&eventAddNode))
+        {
+            StdError("NetChannel", "AddBizForkNodes: Adding biz fork peer node[%s] failed", strIP.c_str());
+            return false;
+        }
+        StdLog("NetChannel", "AddBizForkNodes: Adding biz fork peer node[%s] succeeded", strIP.c_str());
+    }
+
+    return true;
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
@@ -624,10 +643,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
         eventAddNode.data = host;
         if (!pPeerNet->DispatchEvent(&eventAddNode))
         {
-            StdError("NetChannel", "CEventPeerBizForks: Add peer node[%s] failed", strIP.c_str());
+            StdError("NetChannel", "CEventPeerBizForks: Adding outer peer node[%s] failed", strIP.c_str());
             return false;
         }
-        StdLog("NetChannel", "CEventPeerBizForks: Add peer node[%s] succeeded", strIP.c_str());
+        StdLog("NetChannel", "CEventPeerBizForks: Adding outer peer node[%s] succeeded", strIP.c_str());
     }
 
     return true;
