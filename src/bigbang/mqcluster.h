@@ -20,7 +20,7 @@ class CSyncBlockRequest
 public:
     uint32 ipAddr;
     uint8 forkNodeIdLen;
-    string forkNodeId;
+    std::string forkNodeId;
     uint8 forkNum;
     std::vector<uint256> forkList;
     int32 lastHeight;
@@ -180,16 +180,32 @@ private:
 
     bool fAuth;
     bool fAbort;
-    string addrBroker;
+    std::string addrBroker;
+    const std::string dposNodeCliID = "DPOSNODE";
+    const std::string prefixTopic = "Cluster01/";
+    enum
+    {
+        TOPIC_SUFFIX_REQ_BLOCK = 0,
+        TOPIC_SUFFIX_RESP_BLOCK = 1,
+        TOPIC_SUFFIX_UPDATE_BLOCK = 2,
+        TOPIC_SUFFIX_ASGN_BIZFORK = 3,
+        TOPIC_SUFFIX_MAX
+    };
+    const std::vector<std::string> vecSuffixTopic = {
+        "/SyncBlockReq",
+        "/SyncBlockResp",
+        "/UpdateBlock",
+        "/AssignBizFork"
+    };
+
     NODE_CATEGORY catNode;
 
-    string topicReqBlk;
-    string topicRespBlk;
-    string topicRbBlk;
+    std::vector<std::string> vecTopic;  //shared by both dpos and fork node
+    std::map<std::string, std::string> mapBizForkTopic;        //only for dpos node
 
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;
-    string clientID;
+    std::string clientID;
     uint32 ipAddr;
     std::set<uint256> setBizFork;
 

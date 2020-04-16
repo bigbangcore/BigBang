@@ -52,7 +52,7 @@ bool CMQCluster::IsAuthenticated()
 
 bool CMQCluster::HandleInitialize()
 {
-    if (NODE_CATEGORY::BBCNODE == catNode) // todo:
+    if (NODE_CATEGORY::BBCNODE == catNode)
     {
         Log("CMQCluster::HandleInitialize(): bbc node so bypass");
         return true;
@@ -154,12 +154,11 @@ bool CMQCluster::HandleInvoke()
         lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
         pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
-        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-        topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
-        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock"; // todo: should configure DPOSNODE
-        Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:"
-            "\t[%s]\n\t[%s]",
-            clientID.c_str(), topicRespBlk.c_str(), topicRbBlk.c_str());
+        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:\t[%s]\n\t[%s]",
+            clientID.c_str(), vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
         if (!PostBlockRequest(-1))
         {
@@ -179,10 +178,10 @@ bool CMQCluster::HandleInvoke()
             }
         }
         lastHeightResp = -1;
-        topicReqBlk = "Cluster01/+/SyncBlockReq";
-        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock"; // todo: DPOSNODE should come from storage
-        Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s]",
-            clientID.c_str(), topicReqBlk.c_str());
+        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s][%s]",
+            clientID.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
         nodes.clear();
         if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
@@ -269,11 +268,11 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 
     Log("CMQCluster::HandleEvent(): rollback-topic[%s]:"
         "forkheight[%d] forkhash[%s] shortlen[%d]",
-        topicRbBlk.c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
+        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
 
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
-        deqSendBuff.emplace_back(make_pair(topicRbBlk, spRBC));
+        deqSendBuff.emplace_back(make_pair(vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK], spRBC));
     }
     condSend.notify_all();
 
@@ -287,13 +286,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        topicReqBlk = "Cluster01/" + clientID + "/SyncBlockReq";
-        topicRespBlk = "Cluster01/" + clientID + "/SyncBlockResp";
-        topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:"
             "\n[%s]\n[%s]",
             id.c_str(), eventMqUpdateEnroll.data.ipAddr,
-            topicRespBlk.c_str(), topicRbBlk.c_str());
+            vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
         for (const auto& fork : forks)
         {
             Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced "
@@ -323,10 +322,10 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         if (1 == forks.size() && 0 == eventMqUpdateEnroll.data.ipAddr
             && forks[0] == pCoreProtocol->GetGenesisBlockHash())
         { //dpos node enrolled by self
-            topicReqBlk = "Cluster01/+/SyncBlockReq";
-            topicRbBlk = "Cluster01/DPOSNODE/UpdateBlock";
+            vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+            vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
             Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
-                id.c_str(), topicReqBlk.c_str(), topicRbBlk.c_str());
+                id.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
             {
                 boost::unique_lock<boost::mutex> lock(mtxStatus);
@@ -468,7 +467,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     CBufferPtr spSS(new CBufStream);
     *spSS.get() << req;
 
-    AppendSendQueue(topicReqBlk, spSS);
+    AppendSendQueue(vecTopic[TOPIC_SUFFIX_REQ_BLOCK], spSS);
     return true;
 }
 
@@ -517,7 +516,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
     case NODE_CATEGORY::FORKNODE:
     {
         Log("CMQCluster::OnReceiveMessage(): current sync height is [%d]", int(lastHeightResp));
-        if (topicRbBlk != topic)  //todo: to refactor
+        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]) && topic.find(prefixTopic))
         { //respond to request block of main chain
             //unpack payload
             CSyncBlockResponse resp;
@@ -619,8 +618,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     return;
                 }
             }
-        }
-        else
+
+            return;
+        }   // end of dealing with response of requesting block
+
+        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]) && topic.find(prefixTopic))
         { //roll back blocks on main chain
             //unpack payload
             CRollbackBlock rb;
@@ -738,7 +740,9 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     nRollNum = rb.rbSize;
                 }
             }
-        }
+
+            return;
+        }   // end of dealing with rollback of main chain
 
         break;
     }
@@ -941,8 +945,14 @@ public:
         mqCluster.LogEvent("[connected]");
         if (CMQCluster::NODE_CATEGORY::FORKNODE == mqCluster.catNode)
         {
-            asynCli.subscribe(mqCluster.topicRespBlk, CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.topicRespBlk << "'\n"
+            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK] << "'\n"
+                 << "\tfor client " << mqCluster.clientID
+                 << " using QoS" << CMQCluster::QOS1 << endl;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
@@ -954,8 +964,8 @@ public:
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
-            asynCli.subscribe(mqCluster.topicReqBlk, CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.topicReqBlk << "'\n"
+            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
