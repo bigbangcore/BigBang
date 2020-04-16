@@ -34,10 +34,15 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
         return false;
     }
     setSubDest.clear();
-    if (tx.nType == CTransaction::TX_CERT)
+    // FIXME: testnet
+    if (tx.sendTo.GetTemplateId() == nId)
     {
         setSubDest.insert(CDestination(keyDelegate));
     }
+    // if (tx.nType == CTransaction::TX_CERT)
+    // {
+    //     setSubDest.insert(CDestination(keyDelegate));
+    // }
     else
     {
         setSubDest.insert(destOwner);
@@ -127,10 +132,15 @@ void CTemplateDelegate::BuildTemplateData()
 bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    if (nType == CTransaction::TX_CERT)
+    // FIXME: testnet
+    if (destTo.GetTemplateId() == nId)
     {
         return CDestination(keyDelegate).VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
+    // if (nType == CTransaction::TX_CERT)
+    // {
+    //     return CDestination(keyDelegate).VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+    // }
     else
     {
         return destOwner.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
