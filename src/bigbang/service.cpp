@@ -190,6 +190,25 @@ bool CService::RemoveNode(const CNetHost& node)
     return pNetwork->DispatchEvent(&eventRemoveNode);
 }
 
+bool CService::AddBizForkNodes(const std::vector<uint32>& nodes)
+{
+    for (auto const& node : nodes)
+    {
+        string strIP = storage::CSuperNode::Int2Ip(node);
+        CNetHost host(strIP, DEFAULT_P2PPORT);
+        CEventPeerNetAddNode eventAddNode(0);
+        eventAddNode.data = host;
+        if (!pNetwork->DispatchEvent(&eventAddNode))
+        {
+            StdError("CService", "AddBizForkNodes: Adding biz fork peer node[%s] failed", strIP.c_str());
+            return false;
+        }
+        StdLog("CService", "AddBizForkNodes: Adding biz fork peer node[%s] succeeded", strIP.c_str());
+    }
+
+    return true;
+}
+
 int CService::GetForkCount()
 {
     return mapForkStatus.size();

@@ -9,7 +9,6 @@
 #include "mqdb.h"
 #include "mqevent.h"
 #include "xengine.h"
-#include "netchn.h"
 
 namespace bigbang
 {
@@ -165,7 +164,6 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     IForkManager* pForkManager;
-    INetChannel* pNetChannel;
 
     boost::mutex mutex;
     boost::condition_variable condMQ;

@@ -24,7 +24,6 @@ CMQCluster::CMQCluster(int catNodeIn)
     pCoreProtocol(nullptr),
     pBlockChain(nullptr),
     pService(nullptr),
-    pNetChannel(nullptr),
     fAuth(false),
     fAbort(false),
     addrBroker("tcp://localhost:1883"),
@@ -90,12 +89,6 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("netchannel", pNetChannel))
-    {
-        Error("Failed to request peer net datachannel\n");
-        return false;
-    }
-
     Log("CMQCluster::HandleInitialize() successfully");
     return true;
 }
@@ -107,7 +100,6 @@ void CMQCluster::HandleDeinitialize()
     pDispatcher = nullptr;
     pService = nullptr;
     pForkManager = nullptr;
-    pNetChannel = nullptr;
 }
 
 bool CMQCluster::HandleInvoke()
@@ -803,7 +795,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 }
                 if (!ips.empty())
                 {
-                    if (!pNetChannel->AddBizForkNodes(ips))
+                    if (!pService->AddBizForkNodes(ips))
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post add new node msg");
                         return;

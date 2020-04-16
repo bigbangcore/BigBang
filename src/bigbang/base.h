@@ -265,6 +265,7 @@ public:
     virtual void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) = 0;
     virtual bool AddNode(const xengine::CNetHost& node) = 0;
     virtual bool RemoveNode(const xengine::CNetHost& node) = 0;
+    virtual bool AddBizForkNodes(const std::vector<uint32>& nodes) = 0;
     /* Blockchain & Tx Pool*/
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;

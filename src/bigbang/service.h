@@ -30,6 +30,7 @@ public:
     void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) override;
     bool AddNode(const xengine::CNetHost& node) override;
     bool RemoveNode(const xengine::CNetHost& node) override;
+    bool AddBizForkNodes(const std::vector<uint32>& nodes) override;
     /* Blockchain & Tx Pool*/
     int GetForkCount() override;
     bool HaveFork(const uint256& hashFork) override;
