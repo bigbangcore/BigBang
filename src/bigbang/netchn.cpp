@@ -599,8 +599,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
         return true;
     }
 
-    // todo: here should send event to add peers to netchannel module if fork nodes
-
     vector<uint32> vIP;
     for (auto const& it : mapForkIp)
     {

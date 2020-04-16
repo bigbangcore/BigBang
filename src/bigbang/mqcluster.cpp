@@ -207,7 +207,7 @@ bool CMQCluster::HandleInvoke()
         Error("CMQCluster::HandleInvoke(): list all other outer nodes failed");
         return false;
     }
-    for (auto const& node : nodes) // todo: should send event to add peers to netchannel module if fork node itself
+    for (auto const& node : nodes)
     {
         mapOuterNode.emplace(make_pair(node.ipAddr,
                                        storage::CSuperNode(node.superNodeID, node.ipAddr,
@@ -215,6 +215,8 @@ bool CMQCluster::HandleInvoke()
                                                            static_cast<int8>(NODE_CATEGORY::BBCNODE))));
         Log("CMQCluster::HandleInvoke(): load outer node [%s]", node.ToString().c_str());
     }
+
+    PostAddBizForkNode();
 
     if (!ThreadStart(thrMqttClient))
     {
@@ -788,20 +790,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //launch connecting those outer nodes if main chain has been best block
             if (std::atomic_load(&isMainChainBlockBest))
             {
-                vector<uint32> ips;
-                for (auto const& node : mapOuterNode)
-                {
-                    ips.push_back(node.first);
-                }
-                if (!ips.empty())
-                {
-                    if (!pService->AddBizForkNodes(ips))
-                    {
-                        Error("CMQCluster::OnReceiveMessage(): failed to post add new node msg");
-                        return;
-                    }
-                    Log("CMQCluster::OnReceiveMessage(): posting add new node msg succeeded");
-                }
+                PostAddBizForkNode();
             }
 
             return;
@@ -1199,6 +1188,26 @@ void CMQCluster::MqttThreadFunc()
     ClientAgent(MQ_CLI_ACTION::DISCONN);
 
     Log("exiting thread function of MQTT");
+}
+
+bool CMQCluster::PostAddBizForkNode()
+{
+    vector<uint32> ips;
+    for (auto const& node : mapOuterNode)
+    {
+        ips.push_back(node.first);
+    }
+    if (!ips.empty())
+    {
+        if (!pService->AddBizForkNodes(ips))
+        {
+            Error("CMQCluster::PostAddBizForkNode(): failed to post add new node msg");
+            return false;
+        }
+        Log("CMQCluster::PostAddBizForkNode(): posting add new node msg succeeded");
+    }
+
+    return true;
 }
 
 } // namespace bigbang
