@@ -89,6 +89,9 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
+    addrBroker = dynamic_cast<const CBasicConfig*>(Config())->strMQBrokerURI;
+    dposNodeCliID = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+
     Log("CMQCluster::HandleInitialize() successfully");
     return true;
 }

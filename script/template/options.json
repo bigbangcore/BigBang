@@ -17,6 +17,22 @@
             "desc": "Identify node category: 0 - BBCNODE; 1 - FORKNODE; 2 - DPOSNODE, 0 by default"
         },
         {
+            "name": "strMQBrokerURI",
+            "type": "string",
+            "opt": "mqbroker",
+            "default": "tcp://localhost:1883",
+            "format": "-mqbroker=<protocol>://<ip address or domain name>:<port>",
+            "desc": "Specified URI to which dpos node or fork node can connect through MQTT"
+        },
+        {
+            "name": "strDposNodeID",
+            "type": "string",
+            "opt": "dposid",
+            "default": "DPOSNODE",
+            "format": "-dposid",
+            "desc": "Identification of dpos node used by fork nodes in the same cluster"
+        },
+        {
             "name": "fWallet",
             "type": "bool",
             "opt": "wallet",

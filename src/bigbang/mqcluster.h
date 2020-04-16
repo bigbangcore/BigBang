@@ -182,7 +182,7 @@ private:
     bool fAuth;
     bool fAbort;
     std::string addrBroker;
-    const std::string dposNodeCliID = "DPOSNODE";
+    std::string dposNodeCliID;
     const std::string prefixTopic = "Cluster01/";
     enum
     {
