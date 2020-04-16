@@ -75,23 +75,17 @@ protected:
     void HandleHalt() override;
     bool InterruptedPoW(const uint256& hashPrimary);
     bool WaitExit(const long nSeconds);
-    bool WaitLastBlock(const long nSeconds, const uint256& hashPrimary);
-    bool WaitCurrentBlock(const long nSeconds, const uint256& hashPrimary);
+    bool WaitUpdateEvent(const long nSeconds);
     void PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
                       const uint32& nPrevHeight, const CDelegateAgreement& agreement);
     void ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
     bool DispatchBlock(const CBlock& block);
-    void ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, const int64& nPrimaryBlockTime,
-                                     const int& nPrimaryBlockHeight, const uint16& nPrimaryMintType,
-                                     const CDelegateAgreement& agreement);
-    void ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
-                                      int& nPrimaryBlockHeight, uint16& nPrimaryMintType,
-                                      const CDelegateAgreement& agreement);
+    void ProcessDelegatedProofOfStake(const CAgreementBlock& consParam);
     void ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                         const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType);
     bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
-    bool CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo);
+    bool CreateProofOfWork();
     void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
                           int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
     bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
@@ -99,15 +93,16 @@ protected:
 
 private:
     void BlockMakerThreadFunc();
+    void PowThreadFunc();
 
 protected:
     xengine::CThread thrMaker;
+    xengine::CThread thrPow;
     boost::mutex mutex;
     boost::condition_variable condExit;
     boost::condition_variable condBlock;
     std::atomic<bool> fExit;
     CForkStatus lastStatus;
-    CForkStatus currentStatus;
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
@@ -117,6 +112,7 @@ protected:
     ITxPool* pTxPool;
     IDispatcher* pDispatcher;
     IConsensus* pConsensus;
+    IService* pService;
 };
 
 } // namespace bigbang

@@ -34,17 +34,18 @@ class CMPParticipant
 {
 public:
     CMPParticipant();
-    CMPParticipant(const CMPCandidate& candidate, std::size_t nIndexIn, const uint256& nSharedKeyIn);
+    CMPParticipant(const CMPCandidate& candidate, const uint256& nSharedKeyIn);
     const uint256 Encrypt(const uint256& data) const;
     const uint256 Decrypt(const uint256& cipher) const;
     bool AcceptShare(std::size_t nThresh, std::size_t nIndexIn, const std::vector<uint256>& vEncrypedShare);
     bool VerifyShare(std::size_t nThresh, std::size_t nIndexIn, const std::vector<uint256>& vShare);
     void PrepareVerification(std::size_t nThresh, std::size_t nLastIndex);
+    const CMPCandidate& GetCandidate() const;
+    bool IsNull() const;
 
 public:
-    std::size_t nWeight;
+    CMPCandidate candidate;
     std::size_t nIndex;
-    CMPSealedBox sBox;
     uint256 nSharedKey;
     std::vector<uint256> vShare;
 };
@@ -68,10 +69,11 @@ public:
     void Distribute(std::map<uint256, std::vector<uint256>>& mapShare);
     bool Accept(const uint256& nIdentFrom, const std::vector<uint256>& vEncrypedShare);
     void Publish(std::map<uint256, std::vector<uint256>>& mapShare);
-    bool Collect(const uint256& nIdentFrom, const std::map<uint256, std::vector<uint256>>& mapShare, bool& fCompleted);
+    bool Collect(const uint256& nIdentFrom, const std::map<uint256, std::vector<uint256>>& mapShare);
     void Reconstruct(std::map<uint256, std::pair<uint256, std::size_t>>& mapSecret);
     void Signature(const uint256& hash, uint256& nR, uint256& nS);
     bool VerifySignature(const uint256& nIdentFrom, const uint256& hash, const uint256& nR, const uint256& nS);
+    bool IsCollectCompleted() const;
 
 protected:
     virtual void RandGeneretor(uint256& r);
@@ -84,6 +86,7 @@ public:
     std::size_t nWeight;
     std::size_t nIndex;
     std::size_t nThresh;
+    bool fCollectCompleted;
     std::map<uint256, CMPParticipant> mapParticipant;
     std::map<uint256, std::vector<std::pair<uint32_t, uint256>>> mapOpenedShare;
     ParallelComputer computer;

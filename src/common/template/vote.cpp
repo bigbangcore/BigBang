@@ -106,8 +106,8 @@ void CTemplateVote::BuildTemplateData()
     os << destDelegate << destOwner;
 }
 
-bool CTemplateVote::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplateVote::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                       const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    return destOwner.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+    return destOwner.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

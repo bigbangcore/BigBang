@@ -50,7 +50,6 @@ public:
     bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) override;
     bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) override;
     bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) override;
-    bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
     bool GetVotes(const CDestination& destDelegate, int64& nVotes) override;
@@ -62,6 +61,7 @@ public:
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
+    Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
 
 protected:
     bool HandleInitialize() override;
@@ -75,9 +75,10 @@ protected:
     bool GetBlockChanges(const CBlockIndex* pIndexNew, const CBlockIndex* pIndexFork,
                          std::vector<CBlockEx>& vBlockAddNew, std::vector<CBlockEx>& vBlockRemove);
     bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, const CBlockIndex* pIndexPrev,
-                                   CDelegateAgreement& agreement);
+                                   CDelegateAgreement& agreement, std::size_t& nEnrollTrust);
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
-                      int64& nReward, CDelegateAgreement& agreement, CBlockIndex** ppIndexRef);
+                      int64& nReward, CDelegateAgreement& agreement, std::size_t& nEnrollTrust, CBlockIndex** ppIndexRef);
     bool VerifyBlockCertTx(const CBlock& block);
 
 protected:

@@ -119,7 +119,7 @@ public:
     static std::string GetTypeName(uint16 nTypeIn);
 
     // Verify transaction signature.
-    static bool VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
+    static bool VerifyTxSignature(const CTemplateId& nIdIn, const uint16 nType, const uint256& hash, const uint256& hashAnchor,
                                   const CDestination& destTo, const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted);
 
     // Return dest is spendable or not.
@@ -154,7 +154,7 @@ public:
     std::vector<uint8> Export() const;
 
     // Build transaction signature by concrete template.
-    bool BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
+    bool BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo, const int32 nForkHeight,
                           const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig, bool& fCompleted) const;
 
     // Build transaction signature by concrete template.
@@ -191,11 +191,11 @@ protected:
     virtual void BuildTemplateData() = 0;
 
     // Build transaction signature by concrete template.
-    virtual bool BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+    virtual bool BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                   const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig) const;
 
     // Verify transaction signature by concrete template.
-    virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+    virtual bool VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                    const std::vector<uint8>& vchSig, const int32 nHeight, bool& fCompleted) const = 0;
 
 protected:

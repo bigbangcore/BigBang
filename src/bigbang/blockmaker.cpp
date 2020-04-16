@@ -61,7 +61,8 @@ bool CBlockMakerProfile::BuildTemplate()
 // CBlockMaker
 
 CBlockMaker::CBlockMaker()
-  : thrMaker("blockmaker", boost::bind(&CBlockMaker::BlockMakerThreadFunc, this))
+  : thrMaker("blockmaker", boost::bind(&CBlockMaker::BlockMakerThreadFunc, this)),
+    thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this))
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
@@ -69,6 +70,7 @@ CBlockMaker::CBlockMaker()
     pTxPool = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pService = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
 }
 
@@ -119,6 +121,12 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("service", pService))
+    {
+        Error("Failed to request service");
+        return false;
+    }
+
     if (!MintConfig()->destMpvss.IsNull() && MintConfig()->keyMpvss != 0)
     {
         CBlockMakerProfile profile(CM_MPVSS, MintConfig()->destMpvss, MintConfig()->keyMpvss);
@@ -143,19 +151,21 @@ bool CBlockMaker::HandleInitialize()
     for (map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.begin(); it != mapWorkProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s",
+        Log("Profile [%s] : dest=%s,pubkey=%s,pow=%s",
             ConsensusMethodName[(*it).first],
             CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+            profile.keyMint.GetPubKey().GetHex().c_str(),
+            CAddress(profile.templMint->GetTemplateId()).ToString().c_str());
     }
     for (map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.begin();
          it != mapDelegatedProfile.end(); ++it)
     {
         CBlockMakerProfile& profile = (*it).second;
-        Log("Profile [%s] : dest=%s,pubkey=%s\n",
+        Log("Profile [%s] : dest=%s,pubkey=%s,dpos=%s",
             ConsensusMethodName[CM_MPVSS],
             CAddress(profile.destMint).ToString().c_str(),
-            profile.keyMint.GetPubKey().GetHex().c_str());
+            profile.keyMint.GetPubKey().GetHex().c_str(),
+            CAddress(profile.templMint->GetTemplateId()).ToString().c_str());
     }
 
     return true;
@@ -169,6 +179,7 @@ void CBlockMaker::HandleDeinitialize()
     pTxPool = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pService = nullptr;
 
     mapWorkProfile.clear();
     mapDelegatedProfile.clear();
@@ -181,25 +192,30 @@ bool CBlockMaker::HandleInvoke()
         return false;
     }
 
-    if (!mapWorkProfile.empty() || !mapDelegatedProfile.empty())
+    fExit = true;
+    if (!mapDelegatedProfile.empty())
     {
         fExit = false;
-        {
-            boost::unique_lock<boost::mutex> lock(mutex);
-            pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), lastStatus.hashLastBlock,
-                                      lastStatus.nLastBlockHeight, lastStatus.nLastBlockTime, lastStatus.nMintType);
-        }
-
         if (!ThreadDelayStart(thrMaker))
         {
             return false;
         }
     }
-    else
+    if (!mapWorkProfile.empty())
     {
-        fExit = true;
+        fExit = false;
+        if (!ThreadDelayStart(thrPow))
+        {
+            return false;
+        }
     }
 
+    if (!fExit)
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), lastStatus.hashLastBlock,
+                                  lastStatus.nLastBlockHeight, lastStatus.nLastBlockTime, lastStatus.nMintType);
+    }
     return true;
 }
 
@@ -211,6 +227,9 @@ void CBlockMaker::HandleHalt()
 
     thrMaker.Interrupt();
     ThreadExit(thrMaker);
+
+    thrPow.Interrupt();
+    ThreadExit(thrPow);
 
     IBlockMaker::HandleHalt();
 }
@@ -230,11 +249,6 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     lastStatus.nLastBlockHeight = data.nBlockHeight;
     lastStatus.nMintType = data.nMintType;
 
-    if (lastStatus.nLastBlockHeight == currentStatus.nLastBlockHeight)
-    {
-        currentStatus = lastStatus;
-    }
-
     condBlock.notify_all();
     return true;
 }
@@ -251,7 +265,6 @@ bool CBlockMaker::WaitExit(const long nSeconds)
     {
         return !fExit;
     }
-
     boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(nSeconds);
     boost::unique_lock<boost::mutex> lock(mutex);
     while (!fExit)
@@ -264,32 +277,18 @@ bool CBlockMaker::WaitExit(const long nSeconds)
     return !fExit;
 }
 
-bool CBlockMaker::WaitLastBlock(const long nSeconds, const uint256& hashPrimary)
+bool CBlockMaker::WaitUpdateEvent(const long nSeconds)
 {
     boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(nSeconds);
     boost::unique_lock<boost::mutex> lock(mutex);
-    while (!fExit && (hashPrimary == lastStatus.hashLastBlock))
+    while (!fExit)
     {
         if (!condBlock.timed_wait(lock, timeout))
         {
             break;
         }
     }
-    return !fExit && (hashPrimary == lastStatus.hashLastBlock);
-}
-
-bool CBlockMaker::WaitCurrentBlock(const long nSeconds, const uint256& hashPrimary)
-{
-    boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(nSeconds);
-    boost::unique_lock<boost::mutex> lock(mutex);
-    while (!fExit && (hashPrimary == currentStatus.hashLastBlock))
-    {
-        if (!condBlock.timed_wait(lock, timeout))
-        {
-            break;
-        }
-    }
-    return !fExit && (hashPrimary == currentStatus.hashLastBlock);
+    return !fExit;
 }
 
 void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
@@ -336,37 +335,9 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
 {
     Debug("Dispatching block: %s, type: %u", block.GetHash().ToString().c_str(), block.nType);
     int nWait = block.nTimeStamp - GetNetTime();
-
-    if (nWait > 0)
+    if (nWait > 0 && !WaitExit(nWait))
     {
-        if (block.IsPrimary() && block.txMint.nType == CTransaction::TX_WORK)
-        {
-            if (!WaitLastBlock(nWait, block.hashPrev))
-            {
-                StdTrace("blockmaker", "Wait to dispatch primary PoW block failed. nWait: %d", nWait);
-                return false;
-            }
-        }
-        else if (block.IsPrimary() && block.txMint.nType == CTransaction::TX_STAKE)
-        {
-            if (!WaitCurrentBlock(nWait, block.hashPrev))
-            {
-                StdTrace("blockmaker", "Wait to dispatch primary DPoS block failed nWait: %d", nWait);
-                return false;
-            }
-        }
-        else if (block.IsSubsidiary() || block.IsExtended())
-        {
-            if (!WaitExit(nWait))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            Error("Dispatch new block failed : unknown block type, block type: %u, mint type: %u\n", block.nType, block.txMint.nType);
-            return false;
-        }
+        return false;
     }
     Errno err = pDispatcher->AddNewBlock(block);
     if (err != OK)
@@ -377,122 +348,38 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
     return true;
 }
 
-void CBlockMaker::ProcessDelegatedProofOfWork(const uint256& hashPrimaryBlock, const int64& nPrimaryBlockTime,
-                                              const int& nPrimaryBlockHeight, const uint16& nPrimaryMintType,
-                                              const CDelegateAgreement& agreement)
+void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
 {
-    CBlock block;
-    PrepareBlock(block, hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, agreement);
-
-    int nConsensus = CM_CRYPTONIGHT;
-    map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.find(nConsensus);
-    if (it == mapWorkProfile.end())
-    {
-        StdTrace("blockmaker", "did not find Work profile");
-        return;
-    }
-
-    CBlockMakerProfile& profile = (*it).second;
-    CDestination destSendTo = profile.GetDestination();
-
-    int nAlgo = nConsensus;
-    int nBits;
-    int64 nReward;
-    if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
-    {
-        StdTrace("blockmaker", "Get PoW Target failed");
-        return;
-    }
-
-    CTransaction& txMint = block.txMint;
-    txMint.nType = CTransaction::TX_WORK;
-    txMint.hashAnchor = block.hashPrev;
-    txMint.sendTo = destSendTo;
-    txMint.nAmount = nReward;
-
-    block.vchProof.resize(block.vchProof.size() + CProofOfHashWorkCompact::PROOFHASHWORK_SIZE);
-    CProofOfHashWorkCompact proof;
-    proof.nAlgo = nAlgo;
-    proof.nBits = nBits;
-    proof.destMint = destSendTo;
-    proof.nNonce = 0;
-    proof.Save(block.vchProof);
-
-    if (!CreateProofOfWork(block, mapHashAlgo[profile.nAlgo]))
-    {
-        StdTrace("blockmaker", "Create PoW failed");
-        return;
-    }
-
-    txMint.nTimeStamp = block.nTimeStamp;
-    ArrangeBlockTx(block, pCoreProtocol->GetGenesisBlockHash(), profile);
-    if (!SignBlock(block, profile))
-    {
-        Error("Sign block failed.\n");
-        return;
-    }
-
-    DispatchBlock(block);
-}
-
-void CBlockMaker::ProcessDelegatedProofOfStake(uint256& hashPrimaryBlock, int64& nPrimaryBlockTime,
-                                               int& nPrimaryBlockHeight, uint16& nPrimaryMintType,
-                                               const CDelegateAgreement& agreement)
-{
-    map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(agreement.vBallot[0]);
+    map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(consParam.agreement.vBallot[0]);
     if (it != mapDelegatedProfile.end())
     {
         CBlockMakerProfile& profile = (*it).second;
 
-        for (;;)
+        CBlock block;
+        PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.agreement);
+
+        // get block time
+        block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
+        if (block.nTimeStamp == 0)
         {
-            CBlock block;
-            PrepareBlock(block, hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, agreement);
+            Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
+            return;
+        }
 
-            // get block time
-            block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
-            if (block.nTimeStamp == 0)
-            {
-                Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                return;
-            }
+        // create DPoS primary block
+        if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
+        {
+            Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
+            return;
+        }
 
-            // create DPoS primary block
-            if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
-            {
-                Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                return;
-            }
+        // dispatch DPoS primary block
+        if (DispatchBlock(block))
+        {
+            pDispatcher->SetConsensus(consParam);
 
-            // dispatch DPoS primary block
-            if (DispatchBlock(block))
-            {
-                // create sub fork blocks
-                ProcessSubFork(profile, agreement, block.GetHash(), block.GetBlockTime(), nPrimaryBlockHeight, nPrimaryMintType);
-                return;
-            }
-            else if (fExit)
-            {
-                return;
-            }
-            else
-            {
-                boost::unique_lock<boost::mutex> lock(mutex);
-                if (hashPrimaryBlock != currentStatus.hashLastBlock && nPrimaryBlockHeight == currentStatus.nLastBlockHeight)
-                {
-                    // switch prev block, create DPoS primary again
-                    hashPrimaryBlock = currentStatus.hashLastBlock;
-                    nPrimaryBlockTime = currentStatus.nLastBlockTime;
-                    nPrimaryBlockHeight = currentStatus.nLastBlockHeight;
-                    nPrimaryMintType = currentStatus.nMintType;
-                    Log("Dispatch DPoS Primary block switch prev, old hashPrev: %s, new hashPrev: %s", block.hashPrev.ToString().c_str(), hashPrimaryBlock.ToString().c_str());
-                }
-                else
-                {
-                    Error("Dispatch DPoS Primary block error, hashPrev: %s", block.hashPrev.ToString().c_str());
-                    return;
-                }
-            }
+            // create sub fork blocks
+            ProcessSubFork(profile, consParam.agreement, block.GetHash(), block.GetBlockTime(), consParam.nPrevHeight, consParam.nPrevMintType);
         }
     }
 }
@@ -677,28 +564,46 @@ bool CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profil
     return SignBlock(block, profile);
 }
 
-bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlgo)
+bool CBlockMaker::CreateProofOfWork()
 {
-    block.nTimeStamp = GetNetTime();
+    int nConsensus = CM_CRYPTONIGHT;
+    map<int, CBlockMakerProfile>::iterator it = mapWorkProfile.find(nConsensus);
+    if (it == mapWorkProfile.end())
+    {
+        StdError("blockmaker", "did not find Work profile");
+        return false;
+    }
+    CBlockMakerProfile& profile = (*it).second;
+    CBlockMakerHashAlgo* pHashAlgo = mapHashAlgo[profile.nAlgo];
+    if (pHashAlgo == nullptr)
+    {
+        StdError("blockmaker", "pHashAlgo is null");
+        return false;
+    }
 
-    CProofOfHashWorkCompact proof;
-    proof.Load(block.vchProof);
+    vector<unsigned char> vchWorkData;
+    int nPrevBlockHeight = 0;
+    uint256 hashPrev;
+    uint32 nPrevTime = 0;
+    int nAlgo = 0, nBits = 0;
+    if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, profile.templMint))
+    {
+        //StdTrace("blockmaker", "GetWork fail");
+        return false;
+    }
 
-    int nBits = proof.nBits;
-    vector<unsigned char> vchProofOfWork;
-    block.GetSerializedProofOfWorkData(vchProofOfWork);
-
-    uint32& nTime = *((uint32*)&vchProofOfWork[4]);
-    uint64_t& nNonce = *((uint64_t*)&vchProofOfWork[vchProofOfWork.size() - sizeof(uint64_t)]);
+    uint32& nTime = *((uint32*)&vchWorkData[4]);
+    uint64_t& nNonce = *((uint64_t*)&vchWorkData[vchWorkData.size() - sizeof(uint64_t)]);
+    nNonce = (GetTime() % 0xFFFFFF) << 40;
 
     int64& nHashRate = pHashAlgo->nHashRate;
     int64 nHashComputeCount = 0;
     int64 nHashComputeBeginTime = GetTime();
 
-    Log("Proof-of-work: start hash compute, difficulty bits: (%d)", nBits);
+    Log("Proof-of-work: start hash compute, target height: %d, difficulty bits: (%d)", nPrevBlockHeight + 1, nBits);
 
     uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
-    while (!InterruptedPoW(block.hashPrev))
+    while (!InterruptedPoW(hashPrev))
     {
         if (nHashRate == 0)
         {
@@ -706,19 +611,23 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
         }
         for (int i = 0; i < nHashRate; i++)
         {
-            uint256 hash = pHashAlgo->Hash(vchProofOfWork);
+            uint256 hash = pHashAlgo->Hash(vchWorkData);
             nHashComputeCount++;
             if (hash <= hashTarget)
             {
-                block.nTimeStamp = nTime;
-                proof.nNonce = nNonce;
-                proof.Save(block.vchProof);
-
                 int64 nDuration = GetTime() - nHashComputeBeginTime;
                 int nCompHashRate = ((nDuration <= 0) ? 0 : (nHashComputeCount / nDuration));
-                Log("Proof-of-work: block found (%s), compute: (rate:%ld, count:%ld, duration:%lds, hashrate:%ld), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
-                    pHashAlgo->strAlgo.c_str(), nHashRate, nHashComputeCount, nDuration, nCompHashRate, nBits,
+
+                Log("Proof-of-work: block found (%s), target height: %d, compute: (rate:%ld, count:%ld, duration:%lds, hashrate:%ld), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
+                    pHashAlgo->strAlgo.c_str(), nPrevBlockHeight + 1, nHashRate, nHashComputeCount, nDuration, nCompHashRate, nBits,
                     hash.GetHex().c_str(), hashTarget.GetHex().c_str());
+
+                uint256 hashBlock;
+                Errno err = pService->SubmitWork(vchWorkData, profile.templMint, profile.keyMint, hashBlock);
+                if (err != OK)
+                {
+                    return false;
+                }
                 return true;
             }
             nNonce++;
@@ -735,82 +644,80 @@ bool CBlockMaker::CreateProofOfWork(CBlock& block, CBlockMakerHashAlgo* pHashAlg
             nHashRate *= 2;
         }
     }
-    Log("Proof-of-work: compute interrupted.");
+    Log("Proof-of-work: target height: %d, compute interrupted.", nPrevBlockHeight + 1);
     return false;
 }
 
 void CBlockMaker::BlockMakerThreadFunc()
 {
-    uint256 hashPrimaryBlock = uint64(0);
-    int64 nPrimaryBlockTime = 0;
-    int nPrimaryBlockHeight = 0;
-    uint16 nPrimaryMintType = 0;
-
+    uint256 hashCachePrev;
+    bool fCachePow = false;
+    int64 nWaitTime = 1;
     while (!fExit)
     {
-        while (WaitLastBlock(WAIT_NEWBLOCK_TIME, hashPrimaryBlock))
+        if (nWaitTime < 1)
         {
+            nWaitTime = 1;
+        }
+        if (!WaitUpdateEvent(nWaitTime))
+        {
+            break;
         }
 
+        CAgreementBlock consParam;
+        if (!pConsensus->GetNextConsensus(consParam))
         {
-            boost::unique_lock<boost::mutex> lock(mutex);
-
-            currentStatus = lastStatus;
-            hashPrimaryBlock = currentStatus.hashLastBlock;
-            nPrimaryBlockTime = currentStatus.nLastBlockTime;
-            nPrimaryBlockHeight = currentStatus.nLastBlockHeight;
-            nPrimaryMintType = currentStatus.nMintType;
-
-            StdTrace("blockmaker", "hashPrimaryBlock: %s, nPrimaryBlockTime: %ld, nPrimaryBlockHeight: %d, nPrimaryMintType: %u",
-                     hashPrimaryBlock.ToString().c_str(), nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType);
+            StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+                     consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+            nWaitTime = consParam.nWaitTime;
+            continue;
         }
+        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        nWaitTime = consParam.nWaitTime;
 
-        CDelegateAgreement agree;
+        if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())
         {
-            int64 nTimeStamp = pBlockChain->DPoSTimestamp(hashPrimaryBlock);
-            int64 nWaitAgreement = nTimeStamp + WAIT_AGREEMENT_TIME_OFFSET - GetNetTime();
-            if (nWaitAgreement <= 0)
+            hashCachePrev = consParam.hashPrev;
+            fCachePow = consParam.agreement.IsProofOfWork();
+            if (consParam.agreement.IsProofOfWork())
             {
-                nWaitAgreement = 1;
-            }
-            if (!WaitExit(nWaitAgreement))
-            {
-                break;
-            }
-
-            pConsensus->GetAgreement(nPrimaryBlockHeight + 1, agree.nAgreement, agree.nWeight, agree.vBallot);
-
-            // log
-            if (agree.IsProofOfWork())
-            {
-                Log("GetAgreement: height: %d, consensus: pow", nPrimaryBlockHeight + 1);
+                Log("GetAgreement: height: %d, consensus: pow", consParam.nPrevHeight + 1);
             }
             else
             {
-                Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", nPrimaryBlockHeight + 1, CAddress(agree.vBallot[0]).ToString().c_str());
+                Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", consParam.nPrevHeight + 1, CAddress(consParam.agreement.vBallot[0]).ToString().c_str());
             }
         }
-
         try
         {
-
-            if (agree.IsProofOfWork())
+            if (!consParam.agreement.IsProofOfWork())
             {
-                ProcessDelegatedProofOfWork(hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType, agree);
+                ProcessDelegatedProofOfStake(consParam);
             }
-            else
-            {
-                ProcessDelegatedProofOfStake(hashPrimaryBlock, nPrimaryBlockTime, nPrimaryBlockHeight, nPrimaryMintType, agree);
-            }
+            pDispatcher->SetConsensus(consParam);
         }
         catch (exception& e)
         {
-            Error("Block maker error: %s\n", e.what());
+            Error("Block maker error: %s", e.what());
             break;
         }
     }
-
     Log("Block maker exited");
+}
+
+void CBlockMaker::PowThreadFunc()
+{
+    if (!WaitExit(5))
+    {
+        Log("Pow exited non");
+        return;
+    }
+    while (WaitExit(1))
+    {
+        CreateProofOfWork();
+    }
+    Log("Pow exited");
 }
 
 } // namespace bigbang
