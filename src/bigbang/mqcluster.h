@@ -109,6 +109,7 @@ public:
     IMQCluster()
       : IIOModule("mqcluster") {}
     virtual bool IsAuthenticated() = 0;
+    virtual bool GetForkNodeFork(std::vector<uint256> forks) = 0;
 };
 
 class CMQCluster : public IMQCluster
@@ -142,6 +143,7 @@ public:
     ~CMQCluster() = default;
 
     bool LogEvent(const std::string& info);
+    bool GetForkNodeFork(std::vector<uint256> forks) override;
 
 protected:
     bool HandleInitialize() override;

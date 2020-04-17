@@ -407,6 +407,39 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         {
             pPeerNet->DispatchEvent(&eventSubscribe);
         }
+
+
+        network::CEventPeerGetBizForks eventGetBiz(nNonce);
+        switch(nNodeCat)
+        {
+        case NODE_CAT_FORKNODE:
+        {
+            // forks enrolled by super node
+            if (!pMQCluster->GetForkNodeFork(eventGetBiz.data))
+            {
+                StdError("NetChannel", "CEventPeerActive: GetForkNodeFork failed");
+                return false;
+            }
+        }   // deliberately provide no break in order to fall down sharing operations
+        case NODE_CAT_BBCNODE:
+        {
+            // forks configured by options
+            {
+                boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                for (auto const& sched : mapSched)
+                {
+                    eventGetBiz.data.push_back(sched.first);
+                }
+            }
+        }
+        break;
+        case NODE_CAT_DPOSNODE:
+        {
+            // send request for all biz forks if this is a dpos node
+            eventGetBiz.data.clear();
+        }
+        }
+        pPeerNet->DispatchEvent(&eventGetBiz);
     }
     NotifyPeerUpdate(nNonce, true, eventActive.data);
     return true;

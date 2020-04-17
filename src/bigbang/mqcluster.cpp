@@ -417,6 +417,27 @@ bool CMQCluster::LogEvent(const string& info)
     return true;
 }
 
+bool CMQCluster::GetForkNodeFork(std::vector<uint256> forks)
+{
+    forks.clear();
+    vector<storage::CSuperNode> nodes;
+    if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
+    {
+        Error("CMQCluster::GetForkNodeFork(): failed to fetch fork nodes");
+        return false;
+    }
+
+    if (NODE_CATEGORY::FORKNODE == catNode && nodes.size() > 1)
+    {
+        Error("CMQCluster::GetForkNodeFork(): fork enrolled by fork node should not be greater than one");
+        return false;
+    }
+
+    forks = std::move(nodes[0].vecOwnedForks);
+
+    return true;
+}
+
 bool CMQCluster::PostBlockRequest(int syncHeight)
 {
     Log("CMQCluster::PostBlockRequest(): posting request for block #%d", syncHeight);
