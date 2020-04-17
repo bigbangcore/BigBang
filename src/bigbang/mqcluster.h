@@ -108,7 +108,6 @@ class IMQCluster : public xengine::IIOModule, virtual public CMQEventListener
 public:
     IMQCluster()
       : IIOModule("mqcluster") {}
-    virtual bool IsAuthenticated() = 0;
     virtual bool GetForkNodeFork(std::vector<uint256> forks) = 0;
 };
 
@@ -157,8 +156,6 @@ protected:
     bool HandleEvent(CEventMQAgreement& eventMqAgreement) override;
     bool HandleEvent(CEventMQBizForkUpdate& eventMqBizFork) override;
 
-    bool IsAuthenticated() override;
-
 protected:
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
@@ -181,7 +178,6 @@ private:
     void MqttThreadFunc();
     bool PostAddBizForkNode();
 
-    bool fAuth;
     bool fAbort;
     std::string addrBroker;
     std::string dposNodeCliID;

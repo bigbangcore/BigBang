@@ -408,7 +408,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
             pPeerNet->DispatchEvent(&eventSubscribe);
         }
 
-
         network::CEventPeerGetBizForks eventGetBiz(nNonce);
         switch(nNodeCat)
         {
@@ -435,7 +434,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         break;
         case NODE_CAT_DPOSNODE:
         {
-            // send request for all biz forks if this is a dpos node
+            // send request for all biz forks as a dpos node
             eventGetBiz.data.clear();
         }
         }

@@ -24,9 +24,7 @@ CMQCluster::CMQCluster(int catNodeIn)
     pCoreProtocol(nullptr),
     pBlockChain(nullptr),
     pService(nullptr),
-    fAuth(false),
     fAbort(false),
-    addrBroker("tcp://localhost:1883"),
     nReqBlkTimerID(0),
     nRollNum(0),
     clientID("")
@@ -44,11 +42,6 @@ CMQCluster::CMQCluster(int catNodeIn)
         break;
     }
     std::atomic_init(&isMainChainBlockBest, false);
-}
-
-bool CMQCluster::IsAuthenticated()
-{
-    return fAuth;
 }
 
 bool CMQCluster::HandleInitialize()
@@ -293,20 +286,6 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
-        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
-        Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:"
-            "\n[%s]\n[%s]",
-            id.c_str(), eventMqUpdateEnroll.data.ipAddr,
-            vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
-        for (const auto& fork : forks)
-        {
-            Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced "
-                "by this node [%s]:",
-                fork.ToString().c_str(), clientID.c_str());
-        }
-
         {
             boost::unique_lock<boost::mutex> lock(mtxStatus);
             clientID = id;
@@ -317,6 +296,18 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             }
         }
         condStatus.notify_all();
+
+        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:\n[%s]\n[%s]",
+            clientID.c_str(), eventMqUpdateEnroll.data.ipAddr,
+            vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+        for (const auto& fork : forks)
+        {
+            Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced by this node [%s]:",
+                fork.ToString().c_str(), clientID.c_str());
+        }
 
         if (!PostBlockRequest(-1))
         {
@@ -329,11 +320,6 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         if (1 == forks.size() && 0 == eventMqUpdateEnroll.data.ipAddr
             && forks[0] == pCoreProtocol->GetGenesisBlockHash())
         { //dpos node enrolled by self
-            vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-            vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
-            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
-                id.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
-
             {
                 boost::unique_lock<boost::mutex> lock(mtxStatus);
                 clientID = id;
@@ -341,14 +327,21 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 setBizFork.emplace(forks[0]);
             }
             condStatus.notify_all();
+
+            vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+            vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
+                clientID.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
+                vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+
             return true;
         }
 
         if (storage::CLIENT_ID_OUT_OF_MQ_CLUSTER != id)
         { //fork node enrolled by dpos node
             mapActiveMQForkNode[id] = storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks);
-            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]",
-                clientID.c_str());
+            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]", clientID.c_str());
+
             return true;
         }
 
@@ -357,8 +350,6 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                                       storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks)));
         Log("CMQCluster::HandleEvent(): dpos node register biz fork nodes by p2p [%s - %s]",
             clientID.c_str(), storage::CSuperNode::Int2Ip(eventMqUpdateEnroll.data.ipAddr).c_str());
-
-        return true;
     }
 
     return true;
