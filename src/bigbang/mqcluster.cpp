@@ -42,7 +42,7 @@ CMQCluster::CMQCluster(int catNodeIn)
         break;
     }
     std::atomic_init(&isMainChainBlockBest, false);
-    array<string, TOPIC_SUFFIX_MAX> v{"", "", "", ""};
+    array<string, TOPIC_SUFFIX_MAX> v{};
     arrTopic = std::move(v);
 }
 
@@ -87,7 +87,6 @@ bool CMQCluster::HandleInitialize()
     addrBroker = dynamic_cast<const CBasicConfig*>(Config())->strMQBrokerURI;
     dposNodeCliID = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
 
-    Log("CMQCluster::HandleInitialize() successfully");
     return true;
 }
 
@@ -144,11 +143,10 @@ bool CMQCluster::HandleInvoke()
             Log("CMQCluster::HandleInvoke(): super node enrolled fork:[%s]", fork.ToString().c_str());
         }
     }
-    Log("CMQCluster::HandleInvoke(): load super node status info "
-        "successfully[%s]",
+    Log("CMQCluster::HandleInvoke(): load super node status info successfully \n[%s]",
         nodes[0].ToString().c_str());
 
-    arrTopic = {"", "", "", ""};
+    arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
@@ -289,7 +287,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     string id = eventMqUpdateEnroll.data.superNodeClientID;
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
 
-    arrTopic = {"", "", "", ""};
+    arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         {
