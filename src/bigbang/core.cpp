@@ -836,7 +836,7 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         {
             nBits--;
         }
-        else if (nSpacing < nProofOfWorkLowerTarget && nBits < 40)
+        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
         {
             nBits++;
         }
