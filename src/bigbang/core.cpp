@@ -47,10 +47,9 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
-static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204100;
-
+static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204150;
 // Difficulty adjustment
-static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
+//static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -831,7 +830,7 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     }
     nSpacing /= nWeight;
 
-    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_DA_HEIGHT)
+    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
     {
         if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
         {
