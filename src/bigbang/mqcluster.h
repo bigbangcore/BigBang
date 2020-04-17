@@ -199,8 +199,9 @@ private:
 
     NODE_CATEGORY catNode;
 
-    std::vector<std::string> vecTopic;  //shared by both dpos and fork node
-    std::map<std::string, std::string> mapBizForkTopic;        //only for dpos node
+    std::array<std::string, TOPIC_SUFFIX_MAX> arrTopic;  //shared by both dpos and fork node
+    std::map<std::string, std::string> mapBizForkTopic;  //only for dpos node
+
 
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;

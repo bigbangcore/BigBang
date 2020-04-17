@@ -42,6 +42,8 @@ CMQCluster::CMQCluster(int catNodeIn)
         break;
     }
     std::atomic_init(&isMainChainBlockBest, false);
+    array<string, TOPIC_SUFFIX_MAX> v{"", "", "", ""};
+    arrTopic = std::move(v);
 }
 
 bool CMQCluster::HandleInitialize()
@@ -146,16 +148,18 @@ bool CMQCluster::HandleInvoke()
         "successfully[%s]",
         nodes[0].ToString().c_str());
 
+    arrTopic = {"", "", "", ""};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
         pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
-        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
-        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+        arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
         Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with topics:\t[%s]\n\t[%s]",
-            clientID.c_str(), vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+            clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
         if (!PostBlockRequest(-1))
         {
@@ -176,10 +180,10 @@ bool CMQCluster::HandleInvoke()
             }
         }
         lastHeightResp = -1;
-        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
         Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with topic [%s][%s]",
-            clientID.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+            clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
         nodes.clear();
         if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
@@ -268,11 +272,11 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 
     Log("CMQCluster::HandleEvent(): rollback-topic[%s]:"
         "forkheight[%d] forkhash[%s] shortlen[%d]",
-        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
+        arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
 
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
-        deqSendBuff.emplace_back(make_pair(vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK], spRBC));
+        deqSendBuff.emplace_back(make_pair(arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK], spRBC));
     }
     condSend.notify_all();
 
@@ -284,6 +288,8 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 {
     string id = eventMqUpdateEnroll.data.superNodeClientID;
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
+
+    arrTopic = {"", "", "", ""};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         {
@@ -297,12 +303,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         }
         condStatus.notify_all();
 
-        vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        vecTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
-        vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+        arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+        arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:\n[%s]\n[%s]",
             clientID.c_str(), eventMqUpdateEnroll.data.ipAddr,
-            vecTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+            arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
         for (const auto& fork : forks)
         {
             Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced by this node [%s]:",
@@ -328,11 +335,11 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             }
             condStatus.notify_all();
 
-            vecTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-            vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+            arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+            arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
             Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
-                clientID.c_str(), vecTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
-                vecTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+                clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
+                arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
 
             return true;
         }
@@ -486,7 +493,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     CBufferPtr spSS(new CBufStream);
     *spSS.get() << req;
 
-    AppendSendQueue(vecTopic[TOPIC_SUFFIX_REQ_BLOCK], spSS);
+    AppendSendQueue(arrTopic[TOPIC_SUFFIX_REQ_BLOCK], spSS);
     return true;
 }
 
@@ -1012,27 +1019,27 @@ public:
         mqCluster.LogEvent("[connected]");
         if (CMQCluster::NODE_CATEGORY::FORKNODE == mqCluster.catNode)
         {
-            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK], CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK] << "'\n"
+            asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK], CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK] << "'\n"
+            asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK], CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK] << "'\n"
+            asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
-            asynCli.subscribe(mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK], CMQCluster::QOS1, nullptr, subListener);
-            cout << "\nSubscribing to topic '" << mqCluster.vecTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK] << "'\n"
+            asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK], CMQCluster::QOS1, nullptr, subListener);
+            cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
         }
