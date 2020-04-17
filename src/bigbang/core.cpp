@@ -47,6 +47,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
+static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204100;
 
 // Difficulty adjustment
 static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
@@ -381,7 +382,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     }
     else if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
     {
-        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), CTransaction::TX_WORK);
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), CTransaction::TX_WORK, block.GetBlockHeight());
         if (block.GetBlockTime() < nNextTimestamp)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
@@ -391,7 +392,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     }
     else
     {
-        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType);
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
         if (block.GetBlockTime() < nNextTimestamp)
         {
             return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 3, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
@@ -992,11 +993,11 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
         }
         else if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
         {
-            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_WORK);
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_WORK, pIndexPrev->GetBlockHeight() + 1);
         }
         else
         {
-            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_STAKE);
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_STAKE, pIndexPrev->GetBlockHeight() + 1);
         }
     }
     else
@@ -1016,17 +1017,28 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
     return nTimeStamp;
 }
 
-uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType)
+uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight)
 {
-    if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
     {
-        if (nTargetMintType == CTransaction::TX_STAKE)
+        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
         {
-            return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+            if (nTargetMintType == CTransaction::TX_STAKE)
+            {
+                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+            }
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
         }
-        return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
     }
-    return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    else
+    {
+        if (nTargetMintType == CTransaction::TX_WORK)
+        {
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
