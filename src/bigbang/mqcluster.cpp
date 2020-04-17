@@ -433,7 +433,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
 {
     Log("CMQCluster::PostBlockRequest(): posting request for block #%d", syncHeight);
 
-    if ("" == clientID)
+    if (clientID.empty())
     {
         Log("CMQCluster::PostBlockRequest(): enrollment is empty for this fork node");
         return true;
@@ -1172,7 +1172,7 @@ void CMQCluster::MqttThreadFunc()
     if (!fAbort)
     {
         boost::unique_lock<boost::mutex> lock(mtxStatus);
-        while ("" == clientID)
+        while (clientID.empty())
         {
             Log("there is no enrollment info, waiting for it coming...");
             condStatus.wait(lock);
