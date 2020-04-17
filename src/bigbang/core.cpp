@@ -48,6 +48,9 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
 
+// Difficulty adjustment
+static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
+
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
@@ -826,13 +829,28 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
+
+    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_DA_HEIGHT)
     {
-        nBits--;
+        if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < nProofOfWorkLowerTarget && nBits < 40)
+        {
+            nBits++;
+        }
     }
-    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
+    else
     {
-        nBits++;
+        if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
     }
     if (HEIGHT_TEST_REWARD == pIndexPrev->GetBlockHeight() + 1)
     {
