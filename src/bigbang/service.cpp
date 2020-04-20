@@ -680,7 +680,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
 
         if (pCoreProtocol->IsDposHeight(nPrevBlockHeight + 1))
         {
-            block.nTimeStamp = max(pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1), (uint32)GetNetTime());
+            nPrevTime = pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1);
+            block.nTimeStamp = max(nPrevTime, (uint32)GetNetTime());
         }
         else
         {
