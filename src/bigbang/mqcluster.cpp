@@ -130,7 +130,11 @@ bool CMQCluster::HandleInvoke()
     if (nodes.empty())
     {
         Log("CMQCluster::HandleInvoke(): this super node has not enrolled yet");
-        return true;
+        if (!ThreadStart(thrMqttClient))
+        {
+            return false;
+        }
+        return IIOModule::HandleInvoke();
     }
 
     {
@@ -287,6 +291,7 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 
 bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 {
+    Log("CMQCluster::HandleEvent(): starting process of CEventMQEnrollUpdate");
     string id = eventMqUpdateEnroll.data.superNodeClientID;
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
 
