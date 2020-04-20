@@ -306,13 +306,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             {
                 setBizFork.emplace(fork);
             }
+            arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+            arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+            arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+            arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
         }
         condStatus.notify_all();
 
-        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
-        arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
-        arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
         Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:\n[%s]\n[%s]",
             clientID.c_str(), eventMqUpdateEnroll.data.ipAddr,
             arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
@@ -338,11 +338,11 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 clientID = id;
                 ipAddr = 0;
                 setBizFork.emplace(forks[0]);
+                arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+                arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
             }
             condStatus.notify_all();
 
-            arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-            arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
             Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with topic [%s][%s]",
                 clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
@@ -353,7 +353,8 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         if (storage::CLIENT_ID_OUT_OF_MQ_CLUSTER != id)
         { //fork node enrolled by dpos node
             mapActiveMQForkNode[id] = storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks);
-            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]", clientID.c_str());
+            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]",
+                eventMqUpdateEnroll.data.superNodeClientID.c_str());
 
             return true;
         }
