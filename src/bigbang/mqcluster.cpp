@@ -214,7 +214,10 @@ bool CMQCluster::HandleInvoke()
         Log("CMQCluster::HandleInvoke(): load outer node [%s]", node.ToString().c_str());
     }
 
-    PostAddBizForkNode();
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        PostAddBizForkNode();
+    }
 
     if (!ThreadStart(thrMqttClient))
     {
@@ -1127,10 +1130,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     pubmsg->set_qos(QOS1);
                     if (buf.first.find("AssignBizFork"))
                     {
+                        Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true");
                         pubmsg->set_retained(true);
                     }
                     else
                     {
+                        Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false");
                         pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                     }
                     delitok = client.publish(pubmsg, nullptr, cb);
