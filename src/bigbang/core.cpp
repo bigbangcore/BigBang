@@ -19,7 +19,7 @@ using namespace xengine;
 
 //#define BBCP_SET_TOKEN_DISTRIBUTION
 
-static const int64 MAX_CLOCK_DRIFT = 20;
+static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
@@ -43,6 +43,10 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -360,12 +364,37 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 {
     if (block.vchProof.size() < CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+    if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+        }
+    }
+    else if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
+    {
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), CTransaction::TX_WORK, block.GetBlockHeight());
+        if (block.GetBlockTime() < nNextTimestamp)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
+                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+        }
+    }
+    else
+    {
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
+        if (block.GetBlockTime() < nNextTimestamp)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 3, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
+                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+        }
     }
 
     CProofOfHashWorkCompact proof;
@@ -375,16 +404,16 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     int64 nReward = 0;
     if (!GetProofOfWorkTarget(pIndexPrev, proof.nAlgo, nBits, nReward))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.");
     }
 
     if (nBits != proof.nBits || proof.nAlgo != CM_CRYPTONIGHT)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.\n", proof.nAlgo, proof.nBits, block.vchProof.size());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.", proof.nAlgo, proof.nBits, block.vchProof.size());
     }
     if (proof.destMint != block.txMint.sendTo)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.\n", proof.destMint.ToString().c_str());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.", proof.destMint.ToString().c_str());
     }
 
     uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
@@ -395,7 +424,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (hash > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.");
     }
 
     return OK;
@@ -407,12 +436,12 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     uint32 nTime = DPoSTimestamp(pIndexPrev);
     if (block.GetBlockTime() != nTime)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u\n", block.GetBlockTime(), nTime);
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u", block.GetBlockTime(), nTime);
     }
 
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
     return OK;
 }
@@ -422,14 +451,14 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
 {
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
     }
 
     if (!block.IsExtended())
     {
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
         }
     }
     else
@@ -438,13 +467,13 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
             || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.\n");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
         }
     }
 
     if (block.txMint.sendTo != agreement.GetBallot(0))
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.\n");
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
 
     return OK;
@@ -645,15 +674,15 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     return OK;
 }
 
-uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef)
+bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollTrust)
 {
     if (block.IsGenesis())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsVacant())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
     else if (block.IsPrimary())
     {
@@ -663,7 +692,7 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
             uint256 v(1);
-            return v << proof.nBits;
+            nChainTrust = v << proof.nBits;
         }
         else if (pIndexPrev != nullptr)
         {
@@ -690,50 +719,63 @@ uint256 CCoreProtocol::GetBlockTrust(const CBlock& block, const CBlockIndex* pIn
             {
                 if (agreement.nWeight == 0 || nBits <= 0)
                 {
-                    StdLog("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    StdError("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+                    return false;
                 }
-                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
+                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT)
                 {
-                    return uint256(uint64(agreement.nWeight + 5)) << nBits;
+                    if (nEnrollTrust <= 0)
+                    {
+                        StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+                        return false;
+                    }
+                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+                }
+                else if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
+                {
+                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
                 }
                 else
                 {
-                    return uint256(uint64(agreement.nWeight)) << nBits;
+                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
                 }
             }
             else
             {
-                StdLog("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
-                return uint64(0);
+                StdError("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
+                return false;
             }
         }
         else
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
-            return uint64(0);
+            StdError("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
+            return false;
         }
     }
     else if (block.IsOrigin())
     {
-        return uint64(0);
+        nChainTrust = uint64(0);
     }
-    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
+    else if (block.IsSubsidiary() || block.IsExtended())
     {
+        if (pIndexRef == nullptr)
+        {
+            StdError("CCoreProtocol", "GetBlockTrust: pIndexRef is null, block: %s", block.GetHash().GetHex().c_str());
+            return false;
+        }
         if (pIndexRef->pPrev == nullptr)
         {
-            StdLog("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return pIndexRef->nChainTrust;
+            StdError("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
+            return false;
         }
-        else
-        {
-            return pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
-        }
+        nChainTrust = pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
     }
     else
     {
-        StdLog("CCoreProtocol", "GetBlockTrust: block type error");
-        return uint64(0);
+        StdError("CCoreProtocol", "GetBlockTrust: block type error");
+        return false;
     }
+    return true;
 }
 
 bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward)
@@ -784,13 +826,28 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
+
+    if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
     {
-        nBits--;
+        if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
     }
-    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
+    else
     {
-        nBits++;
+        if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
     }
     return true;
 }
@@ -822,7 +879,7 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t> mapBallot,
-                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, int nBlockHeight)
+                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollTrust, int nBlockHeight)
 {
     vBallot.clear();
     if (nAgreement == 0 || mapBallot.size() == 0)
@@ -849,20 +906,23 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     map<CDestination, size_t> mapSelectBallot;
     size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
     size_t nEnrollWeight = 0;
+    nEnrollTrust = 0;
     for (auto& amount : vecAmount)
     {
         StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
                  CAddress(amount.first).ToString().c_str(), amount.second);
         if (mapBallot.find(amount.first) != mapBallot.end())
         {
-            size_t nDestWeight = (size_t)(std::min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
+            size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
             mapSelectBallot[amount.first] = nDestWeight;
             nEnrollWeight += nDestWeight;
+            nEnrollTrust += (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT));
             StdTrace("Core", "Get delegated ballot: ballot dest: %s, weight: %lld",
                      CAddress(amount.first).ToString().c_str(), nDestWeight);
         }
     }
-    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu", mapSelectBallot.size());
+    nEnrollTrust /= DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu, enroll trust: %llu", mapSelectBallot.size(), nEnrollTrust);
 
     size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
                          / (nMaxWeight * nMaxWeight);
@@ -914,7 +974,18 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
     uint32 nTimeStamp = 0;
     if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT)
     {
-        nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
+        {
+            nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
+        }
+        else if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
+        {
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_WORK, pIndexPrev->GetBlockHeight() + 1);
+        }
+        else
+        {
+            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_STAKE, pIndexPrev->GetBlockHeight() + 1);
+        }
     }
     else
     {
@@ -930,8 +1001,31 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
             nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
         }
     }
-
     return nTimeStamp;
+}
+
+uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight)
+{
+    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
+    {
+        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+        {
+            if (nTargetMintType == CTransaction::TX_STAKE)
+            {
+                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+            }
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
+    else
+    {
+        if (nTargetMintType == CTransaction::TX_WORK)
+        {
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
@@ -1071,6 +1165,9 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     }
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
+    nDelegateProofOfStakeNewTrustHeight = DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT;
+    nDelegateProofOfStakeEnrollTrustHeight = DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT;
 }
 
 } // namespace bigbang

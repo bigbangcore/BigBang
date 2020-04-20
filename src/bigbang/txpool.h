@@ -244,6 +244,11 @@ public:
         setTxLinkIndex.clear();
         mapSpent.clear();
     }
+    void SetLastBlock(const uint256& hash, int64 nTime)
+    {
+        hashLastBlock = hash;
+        nLastBlockTime = nTime;
+    }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
                         std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount);
@@ -256,6 +261,8 @@ private:
 public:
     CPooledTxLinkSet setTxLinkIndex;
     std::map<CTxOutPoint, CSpent> mapSpent;
+    uint256 hashLastBlock;
+    int64 nLastBlockTime;
 };
 
 class CTxCache

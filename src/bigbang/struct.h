@@ -108,6 +108,7 @@ public:
         hashLastBlock = pIndex->GetBlockHash();
         nLastBlockTime = pIndex->GetBlockTime();
         nLastBlockHeight = pIndex->GetBlockHeight();
+        nLastMintType = pIndex->nMintType;
         nMoneySupply = pIndex->GetMoneySupply();
     }
     void SetNull()
@@ -115,6 +116,7 @@ public:
         hashFork = 0;
         nOriginHeight = -1;
         nLastBlockHeight = -1;
+        nLastMintType = 0;
     }
     bool IsNull() const
     {
@@ -128,6 +130,7 @@ public:
     uint256 hashLastBlock;
     int64 nLastBlockTime;
     int nLastBlockHeight;
+    uint16 nLastMintType;
     int64 nMoneySupply;
     std::set<uint256> setTxUpdate;
     std::vector<CBlockEx> vBlockAddNew;
@@ -241,6 +244,22 @@ public:
     uint256 nAgreement;
     std::size_t nWeight;
     std::vector<CDestination> vBallot;
+};
+
+class CAgreementBlock
+{
+public:
+    CAgreementBlock()
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fCompleted(false), ret(false) {}
+
+    uint256 hashPrev;
+    int64 nPrevTime;
+    int nPrevHeight;
+    uint16 nPrevMintType;
+    CDelegateAgreement agreement;
+    int64 nWaitTime;
+    bool fCompleted;
+    bool ret;
 };
 
 /* Protocol & Event */

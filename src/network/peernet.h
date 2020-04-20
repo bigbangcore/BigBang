@@ -25,6 +25,9 @@ public:
     virtual void BroadcastTxInv(const uint256& hashFork) = 0;
     virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
+    virtual bool SubmitCachePowBlock(const CConsensusParam& consParam) = 0;
+    virtual bool IsLocalCachePowBlock(int nHeight) = 0;
+    virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener

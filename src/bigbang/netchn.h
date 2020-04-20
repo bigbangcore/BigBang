@@ -123,8 +123,7 @@ class CNetChannelPeer
         {
             SYNTXINV_STATUS_INIT,
             SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
-            SYNTXINV_STATUS_WAIT_PEER_COMPLETE,
-            SYNTXINV_STATUS_UNKONWN
+            SYNTXINV_STATUS_WAIT_PEER_COMPLETE
         };
         enum
         {
@@ -196,15 +195,9 @@ public:
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
         std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it == mapSubscribedFork.end())
+        if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
         {
-            return false;
-        }
-        
-        CNetChannelPeerFork& peer = it->second;
-        if (peer.fWaitGetTxComplete)
-        {
-            peer.fWaitGetTxComplete = false;
+            it->second.fWaitGetTxComplete = false;
             return true;
         }
         return false;
@@ -223,12 +216,12 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
-        if(!IsSubscribed(hashFork))
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
         {
-            return CNetChannelPeerFork::SYNTXINV_STATUS_UNKONWN;
+            return it->second.CheckTxInvSynStatus();
         }
-        
-        return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
+        return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
 
@@ -258,6 +251,9 @@ public:
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
+    bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
+    bool IsLocalCachePowBlock(int nHeight) override;
+    bool AddCacheLocalPowBlock(const CBlock& block) override;
 
 protected:
     enum
@@ -310,7 +306,8 @@ protected:
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer, std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
+                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer,
+                     std::vector<std::pair<uint256, uint256>>& vRefNextBlock, bool fCheckPow);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
@@ -321,6 +318,8 @@ protected:
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
+    void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
+    void InnerSubmitCachePowBlock();
 
 protected:
     network::CBbPeerNet* pPeerNet;

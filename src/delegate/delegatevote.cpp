@@ -68,6 +68,7 @@ CDelegateVote::CDelegateVote()
     witness.SetupWitness();
     is_enroll = false;
     is_published = false;
+    nPublishedTime = 0;
 }
 
 CDelegateVote::~CDelegateVote()
@@ -141,10 +142,10 @@ void CDelegateVote::Publish(map<CDestination, vector<unsigned char>>& mapPublish
 void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
                            const map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
-    // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s", 
-    //     mapWeight.size(), 
+    // StdWarn("vote", "CDelegateVote::Enroll enter............... mapWeight size: %llu [0]: %s, %llu, mapEnrollData size: %llu [0]: %s, %s",
+    //     mapWeight.size(),
     //     mapWeight.size() > 0 ? mapWeight.begin()->first.ToString().c_str() : "...",
-    //     mapWeight.size() > 0 ? mapWeight.begin()->second : 0, 
+    //     mapWeight.size() > 0 ? mapWeight.begin()->second : 0,
     //     mapEnrollData.size(),
     //     mapEnrollData.size() > 0 ? mapEnrollData.begin()->first.ToString().c_str() : "...",
     //     mapEnrollData.size() > 0 ? xengine::ToHexString(mapEnrollData.begin()->second).c_str() : "...");
@@ -192,7 +193,7 @@ bool CDelegateVote::Accept(const CDestination& destFrom, const vector<unsigned c
         is >> delegateData;
         if (delegateData.nIdentFrom != DestToIdentUInt256(destFrom) || !VerifySignature(delegateData))
         {
-            // StdWarn("vote", "CDelegateVote::Accept error ............... delegateData.nIdentFrom: %s, DestToIdentUInt256(destFrom): %s, VerifySignature(delegateData): %d", 
+            // StdWarn("vote", "CDelegateVote::Accept error ............... delegateData.nIdentFrom: %s, DestToIdentUInt256(destFrom): %s, VerifySignature(delegateData): %d",
             //     delegateData.nIdentFrom.ToString().c_str(), DestToIdentUInt256(destFrom).ToString().c_str(), VerifySignature(delegateData));
             return false;
         }
@@ -277,6 +278,10 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
 
     if (!mapSecret.empty())
     {
+        if (!witness.IsCollectCompleted())
+        {
+            StdLog("CDelegateVote", "Get agreement: mapSecret not is empty, completed: false");
+        }
         vector<unsigned char> vch;
         CODataStream os(vch);
         for (map<uint256, pair<uint256, size_t>>::iterator it = mapSecret.begin();
@@ -290,7 +295,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     }
     else
     {
-        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty");
+        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty, completed: %s", (witness.IsCollectCompleted() ? "true" : "false"));
     }
 }
 
@@ -298,6 +303,11 @@ void CDelegateVote::GetProof(vector<unsigned char>& vchProof)
 {
     CODataStream os(vchProof);
     os << vCollected;
+}
+
+bool CDelegateVote::IsCollectCompleted()
+{
+    return witness.IsCollectCompleted();
 }
 
 bool CDelegateVote::VerifySignature(const CDelegateData& delegateData)
