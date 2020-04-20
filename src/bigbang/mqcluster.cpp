@@ -1128,14 +1128,14 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     mqtt::message_ptr pubmsg = mqtt::make_message(
                         buf.first, buf.second->GetData(), buf.second->GetSize());
                     pubmsg->set_qos(QOS1);
-                    if (buf.first.find("AssignBizFork"))
+                    if (string::npos != buf.first.find("AssignBizFork"))
                     {
-                        Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true");
+                        Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
                         pubmsg->set_retained(true);
                     }
                     else
                     {
-                        Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false");
+                        Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false[%s]", buf.first.c_str());
                         pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                     }
                     delitok = client.publish(pubmsg, nullptr, cb);
