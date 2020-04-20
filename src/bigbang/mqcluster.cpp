@@ -549,7 +549,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
     case NODE_CATEGORY::FORKNODE:
     {
         Log("CMQCluster::OnReceiveMessage(): current sync height is [%d]", int(lastHeightResp));
-        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]) && topic.find(prefixTopic))
+        if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]) && string::npos != topic.find(prefixTopic))
         { //respond to request block of main chain
             //unpack payload
             CSyncBlockResponse resp;
@@ -657,7 +657,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             return;
         } // end of dealing with response of requesting block
 
-        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]) && topic.find(prefixTopic))
+        if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]) && string::npos != topic.find(prefixTopic))
         { //roll back blocks on main chain
             //unpack payload
             CRollbackBlock rb;
@@ -779,7 +779,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             return;
         } // end of dealing with rollback of main chain
 
-        if (topic.find(vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]) && topic.find(prefixTopic))
+        if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]) && string::npos != topic.find(prefixTopic))
         { //receive biz fork list from dpos node by MQ broker
             //unpack payload
             CAssignBizFork biz;
