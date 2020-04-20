@@ -539,7 +539,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     consParam.nPrevHeight = nLastHeight;
     consParam.nPrevMintType = nLastMintType;
 
-    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK);
+    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK, nLastHeight + 1);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
     if (consParam.nWaitTime >= -60)
     {
@@ -584,7 +584,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     }
     if (!cacheAgreementBlock.agreement.IsProofOfWork())
     {
-        nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE);
+        nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE, nLastHeight + 1);
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
         if (consParam.nWaitTime > 0)
         {
