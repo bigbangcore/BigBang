@@ -2420,13 +2420,14 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of fork node must not be 0.0.0.0");
     }
 
-    if (NODE_CAT_DPOSNODE == nNodeCat && 0 != ipNum)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");
-    }
-
     std::string id = spParam->strClientid;
     std::vector<std::string> vFork = spParam->vecForks;
+
+    string dposid = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+    if (NODE_CAT_DPOSNODE == nNodeCat && dposid == id && 0 != ipNum)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");  //todo
+    }
 
     std::vector<uint256> forks;
     for (const auto& i : vFork)
@@ -2451,17 +2452,18 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        if (forks.size() > 1)
+        if (dposid == id && forks.size() > 1)    //todo
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Dpos node must have only main chain to enroll");
         }
-        else if (forks[0] != hashGenesis)
+
+        if (dposid == id && forks[0] != hashGenesis)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "The main fork dpos node enrolls does not match:[ " + hashGenesis.ToString() + " ]");
         }
     }
 
-    if (NODE_CAT_FORKNODE == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat || (NODE_CAT_DPOSNODE == nNodeCat && dposid != id))
     {
         if (forks.end() != find(forks.begin(), forks.end(), hashGenesis))
         {
