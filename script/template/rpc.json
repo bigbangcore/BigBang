@@ -3119,7 +3119,7 @@
                     "type": "uint",
                     "desc": "maximum unspents(0 means unlimited)",
                     "opt": "n",
-                    "default": 3,
+                    "default": 10,
                     "required": false
                 },
                 "file": {

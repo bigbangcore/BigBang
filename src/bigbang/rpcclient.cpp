@@ -50,7 +50,7 @@ static const char* prompt = "bigbang> ";
 
 CRPCClient::CRPCClient(bool fConsole)
   : IIOModule("rpcclient"),
-    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this))
+    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this)), isConsoleRunning(false)
 {
     nLastNonce = 0;
     pHttpGet = nullptr;
@@ -82,6 +82,7 @@ bool CRPCClient::HandleInvoke()
         return false;
     }
     pClient = this;
+    isConsoleRunning = true;
     return IIOModule::HandleInvoke();
 }
 
@@ -96,6 +97,7 @@ void CRPCClient::HandleHalt()
         thrDispatch.Interrupt();
     }
     thrDispatch.Interrupt();
+    isConsoleRunning = false;
     ThreadExit(thrDispatch);
 }
 
@@ -265,7 +267,7 @@ void CRPCClient::LaunchConsole()
 
     fd_set fs;
     timeval timeout;
-    while (true)
+    while (isConsoleRunning)
     {
         FD_ZERO(&fs);
         FD_SET(STDIN_FILENO, &fs);
