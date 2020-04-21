@@ -74,14 +74,24 @@ bool CBbPeerNet::HandleEvent(CEventPeerGetBizForks& eventGetBizForks)
 {
     CBufStream ssPayload;
     ssPayload << eventGetBizForks;
-    return SendDataMessage(eventGetBizForks.nNonce, PROTO_CMD_GETBIZFORK, ssPayload);
+    CBbPeer* pBbPeer = static_cast<CBbPeer*>(GetPeer(eventGetBizForks.nNonce));
+    if (pBbPeer == nullptr)
+    {
+        return false;
+    }
+    return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_GETBIZFORK, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerBizForks& eventBizForks)
 {
     CBufStream ssPayload;
     ssPayload << eventBizForks;
-    return SendDataMessage(eventBizForks.nNonce, PROTO_CMD_BIZFORK, ssPayload);
+    CBbPeer* pBbPeer = static_cast<CBbPeer*>(GetPeer(eventBizForks.nNonce));
+    if (pBbPeer == nullptr)
+    {
+        return false;
+    }
+    return pBbPeer->SendMessage(PROTO_CHN_NETWORK, PROTO_CMD_BIZFORK, ssPayload);
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)

@@ -409,7 +409,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         }
 
         network::CEventPeerGetBizForks eventGetBiz(nNonce);
-        switch(nNodeCat)
+        switch (nNodeCat)
         {
         case NODE_CAT_FORKNODE:
         {
@@ -419,7 +419,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
                 StdError("NetChannel", "CEventPeerActive: GetForkNodeFork failed");
                 return false;
             }
-        }   // deliberately provide no break in order to fall down sharing operations
+        } // deliberately provide no break in order to fall down sharing operations
         case NODE_CAT_BBCNODE:
         {
             // forks configured by options
@@ -428,6 +428,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
                 for (auto const& sched : mapSched)
                 {
                     eventGetBiz.data.push_back(sched.first);
+                    StdLog("NetChannel", "CEventPeerActive: prepare to submit request for fork[%s]",
+                           sched.first.ToString().c_str());
                 }
             }
         }

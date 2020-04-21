@@ -2426,7 +2426,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     string dposid = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
     if (NODE_CAT_DPOSNODE == nNodeCat && dposid == id && 0 != ipNum)
     {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");  //todo
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");
     }
 
     std::vector<uint256> forks;
@@ -2452,7 +2452,7 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        if (dposid == id && forks.size() > 1)    //todo
+        if (dposid == id && forks.size() > 1)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Dpos node must have only main chain to enroll");
         }

@@ -275,8 +275,7 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
     CBufferPtr spRBC(new CBufStream);
     *spRBC.get() << rbc;
 
-    Log("CMQCluster::HandleEvent(): rollback-topic[%s]:"
-        "forkheight[%d] forkhash[%s] shortlen[%d]",
+    Log("CMQCluster::HandleEvent(): rollback-topic[%s]:forkheight[%d] forkhash[%s] shortlen[%d]",
         arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
 
     {
