@@ -83,7 +83,7 @@ public:
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                      crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
-    bool GetTxSender(const uint256& txid, CAddress& sender) override;
+    bool GetTxSender(const CTransaction& tx, CAddress& sender) override;
 
 protected:
     bool HandleInitialize() override;
@@ -92,7 +92,7 @@ protected:
     void HandleHalt() override;
 
 private:
-    CAddress GetBackSender(const uint256& txid);
+    CAddress GetBackSender(const CTransaction& tx);
 
 protected:
     ICoreProtocol* pCoreProtocol;
