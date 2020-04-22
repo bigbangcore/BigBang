@@ -975,7 +975,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
-    if (!objDelegateDB.CheckDelegate(hashBlock))
+    if (block.IsPrimary() && !objDelegateDB.CheckDelegate(hashBlock))
     {
         StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
         if (!fOnlyCheck)
