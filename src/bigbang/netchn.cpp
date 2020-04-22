@@ -427,6 +427,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
                 boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
                 for (auto const& sched : mapSched)
                 {
+                    if (sched.first == pCoreProtocol->GetGenesisBlockHash())
+                    {
+                        continue;
+                    }
                     eventGetBiz.data.push_back(sched.first);
                     StdLog("NetChannel", "CEventPeerActive: prepare to submit request for fork[%s]",
                            sched.first.ToString().c_str());
