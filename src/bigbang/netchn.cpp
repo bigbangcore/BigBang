@@ -438,8 +438,9 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
             }
             if (eventGetBiz.data.empty())
             {
-                eventGetBiz.data.emplace_back(uint256());
-                break;
+                StdLog("NetChannel", "CEventPeerActive: no biz fork needed to fetch, so bypass getbizforks");
+                NotifyPeerUpdate(nNonce, true, eventActive.data);
+                return true;
             }
             // remove duplicated items
             sort(eventGetBiz.data.begin(), eventGetBiz.data.end());
@@ -501,12 +502,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     vector<uint256>& bizForks = eventGetBizForks.data;
     for (auto const& f : bizForks)
     {
-        if (uint64(0) == f)
-        {
-            StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking no fork",
-                GetPeerAddressInfo(nNonce).c_str());
-            return true;
-        }
         StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for fork[%s]",
                GetPeerAddressInfo(nNonce).c_str(), f.ToString().c_str());
     }
@@ -552,7 +547,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     }
 
     if (bizForks.empty())
-    { //get all to peer
+    { //fetch all to acquiring peer of dpos node
         map<uint256, vector<uint32>> mapForkIps;
         const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
         for (auto const& it : idxForkID)
@@ -574,6 +569,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
             }
         }
 
+        if (mapForkIps.empty())
+        {
+            StdLog("NetChannel", "CEventPeerGetBizForks: there is no matched biz fork to feedback, "
+                                 "so bypass bizforks to peer of dpos node");
+            return true;
+        }
+
         network::CEventPeerBizForks eventFork(nNonce);
         eventFork.data = mapForkIps;
         pPeerNet->DispatchEvent(&eventFork);
@@ -582,7 +584,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     }
 
     for (auto const& fork : bizForks)
-    {
+    { //fetch matched biz fork(s) to acquiring peer of fork node or bbc node
         map<uint256, vector<uint32>> mapForkIps;
         const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
         auto itBegin = idxForkID.equal_range(fork).first;
@@ -605,6 +607,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
             {
                 StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
             }
+        }
+
+        if (mapForkIps.empty())
+        {
+            StdLog("NetChannel", "CEventPeerGetBizForks: there is no matched biz fork to feedback, "
+                                 "so bypass bizforks to peer of bbc or fork node");
+            return true;
         }
 
         network::CEventPeerBizForks eventFork(nNonce);
