@@ -176,7 +176,7 @@ private:
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     bool ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
-    bool PostAddBizForkNode();
+    bool PoolAddBizForkNode();
 
     bool fAbort;
     std::string addrBroker;

@@ -220,7 +220,7 @@ bool CMQCluster::HandleInvoke()
 
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        PostAddBizForkNode();
+        PoolAddBizForkNode();
     }
 
     if (!ThreadStart(thrMqttClient))
@@ -383,6 +383,14 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
         auto& node = mapOuterNode[i.nodeIP];
         node.ipAddr = i.nodeIP;
         node.vecOwnedForks.push_back(i.forkID);
+        Log("CMQCluster::HandleEvent(): add IP[%s] biz fork[%s] to mem structure",
+            storage::CSuperNode::Int2Ip(i.nodeIP).c_str(), i.forkID.ToString().c_str());
+    }
+
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        PoolAddBizForkNode();
+        Log("CMQCluster::HandleEvent(): PostAddBizForkNode()");
     }
 
     if (NODE_CATEGORY::DPOSNODE == catNode)
@@ -407,6 +415,8 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
             {
                 string topic = prefixTopic + cli.second.superNodeID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
                 PostBizForkAssign(topic, biz);
+                Log("CMQCluster::HandleEvent(): PostBizForkAssign to fork node[%s]",
+                    cli.second.superNodeID.c_str());
             }
         }
     }
@@ -818,7 +828,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //launch connecting those outer nodes if main chain has been best block
             if (std::atomic_load(&isMainChainBlockBest))
             {
-                PostAddBizForkNode();
+                PoolAddBizForkNode();
             }
 
             return;
@@ -1220,7 +1230,7 @@ void CMQCluster::MqttThreadFunc()
     Log("exiting thread function of MQTT");
 }
 
-bool CMQCluster::PostAddBizForkNode()
+bool CMQCluster::PoolAddBizForkNode()
 {
     vector<uint32> ips;
     for (auto const& node : mapOuterNode)
