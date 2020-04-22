@@ -2316,6 +2316,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
             }
         }
 
+        sort(addresses.begin(), addresses.end());
         auto last = unique(addresses.begin(), addresses.end());
         addresses.erase(last, addresses.end());
 

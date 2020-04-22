@@ -297,34 +297,39 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
+        if (storage::CLIENT_ID_OUT_OF_MQ_CLUSTER != id)
         {
-            boost::unique_lock<boost::mutex> lock(mtxStatus);
-            clientID = id;
-            ipAddr = eventMqUpdateEnroll.data.ipAddr;
-            for (auto const& fork : forks)
             {
-                setBizFork.emplace(fork);
+                boost::unique_lock<boost::mutex> lock(mtxStatus);
+                clientID = id;
+                ipAddr = eventMqUpdateEnroll.data.ipAddr;
+                for (auto const& fork : forks)
+                {
+                    setBizFork.emplace(fork);
+                }
+                arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+                arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
+                arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
+                arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
             }
-            arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-            arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
-            arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
-            arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
-        }
-        condStatus.notify_all();
+            condStatus.notify_all();
 
-        Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:\n[%s]\n[%s]",
-            clientID.c_str(), eventMqUpdateEnroll.data.ipAddr,
-            arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
-        for (const auto& fork : forks)
-        {
-            Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced by this node [%s]:",
-                fork.ToString().c_str(), clientID.c_str());
-        }
+            Log("CMQCluster::HandleEvent(): fork node clientid [%s] ip [%d] with topics:\n[%s]\n[%s]",
+                clientID.c_str(), eventMqUpdateEnroll.data.ipAddr,
+                arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str());
+            for (const auto& fork : forks)
+            {
+                Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced by this node [%s]:",
+                    fork.ToString().c_str(), clientID.c_str());
+            }
 
-        if (!PostBlockRequest(-1))
-        {
-            Error("CMQCluster::HandleEvent(): failed to post requesting block");
-            return false;
+            if (!PostBlockRequest(-1))
+            {
+                Error("CMQCluster::HandleEvent(): failed to post requesting block");
+                return false;
+            }
+
+            return true;
         }
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
@@ -357,13 +362,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 
             return true;
         }
-
-        //biz fork nodes by p2p
-        mapOuterNode.insert(make_pair(eventMqUpdateEnroll.data.ipAddr,
-                                      storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks)));
-        Log("CMQCluster::HandleEvent(): dpos node register biz fork nodes by p2p [%s - %s]",
-            clientID.c_str(), storage::CSuperNode::Int2Ip(eventMqUpdateEnroll.data.ipAddr).c_str());
     }
+
+    //simulating outer biz fork node used by p2p - todo: for test only
+    mapOuterNode.insert(make_pair(eventMqUpdateEnroll.data.ipAddr,
+                                  storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks)));
+    Log("CMQCluster::HandleEvent(): super node registered simulating outer biz fork node used by p2p [%s - %s]",
+        id.c_str(), storage::CSuperNode::Int2Ip(eventMqUpdateEnroll.data.ipAddr).c_str());
 
     return true;
 }
@@ -810,8 +815,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 mapOuterNode[it.first].nodeCat = 0;
                 mapOuterNode[it.first].vecOwnedForks = it.second;
                 Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker "
-                    "by dpos node succeeded [%s]",
-                    mapOuterNode[it.first].ToString().c_str());
+                    "by dpos node succeeded [%s]", mapOuterNode[it.first].ToString().c_str());
             }
 
             //save to db storage
