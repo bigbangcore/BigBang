@@ -421,7 +421,7 @@ bool CMQCluster::LogEvent(const string& info)
     return true;
 }
 
-bool CMQCluster::GetForkNodeFork(std::vector<uint256> forks)
+bool CMQCluster::GetForkNodeFork(std::vector<uint256>& forks)
 {
     forks.clear();
     vector<storage::CSuperNode> nodes;
@@ -807,7 +807,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //save to db storage
             for (auto const& it : mapOuterNode)
             {
-                if (!pBlockChain->AddNewSuperNode(it.second))
+                if (OK != pBlockChain->AddNewSuperNode(it.second))
                 {
                     Error("CMQCluster::OnReceiveMessage(): failed to add new outer nodes from mq broker by dpos node");
                     return;
@@ -1183,7 +1183,7 @@ void CMQCluster::MqttThreadFunc()
 {
     Log("entering thread function of MQTT");
 
-    //wait for supernode itself status available
+    //wait for super node itself status available
     if (!fAbort)
     {
         boost::unique_lock<boost::mutex> lock(mtxStatus);

@@ -436,6 +436,15 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
                            sched.first.ToString().c_str());
                 }
             }
+            if (eventGetBiz.data.empty())
+            {
+                eventGetBiz.data.emplace_back(uint256());
+                break;
+            }
+            // remove duplicated items
+            sort(eventGetBiz.data.begin(), eventGetBiz.data.end());
+            auto it = unique(eventGetBiz.data.begin(), eventGetBiz.data.end());
+            eventGetBiz.data.erase(it, eventGetBiz.data.end());
         }
         break;
         case NODE_CAT_DPOSNODE:
@@ -490,13 +499,19 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
 {
     uint64 nNonce = eventGetBizForks.nNonce;
     vector<uint256>& bizForks = eventGetBizForks.data;
-    StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for total [%d] biz fork(s)",
-           GetPeerAddressInfo(nNonce).c_str(), bizForks.size());
     for (auto const& f : bizForks)
     {
+        if (uint64(0) == f)
+        {
+            StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking no fork",
+                GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
         StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for fork[%s]",
                GetPeerAddressInfo(nNonce).c_str(), f.ToString().c_str());
     }
+    StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for total [%d] biz fork(s)",
+           GetPeerAddressInfo(nNonce).c_str(), bizForks.size());
 
     vector<storage::CSuperNode> nodes;
     if (!pBlockChain->ListSuperNode(nodes))
@@ -545,6 +560,19 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
             mapForkIps[it.forkID].emplace_back(it.nodeIP);
         }
         StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for all [%d] biz fork(s)", mapForkIps.size());
+        for (auto& it : mapForkIps)
+        {
+            auto& ips = it.second;
+            sort(ips.begin(), ips.end());
+            auto last = unique(ips.begin(), ips.end());
+            ips.erase(last, ips.end());
+            StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for biz fork[%s] with [%d] IP(s)",
+                   it.first.ToString().c_str(), ips.size());
+            for (auto const& i : ips)
+            {
+                StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
+            }
+        }
 
         network::CEventPeerBizForks eventFork(nNonce);
         eventFork.data = mapForkIps;
@@ -565,6 +593,19 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
             ++itBegin;
         }
         StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for [%d] biz fork(s) partly", mapForkIps.size());
+        for (auto& it : mapForkIps)
+        {
+            auto& ips = it.second;
+            sort(ips.begin(), ips.end());
+            auto last = unique(ips.begin(), ips.end());
+            ips.erase(last, ips.end());
+            StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for biz fork[%s] with [%d] IP(s)",
+                   it.first.ToString().c_str(), ips.size());
+            for (auto const& i : ips)
+            {
+                StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
+            }
+        }
 
         network::CEventPeerBizForks eventFork(nNonce);
         eventFork.data = mapForkIps;
@@ -592,11 +633,12 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
     for (auto const& fork : mapForkIps)
     {
         StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding total [%d] IPs for fork[%s]",
-               fork.second.size(), GetPeerAddressInfo(nNonce).c_str());
+               GetPeerAddressInfo(nNonce).c_str(), fork.second.size(), fork.first.ToString().c_str());
         for (auto const ip : fork.second)
         {
             StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding IP[%s] for fork[%s]",
-                   storage::CSuperNode::Int2Ip(ip).c_str(), GetPeerAddressInfo(nNonce).c_str());
+                   GetPeerAddressInfo(nNonce).c_str(), storage::CSuperNode::Int2Ip(ip).c_str(),
+                   fork.first.ToString().c_str());
             setForkIp.emplace(storage::CForkKnownIP(fork.first, ip));
         }
     }
@@ -616,9 +658,9 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
 
     for (auto const& node : nodes)
     {
-        if (!pBlockChain->AddNewSuperNode(node))
+        if (OK != pBlockChain->AddNewSuperNode(node))
         {
-            StdError("NetChannel", "CEventPeerBizForks: AddNewSuperNode failed");
+            StdError("NetChannel", "CEventPeerBizForks: AddNewSuperNode failed [%s]", node.ToString().c_str());
             return false;
         }
         StdLog("NetChannel", "CEventPeerBizForks: AddNewSuperNode succeeded [%s]", node.ToString().c_str());

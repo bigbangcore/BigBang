@@ -108,7 +108,7 @@ class IMQCluster : public xengine::IIOModule, virtual public CMQEventListener
 public:
     IMQCluster()
       : IIOModule("mqcluster") {}
-    virtual bool GetForkNodeFork(std::vector<uint256> forks) = 0;
+    virtual bool GetForkNodeFork(std::vector<uint256>& forks) = 0;
 };
 
 class CMQCluster : public IMQCluster
@@ -142,7 +142,7 @@ public:
     ~CMQCluster() = default;
 
     bool LogEvent(const std::string& info);
-    bool GetForkNodeFork(std::vector<uint256> forks) override;
+    bool GetForkNodeFork(std::vector<uint256>& forks) override;
 
 protected:
     bool HandleInitialize() override;
