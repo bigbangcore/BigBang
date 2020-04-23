@@ -928,8 +928,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
         else if (req.lastHeight == best)
         {
-            Log("CMQCluster::OnReceiveMessage(): block height owned by fork node "
-                "has reached the best one on dpos node, please wait...");
+            Log("CMQCluster::OnReceiveMessage(): block height owned by fork node[%s] "
+                "has reached the best one on dpos node, please wait...", req.forkNodeId.c_str());
             resp.height = -1;
             resp.hash = uint256();
             resp.isBest = 1;
