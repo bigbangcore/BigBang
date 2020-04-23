@@ -38,7 +38,7 @@ public:
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight) override;
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
-    virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual uint32 GetNextBlockTimeStamp(uint32 nPrevTimeStamp, uint16 nTargetMintType) override;
 
 protected:
     bool HandleInitialize() override;
@@ -54,6 +54,8 @@ protected:
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
+    int64 nProofOfWorkUpperTargetOfDpos;
+    int64 nProofOfWorkLowerTargetOfDpos;
     IBlockChain* pBlockChain;
 };
 
@@ -75,11 +77,17 @@ public:
     int nProofOfWorkInit;
     int64 nProofOfWorkUpperTarget;
     int64 nProofOfWorkLowerTarget;
+    int64 nProofOfWorkUpperTargetOfDpos;
+    int64 nProofOfWorkLowerTargetOfDpos;
     int nProofOfWorkAdjustCount;
     int64 nDelegateProofOfStakeEnrollMinimumAmount;
     int64 nDelegateProofOfStakeEnrollMaximumAmount;
-    uint32 nDelegateProofOfStakeNewTrustHeight;
-    uint32 nDelegateProofOfStakeEnrollTrustHeight;
+    uint32 nDelegateProofOfStakeHeight;
+    //uint32 nDelegateProofOfStakeNewTrustHeight;
+    //uint32 nDelegateProofOfStakeEnrollTrustHeight;
+
+public:
+    bool IsDposHeight(int height);
 };
 
 } // namespace bigbang
