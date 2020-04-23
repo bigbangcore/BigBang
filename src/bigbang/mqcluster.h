@@ -200,8 +200,6 @@ private:
     NODE_CATEGORY catNode;
 
     std::array<std::string, TOPIC_SUFFIX_MAX> arrTopic;  //shared by both dpos and fork node
-    std::map<std::string, std::string> mapBizForkTopic;  //only for dpos node
-
 
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;
@@ -210,9 +208,11 @@ private:
     std::set<uint256> setBizFork;
     std::atomic_bool isMainChainBlockBest;
 
+    boost::mutex mtxCluster;
     std::map<string, storage::CSuperNode> mapActiveMQForkNode; //only for dpos node
+    boost::mutex mtxOuter;
     std::map<uint32, storage::CSuperNode> mapOuterNode;        //for dpos/fork node
-    std::map<std::string, std::string> mapBizForkUpdateTopic;
+    std::map<std::string, std::string> mapBizForkUpdateTopic;  //only for dpos node
 
     boost::mutex mtxSend;
     boost::condition_variable condSend;
