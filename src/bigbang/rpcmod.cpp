@@ -269,6 +269,8 @@ CRPCMod::CRPCMod()
         ("listunspent", &CRPCMod::RPCListUnspent)
         //
         ("enrollsupernode", &CRPCMod::RPCEnrollSuperNode)
+        //
+        ("listenrollment", &CRPCMod::RPCListEnrollment)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -2483,6 +2485,35 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR, "Enroll super node failed");
     }
 
+    vector<storage::CSuperNode> nodes;
+    if (!pService->ListSuperNode(nodes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "List super nodes failed");
+    }
+
+    auto spResult = MakeCEnrollSuperNodeResultPtr();
+    for (const auto& it : nodes)
+    {
+        CEnrollSuperNodeResult::CNode node;
+        node.strClientid = it.superNodeID;
+        string strAddr;
+        if (!storage::CSuperNode::Int2Ip(it.ipAddr, strAddr))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR, "Failed to convert ip address");
+        }
+        node.strClientip = strAddr;
+        for (const auto& fork : it.vecOwnedForks)
+        {
+            node.vecForks.push_back(fork.ToString());
+        }
+        spResult->vecNode.push_back(node);
+    }
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCListEnrollment(rpc::CRPCParamPtr param)
+{
     vector<storage::CSuperNode> nodes;
     if (!pService->ListSuperNode(nodes))
     {
