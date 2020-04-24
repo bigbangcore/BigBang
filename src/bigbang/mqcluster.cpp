@@ -269,12 +269,12 @@ bool CMQCluster::HandleEvent(CEventMQSyncBlock& eventMqSyncBlock)
 
 bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 {
-    Log("CMQCluster::HandleEvent(): entering forking event handler");
+    Log("CMQCluster::HandleEvent(CEventMQChainUpdate): entering forking event handler");
     CMqRollbackUpdate& update = eventMqUpdateChain.data;
 
     if (catNode != NODE_CATEGORY::DPOSNODE)
     {
-        Error("CMQCluster::HandleEvent(): only dpos node should receive this kind of event");
+        Error("CMQCluster::HandleEvent(CEventMQChainUpdate): only dpos node should receive this kind of event");
         return false;
     }
 
@@ -287,7 +287,7 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
     CBufferPtr spRBC(new CBufStream);
     *spRBC.get() << rbc;
 
-    Log("CMQCluster::HandleEvent(): rollback-topic[%s]:forkheight[%d] forkhash[%s] shortlen[%d]",
+    Log("CMQCluster::HandleEvent(CEventMQChainUpdate): rollback-topic[%s]:forkheight[%d] forkhash[%s] shortlen[%d]",
         arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
 
     {
@@ -296,13 +296,13 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
     }
     condSend.notify_all();
 
-    Log("CMQCluster::HandleEvent(): exiting forking event handler");
+    Log("CMQCluster::HandleEvent(CEventMQChainUpdate): exiting forking event handler");
     return true;
 }
 
 bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
 {
-    Log("CMQCluster::HandleEvent(): starting process of CEventMQEnrollUpdate");
+    Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): starting process of CEventMQEnrollUpdate");
     string id = eventMqUpdateEnroll.data.superNodeClientID;
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
 
@@ -326,20 +326,20 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             }
             condStatus.notify_all();
 
-            Log("CMQCluster::HandleEvent(): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\n"
+            Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\n"
                 "pub topic:\n\t[%s]",
                 clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(),
                 arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
             for (const auto& fork : forks)
             {
-                Log("CMQCluster::HandleEvent(): fork [%s] intended to be produced by this node [%s]:",
+                Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork [%s] intended to be produced by this node [%s]:",
                     fork.ToString().c_str(), clientID.c_str());
             }
 
             if (!PostBlockRequest(-1))
             {
-                Error("CMQCluster::HandleEvent(): failed to post requesting block");
+                Error("CMQCluster::HandleEvent(CEventMQEnrollUpdate): failed to post requesting block");
                 return false;
             }
 
@@ -363,7 +363,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             }
             condStatus.notify_all();
 
-            Log("CMQCluster::HandleEvent(): dpos node clientid [%s] with sub topic [%s], pub topics[%s]"
+            Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): dpos node clientid [%s] with sub topic [%s], pub topics[%s]"
                 "[%s][%s]", clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str());
@@ -377,7 +377,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 boost::unique_lock<boost::mutex> lock(mtxCluster);
                 mapActiveMQForkNode[id] = storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks);
             }
-            Log("CMQCluster::HandleEvent(): dpos node register clientid [%s]",
+            Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): dpos node register clientid [%s]",
                 eventMqUpdateEnroll.data.superNodeClientID.c_str());
 
             return true;
@@ -390,7 +390,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
         mapOuterNode.insert(make_pair(eventMqUpdateEnroll.data.ipAddr,
                                       storage::CSuperNode(id, eventMqUpdateEnroll.data.ipAddr, forks)));
     }
-    Log("CMQCluster::HandleEvent(): super node registered simulating outer biz fork node used by p2p [%s - %s]",
+    Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): super node registered simulating outer biz fork node used by p2p [%s - %s]",
         id.c_str(), storage::CSuperNode::Int2Ip(eventMqUpdateEnroll.data.ipAddr).c_str());
 
     return true;
@@ -403,7 +403,7 @@ bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
 
 bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
 {
-    Log("CMQCluster::HandleEvent(): biz forks payload is coming");
+    Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): biz forks payload is coming");
 
     const storage::CForkKnownIpSetByIp& idxIP = eventMqBizFork.data.get<1>();
     {
@@ -413,7 +413,7 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
             auto& node = mapOuterNode[i.nodeIP];
             node.ipAddr = i.nodeIP;
             node.vecOwnedForks.push_back(i.forkID);
-            Log("CMQCluster::HandleEvent(): add IP[%s] biz fork[%s] to mem structure",
+            Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): add IP[%s] biz fork[%s] to mem structure",
                 storage::CSuperNode::Int2Ip(i.nodeIP).c_str(), i.forkID.ToString().c_str());
         }
     }
@@ -421,7 +421,7 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         PoolAddBizForkNode();
-        Log("CMQCluster::HandleEvent(): PostAddBizForkNode()");
+        Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): PostAddBizForkNode() done");
     }
 
     if (NODE_CATEGORY::DPOSNODE == catNode)
@@ -449,7 +449,7 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
                     string topic = prefixTopic + cli.second.superNodeID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
                     PostBizForkAssign(topic, biz);
                     mapBizForkUpdateTopic[cli.first] = topic;
-                    Log("CMQCluster::HandleEvent(): PostBizForkAssign to fork node[%s]",
+                    Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): PostBizForkAssign to fork node[%s]",
                         cli.second.superNodeID.c_str());
                 }
             }
