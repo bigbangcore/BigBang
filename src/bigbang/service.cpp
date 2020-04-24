@@ -814,7 +814,7 @@ CAddress CService::GetBackSender(const CTransaction& tx)
     int height;
     CTransaction tempTx(tx);
 
-    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE)
+    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE && tempTx.nType != CTransaction::TX_GENESIS)
            && (tempTx.vInput.size() > 0 ? 0 != tempTx.vInput[0].prevout.n : false))
     {
         uint256 txHash = tempTx.vInput[0].prevout.hash;
