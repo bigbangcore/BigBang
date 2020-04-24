@@ -48,6 +48,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 194564;
 static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204150;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 213918;
 // Difficulty adjustment
 //static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
 
@@ -1030,10 +1031,22 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
         }
         return nPrevTimeStamp + BLOCK_TARGET_SPACING;
     }
-    else
+    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT)
     {
         if (nTargetMintType == CTransaction::TX_WORK)
         {
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
+    else
+    {
+        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+        {
+            if (nTargetMintType == CTransaction::TX_STAKE)
+            {
+                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+            }
             return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
         }
         return nPrevTimeStamp + BLOCK_TARGET_SPACING;
