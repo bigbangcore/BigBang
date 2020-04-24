@@ -110,10 +110,12 @@ bool CMQCluster::HandleInvoke()
     uint8 mask = 0;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
+        lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
         mask = 2;
     }
     if (NODE_CATEGORY::DPOSNODE == catNode)
     {
+        lastHeightResp = -1;
         mask = 4;
     }
     std::vector<storage::CSuperNode> nodes;
@@ -153,7 +155,6 @@ bool CMQCluster::HandleInvoke()
     arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        lastHeightResp = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
         pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
         arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
@@ -182,7 +183,6 @@ bool CMQCluster::HandleInvoke()
                 return false;
             }
         }
-        lastHeightResp = -1;
         arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
         arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]; //only placeholder
         arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
