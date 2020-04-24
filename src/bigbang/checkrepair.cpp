@@ -1151,23 +1151,6 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
                     return false;
                 }
                 nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-                /*if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeEnrollTrustHeight)
-                {
-                    if (nEnrollTrust <= 0)
-                    {
-                        StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-                        return false;
-                    }
-                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-                }
-                else if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeNewTrustHeight)
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
-                }
-                else
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
-                }*/
             }
             else
             {
