@@ -824,7 +824,7 @@ CAddress CService::GetBackSender(const CTransaction& tx)
         }
     }
 
-    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE)
+    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE || tempTx.nType == CTransaction::TX_GENESIS)
     {
         return CAddress(CDestination());
     }
