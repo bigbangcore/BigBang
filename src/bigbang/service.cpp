@@ -801,7 +801,7 @@ bool CService::GetTxSender(const CTransaction& tx, CAddress& sender)
     }
     catch (exception& e)
     {
-        StdError("CService::GetTxSender", "get tx sender failed.");
+        StdError("CService::GetTxSender", (std::string("get tx sender failed: ") + std::string(e.what())).c_str());
         return false;
     }
 
