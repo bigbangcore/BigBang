@@ -47,6 +47,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -1018,10 +1019,22 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
         }
         return nPrevTimeStamp + BLOCK_TARGET_SPACING;
     }
-    else
+    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT)
     {
         if (nTargetMintType == CTransaction::TX_WORK)
         {
+            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+        }
+        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+    }
+    else
+    {
+        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+        {
+            if (nTargetMintType == CTransaction::TX_STAKE)
+            {
+                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+            }
             return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
         }
         return nPrevTimeStamp + BLOCK_TARGET_SPACING;
