@@ -209,36 +209,37 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     for (std::size_t i = 0; i < vOutPoint.size(); i++)
     {
         uint256 txidNextTx;
-        if (GetSpent(vOutPoint[i], txidNextTx))
+        CPooledTx* pNextTx = nullptr;
+        if (GetSpent(vOutPoint[i], txidNextTx) && ((pNextTx = Get(txidNextTx)) != nullptr))
         {
-            CPooledTx* pNextTx = nullptr;
-            if ((pNextTx = Get(txidNextTx)) != nullptr)
+            for (const CTxIn& txin : pNextTx->vInput)
             {
-                for (const CTxIn& txin : pNextTx->vInput)
-                {
-                    SetUnspent(txin.prevout);
-                }
-                CTxOutPoint out0(txidNextTx, 0);
-                if (IsSpent(out0))
-                {
-                    vOutPoint.push_back(out0);
-                }
-                else
-                {
-                    mapSpent.erase(out0);
-                }
-                CTxOutPoint out1(txidNextTx, 1);
-                if (IsSpent(out1))
-                {
-                    vOutPoint.push_back(out1);
-                }
-                else
-                {
-                    mapSpent.erase(out1);
-                }
-                viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
-                setTxLinkIndex.erase(txidNextTx);
+                SetUnspent(txin.prevout);
             }
+            CTxOutPoint out0(txidNextTx, 0);
+            if (IsSpent(out0))
+            {
+                vOutPoint.push_back(out0);
+            }
+            else
+            {
+                mapSpent.erase(out0);
+            }
+            CTxOutPoint out1(txidNextTx, 1);
+            if (IsSpent(out1))
+            {
+                vOutPoint.push_back(out1);
+            }
+            else
+            {
+                mapSpent.erase(out1);
+            }
+            viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
+            setTxLinkIndex.erase(txidNextTx);
+        }
+        else
+        {
+            mapSpent.erase(vOutPoint[i]);
         }
     }
 }
