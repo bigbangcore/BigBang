@@ -665,15 +665,12 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
         nodes.emplace_back(storage::CSuperNode(storage::CLIENT_ID_OUT_OF_MQ_CLUSTER, it.first, it.second, 0));
     }
 
-    for (auto const& node : nodes)
+    if (!pBlockChain->AddOuterNodes(nodes, NODE_CAT_BBCNODE != nNodeCat))
     {
-        if (OK != pBlockChain->AddNewSuperNode(node))
-        {
-            StdError("NetChannel", "CEventPeerBizForks: AddNewSuperNode failed [%s]", node.ToString().c_str());
-            return false;
-        }
-        StdLog("NetChannel", "CEventPeerBizForks: AddNewSuperNode succeeded [%s]", node.ToString().c_str());
+        StdError("NetChannel", "CEventPeerBizForks: AddOuterNodes failed with sum of [%d]", nodes.size());
+        return false;
     }
+    StdLog("NetChannel", "CEventPeerBizForks: AddOuterNodes succeeded with sum of [%d]", nodes.size());
 
     //if dpos node self, dispatch them to fork nodes by MQ later; if this is a fork node, just notify it.
     if (NODE_CAT_DPOSNODE == nNodeCat || NODE_CAT_FORKNODE == nNodeCat)

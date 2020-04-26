@@ -154,6 +154,43 @@ bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& ma
     return true;
 }
 
+bool CSuperNodeDB::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper)
+{
+    if (!fSuper)
+    {
+        for (auto const& n : outers)
+        {
+            if (!Write(make_pair(CLIENT_ID_OUT_OF_MQ_CLUSTER, n.ipAddr), n.vecOwnedForks, true))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    vector<CSuperNode> forknodes;
+    if (!FetchSuperNode(forknodes, 1 << 1))
+    {
+        return false;
+    }
+    vector<uint32> forknodeips;
+    for (auto& fn : forknodes)
+    {
+        forknodeips.emplace_back(fn.ipAddr);
+    }
+    for (auto const& n : outers)
+    {
+        if (forknodeips.end() == find(forknodeips.begin(), forknodeips.end(), n.ipAddr))
+        {
+            if (!Write(make_pair(CLIENT_ID_OUT_OF_MQ_CLUSTER, n.ipAddr), n.vecOwnedForks, true))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool CSuperNodeDB::ClearSuperNode(const CSuperNode& cli)
 {
     vector<CSuperNode> vSuperNode;

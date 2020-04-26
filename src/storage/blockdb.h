@@ -51,6 +51,7 @@ public:
     bool AddNewSuperNode(const CSuperNode& superNode);
     bool ListSuperNode(std::vector<CSuperNode>& nodes);
     bool FetchSuperNode(std::vector<CSuperNode>& nodes, const uint8 mask);
+    bool AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper);
 
 protected:
     bool LoadFork();

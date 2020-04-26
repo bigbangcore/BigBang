@@ -121,6 +121,7 @@ public:
     void Clear();
     bool ClearSuperNode(const CSuperNode& cli);
     bool FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& mask); //only return super nodes on request
+    bool AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper);  //outer nodes come from peers
 
 protected:
     bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,

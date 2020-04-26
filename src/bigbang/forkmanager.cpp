@@ -278,7 +278,6 @@ bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::v
 
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-
         if (!fAllowAnyFork)
         {
             for (auto const& fork : vFork)

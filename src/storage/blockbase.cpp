@@ -547,6 +547,22 @@ bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes, const uint8 
     return true;
 }
 
+bool CBlockBase::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper)
+{
+    if (!dbBlock.AddOuterNodes(outers, fSuper))
+    {
+        Error("CBlockBase::AddOuterNodes", "Failed to add [%d] outer nodes", outers.size());
+        return false;
+    }
+
+    Log("CBlockBase::AddOuterNodes", "Adding [%d] outer nodes successfully", outers.size());
+    for (auto const& o : outers)
+    {
+        Log("CBlockBase::AddOuterNodes", "Succeeded in adding outer node :[%s]", o.ToString().c_str());
+    }
+    return true;
+}
+
 bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
 {
     block.SetNull();

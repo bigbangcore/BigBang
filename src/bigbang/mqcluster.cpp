@@ -230,11 +230,6 @@ bool CMQCluster::HandleInvoke()
         }
     }
 
-    if (NODE_CATEGORY::FORKNODE == catNode)
-    {
-        PoolAddBizForkNode();
-    }
-
     if (!ThreadStart(thrMqttClient))
     {
         return false;
@@ -1245,6 +1240,11 @@ void CMQCluster::MqttThreadFunc()
         }
     }
 
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        PoolAddBizForkNode();
+    }
+
     //establish connection
     ClientAgent(MQ_CLI_ACTION::CONN);
 
@@ -1285,11 +1285,13 @@ bool CMQCluster::PoolAddBizForkNode()
     {
         if (!pService->AddBizForkNodes(ips))
         {
-            Error("CMQCluster::PostAddBizForkNode(): failed to post add new node msg");
+            Error("CMQCluster::PoolAddBizForkNode(): failed to post add new node msg");
             return false;
         }
-        Log("CMQCluster::PostAddBizForkNode(): posting add new node msg succeeded");
+        Log("CMQCluster::PoolAddBizForkNode(): posting add new node msg succeeded");
+        return true;
     }
+    Log("CMQCluster::PoolAddBizForkNode(): there is no outer node for pooling");
 
     return true;
 }

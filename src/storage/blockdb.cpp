@@ -266,5 +266,11 @@ bool CBlockDB::FetchSuperNode(std::vector<CSuperNode>& nodes, const uint8 mask)
     return dbSuperNode.FetchSuperNode(nodes, mask);
 }
 
+bool CBlockDB::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper)
+{
+    return dbSuperNode.AddOuterNodes(outers, fSuper);
+}
+
+
 } // namespace storage
 } // namespace bigbang

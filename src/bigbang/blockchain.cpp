@@ -670,6 +670,16 @@ bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const 
     return true;
 }
 
+bool CBlockChain::AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper)
+{
+    if (!cntrBlock.AddOuterNodes(outers, fSuper))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 // uint320 GetBlockTrust() const
 // {
 //     if (IsVacant() && vchProof.empty())

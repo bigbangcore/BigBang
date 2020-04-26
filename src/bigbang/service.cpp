@@ -706,17 +706,19 @@ bool CService::AddSuperNode(const storage::CSuperNode& node)
 {
     if (OK != pBlockChain->AddNewSuperNode(node))
     {
-        StdError("CService::AddSuperNode", "Add new super node failed.");
+        StdError("CService::AddSuperNode", "Adding new super node failed.");
         return false;
     }
+    StdLog("CService::AddSuperNode", "Adding new super node succeeded.");
 
-    CEventMQEnrollUpdate *pEvent = new CEventMQEnrollUpdate(0);
+    CEventMQEnrollUpdate* pEvent = new CEventMQEnrollUpdate(0);
     if (nullptr != pEvent)
     {
         pEvent->data.superNodeClientID = node.superNodeID;
         pEvent->data.ipAddr = node.ipAddr;
         pEvent->data.vecForksOwned = node.vecOwnedForks;
         pMQCluster->PostEvent(pEvent);
+        StdLog("CService::AddSuperNode", "Posting CEventMQEnrollUpdate succeeded.");
     }
 
     pForkManager->SetForkFilter(node.vecOwnedForks);
