@@ -801,7 +801,7 @@ bool CService::GetTxSender(const CTransaction& tx, CAddress& sender)
     }
     catch (exception& e)
     {
-        StdError("CService::GetTxSender", "get tx sender failed.");
+        StdError("CService::GetTxSender", (std::string("get tx sender failed: ") + std::string(e.what())).c_str());
         return false;
     }
 
@@ -814,7 +814,7 @@ CAddress CService::GetBackSender(const CTransaction& tx)
     int height;
     CTransaction tempTx(tx);
 
-    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE)
+    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE && tempTx.nType != CTransaction::TX_GENESIS)
            && (tempTx.vInput.size() > 0 ? 0 != tempTx.vInput[0].prevout.n : false))
     {
         uint256 txHash = tempTx.vInput[0].prevout.hash;
@@ -824,7 +824,7 @@ CAddress CService::GetBackSender(const CTransaction& tx)
         }
     }
 
-    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE)
+    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE || tempTx.nType == CTransaction::TX_GENESIS)
     {
         return CAddress(CDestination());
     }
