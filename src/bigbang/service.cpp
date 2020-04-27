@@ -807,54 +807,50 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     return OK;
 }
 
-bool CService::GetTxSender(const uint256& txid, CAddress& sender)
+bool CService::GetTxSender(const CTransaction& tx, CAddress& sender)
 {
     try
     {
-        sender = GetBackSender(txid);
+        sender = GetBackSender(tx);
     }
     catch (exception& e)
     {
-        StdError("CService::GetTxSender", "get tx sender failed.");
+        StdError("CService::GetTxSender", (std::string("get tx sender failed: ") + std::string(e.what())).c_str());
         return false;
     }
 
     return true;
 }
 
-CAddress CService::GetBackSender(const uint256& txid)
+CAddress CService::GetBackSender(const CTransaction& tx)
 {
-    CTransaction tx;
     static uint256 fork;
     int height;
-    if (!GetTransaction(txid, tx, fork, height))
-    {
-        throw std::runtime_error("get tx failed.");
-    }
+    CTransaction tempTx(tx);
 
-    while ((tx.nType != CTransaction::TX_WORK && tx.nType != CTransaction::TX_STAKE)
-           && (tx.vInput.size() > 0 ? 0 != tx.vInput[0].prevout.n : false))
+    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE && tempTx.nType != CTransaction::TX_GENESIS)
+           && (tempTx.vInput.size() > 0 ? 0 != tempTx.vInput[0].prevout.n : false))
     {
-        uint256 txHash = tx.vInput[0].prevout.hash;
-        if (!GetTransaction(txHash, tx, fork, height))
+        uint256 txHash = tempTx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tempTx, fork, height))
         {
             throw std::runtime_error("get prev tx failed.");
         }
     }
 
-    if (tx.nType == CTransaction::TX_WORK || tx.nType == CTransaction::TX_STAKE)
+    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE || tempTx.nType == CTransaction::TX_GENESIS)
     {
         return CAddress(CDestination());
     }
 
-    if (tx.vInput.size() > 0 && 0 == tx.vInput[0].prevout.n)
+    if (tempTx.vInput.size() > 0 && 0 == tempTx.vInput[0].prevout.n)
     {
-        uint256 txHash = tx.vInput[0].prevout.hash;
-        if (!GetTransaction(txHash, tx, fork, height))
+        uint256 txHash = tempTx.vInput[0].prevout.hash;
+        if (!GetTransaction(txHash, tempTx, fork, height))
         {
             throw std::runtime_error("get prev tx failed.");
         }
-        return tx.sendTo;
+        return tempTx.sendTo;
     }
 
     throw std::runtime_error("get back sender failed.");
