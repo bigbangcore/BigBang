@@ -831,12 +831,12 @@ CAddress CService::GetBackSender(const CTransaction& tx)
 
     if (tempTx.vInput.size() > 0 && 0 == tempTx.vInput[0].prevout.n)
     {
-        uint256 txHash = tx.vInput[0].prevout.hash;
+        uint256 txHash = tempTx.vInput[0].prevout.hash;
         if (!GetTransaction(txHash, tempTx, fork, height))
         {
             throw std::runtime_error("get prev tx failed.");
         }
-        return tx.sendTo;
+        return tempTx.sendTo;
     }
 
     throw std::runtime_error("get back sender failed.");
