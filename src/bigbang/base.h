@@ -337,7 +337,7 @@ public:
                              crypto::CKey& keyMint, uint256& hashBlock)
         = 0;
     /* Util */
-    virtual bool GetTxSender(const uint256& txid, CAddress& sender) = 0;
+    virtual bool GetTxSender(const CTransaction& tx, CAddress& sender) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

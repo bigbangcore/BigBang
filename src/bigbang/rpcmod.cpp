@@ -849,7 +849,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     data.nHeight = height;
     int nDepth = height < 0 ? 0 : pService->GetForkHeight(fork) - height;
     CAddress fromMint;
-    if (!pService->GetTxSender(block.txMint.GetHash(), fromMint))
+    if (!pService->GetTxSender(block.txMint, fromMint))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this block's mint transaction");
@@ -872,7 +872,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     for (const CTransaction& tx : block.vtx)
     {
         CAddress from;
-        if (!pService->GetTxSender(tx.GetHash(), from))
+        if (!pService->GetTxSender(tx, from))
         {
             throw CRPCException(RPC_INTERNAL_ERROR,
                                 "No information available about the previous ones of this block's transactions");
@@ -951,7 +951,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
 
     int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
-    if (!pService->GetTxSender(txid, from))
+    if (!pService->GetTxSender(tx, from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the previous one of this transaction");
     }
@@ -2475,7 +2475,7 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }
 
     CAddress from;
-    if (!pService->GetTxSender(rawTx.GetHash(), from))
+    if (!pService->GetTxSender(rawTx, from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this transaction");
