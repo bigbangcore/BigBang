@@ -49,6 +49,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204150;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 213918;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_ = 218544 + 300;
 // Difficulty adjustment
 //static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
 
@@ -830,8 +831,18 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-
-    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
+    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_)
+    {
+        if (nSpacing > 65 && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
+    }
+    else if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
     {
         if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
         {
