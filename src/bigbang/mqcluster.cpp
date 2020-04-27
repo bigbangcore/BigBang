@@ -833,31 +833,38 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
 
+            vector<storage::CSuperNode> outers;
             {
                 boost::unique_lock<boost::mutex> lock(mtxOuter);
 
                 //populate to memory
                 for (auto const& it : biz.mapIpBizFork)
                 {
-                    mapOuterNode[it.first].ipAddr = it.first;
-                    mapOuterNode[it.first].nodeCat = 0;
-                    mapOuterNode[it.first].vecOwnedForks = it.second;
-                    Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker "
-                        "by dpos node succeeded [%s]",
-                        mapOuterNode[it.first].ToString().c_str());
-                }
-
-                //save to db storage
-                for (auto const& it : mapOuterNode)
-                {
-                    if (OK != pBlockChain->AddNewSuperNode(it.second))
+                    if (it.first != ipAddr) //filter out one(s) which is/are same as this fork node self - reflected 'mirrored' node ip from dpos node gotten from outer peers through p2p
                     {
-                        Error("CMQCluster::OnReceiveMessage(): failed to add new outer nodes from mq broker by dpos node");
-                        return;
+                        mapOuterNode[it.first].ipAddr = it.first;
+                        mapOuterNode[it.first].nodeCat = 0;
+                        mapOuterNode[it.first].vecOwnedForks = it.second;
+                        outers.push_back(mapOuterNode[it.first]);
+                        Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker "
+                            "by dpos node succeeded [%s]",
+                            mapOuterNode[it.first].ToString().c_str());
+                        continue;
                     }
-                    Log("CMQCluster::OnReceiveMessage(): adding new outer nodes from mq broker by dpos node succeeded");
+                    Log("CMQCluster::OnReceiveMessage(): this ip[%s] is a mirror one by outer peers",
+                        storage::CSuperNode::Int2Ip(it.first).c_str());
                 }
             }
+
+            //save to db storage
+            if (!outers.empty() && !pBlockChain->AddOuterNodes(outers, true))
+            {
+                Error("CMQCluster::OnReceiveMessage(): failed to add new outer nodes "
+                      "from mq broker by dpos node");
+                return;
+            }
+            Log("CMQCluster::OnReceiveMessage(): adding new outer nodes[%d] from mq broker "
+                "by dpos node succeeded", outers.size());
 
             //launch connecting those outer nodes if main chain has been best block
             if (std::atomic_load(&isMainChainBlockBest))
