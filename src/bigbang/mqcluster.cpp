@@ -590,6 +590,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         Log("CMQCluster::OnReceiveMessage(): current sync height is [%d]", int(lastHeightResp));
         if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]) && string::npos != topic.find(prefixTopic))
         { //respond to request block of main chain
+            Log("CMQCluster::OnReceiveMessage(): entering of fork node processing RESP_BLOCK");
             //unpack payload
             CSyncBlockResponse resp;
             try
@@ -698,6 +699,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 
         if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]) && string::npos != topic.find(prefixTopic))
         { //roll back blocks on main chain
+            Log("CMQCluster::OnReceiveMessage(): entering of fork node processing UPDATE_BLOCK");
             //unpack payload
             CRollbackBlock rb;
             try
@@ -820,6 +822,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 
         if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]) && string::npos != topic.find(prefixTopic))
         { //receive biz fork list from dpos node by MQ broker
+            Log("CMQCluster::OnReceiveMessage(): entering of fork node processing ASGN_BIZFORK");
             //unpack payload
             CAssignBizFork biz;
             try
@@ -869,7 +872,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //launch connecting those outer nodes if main chain has been best block
             if (std::atomic_load(&isMainChainBlockBest))
             {
-                PoolAddBizForkNode();
+                PoolAddBizForkNode(outers);
             }
 
             return;
@@ -924,8 +927,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         CSyncBlockResponse resp;
         if (req.lastHeight > best)
         {
-            Error("CMQCluster::OnReceiveMessage(): block height owned by fork node "
-                  "should not be greater than the best one on dpos node");
+            Error("CMQCluster::OnReceiveMessage(): block height owned by fork node [%s]"
+                  "should not be greater than the best one on dpos node", req.forkNodeId.c_str());
             return;
         }
         else if (req.lastHeight == best)
@@ -945,26 +948,27 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
             {
                 Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match "
-                      "at height of #%d",
-                      req.lastHeight);
+                      "at height of [%d] with fork node [%s]", req.lastHeight, req.forkNodeId.c_str());
                 return;
             }
             if (hash != req.lastHash)
             {
                 Error("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
-                      "at height of [%d]",
-                      hash.ToString().c_str(), req.lastHash.ToString().c_str(), req.lastHeight);
+                      "at height of [%d] with fork node [%s]", hash.ToString().c_str(),
+                      req.lastHash.ToString().c_str(), req.lastHeight, req.forkNodeId.c_str());
                 return;
             }
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of #%d", req.lastHeight + 1);
+                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of [%d] "
+                      "with fork node [%s]", req.lastHeight + 1, req.forkNodeId.c_str());
                 return;
             }
             CBlock block;
             if (!pBlockChain->GetBlock(hash, block))
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to get next block");
+                Error("CMQCluster::OnReceiveMessage(): failed to get next block for fork node [%s]",
+                      req.forkNodeId.c_str());
                 return;
             }
 
@@ -1278,14 +1282,22 @@ void CMQCluster::MqttThreadFunc()
     Log("exiting thread function of MQTT");
 }
 
-bool CMQCluster::PoolAddBizForkNode()
+bool CMQCluster::PoolAddBizForkNode(const std::vector<storage::CSuperNode>& outers)
 {
     vector<uint32> ips;
+    if (outers.empty())
     {
         boost::unique_lock<boost::mutex> lock(mtxOuter);
         for (auto const& node : mapOuterNode)
         {
             ips.push_back(node.first);
+        }
+    }
+    else
+    {
+        for (auto const& node : outers)
+        {
+            ips.push_back(node.ipAddr);
         }
     }
     if (!ips.empty())
