@@ -494,6 +494,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
         nTotalFee += tx.nTxFee;
     }
+    view.AddBlock(hash, blockex);
 
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
@@ -538,11 +539,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
-    if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
-    {
-        Log("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());
-        return ERR_SYS_STORAGE_ERROR;
-    }
+    view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
 
     if (!update.vBlockRemove.empty())
     {

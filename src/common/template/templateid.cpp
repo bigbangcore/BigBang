@@ -15,7 +15,7 @@ CTemplateId::CTemplateId(const uint256& data)
 }
 
 CTemplateId::CTemplateId(const uint16 type, const uint256& hash)
-  : uint256((hash << 16) | (const uint64)(type))
+  : uint256((hash << 16) | (uint64)(type))
 {
 }
 

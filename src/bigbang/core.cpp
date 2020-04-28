@@ -48,6 +48,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 1;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 1;
+static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_ = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -827,8 +828,18 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-
-    if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
+    if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_)
+    {
+        if (nSpacing > 65 && nBits > nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
+    }
+    else if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
     {
         if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
         {
