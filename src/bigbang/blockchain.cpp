@@ -466,7 +466,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
-    // map<pair<CDestination, uint256>, uint256> mapEnrollTx;
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -485,6 +484,12 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
                 return err;
             }
+        }
+        if (tx.nTimeStamp > block.nTimeStamp)
+        {
+            Log("AddNewBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
+                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
         }
 
         vTxContxt.push_back(txContxt);
@@ -1376,6 +1381,15 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
         return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
+    else
+    {
+        // Vacant block
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        {
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+        }
+    }
+
     return OK;
 }
 
