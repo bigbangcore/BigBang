@@ -114,6 +114,12 @@ protected:
         s.Serialize(strSnappy, opt);
         size_t size = 0;
         snappy::GetUncompressedLength(&strSnappy[0], strSnappy.size(), &size);
+        // check size
+        if (size % sizeof(std::pair<K, V>) != 0)
+        {
+            xengine::StdError("CCTSChunkSnappy", "Load uncompressed data size: %u is not divisible by sizeof(pair<K, V>): %u", size, sizeof(std::pair<K, V>));
+            return;
+        }
         basetype::resize(size / sizeof(std::pair<K, V>));
         snappy::RawUncompress(&strSnappy[0], strSnappy.size(), (char*)&((*this)[0]));
     }
