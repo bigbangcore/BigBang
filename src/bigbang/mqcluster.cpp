@@ -321,8 +321,8 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             }
             condStatus.notify_all();
 
-            Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\n"
-                "pub topic:\n\t[%s]",
+            Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork node clientid [%s] with sub topics:[%s];[%s];[%s]\t"
+                "pub topic:[%s]",
                 clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(),
                 arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
@@ -554,9 +554,11 @@ bool CMQCluster::PostBizForkAssign(const std::string& topic, CAssignBizFork assi
 
 bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
 {
+    Log("CMQCluster::AppendSendQueue(): preparing to append msg to send queue");
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
         deqSendBuff.emplace_back(make_pair(topic, payload));
+        Log("CMQCluster::AppendSendQueue(): succeeded in appending send buf");
     }
     condSend.notify_all();
 
@@ -730,6 +732,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     boost::unique_lock<boost::mutex> lock(mtxSend);
                     deqSendBuff.clear();
                 }
+                condSend.notify_all();
 
                 //check hard fork point
                 uint256 hash;
@@ -768,7 +771,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     {
                         if (i != 0)
                         {
-                            Log("CMQCluster::OnReceiveMessage(): exceed to get rollback block hash");
+                            Log("CMQCluster::OnReceiveMessage(): exceed to get rollback block hash idx[%d]", i);
                             break;
                         }
                         else
@@ -866,7 +869,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                       "from mq broker by dpos node");
                 return;
             }
-            Log("CMQCluster::OnReceiveMessage(): adding new outer nodes[%d] from mq broker "
+            Log("CMQCluster::OnReceiveMessage(): adding new outer total (%d) nodes from mq broker "
                 "by dpos node succeeded", outers.size());
 
             //launch connecting those outer nodes if main chain has been best block
@@ -1201,10 +1204,9 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                         pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                     }
                     delitok = client.publish(pubmsg, nullptr, cb);
-                    delitok->wait_for(100);
-                    cout << "_._._OK" << endl;
-
                     deqSendBuff.pop_front();
+                    delitok->wait_for(10); //100
+                    cout << "_._._OK" << endl;
                 }
             }
             condSend.notify_all();
@@ -1272,6 +1274,7 @@ void CMQCluster::MqttThreadFunc()
                 condSend.wait(lock);
             }
         }
+        condSend.notify_all();
         ClientAgent(MQ_CLI_ACTION::PUB);
         Log("thread function of MQTT: go through an iteration");
     }
