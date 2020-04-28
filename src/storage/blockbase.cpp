@@ -1019,11 +1019,14 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
 bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
 {
-    CReadLock rlock(rwAccess);
-    boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    boost::shared_ptr<CBlockFork> spFork;
     {
-        return false;
+        CReadLock rlock(rwAccess);
+        spFork = GetFork(hashFork);
+        if (spFork == nullptr)
+        {
+            return false;
+        }
     }
     view.Initialize(this, spFork, hashFork, false);
     return true;
