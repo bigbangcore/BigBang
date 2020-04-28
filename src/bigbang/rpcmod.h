@@ -139,6 +139,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IService* pService;
     IDataStat* pDataStat;
+    IForkManager* pForkManager;
 
 private:
     std::map<std::string, RPCFunc> mapRPCFunc;

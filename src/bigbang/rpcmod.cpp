@@ -166,6 +166,7 @@ CRPCMod::CRPCMod()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+    pForkManager = nullptr;
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
@@ -315,7 +316,11 @@ bool CRPCMod::HandleInitialize()
         Error("Failed to request datastat");
         return false;
     }
-
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
+        return false;
+    }
     fWriteRPCLog = RPCServerConfig()->fRPCLogEnable;
 
     return true;
@@ -327,6 +332,7 @@ void CRPCMod::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
@@ -673,15 +679,18 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     auto spParam = CastParamPtr<CListForkParam>(param);
     vector<pair<uint256, CProfile>> vFork;
     pService->ListFork(vFork, spParam->fAll);
-
     auto spResult = MakeCListForkResultPtr();
     for (size_t i = 0; i < vFork.size(); i++)
     {
         CProfile& profile = vFork[i].second;
-        spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
-                                         (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
-                                         profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
-                                         CAddress(profile.destOwner).ToString() });
+        auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
+        if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
+        {
+            spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
+                                            (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
+                                            profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
+                                            CAddress(profile.destOwner).ToString() });
+        }
     }
 
     return spResult;
