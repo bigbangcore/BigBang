@@ -117,7 +117,10 @@ protected:
         // check size
         if (size % sizeof(std::pair<K, V>) != 0)
         {
-            xengine::StdError("CCTSChunkSnappy", "Load uncompressed data size: %u is not divisible by sizeof(pair<K, V>): %u", size, sizeof(std::pair<K, V>));
+            xengine::StdError("CCTSChunkSnappy", "**********************************");
+            xengine::StdError("CCTSChunkSnappy", "Load uncompressed data error. size: %u is not divisible by sizeof(pair<K, V>): %u. "
+                "\"DATA ERROR\": Should shut down and purge and resynchronize", size, sizeof(std::pair<K, V>));
+            xengine::StdError("CCTSChunkSnappy", "**********************************");
             return;
         }
         basetype::resize(size / sizeof(std::pair<K, V>));
