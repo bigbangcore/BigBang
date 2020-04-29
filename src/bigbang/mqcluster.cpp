@@ -554,11 +554,11 @@ bool CMQCluster::PostBizForkAssign(const std::string& topic, CAssignBizFork assi
 
 bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
 {
-    Log("CMQCluster::AppendSendQueue(): preparing to append msg to send queue");
+    Log("CMQCluster::AppendSendQueue(): appending msg[%s] to sending queue", topic.c_str());
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
         deqSendBuff.emplace_back(make_pair(topic, payload));
-        Log("CMQCluster::AppendSendQueue(): succeeded in appending send buf");
+        Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
     }
     condSend.notify_all();
 
@@ -1182,34 +1182,39 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
+            while (!deqSendBuff.empty())
             {
-                boost::unique_lock<boost::mutex> lock(mtxSend);
-                while (!deqSendBuff.empty())
-                {
-                    pair<string, CBufferPtr> buf = deqSendBuff.front();
-                    cout << "\nSending message to [" << buf.first << "]..." << endl;
-                    buf.second->Dump();
+                Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
+                pair<string, CBufferPtr> buf = deqSendBuff.front();
+                cout << "\nSending message to [" << buf.first << "]..." << endl;
+                buf.second->Dump();
 
-                    mqtt::message_ptr pubmsg = mqtt::make_message(
-                        buf.first, buf.second->GetData(), buf.second->GetSize());
-                    pubmsg->set_qos(QOS1);
-                    if (string::npos != buf.first.find("AssignBizFork"))
-                    {
-                        Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
-                        pubmsg->set_retained(true);
-                    }
-                    else
-                    {
-                        Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false[%s]", buf.first.c_str());
-                        pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
-                    }
-                    delitok = client.publish(pubmsg, nullptr, cb);
-                    deqSendBuff.pop_front();
-                    delitok->wait_for(10); //100
-                    cout << "_._._OK" << endl;
+                mqtt::message_ptr pubmsg = mqtt::make_message(
+                    buf.first, buf.second->GetData(), buf.second->GetSize());
+                pubmsg->set_qos(QOS1);
+                if (string::npos != buf.first.find("AssignBizFork"))
+                {
+                    Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
+                    pubmsg->set_retained(true);
                 }
+                else
+                {
+                    Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false[%s]", buf.first.c_str());
+                    pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
+                }
+                delitok = client.publish(pubmsg, nullptr, cb);
+/*                if (delitok->wait_for(100))
+                {
+                    Log("CMQCluster::ClientAgent(): delivery token waiting success[%s]", buf.first.c_str());
+                }
+                else
+                {
+                    Error("CMQCluster::ClientAgent(): delivery token waiting fail[%s]", buf.first.c_str());
+                }*/
+
+                deqSendBuff.pop_front();
             }
-            condSend.notify_all();
+
             break;
         }
         case MQ_CLI_ACTION::DISCONN:
@@ -1273,9 +1278,9 @@ void CMQCluster::MqttThreadFunc()
             {
                 condSend.wait(lock);
             }
+            ClientAgent(MQ_CLI_ACTION::PUB);
         }
         condSend.notify_all();
-        ClientAgent(MQ_CLI_ACTION::PUB);
         Log("thread function of MQTT: go through an iteration");
     }
 
