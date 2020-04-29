@@ -164,12 +164,6 @@ bool CMQCluster::HandleInvoke()
         Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\npub topic:\n\t[%s]",
             clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
-
-        if (!PostBlockRequest(-1))
-        {
-            Error("CMQCluster::HandleInvoke(): failed to post requesting block");
-            return false;
-        }
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
@@ -1270,6 +1264,15 @@ void CMQCluster::MqttThreadFunc()
 
     //subscribe topics
     ClientAgent(MQ_CLI_ACTION::SUB);
+
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+            return;
+        }
+    }
 
     //publish topics
     while (!fAbort)
