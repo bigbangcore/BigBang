@@ -301,7 +301,6 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
     string id = eventMqUpdateEnroll.data.superNodeClientID;
     vector<uint256> forks = eventMqUpdateEnroll.data.vecForksOwned;
 
-    arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
         if (storage::CLIENT_ID_OUT_OF_MQ_CLUSTER != id)
@@ -314,6 +313,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 {
                     setBizFork.emplace(fork);
                 }
+                arrTopic = {};
                 arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
                 arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
@@ -351,6 +351,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 clientID = id;
                 ipAddr = 0;
                 setBizFork.emplace(forks[0]);
+                arrTopic = {};
                 arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
                 arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]; //only placeholder
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
@@ -1202,7 +1203,8 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false[%s]", buf.first.c_str());
                     pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                 }
-                delitok = client.publish(pubmsg, nullptr, cb);
+//                delitok = client.publish(pubmsg, nullptr, cb);
+                delitok = client.publish(pubmsg);
 /*                if (delitok->wait_for(100))
                 {
                     Log("CMQCluster::ClientAgent(): delivery token waiting success[%s]", buf.first.c_str());
