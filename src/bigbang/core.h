@@ -17,7 +17,7 @@ public:
     virtual ~CCoreProtocol();
     virtual const uint256& GetGenesisBlockHash() override;
     virtual void GetGenesisBlock(CBlock& block) override;
-    virtual Errno ValidateTransaction(const CTransaction& tx) override;
+    virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 

@@ -237,7 +237,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 {
     Errno err = OK;
-    err = pCoreProtocol->ValidateTransaction(tx);
+    err = pCoreProtocol->ValidateTransaction(tx, -1);
     if (err != OK)
     {
         StdError("CDispatcher", "AddNewTx: ValidateTransaction fail, txid: %s", tx.GetHash().GetHex().c_str());
