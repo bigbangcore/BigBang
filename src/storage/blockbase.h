@@ -7,6 +7,7 @@
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
+#include <list>
 #include <map>
 #include <numeric>
 
@@ -166,9 +167,15 @@ public:
         AddTx(txid, tx, tx.destIn, tx.nValueIn);
     }
     void RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt = CTxContxt());
+    void AddBlock(const uint256& hash, const CBlockEx& block);
+    void RemoveBlock(const uint256& hash, const CBlockEx& block);
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
+    void GetBlockChanges(std::vector<CBlockEx>& vAdd, std::vector<CBlockEx>& vRemove) const;
+
+protected:
+    void InsertBlockList(const uint256& hash, const CBlockEx& block, std::list<std::pair<uint256, CBlockEx>>& blockList);
 
 protected:
     CBlockBase* pBlockBase;
@@ -179,6 +186,8 @@ protected:
     std::map<CTxOutPoint, CUnspent> mapUnspent;
     std::vector<uint256> vTxRemove;
     std::vector<uint256> vTxAddNew;
+    std::list<std::pair<uint256, CBlockEx>> vBlockAddNew;
+    std::list<std::pair<uint256, CBlockEx>> vBlockRemove;
 };
 
 class CBlockHeightIndex

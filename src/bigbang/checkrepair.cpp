@@ -249,7 +249,7 @@ CCheckWalletTx* CCheckWalletForkUnspent::GetLocalWalletTx(const uint256& txid)
     map<uint256, CCheckWalletTx>::iterator it = mapWalletTx.find(txid);
     if (it == mapWalletTx.end())
     {
-        StdLog("check", "Wallet fork GetLocalWalletTx: find tx fail, txid: %s", txid.GetHex().c_str());
+        StdLog("check", "Wallet fork GetLocalWalletTx: find tx fail, txid: %s, forkid: %s", txid.GetHex().c_str(), hashFork.GetHex().c_str());
         return nullptr;
     }
     if (it->second.hashFork != hashFork)
@@ -265,8 +265,9 @@ bool CCheckWalletForkUnspent::AddTx(const CWalletTx& wtx)
 {
     if (mapWalletTx.find(wtx.txid) != mapWalletTx.end())
     {
-        StdLog("check", "Add wallet tx: tx is exist, txid: %s", wtx.txid.GetHex().c_str());
-        return false;
+        StdDebug("check", "Add wallet tx: tx is exist, wtx txid: %s, wtx at forkid: %s, forkid: %s",
+                 wtx.txid.GetHex().c_str(), wtx.hashFork.GetHex().c_str(), hashFork.GetHex().c_str());
+        return true;
     }
     map<uint256, CCheckWalletTx>::iterator it = mapWalletTx.insert(make_pair(wtx.txid, CCheckWalletTx(wtx, ++nSeqCreate))).first;
     if (it == mapWalletTx.end())
@@ -829,10 +830,10 @@ void CCheckBlockFork::UpdateMaxTrust(CBlockIndex* pBlockIndex)
     }
 }
 
-bool CCheckBlockFork::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn)
+bool CCheckBlockFork::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn)
 {
     const uint256 txid = txIn.GetHash();
-    map<uint256, CCheckBlockTx>::iterator mt = mapBlockTx.insert(make_pair(txid, CCheckBlockTx(txIn, contxtIn, nHeight, nFileNoIn, nOffsetIn))).first;
+    map<uint256, CCheckBlockTx>::iterator mt = mapBlockTx.insert(make_pair(txid, CCheckBlockTx(txIn, contxtIn, nHeight, hashAtForkIn, nFileNoIn, nOffsetIn))).first;
     if (mt == mapBlockTx.end())
     {
         StdLog("check", "AddBlockTx: add block tx fail, txid: %s.", txid.GetHex().c_str());
@@ -1474,7 +1475,7 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
                     CTxContxt txContxt;
                     txContxt.destIn = block.txMint.sendTo;
                     uint32 nTxOffset = pIndex->nOffset + block.GetTxSerializedOffset();
-                    if (!AddBlockTx(block.txMint, txContxt, block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
+                    if (!AddBlockTx(block.txMint, txContxt, block.GetBlockHeight(), hashFork, pIndex->nFile, nTxOffset, vFork))
                     {
                         StdError("check", "UpdateBlockTx: Add mint tx fail, txid: %s, block: %s",
                                  block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
@@ -1486,7 +1487,7 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
                     nTxOffset += ss.GetSerializeSize(var);
                     for (int i = 0; i < block.vtx.size(); i++)
                     {
-                        if (!AddBlockTx(block.vtx[i], block.vTxContxt[i], block.GetBlockHeight(), pIndex->nFile, nTxOffset, vFork))
+                        if (!AddBlockTx(block.vtx[i], block.vTxContxt[i], block.GetBlockHeight(), hashFork, pIndex->nFile, nTxOffset, vFork))
                         {
                             StdError("check", "UpdateBlockTx: Add tx fail, txid: %s, block: %s",
                                      block.vtx[i].GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str());
@@ -1506,14 +1507,14 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
     return true;
 }
 
-bool CCheckBlockWalker::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork)
+bool CCheckBlockWalker::AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork)
 {
     for (const uint256& hashFork : vFork)
     {
         map<uint256, CCheckBlockFork>::iterator it = mapCheckFork.find(hashFork);
         if (it != mapCheckFork.end())
         {
-            if (!it->second.AddBlockTx(txIn, contxtIn, nHeight, nFileNoIn, nOffsetIn))
+            if (!it->second.AddBlockTx(txIn, contxtIn, nHeight, hashAtForkIn, nFileNoIn, nOffsetIn))
             {
                 StdError("check", "Block add tx: Add fail, txid: %s, fork: %s",
                          txIn.GetHash().GetHex().c_str(), hashFork.GetHex().c_str());
@@ -1903,30 +1904,33 @@ bool CCheckRepairData::CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>&
             {
                 const uint256& txid = it->first;
                 const CCheckBlockTx& cacheTx = it->second;
-                bool fIsMine = objWalletAddressWalker.CheckAddress(cacheTx.tx.sendTo);
-                bool fFromMe = objWalletAddressWalker.CheckAddress(cacheTx.txContxt.destIn);
-                if (fIsMine || fFromMe)
+                if (cacheTx.hashAtFork == hashFork)
                 {
-                    CCheckWalletTx* pWalletTx = objWalletTxWalker.GetWalletTx(hashFork, txid);
-                    if (pWalletTx == nullptr)
+                    bool fIsMine = objWalletAddressWalker.CheckAddress(cacheTx.tx.sendTo);
+                    bool fFromMe = objWalletAddressWalker.CheckAddress(cacheTx.txContxt.destIn);
+                    if (fIsMine || fFromMe)
                     {
-                        StdLog("check", "CheckWalletTx: [block tx] find wallet tx fail, txid: %s, block height: %d, fork: %s",
-                               txid.GetHex().c_str(), cacheTx.txIndex.nBlockHeight, hashFork.GetHex().c_str());
-                        //CAssembledTx(const CTransaction& tx, int nBlockHeightIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
-                        //CWalletTx(const uint256& txidIn, const CAssembledTx& tx, const uint256& hashForkIn, bool fIsMine, bool fFromMe)
-                        CAssembledTx atx(cacheTx.tx, cacheTx.txIndex.nBlockHeight, cacheTx.txContxt.destIn, cacheTx.txContxt.GetValueIn());
-                        CWalletTx wtx(txid, atx, hashFork, fIsMine, fFromMe);
-                        objWalletTxWalker.AddWalletTx(wtx);
-                        vAddTx.push_back(wtx);
-                    }
-                    else
-                    {
-                        if (pWalletTx->nBlockHeight != cacheTx.txIndex.nBlockHeight)
+                        CCheckWalletTx* pWalletTx = objWalletTxWalker.GetWalletTx(hashFork, txid);
+                        if (pWalletTx == nullptr)
                         {
-                            StdLog("check", "CheckWalletTx: [block tx] wallet tx height error, wtx height: %d, block height: %d, txid: %s",
-                                   pWalletTx->nBlockHeight, cacheTx.txIndex.nBlockHeight, txid.GetHex().c_str());
-                            pWalletTx->nBlockHeight = cacheTx.txIndex.nBlockHeight;
-                            vAddTx.push_back(*pWalletTx);
+                            StdLog("check", "CheckWalletTx: [block tx] find wallet tx fail, txid: %s, block height: %d, fork: %s",
+                                   txid.GetHex().c_str(), cacheTx.txIndex.nBlockHeight, hashFork.GetHex().c_str());
+                            //CAssembledTx(const CTransaction& tx, int nBlockHeightIn, const CDestination& destInIn = CDestination(), int64 nValueInIn = 0)
+                            //CWalletTx(const uint256& txidIn, const CAssembledTx& tx, const uint256& hashForkIn, bool fIsMine, bool fFromMe)
+                            CAssembledTx atx(cacheTx.tx, cacheTx.txIndex.nBlockHeight, cacheTx.txContxt.destIn, cacheTx.txContxt.GetValueIn());
+                            CWalletTx wtx(txid, atx, hashFork, fIsMine, fFromMe);
+                            objWalletTxWalker.AddWalletTx(wtx);
+                            vAddTx.push_back(wtx);
+                        }
+                        else
+                        {
+                            if (pWalletTx->nBlockHeight != cacheTx.txIndex.nBlockHeight)
+                            {
+                                StdLog("check", "CheckWalletTx: [block tx] wallet tx height error, wtx height: %d, block height: %d, txid: %s",
+                                       pWalletTx->nBlockHeight, cacheTx.txIndex.nBlockHeight, txid.GetHex().c_str());
+                                pWalletTx->nBlockHeight = cacheTx.txIndex.nBlockHeight;
+                                vAddTx.push_back(*pWalletTx);
+                            }
                         }
                     }
                 }
@@ -2133,9 +2137,8 @@ bool CCheckRepairData::CheckTxIndex()
             dbTxIndex.Deinitialize();
             return false;
         }
-        int nCheckOkCount = 0;
         CBlockIndex* pBlockIndex = mt->second.pLast;
-        while (pBlockIndex && pBlockIndex != mt->second.pOrigin)
+        while (pBlockIndex)
         {
             const uint256& hashBlock = pBlockIndex->GetBlockHash();
             uint256 hashFork = pBlockIndex->GetOriginHash();
@@ -2152,11 +2155,10 @@ bool CCheckRepairData::CheckTxIndex()
                 return false;
             }
             const CBlockEx& block = at->second;
-            if (!(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+            if (!(block.IsVacant() || block.IsNull()))
             {
                 CBufStream ss;
                 CTxIndex txIndex;
-                bool bCheckFail = false;
 
                 uint32 nTxOffset = pBlockIndex->nOffset + block.GetTxSerializedOffset();
                 if (!dbTxIndex.Retrieve(hashFork, block.txMint.GetHash(), txIndex))
@@ -2165,7 +2167,6 @@ bool CCheckRepairData::CheckTxIndex()
                            block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.txMint.GetHash().GetHex().c_str());
 
                     mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                    bCheckFail = true;
                 }
                 else
                 {
@@ -2176,7 +2177,6 @@ bool CCheckRepairData::CheckTxIndex()
                                block.txMint.GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                         mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                        bCheckFail = true;
                     }
                 }
                 nTxOffset += ss.GetSerializeSize(block.txMint);
@@ -2191,7 +2191,6 @@ bool CCheckRepairData::CheckTxIndex()
                                block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str());
 
                         mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                        bCheckFail = true;
                     }
                     else
                     {
@@ -2201,15 +2200,14 @@ bool CCheckRepairData::CheckTxIndex()
                                    block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                             mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                            bCheckFail = true;
                         }
                     }
                     nTxOffset += ss.GetSerializeSize(block.vtx[i]);
                 }
-                if (!bCheckFail && ++nCheckOkCount >= 128)
-                {
-                    break;
-                }
+            }
+            if (block.IsOrigin() || pBlockIndex == mt->second.pOrigin)
+            {
+                break;
             }
             pBlockIndex = pBlockIndex->pPrev;
         }

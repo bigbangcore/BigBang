@@ -209,36 +209,37 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     for (std::size_t i = 0; i < vOutPoint.size(); i++)
     {
         uint256 txidNextTx;
-        if (GetSpent(vOutPoint[i], txidNextTx))
+        CPooledTx* pNextTx = nullptr;
+        if (GetSpent(vOutPoint[i], txidNextTx) && ((pNextTx = Get(txidNextTx)) != nullptr))
         {
-            CPooledTx* pNextTx = nullptr;
-            if ((pNextTx = Get(txidNextTx)) != nullptr)
+            for (const CTxIn& txin : pNextTx->vInput)
             {
-                for (const CTxIn& txin : pNextTx->vInput)
-                {
-                    SetUnspent(txin.prevout);
-                }
-                CTxOutPoint out0(txidNextTx, 0);
-                if (IsSpent(out0))
-                {
-                    vOutPoint.push_back(out0);
-                }
-                else
-                {
-                    mapSpent.erase(out0);
-                }
-                CTxOutPoint out1(txidNextTx, 1);
-                if (IsSpent(out1))
-                {
-                    vOutPoint.push_back(out1);
-                }
-                else
-                {
-                    mapSpent.erase(out1);
-                }
-                viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
-                setTxLinkIndex.erase(txidNextTx);
+                SetUnspent(txin.prevout);
             }
+            CTxOutPoint out0(txidNextTx, 0);
+            if (IsSpent(out0))
+            {
+                vOutPoint.push_back(out0);
+            }
+            else
+            {
+                mapSpent.erase(out0);
+            }
+            CTxOutPoint out1(txidNextTx, 1);
+            if (IsSpent(out1))
+            {
+                vOutPoint.push_back(out1);
+            }
+            else
+            {
+                mapSpent.erase(out1);
+            }
+            viewInvolvedTx.AddNew(txidNextTx, *pNextTx);
+            setTxLinkIndex.erase(txidNextTx);
+        }
+        else
+        {
+            mapSpent.erase(vOutPoint[i]);
         }
     }
 }
@@ -267,7 +268,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPoole
 }
 
 bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount)
+                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool IsDposHeight)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -322,9 +323,26 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
         {
             return false;
         }
-        vtx.push_back(*static_cast<CTransaction*>(ptx));
-        nTotalSize += ptx->nSerializeSize;
-        nTotalTxFee += ptx->nTxFee;
+
+        if(!IsDposHeight)
+        {
+            vtx.push_back(*static_cast<CTransaction*>(ptx));
+            nTotalSize += ptx->nSerializeSize;
+            nTotalTxFee += ptx->nTxFee;
+        }
+        else
+        {
+            if(ptx->nTxFee >= CalcMinTxFee(ptx->vchData.size(), NEW_MIN_TX_FEE))
+            {
+                vtx.push_back(*static_cast<CTransaction*>(ptx));
+                nTotalSize += ptx->nSerializeSize;
+                nTotalTxFee += ptx->nTxFee;
+            }
+            else
+            {
+                setUnTx.insert(ptx->GetHash());
+            }
+        }
     }
     else
     {
@@ -333,7 +351,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool IsDposHeight)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
@@ -363,7 +381,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         if (i.ptx)
         {
             StdDebug("CTxPoolView", "Cert tx related tx, tx seqnum: %llu, type: %d, tx hash: %s", i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, IsDposHeight))
             {
                 return;
             }
@@ -381,7 +399,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
         }
         if (i.ptx)
         {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount))
+            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, IsDposHeight))
             {
                 return;
             }
@@ -704,7 +722,7 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     const CTxPoolView& viewTx = mapPoolView[hashFork];
     if (hashPrev == viewTx.hashLastBlock)
     {
-        ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee);
+        ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee, CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1);   
         //cache.AddNew(viewTx.hashLastBlock, vtx);
         StdDebug("CTxPool", "ArrangeBlockTx: hashPrev is last block, target height: %d, new vtx size: %ld, old vtx size: %ld, view tx count: %ld",
                  CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1, vtx.size(), vCacheTx.size(), viewTx.Count());
@@ -721,6 +739,7 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
             {
                 break;
             }
+            
             nTotalTxFee += tx.nTxFee;
             vtx.push_back(tx);
         }
@@ -729,7 +748,7 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 }
 
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
-                             std::vector<CTransaction>& vtx, int64& nTotalTxFee)
+                             std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight)
 {
     map<CDestination, int> mapVoteCert;
     std::map<CDestination, int64> mapVote;
@@ -756,7 +775,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
         }
     }
 
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount);
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount, pCoreProtocol->IsDposHeight(nHeight));
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
@@ -928,7 +947,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     std::vector<CTransaction> vtx;
     int64 nTotalFee = 0;
     const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee);
+    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee, lastBlockEx.GetBlockHeight() + 1);
 
     auto& cache = mapTxCache[update.hashFork];
     cache.AddNew(lastBlockEx.GetHash(), vtx);
@@ -987,7 +1006,7 @@ bool CTxPool::LoadData()
 
         std::vector<CTransaction> vtx;
         int64 nTotalFee = 0;
-        ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee);
+        ArrangeBlockTx(hashFork, nTime, hashBlock, MAX_BLOCK_SIZE, vtx, nTotalFee, nHeight + 1);
         mapTxCache[hashFork].AddNew(hashBlock, vtx);
 
         mapPoolView[hashFork].SetLastBlock(hashBlock, nTime);

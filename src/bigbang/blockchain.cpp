@@ -466,7 +466,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
-    // map<pair<CDestination, uint256>, uint256> mapEnrollTx;
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -486,6 +485,12 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 return err;
             }
         }
+        if (tx.nTimeStamp > block.nTimeStamp)
+        {
+            Log("AddNewBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
+                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+        }
 
         vTxContxt.push_back(txContxt);
         view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
@@ -494,6 +499,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
         nTotalFee += tx.nTxFee;
     }
+    view.AddBlock(hash, blockex);
 
     if (block.txMint.nAmount > nTotalFee + nReward)
     {
@@ -538,11 +544,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
-    if (!GetBlockChanges(pIndexNew, pIndexFork, update.vBlockAddNew, update.vBlockRemove))
-    {
-        Log("AddNewBlock Storage GetBlockChanges Error : %s ", hash.ToString().c_str());
-        return ERR_SYS_STORAGE_ERROR;
-    }
+    view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
 
     if (!update.vBlockRemove.empty())
     {
@@ -1379,6 +1381,15 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
 
         return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
+    else
+    {
+        // Vacant block
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        {
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+        }
+    }
+
     return OK;
 }
 

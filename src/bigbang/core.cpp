@@ -32,8 +32,8 @@ static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
-static const int PROOF_OF_WORK_ADJUST_DEBOUNCE_OF_DPOS = 10;
-static const int PROOF_OF_WORK_TARGET_SPACING_OF_DPOS = 50;
+static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
+static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN; //30000000 * COIN;
@@ -108,8 +108,8 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_SPACING_OF_DPOS + PROOF_OF_WORK_ADJUST_DEBOUNCE_OF_DPOS;
-    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_SPACING_OF_DPOS - PROOF_OF_WORK_ADJUST_DEBOUNCE_OF_DPOS;
+    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     pBlockChain = nullptr;
 }
 
@@ -179,14 +179,14 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = OLD_MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
     profile.Save(block.vchProof);
 }
 
-Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
+Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
@@ -244,12 +244,25 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    if (!MoneyRange(tx.nTxFee)
-        || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-        || (tx.nType == CTransaction::TX_TOKEN
-            && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), MIN_TX_FEE)))
+    if (nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT)
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+                && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
+    }
+    else
+    {
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+                && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
     }
 
     set<CTxOutPoint> setInOutPoints;
@@ -294,7 +307,7 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     }
 
     // Validate mint tx
-    if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint) != OK)
+    if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
         return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
     }
@@ -325,7 +338,7 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 
     for (const CTransaction& tx : block.vtx)
     {
-        if (tx.IsMintTx() || ValidateTransaction(tx) != OK)
+        if (tx.IsMintTx() || ValidateTransaction(tx, block.GetBlockHeight()) != OK)
         {
             return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s\n", tx.GetHash().GetHex().c_str());
         }
@@ -1080,7 +1093,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = OLD_MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
@@ -1096,8 +1109,8 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_SPACING_OF_DPOS + PROOF_OF_WORK_ADJUST_DEBOUNCE_OF_DPOS;
-    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_SPACING_OF_DPOS - PROOF_OF_WORK_ADJUST_DEBOUNCE_OF_DPOS;
+    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     if (fTestnet)
     {
         nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
