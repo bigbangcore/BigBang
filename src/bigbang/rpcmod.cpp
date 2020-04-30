@@ -1670,7 +1670,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         }
     }
 
-    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
@@ -1801,12 +1801,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
 
-    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
 
-        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        int64 nFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
         if (nTxFee < nFee)
         {
             nTxFee = nFee;
@@ -2228,7 +2228,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nJointHeight = nJointHeight;
     profile.nAmount = nAmount;
     profile.nMintReward = nMintReward;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 

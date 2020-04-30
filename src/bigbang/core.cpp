@@ -50,6 +50,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 202368;
 static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 204150;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 213918;
 static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_ = 218544 + 300;
+static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_FEE_HEIGHT = 223201;
 // Difficulty adjustment
 //static const uint32 DELEGATE_PROOF_OF_DA_HEIGHT = 204100;
 
@@ -186,14 +187,14 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = OLD_MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
     profile.Save(block.vchProof);
 }
 
-Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
+Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
 {
     // Basic checks that don't depend on any context
     // Don't allow CTransaction::TX_CERT type in v1.0.0
@@ -251,12 +252,25 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    if (!MoneyRange(tx.nTxFee)
-        || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-        || (tx.nType == CTransaction::TX_TOKEN
-            && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), MIN_TX_FEE)))
+    if (IsNewFeeHeight(nHeight))
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+                && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
+    }
+    else
+    {
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+                && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
     }
 
     set<CTxOutPoint> setInOutPoints;
@@ -301,7 +315,7 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     }
 
     // Validate mint tx
-    if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint) != OK)
+    if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
         return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
     }
@@ -332,7 +346,7 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
 
     for (const CTransaction& tx : block.vtx)
     {
-        if (tx.IsMintTx() || ValidateTransaction(tx) != OK)
+        if (tx.IsMintTx() || ValidateTransaction(tx, block.GetBlockHeight()) != OK)
         {
             return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s\n", tx.GetHash().GetHex().c_str());
         }
@@ -880,6 +894,15 @@ bool CCoreProtocol::IsDposHeight(int height)
     return true;
 }
 
+bool CCoreProtocol::IsNewFeeHeight(int height)
+{
+    if (height < DELEGATE_PROOF_OF_STAKE_NEW_FEE_HEIGHT)
+    {
+        return false;
+    }
+    return true;
+}
+
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BBCP_SET_TOKEN_DISTRIBUTION
@@ -1175,7 +1198,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = OLD_MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 

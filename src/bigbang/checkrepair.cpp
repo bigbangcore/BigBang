@@ -2128,9 +2128,8 @@ bool CCheckRepairData::CheckTxIndex()
             dbTxIndex.Deinitialize();
             return false;
         }
-        int nCheckOkCount = 0;
         CBlockIndex* pBlockIndex = mt->second.pLast;
-        while (pBlockIndex && pBlockIndex != mt->second.pOrigin)
+        while (pBlockIndex)
         {
             const uint256& hashBlock = pBlockIndex->GetBlockHash();
             uint256 hashFork = pBlockIndex->GetOriginHash();
@@ -2147,11 +2146,10 @@ bool CCheckRepairData::CheckTxIndex()
                 return false;
             }
             const CBlockEx& block = at->second;
-            if (!(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+            if (!(block.IsVacant() || block.IsNull()))
             {
                 CBufStream ss;
                 CTxIndex txIndex;
-                bool bCheckFail = false;
 
                 uint32 nTxOffset = pBlockIndex->nOffset + block.GetTxSerializedOffset();
                 if (!dbTxIndex.Retrieve(hashFork, block.txMint.GetHash(), txIndex))
@@ -2160,7 +2158,6 @@ bool CCheckRepairData::CheckTxIndex()
                            block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.txMint.GetHash().GetHex().c_str());
 
                     mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                    bCheckFail = true;
                 }
                 else
                 {
@@ -2171,7 +2168,6 @@ bool CCheckRepairData::CheckTxIndex()
                                block.txMint.GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                         mapTxNew[hashFork].push_back(make_pair(block.txMint.GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                        bCheckFail = true;
                     }
                 }
                 nTxOffset += ss.GetSerializeSize(block.txMint);
@@ -2186,7 +2182,6 @@ bool CCheckRepairData::CheckTxIndex()
                                block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str());
 
                         mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                        bCheckFail = true;
                     }
                     else
                     {
@@ -2196,15 +2191,14 @@ bool CCheckRepairData::CheckTxIndex()
                                    block.GetBlockHeight(), block.GetHash().GetHex().c_str(), block.vtx[i].GetHash().GetHex().c_str(), txIndex.nOffset, nTxOffset);
 
                             mapTxNew[hashFork].push_back(make_pair(block.vtx[i].GetHash(), CTxIndex(block.GetBlockHeight(), pBlockIndex->nFile, nTxOffset)));
-                            bCheckFail = true;
                         }
                     }
                     nTxOffset += ss.GetSerializeSize(block.vtx[i]);
                 }
-                if (!bCheckFail && ++nCheckOkCount >= 128)
-                {
-                    break;
-                }
+            }
+            if (block.IsOrigin() || pBlockIndex == mt->second.pOrigin)
+            {
+                break;
             }
             pBlockIndex = pBlockIndex->pPrev;
         }
