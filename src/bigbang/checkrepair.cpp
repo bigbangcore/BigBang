@@ -2129,7 +2129,7 @@ bool CCheckRepairData::CheckTxIndex()
             return false;
         }
         CBlockIndex* pBlockIndex = mt->second.pLast;
-        while (pBlockIndex && pBlockIndex != mt->second.pOrigin)
+        while (pBlockIndex)
         {
             const uint256& hashBlock = pBlockIndex->GetBlockHash();
             uint256 hashFork = pBlockIndex->GetOriginHash();
@@ -2146,7 +2146,7 @@ bool CCheckRepairData::CheckTxIndex()
                 return false;
             }
             const CBlockEx& block = at->second;
-            if (!(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+            if (!(block.IsVacant() || block.IsNull()))
             {
                 CBufStream ss;
                 CTxIndex txIndex;
@@ -2195,6 +2195,10 @@ bool CCheckRepairData::CheckTxIndex()
                     }
                     nTxOffset += ss.GetSerializeSize(block.vtx[i]);
                 }
+            }
+            if (block.IsOrigin() || pBlockIndex == mt->second.pOrigin)
+            {
+                break;
             }
             pBlockIndex = pBlockIndex->pPrev;
         }
