@@ -517,7 +517,7 @@ bool CService::SignTransaction(CTransaction& tx, bool& fCompleted)
     }
 
     if (!fCompleted
-        || (pCoreProtocol->ValidateTransaction(tx, -1) == OK
+        || (pCoreProtocol->ValidateTransaction(tx, nHeight) == OK
             && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
     {
         return true;

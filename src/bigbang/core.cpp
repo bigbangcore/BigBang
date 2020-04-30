@@ -248,20 +248,27 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
     
-    int64 nTxFee = (nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT) ?  CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) : CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE);
-    if(nHeight == -1)
+    if(nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT)
     {
-        nTxFee = CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE);
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+            && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
     }
-    
-    if (!MoneyRange(tx.nTxFee)
-    || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-    || (tx.nType == CTransaction::TX_TOKEN
-        && tx.nTxFee < nTxFee))
+    else
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        if (!MoneyRange(tx.nTxFee)
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN
+            && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+        {
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
     }
-    
+     
     set<CTxOutPoint> setInOutPoints;
     for (const CTxIn& txin : tx.vInput)
     {

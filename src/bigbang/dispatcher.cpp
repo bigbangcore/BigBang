@@ -237,7 +237,17 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 {
     Errno err = OK;
-    err = pCoreProtocol->ValidateTransaction(tx, -1);
+    uint256 hashBlock;
+    int nHeight = 0;
+    int64 nTime = 0;
+    uint16 nMintType = 0;
+    if(!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
+    {
+        StdError("CDispatcher", "AddNewTx: GetLastBlock fail, fork: %s", pCoreProtocol->GetGenesisBlockHash().GetHex().c_str());
+        return ERR_NOT_FOUND;
+    }
+    
+    err = pCoreProtocol->ValidateTransaction(tx, nHeight);
     if (err != OK)
     {
         StdError("CDispatcher", "AddNewTx: ValidateTransaction fail, txid: %s", tx.GetHash().GetHex().c_str());
