@@ -324,9 +324,25 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
             return false;
         }
 
-        vtx.push_back(*static_cast<CTransaction*>(ptx));
-        nTotalSize += ptx->nSerializeSize;
-        nTotalTxFee += ptx->nTxFee;
+        if(!IsDposHeight)
+        {
+            vtx.push_back(*static_cast<CTransaction*>(ptx));
+            nTotalSize += ptx->nSerializeSize;
+            nTotalTxFee += ptx->nTxFee;
+        }
+        else
+        {
+            if(ptx->nTxFee >= CalcMinTxFee(ptx->vchData.size(), NEW_MIN_TX_FEE))
+            {
+                vtx.push_back(*static_cast<CTransaction*>(ptx));
+                nTotalSize += ptx->nSerializeSize;
+                nTotalTxFee += ptx->nTxFee;
+            }
+            else
+            {
+                setUnTx.insert(ptx->GetHash());
+            }
+        }
     }
     else
     {
