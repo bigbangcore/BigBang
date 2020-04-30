@@ -385,7 +385,6 @@ protected:
     }
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee);
-    void ArrangeVtx(const std::vector<CTransaction>& vtxIn, std::vector<CTransaction>& vtx, int64& nTotalTxFee, size_t nMaxSize, int nHeight);
 
 protected:
     storage::CTxPoolData datTxPool;

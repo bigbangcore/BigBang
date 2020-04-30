@@ -682,34 +682,6 @@ bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
     return true;
 }
 
-void CTxPool::ArrangeVtx(const std::vector<CTransaction>& vtxIn, std::vector<CTransaction>& vtx, int64& nTotalTxFee, size_t nMaxSize, int nHeight)
-{
-    nTotalTxFee = 0;
-    size_t currentSize = 0;
-    for (const auto& tx : vtxIn)
-    {
-        size_t nSerializeSize = xengine::GetSerializeSize(tx);
-        currentSize += nSerializeSize;
-        if (currentSize > nMaxSize)
-        {
-            break;
-        }
-        if (pCoreProtocol->IsDposHeight(nHeight))
-        {
-            if (tx.nTxFee >= CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE))
-            {
-                nTotalTxFee += tx.nTxFee;
-                vtx.push_back(tx);
-            }
-        }
-        else
-        {
-            nTotalTxFee += tx.nTxFee;
-            vtx.push_back(tx);
-        }
-    }
-}
-
 bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, size_t nMaxSize,
                              vector<CTransaction>& vtx, int64& nTotalTxFee)
 {
@@ -733,17 +705,27 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     const CTxPoolView& viewTx = mapPoolView[hashFork];
     if (hashPrev == viewTx.hashLastBlock)
     {
-        vector<CTransaction> tempVtx;
-        ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, tempVtx, nTotalTxFee);
-        ArrangeVtx(tempVtx, vtx, nTotalTxFee, nMaxSize, CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1);
-        
+        ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee);   
         //cache.AddNew(viewTx.hashLastBlock, vtx);
         StdDebug("CTxPool", "ArrangeBlockTx: hashPrev is last block, target height: %d, new vtx size: %ld, old vtx size: %ld, view tx count: %ld",
                  CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1, vtx.size(), vCacheTx.size(), viewTx.Count());
     }
     else
     {
-        ArrangeVtx(vCacheTx, vtx, nTotalTxFee, nMaxSize, CBlock::GetBlockHeightByHash(hashPrev) + 1);   
+        nTotalTxFee = 0;
+        size_t currentSize = 0;
+        for (const auto& tx : vCacheTx)
+        {
+            size_t nSerializeSize = xengine::GetSerializeSize(tx);
+            currentSize += nSerializeSize;
+            if (currentSize > nMaxSize)
+            {
+                break;
+            }
+            
+            nTotalTxFee += tx.nTxFee;
+            vtx.push_back(tx);
+        }
     }
     return true;
 }
