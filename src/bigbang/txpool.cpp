@@ -11,8 +11,6 @@
 using namespace std;
 using namespace xengine;
 
-#define DELEGATE_PROOF_OF_STAKE_HEIGHT (1)
-
 namespace bigbang
 {
 
@@ -696,7 +694,7 @@ void CTxPool::ArrangeVtx(const std::vector<CTransaction>& vtxIn, std::vector<CTr
         {
             break;
         }
-        if (nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT)
+        if (pCoreProtocol->IsDposHeight(nHeight))
         {
             if (tx.nTxFee >= CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE))
             {
