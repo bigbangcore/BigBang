@@ -37,7 +37,7 @@ public:
       : IBase("coreprotocol") {}
     virtual const uint256& GetGenesisBlockHash() = 0;
     virtual void GetGenesisBlock(CBlock& block) = 0;
-    virtual Errno ValidateTransaction(const CTransaction& tx) = 0;
+    virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
@@ -53,6 +53,7 @@ public:
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool IsDposHeight(int height) = 0;
+    virtual bool IsNewFeeHeight(int height) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t> mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight)
