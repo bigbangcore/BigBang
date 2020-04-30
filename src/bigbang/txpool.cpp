@@ -332,7 +332,7 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
         }
         else
         {
-            if (ptx->nTxFee >= CalcMinTxFee(ptx->vchData.size(), NEW_MIN_TX_FEE))
+            if (ptx->nType == CTransaction::TX_CERT || ptx->nTxFee >= CalcMinTxFee(ptx->vchData.size(), NEW_MIN_TX_FEE))
             {
                 vtx.push_back(*static_cast<CTransaction*>(ptx));
                 nTotalSize += ptx->nSerializeSize;
