@@ -164,6 +164,15 @@ bool CMQCluster::HandleInvoke()
         Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\npub topic:\n\t[%s]",
             clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
+
+//        for (int n = 0; n < 100; ++n)
+//        {
+            if (!PostBlockRequest(-1))
+            {
+                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+                return false;
+            }
+//        }
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
@@ -185,7 +194,18 @@ bool CMQCluster::HandleInvoke()
             "[%s][%s]", clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str());
-
+/*
+        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "DPOSNODE" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+        for (int n = 0; n < 100; ++n)
+        {
+            if (!PostBlockRequest(-1))
+            {
+                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+                return false;
+            }
+        }
+        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "FORKNODE-001" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+*/
         nodes.clear();
         if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
         {
@@ -279,11 +299,7 @@ bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
     Log("CMQCluster::HandleEvent(CEventMQChainUpdate): rollback-topic[%s]:forkheight[%d] forkhash[%s] shortlen[%d]",
         arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(), rbc.rbHeight, rbc.rbHash.ToString().c_str(), rbc.rbSize);
 
-    {
-        boost::unique_lock<boost::mutex> lock(mtxSend);
-        deqSendBuff.emplace_back(make_pair(arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK], spRBC));
-    }
-    condSend.notify_all();
+    AppendSendQueue(arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK], spRBC);
 
     Log("CMQCluster::HandleEvent(CEventMQChainUpdate): exiting forking event handler");
     return true;
@@ -931,8 +947,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
         else if (req.lastHeight == best)
         {
-            Log("CMQCluster::OnReceiveMessage(): block height owned by fork node[%s] "
-                "has reached the best one on dpos node, please wait...", req.forkNodeId.c_str());
+            Log("CMQCluster::OnReceiveMessage(): block height[%d] owned by fork node[%s] "
+                "has reached the best one on dpos node, please wait...", best, req.forkNodeId.c_str());
             resp.height = -1;
             resp.hash = uint256();
             resp.isBest = 1;
@@ -1084,18 +1100,19 @@ public:
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK], CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK], CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
@@ -1103,6 +1120,7 @@ public:
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_REQ_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
         cout << endl;
         mqCluster.LogEvent("[subscribed]");
@@ -1163,6 +1181,14 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
             cout << "Initializing for server '" << addrBroker << "'..." << endl;
             client.set_callback(cb);
             cout << "  ...OK" << endl;
+/*            client.set_message_callback([this](mqtt::const_message_ptr msg) {
+                Log("CMQCluster::ClientAgent(): entering lambda");
+                std::cout << msg->get_payload_str() << std::endl;
+                xengine::CBufStream ss;
+                ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
+                OnReceiveMessage(msg->get_topic(), ss);
+            });
+            cout << "  ...OK" << endl;*/
 
             cout << "\nConnecting..." << endl;
             conntok = client.connect();
@@ -1186,7 +1212,8 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 
                 mqtt::message_ptr pubmsg = mqtt::make_message(
                     buf.first, buf.second->GetData(), buf.second->GetSize());
-                pubmsg->set_qos(QOS1);
+//                pubmsg->set_qos(QOS1);
+                pubmsg->set_qos(QOS0);
                 if (string::npos != buf.first.find("AssignBizFork"))
                 {
                     Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
@@ -1198,7 +1225,8 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                 }
 //                delitok = client.publish(pubmsg, nullptr, cb);
-                delitok = client.publish(pubmsg);
+//                delitok = client.publish(pubmsg);
+                client.publish(pubmsg);
 /*                if (delitok->wait_for(100))
                 {
                     Log("CMQCluster::ClientAgent(): delivery token waiting success[%s]", buf.first.c_str());
@@ -1266,12 +1294,8 @@ void CMQCluster::MqttThreadFunc()
     ClientAgent(MQ_CLI_ACTION::SUB);
 
     if (NODE_CATEGORY::FORKNODE == catNode)
-    {
-        if (!PostBlockRequest(-1))
-        {
-            Error("CMQCluster::HandleInvoke(): failed to post requesting block");
-            return;
-        }
+    {   //wait for subscribing done before sending request for main chain block
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     //publish topics
