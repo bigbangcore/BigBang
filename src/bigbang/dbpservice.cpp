@@ -285,6 +285,19 @@ void CDbpService::HandleSendTransaction(CBbEventDbpMethod& event)
         return;
     }
 
+    if (!IsForkHash(rawTx.hashAnchor))
+    {
+        CBbEventDbpMethodResult eventResult(event.strSessionId);
+        eventResult.data.id = event.data.id;
+        CBbDbpSendTransactionRet sendTxRet;
+        sendTxRet.hash = data;
+        sendTxRet.result = "failed";
+        sendTxRet.reason = "Invalid hashAnchor";
+        eventResult.data.anyResultObjs.push_back(sendTxRet);
+        pDbpServer->DispatchEvent(&eventResult);
+        return;
+    }
+
     Errno err = pService->SendTransaction(rawTx);
     if (err == OK)
     {
