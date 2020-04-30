@@ -34,11 +34,11 @@ inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
     }
     if (multiplier > 5)
     {
-        return nMinFee + 1000 + (multiplier - 5) * 400;
+        return nMinFee + nMinFee * 10 + (multiplier - 5) * nMinFee * 4;
     }
     else
     {
-        return nMinFee + multiplier * 200;
+        return nMinFee + multiplier * nMinFee * 2;
     }
 }
 

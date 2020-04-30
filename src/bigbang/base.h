@@ -37,7 +37,7 @@ public:
       : IBase("coreprotocol") {}
     virtual const uint256& GetGenesisBlockHash() = 0;
     virtual void GetGenesisBlock(CBlock& block) = 0;
-    virtual Errno ValidateTransaction(const CTransaction& tx) = 0;
+    virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
