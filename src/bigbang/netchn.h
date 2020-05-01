@@ -321,6 +321,11 @@ protected:
     void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
     void InnerSubmitCachePowBlock();
 
+    const CBasicConfig* Config()
+    {
+        return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
+    }
+
 protected:
     network::CBbPeerNet* pPeerNet;
     ICoreProtocol* pCoreProtocol;
