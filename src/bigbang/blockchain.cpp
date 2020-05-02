@@ -1384,7 +1384,8 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     else
     {
         // Vacant block
-        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime() && 
+        pIndexPrev->pOrigin->GetBlockHash().GetHex() != "000337b7a1b94aa82e0e039fffbdf633993ed09a9a0e00746461f5f109e50d95")
         {
             return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
         }
