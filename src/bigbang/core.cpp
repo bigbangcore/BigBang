@@ -244,7 +244,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    if (nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT)
+    if (IsDposHeight(nHeight))
     {
         if (!MoneyRange(tx.nTxFee)
             || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
@@ -262,6 +262,24 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                 && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
+    }
+
+    if (!IsDposHeight(nHeight))
+    {
+        if (tx.sendTo.IsTemplate())
+        {
+            CTemplateId tid;
+            if (!tx.sendTo.GetTemplateId(tid))
+            {
+                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 1");
+            }
+            if (tid.GetType() == TEMPLATE_FORK
+                || tid.GetType() == TEMPLATE_DELEGATE
+                || tid.GetType() == TEMPLATE_VOTE)
+            {
+                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
+            }
         }
     }
 
