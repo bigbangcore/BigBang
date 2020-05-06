@@ -365,6 +365,14 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
     }
+    if (!MoneyRange(forkProfile.nAmount))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork amount");
+    }
+    if (!RewardRange(forkProfile.nMintReward))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork reward");
+    }
     if (parentProfile.IsPrivate())
     {
         if (!forkProfile.IsPrivate() || parentProfile.destOwner != forkProfile.destOwner)

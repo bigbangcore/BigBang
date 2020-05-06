@@ -2200,6 +2200,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
     int64 nMintReward = AmountFromValue(spParam->dReward);
+    if (!RewardRange(nMintReward))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
+    }
 
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)

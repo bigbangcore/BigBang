@@ -11,10 +11,15 @@ static const int64 COIN = 1000000;
 static const int64 CENT = 10000;
 static const int64 OLD_MIN_TX_FEE = CENT / 100;
 static const int64 NEW_MIN_TX_FEE = CENT;
-static const int64 MAX_MONEY = 1000000000 * COIN;
+static const int64 MAX_MONEY = 1000000000000 * COIN;
 inline bool MoneyRange(int64 nValue)
 {
     return (nValue >= 0 && nValue <= MAX_MONEY);
+}
+static const int64 MAX_REWARD_MONEY = 10000 * COIN;
+inline bool RewardRange(int64 nValue)
+{
+    return (nValue >= 0 && nValue <= MAX_REWARD_MONEY);
 }
 
 static const unsigned int MAX_BLOCK_SIZE = 2000000;
