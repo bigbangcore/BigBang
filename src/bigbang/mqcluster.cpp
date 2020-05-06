@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <thread> // For sleep
+#include <future>
 
 #include "async_client.h"
 
@@ -1146,9 +1147,17 @@ public:
         cout << "\tpayload: '" << msg->to_string() << "'\n"
              << endl;
         mqCluster.LogEvent("[message_arrived]");
-        xengine::CBufStream ss;
-        ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
-        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+//        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+        mqCluster.LogEvent("[asyncing...]");
+        std::async(std::launch::async,
+            [this, &msg] () {
+            mqCluster.LogEvent("[entered, handling recv...]");
+            xengine::CBufStream ss;
+            ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
+            mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+            mqCluster.LogEvent("[handled recv]");
+        });
+        mqCluster.LogEvent("[asynced]");
     }
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override
@@ -1203,17 +1212,30 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
-            while (!deqSendBuff.empty())
+            pair<string, CBufferPtr> buf;
+
+            {
+                boost::unique_lock<boost::mutex> lock(mtxSend);
+                if (deqSendBuff.empty())
+                {
+                    Log("CMQCluster::ClientAgent(): there is no message to send");
+                    return true;
+                }
+                Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
+                buf = deqSendBuff.front();
+            }
+
+//            while (!deqSendBuff.empty())
             {
                 Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
-                pair<string, CBufferPtr> buf = deqSendBuff.front();
+//                pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
                 buf.second->Dump();
 
                 mqtt::message_ptr pubmsg = mqtt::make_message(
                     buf.first, buf.second->GetData(), buf.second->GetSize());
-//                pubmsg->set_qos(QOS1);
-                pubmsg->set_qos(QOS0);
+                pubmsg->set_qos(QOS1);
+//                pubmsg->set_qos(QOS0);
                 if (string::npos != buf.first.find("AssignBizFork"))
                 {
                     Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
@@ -1236,7 +1258,22 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     Error("CMQCluster::ClientAgent(): delivery token waiting fail[%s]", buf.first.c_str());
                 }*/
 
-                deqSendBuff.pop_front();
+//                deqSendBuff.pop_front();
+            }
+
+            {
+                boost::unique_lock<boost::mutex> lock(mtxSend);
+                if (!deqSendBuff.empty())
+                {
+                    Log("CMQCluster::ClientAgent(): pop front of sending deque");
+                    deqSendBuff.pop_front();
+                    return true;
+                }
+                else
+                {
+                    Error("CMQCluster::ClientAgent(): it should not be empty here");
+                    return false;
+                }
             }
 
             break;
@@ -1307,9 +1344,9 @@ void CMQCluster::MqttThreadFunc()
             {
                 condSend.wait(lock);
             }
-            ClientAgent(MQ_CLI_ACTION::PUB);
         }
-        condSend.notify_all();
+        ClientAgent(MQ_CLI_ACTION::PUB);
+//        condSend.notify_all();
         Log("thread function of MQTT: go through an iteration");
     }
 
