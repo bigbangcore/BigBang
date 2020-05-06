@@ -33,6 +33,14 @@
             "desc": "Identification of dpos node used by fork nodes in the same cluster"
         },
         {
+            "name": "strTopicPrefix",
+            "type": "string",
+            "opt": "topicprefix",
+            "default": "Cluster0x/",
+            "format": "-topicprefix",
+            "desc": "Prefix of topic for one super node MQ cluster"
+        },
+        {
             "name": "fWallet",
             "type": "bool",
             "opt": "wallet",

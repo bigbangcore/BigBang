@@ -87,6 +87,7 @@ bool CMQCluster::HandleInitialize()
 
     addrBroker = dynamic_cast<const CBasicConfig*>(Config())->strMQBrokerURI;
     dposNodeCliID = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+    prefixTopic = dynamic_cast<const CBasicConfig*>(Config())->strTopicPrefix;
 
     return true;
 }
@@ -1147,7 +1148,11 @@ public:
         cout << "\tpayload: '" << msg->to_string() << "'\n"
              << endl;
         mqCluster.LogEvent("[message_arrived]");
-//        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+/*
+        xengine::CBufStream ss;
+        ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
+        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+*/
         mqCluster.LogEvent("[asyncing...]");
         std::async(std::launch::async,
             [this, &msg] () {

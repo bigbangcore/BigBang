@@ -181,7 +181,8 @@ private:
     bool fAbort;
     std::string addrBroker;
     std::string dposNodeCliID;
-    const std::string prefixTopic = "Cluster01/";
+//    const std::string prefixTopic = "Cluster01/";
+    std::string prefixTopic;
     enum
     {
         TOPIC_SUFFIX_REQ_BLOCK = 0,
