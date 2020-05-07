@@ -65,6 +65,34 @@ public:
 class IBlockChain : public xengine::IBase
 {
 public:
+    class CCheckPoint
+    {
+    public:
+        CCheckPoint()
+          : nHeight(-1)
+        {
+        }
+        CCheckPoint(int nHeightIn, const uint256& nBlockHashIn)
+          : nHeight(nHeightIn), nBlockHash(nBlockHashIn)
+        {
+        }
+        CCheckPoint(const CCheckPoint& point)
+          : nHeight(point.nHeight), nBlockHash(point.nBlockHash)
+        {
+        }
+        CCheckPoint& operator=(const CCheckPoint& point)
+        {
+            nHeight = point.nHeight;
+            nBlockHash = point.nBlockHash;
+            return *this;
+        }
+
+    public:
+        int nHeight;
+        uint256 nBlockHash;
+    };
+
+public:
     IBlockChain()
       : IBase("blockchain") {}
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
@@ -100,6 +128,15 @@ public:
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
+
+    /////////////    CheckPoints    /////////////////////
+    virtual bool HasCheckPoints() const = 0;
+    virtual bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) = 0;
+    virtual std::vector<CCheckPoint> CheckPoints() const = 0;
+    virtual CCheckPoint LatestCheckPoint() const = 0;
+    virtual bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) = 0;
+    virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
+
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
     virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
