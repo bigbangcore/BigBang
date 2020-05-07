@@ -1115,6 +1115,12 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
         }
         else if (pIndexPrev != nullptr)
         {
+            if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
+            {
+                StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+                return false;
+            }
+
             // Get the last PoW block nAlgo
             int nAlgo;
             const CBlockIndex* pIndex = pIndexPrev;
@@ -1140,23 +1146,12 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
                     StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
                     return false;
                 }
-                if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeEnrollTrustHeight)
+                if (nEnrollTrust <= 0)
                 {
-                    if (nEnrollTrust <= 0)
-                    {
-                        StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-                        return false;
-                    }
-                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+                    StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+                    return false;
                 }
-                else if (pIndexPrev->GetBlockHeight() >= objProofParam.nDelegateProofOfStakeNewTrustHeight)
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
-                }
-                else
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
-                }
+                nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
             }
             else
             {
@@ -1230,13 +1225,27 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
         }
     }
     nSpacing /= nWeight;
-    if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
+    if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
     {
-        nBits--;
+        if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
     }
-    else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
+    else
     {
-        nBits++;
+        if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
+        {
+            nBits--;
+        }
+        else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
+        {
+            nBits++;
+        }
     }
     return true;
 }

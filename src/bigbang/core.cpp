@@ -32,6 +32,8 @@ static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
+static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
+static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN; //30000000 * COIN;
@@ -41,14 +43,6 @@ static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT = 1;
-static const uint32 DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_ = 1;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -114,6 +108,8 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     pBlockChain = nullptr;
 }
 
@@ -408,33 +404,23 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
+    if (IsDposHeight(block.GetBlockHeight()))
     {
-        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
-        {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
-                         block.GetBlockHeight(), block.GetBlockTime(),
-                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
-        }
-    }
-    else if (block.GetBlockHeight() < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
-    {
-        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), CTransaction::TX_WORK, block.GetBlockHeight());
+        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
         if (block.GetBlockTime() < nNextTimestamp)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Verify proof work: Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
                          block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
                          pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
     else
     {
-        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
-        if (block.GetBlockTime() < nNextTimestamp)
+        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 3, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
-                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
-                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
+                         block.GetBlockHeight(), block.GetBlockTime(),
+                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
         }
     }
 
@@ -737,6 +723,12 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
         }
         else if (pIndexPrev != nullptr)
         {
+            if (!IsDposHeight(block.GetBlockHeight()))
+            {
+                StdError("CCoreProtocol", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+                return false;
+            }
+
             // Get the last PoW block nAlgo
             int nAlgo;
             const CBlockIndex* pIndex = pIndexPrev;
@@ -763,23 +755,12 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
                     StdError("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
                     return false;
                 }
-                if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT)
+                if (nEnrollTrust <= 0)
                 {
-                    if (nEnrollTrust <= 0)
-                    {
-                        StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-                        return false;
-                    }
-                    nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+                    StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+                    return false;
                 }
-                else if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT)
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight + 5)) << nBits;
-                }
-                else
-                {
-                    nChainTrust = uint256(uint64(agreement.nWeight)) << nBits;
-                }
+                nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
             }
             else
             {
@@ -867,24 +848,14 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
         }
     }
     nSpacing /= nWeight;
-    if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT_)
+
+    if (IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
     {
-        if (nSpacing > 65 && nBits > nProofOfWorkLowerLimit)
+        if (nSpacing > nProofOfWorkUpperTargetOfDpos && nBits > nProofOfWorkLowerLimit)
         {
             nBits--;
         }
-        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
-    }
-    else if (pIndexPrev->GetBlockHeight() + 1 >= DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
-    {
-        if (nSpacing > 60 && nBits > nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < 40 && nBits < nProofOfWorkUpperLimit)
+        else if (nSpacing < nProofOfWorkLowerTargetOfDpos && nBits < nProofOfWorkUpperLimit)
         {
             nBits++;
         }
@@ -1021,74 +992,20 @@ uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
     {
         return 0;
     }
-
-    uint32 nTimeStamp = 0;
-    if (pIndexPrev->GetBlockHeight() >= DELEGATE_PROOF_OF_STAKE_NEW_TIEM_HEIGHT)
-    {
-        if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_NETCACHE_HEIGHT)
-        {
-            nTimeStamp = pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
-        }
-        else if (pIndexPrev->GetBlockHeight() + 1 < DELEGATE_PROOF_OF_STAKE_DPOSTIME_HEIGHT)
-        {
-            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_WORK, pIndexPrev->GetBlockHeight() + 1);
-        }
-        else
-        {
-            nTimeStamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->nTimeStamp, CTransaction::TX_STAKE, pIndexPrev->GetBlockHeight() + 1);
-        }
-    }
-    else
-    {
-        const CBlockIndex* pIndex = pIndexPrev;
-        while (pIndex->IsProofOfWork() && pIndex->nHeight > DELEGATE_PROOF_OF_STAKE_HEIGHT && pIndex->pPrev != nullptr)
-        {
-            pIndex = pIndex->pPrev;
-        }
-
-        nTimeStamp = pIndex->nTimeStamp + BLOCK_TARGET_SPACING * (pIndexPrev->nHeight - pIndex->nHeight + 1);
-        if (nTimeStamp <= pIndexPrev->nTimeStamp)
-        {
-            nTimeStamp = pIndexPrev->nTimeStamp + BLOCK_TARGET_SPACING;
-        }
-    }
-    return nTimeStamp;
+    return pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
 }
 
 uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight)
 {
-    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_POWTIME_HEIGHT)
+    if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
     {
-        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
+        if (nTargetMintType == CTransaction::TX_STAKE)
         {
-            if (nTargetMintType == CTransaction::TX_STAKE)
-            {
-                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
-            }
-            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
+            return nPrevTimeStamp + BLOCK_TARGET_SPACING;
         }
-        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
+        return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
     }
-    if (nTargetHeight < DELEGATE_PROOF_OF_STAKE_DPOS_60TIME_HEIGHT)
-    {
-        if (nTargetMintType == CTransaction::TX_WORK)
-        {
-            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
-        }
-        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
-    }
-    else
-    {
-        if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
-        {
-            if (nTargetMintType == CTransaction::TX_STAKE)
-            {
-                return nPrevTimeStamp + BLOCK_TARGET_SPACING;
-            }
-            return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
-        }
-        return nPrevTimeStamp + BLOCK_TARGET_SPACING;
-    }
+    return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
@@ -1218,6 +1135,8 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     if (fTestnet)
     {
         nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
@@ -1229,8 +1148,16 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
     nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
-    nDelegateProofOfStakeNewTrustHeight = DELEGATE_PROOF_OF_STAKE_NEW_TRUST_HEIGHT;
-    nDelegateProofOfStakeEnrollTrustHeight = DELEGATE_PROOF_OF_STAKE_ENROLL_TRUST_HEIGHT;
+    nDelegateProofOfStakeHeight = DELEGATE_PROOF_OF_STAKE_HEIGHT;
+}
+
+bool CProofOfWorkParam::IsDposHeight(int height)
+{
+    if (height < nDelegateProofOfStakeHeight)
+    {
+        return false;
+    }
+    return true;
 }
 
 } // namespace bigbang
