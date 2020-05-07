@@ -269,7 +269,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         }
     }
 
-    if (!IsDposHeight(nHeight))
+    if (nHeight != 0 && !IsDposHeight(nHeight))
     {
         if (tx.sendTo.IsTemplate())
         {
