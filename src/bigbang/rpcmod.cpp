@@ -78,7 +78,7 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
 }
 
 static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
-                                 const uint256& hashFork,const uint256& blockHash, int nDepth, const string& fromAddr = string())
+                                 const uint256& hashFork, const uint256& blockHash, int nDepth, const string& fromAddr = string())
 {
     CTransactionData ret;
     ret.strTxid = txid.GetHex();
@@ -683,13 +683,14 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     for (size_t i = 0; i < vFork.size(); i++)
     {
         CProfile& profile = vFork[i].second;
-        auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
-        if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
+        //auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
+        //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
+        if (pForkManager->IsAllowed(vFork[i].first))
         {
             spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
-                                            (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
-                                            profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
-                                            CAddress(profile.destOwner).ToString() });
+                                             (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
+                                             profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
+                                             CAddress(profile.destOwner).ToString() });
         }
     }
 
@@ -854,9 +855,9 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this block's mint transaction");
     }
-    if(fork != pCoreProtocol->GetGenesisBlockHash())
+    if (fork != pCoreProtocol->GetGenesisBlockHash())
     {
-        nDepth = nDepth*30;
+        nDepth = nDepth * 30;
     }
     data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, hashBlock, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
@@ -957,25 +958,25 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     }
 
     uint256 hashBlock;
-    if(hashFork != pCoreProtocol->GetGenesisBlockHash())
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
     {
         nDepth = nDepth * 30;
     }
 
-    if(nHeight != -1)
+    if (nHeight != -1)
     {
         std::vector<uint256> vHashBlock;
-        if(!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
+        if (!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
         {
             throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
         }
 
-        for(const auto& hash : vHashBlock)
+        for (const auto& hash : vHashBlock)
         {
             CBlock block;
             uint256 tempHashFork;
             int tempHeight = 0;
-            if(!pService->GetBlock(hash, block, tempHashFork, tempHeight))
+            if (!pService->GetBlock(hash, block, tempHashFork, tempHeight))
             {
                 throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the block");
             }
@@ -984,7 +985,7 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
                 return txid == tx.GetHash();
             });
 
-            if(iter != block.vtx.end())
+            if (iter != block.vtx.end())
             {
                 hashBlock = hash;
                 break;
@@ -2200,6 +2201,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
     int64 nMintReward = AmountFromValue(spParam->dReward);
+    if (!RewardRange(nMintReward))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
+    }
 
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)

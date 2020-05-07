@@ -42,7 +42,7 @@ static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 250000;
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -244,7 +244,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    if (nHeight >= DELEGATE_PROOF_OF_STAKE_HEIGHT)
+    if (IsDposHeight(nHeight))
     {
         if (!MoneyRange(tx.nTxFee)
             || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
@@ -262,6 +262,24 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                 && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+        }
+    }
+
+    if (nHeight != 0 && !IsDposHeight(nHeight))
+    {
+        if (tx.sendTo.IsTemplate())
+        {
+            CTemplateId tid;
+            if (!tx.sendTo.GetTemplateId(tid))
+            {
+                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 1");
+            }
+            if (tid.GetType() == TEMPLATE_FORK
+                || tid.GetType() == TEMPLATE_DELEGATE
+                || tid.GetType() == TEMPLATE_VOTE)
+            {
+                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
+            }
         }
     }
 
@@ -360,6 +378,14 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     if (forkProfile.IsNull())
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
+    }
+    if (!MoneyRange(forkProfile.nAmount))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork amount");
+    }
+    if (!RewardRange(forkProfile.nMintReward))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork reward");
     }
     if (parentProfile.IsPrivate())
     {
