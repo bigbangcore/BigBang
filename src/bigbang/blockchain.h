@@ -6,10 +6,10 @@
 #define BIGBANG_BLOCKCHAIN_H
 
 #include <map>
+#include <uint256.h>
 
 #include "base.h"
 #include "blockbase.h"
-
 namespace bigbang
 {
 
@@ -63,6 +63,14 @@ public:
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
 
+    /////////////    CheckPoints    /////////////////////
+    bool HasCheckPoints() const override;
+    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) override;
+    std::vector<CCheckPoint> CheckPoints() const override;
+    CCheckPoint LatestCheckPoint() const override;
+    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
+    bool FindPreviousCheckPointBlock(CBlock& block) override;
+
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -81,6 +89,8 @@ protected:
                       int64& nReward, CDelegateAgreement& agreement, std::size_t& nEnrollTrust, CBlockIndex** ppIndexRef);
     bool VerifyBlockCertTx(const CBlock& block);
 
+    void InitCheckPoints();
+
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
@@ -88,6 +98,9 @@ protected:
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
+
+    std::map<int, CCheckPoint> mapCheckPoints;
+    std::vector<CCheckPoint> vecCheckPoints;
 };
 
 } // namespace bigbang
