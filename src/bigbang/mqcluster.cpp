@@ -86,7 +86,15 @@ bool CMQCluster::HandleInitialize()
     }
 
     addrBroker = dynamic_cast<const CBasicConfig*>(Config())->strMQBrokerURI;
-    dposNodeCliID = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        dposNodeCliID = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+        if (dposNodeCliID.empty())
+        {
+            Error("DPOS NODE CLIENT ID should not be empty for fork node");
+            return false;
+        }
+    }
     prefixTopic = dynamic_cast<const CBasicConfig*>(Config())->strTopicPrefix;
 
     return true;
