@@ -1688,12 +1688,9 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTemplateId tid;
-    int lastHeight = pService->GetForkHeight(pCoreProtocol->GetGenesisBlockHash());
-    int64 mortgageAmount = CTemplateFork::LockedCoin(lastHeight);
-    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-        && nAmount < mortgageAmount)
+    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
     {
-        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(mortgageAmount) + " for creating fork");
+        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
     CTransaction txNew;
@@ -1813,6 +1810,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
             nTxFee = nFee;
         }
         StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
+    CTemplateId tid;
+    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "create transaction nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
     CTransaction txNew;

@@ -197,6 +197,7 @@ public:
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
+    virtual bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const = 0;
     const CForkConfig* ForkConfig()
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());
