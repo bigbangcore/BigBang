@@ -25,6 +25,9 @@ public:
     virtual void BroadcastTxInv(const uint256& hashFork) = 0;
     virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
+    virtual bool SubmitCachePowBlock(const CConsensusParam& consParam) = 0;
+    virtual bool IsLocalCachePowBlock(int nHeight) = 0;
+    virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
@@ -33,9 +36,10 @@ public:
     IDelegatedChannel()
       : IIOModule("delegatedchannel") {}
     virtual void PrimaryUpdate(int nStartHeight,
-                               const std::vector<std::pair<int, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapDistributeData,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData)
+                               const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
+                               const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
+                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
+                               const uint256& hashDistributeOfPublish, int64 nPublishTime)
         = 0;
 };
 
@@ -91,7 +95,7 @@ protected:
 
 protected:
     INetChannel* pNetChannel;
-    // IDelegatedChannel* pDelegatedChannel;
+    IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

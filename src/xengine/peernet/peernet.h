@@ -42,6 +42,8 @@ public:
     CNetHost gateWayAddr;
     std::size_t nMaxOutBounds;
     unsigned short nPortDefault;
+    std::string strSocketBindLocalIpV4;
+    std::string strSocketBindLocalIpV6;
 };
 
 class CPeerNet : public CIOProc, virtual public CPeerEventListener

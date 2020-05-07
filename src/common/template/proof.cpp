@@ -105,10 +105,10 @@ void CTemplateProof::BuildTemplateData()
     os << keyMint << destSpend;
 }
 
-bool CTemplateProof::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplateProof::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                        const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    return destSpend.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+    return destSpend.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }
 
 bool CTemplateProof::VerifyBlockSignature(const uint256& hash, const vector<uint8>& vchSig) const

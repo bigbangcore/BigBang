@@ -202,7 +202,8 @@ class CSchedule
     {
     public:
         CInvState()
-          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nGetDataCount(0), fRepeatMintBlock(false) {}
+          : nAssigned(0), objReceived(CNil()), nRecvInvTime(0), nRecvObjTime(0), nClearObjTime(0),
+            nGetDataCount(0), fRepeatMintBlock(false), fVerifyPowBlock(false) {}
         bool IsReceived()
         {
             return (objReceived.type() != typeid(CNil));
@@ -214,8 +215,10 @@ class CSchedule
         std::set<uint64> setKnownPeer;
         int64 nRecvInvTime;
         int64 nRecvObjTime;
+        int64 nClearObjTime;
         int nGetDataCount;
         bool fRepeatMintBlock;
+        bool fVerifyPowBlock;
     };
 
 public:
@@ -228,7 +231,10 @@ public:
         MAX_INV_WAIT_TIME = 3600,
         MAX_OBJ_WAIT_TIME = 7200,
         MAX_REPEAT_BLOCK_TIME = 180,
-        MAX_REPEAT_BLOCK_COUNT = 4
+        MAX_REPEAT_BLOCK_COUNT = 4,
+        MAX_SUB_BLOCK_DELAYED_TIME = 120,
+        MAX_CERTTX_DELAYED_TIME = 180,
+        MAX_SUBMIT_POW_TIMEOUT = 10
     };
 
 public:
@@ -259,6 +265,20 @@ public:
     void SetNextGetBlocksTime(uint64 nPeerNonce, int nWaitTime);
     bool SetRepeatBlock(uint64 nNonce, const uint256& hash);
     bool IsRepeatBlock(const uint256& hash);
+    void AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashBlock);
+    void RemoveRefBlock(const uint256& hash);
+    void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
+    bool SetDelayedClear(const network::CInv& inv, int64 nDelayedTime);
+    void GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash);
+    bool GetFirstCachePowBlock(int nHeight, uint256& hashFirstBlock);
+    bool AddCacheLocalPowBlock(const CBlock& block, bool& fFirst);
+    bool CheckCacheLocalPowBlock(int nHeight);
+    bool GetCacheLocalPowBlock(const uint256& hash, CBlock& block);
+    void RemoveCacheLocalPowBlock(const uint256& hash);
+    bool GetCachePowBlock(const uint256& hash, CBlock& block);
+    void RemoveHeightBlock(int nHeight, const uint256& hash);
+    bool GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut);
+    void SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);
@@ -271,6 +291,9 @@ protected:
     std::map<uint64, CInvPeer> mapPeer;
     std::map<network::CInv, CInvState> mapState;
     std::set<network::CInv> setMissPrevTxInv;
+    std::multimap<uint256, std::pair<uint256, uint256>> mapRefBlock;
+    std::map<int, std::vector<std::pair<uint256, int>>> mapHeightBlock;
+    std::map<int, CBlock> mapKcPowBlock;
 };
 
 } // namespace bigbang

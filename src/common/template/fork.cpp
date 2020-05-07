@@ -12,7 +12,8 @@
 using namespace std;
 using namespace xengine;
 
-const int64 MORTGAGE_BASE = 10000000000;    // initial mortgage
+static const int64 COIN = 1000000;
+const int64 MORTGAGE_BASE = 100000 * COIN;  // initial mortgage
 const int32 MORTGAGE_DECAY_CYCLE = 525600;  // decay cycle
 const double MORTGAGE_DECAY_QUANTITY = 0.5; // decay quantity
 
@@ -48,14 +49,14 @@ void CTemplateFork::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDesti
     obj.fork.strRedeem = (destInstance = destRedeem).ToString();
 }
 
-int64 CTemplateFork::LockedCoin(const int32 nForkHeight)
+int64 CTemplateFork::CreatedCoin()
 {
-    return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, nForkHeight / MORTGAGE_DECAY_CYCLE));
+    return MORTGAGE_BASE;
 }
 
 int64 CTemplateFork::LockedCoin(const CDestination& destTo, const int32 nForkHeight) const
 {
-    return LockedCoin(nForkHeight);
+    return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, nForkHeight / MORTGAGE_DECAY_CYCLE));
 }
 
 bool CTemplateFork::ValidateParam() const
@@ -117,8 +118,8 @@ void CTemplateFork::BuildTemplateData()
     os << destRedeem << hashFork;
 }
 
-bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplateFork::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                       const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    return destRedeem.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+    return destRedeem.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

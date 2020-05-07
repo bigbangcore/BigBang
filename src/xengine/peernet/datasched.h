@@ -142,7 +142,6 @@ public:
             for (std::set<uint64>::iterator si = known.setKnownPeer.begin(); si != known.setKnownPeer.end(); ++si)
             {
                 mapPeer[(*si)]->listDataIdent.remove(ident);
-                ;
             }
             uint64 nAssigned = known.GetAssignedPeer();
             if (nAssigned != 0)

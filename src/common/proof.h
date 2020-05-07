@@ -35,7 +35,7 @@ public:
         {
             FromStream(is);
         }
-        catch(const std::exception& e)
+        catch (const std::exception& e)
         {
             xengine::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
@@ -110,7 +110,7 @@ public:
 public:
     enum
     {
-        PROOFHASHWORK_SIZE = 43//67
+        PROOFHASHWORK_SIZE = 43 //67
     };
     void Save(std::vector<unsigned char>& vchProof)
     {
@@ -142,6 +142,21 @@ public:
         p += 32;
         nNonce = *((uint64_t*)p);
     }
+};
+
+class CConsensusParam
+{
+public:
+    CConsensusParam()
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fPow(false), ret(false) {}
+
+    uint256 hashPrev;
+    int64 nPrevTime;
+    int nPrevHeight;
+    uint16 nPrevMintType;
+    int64 nWaitTime;
+    bool fPow;
+    bool ret;
 };
 
 #endif //COMMON_PROOF_H

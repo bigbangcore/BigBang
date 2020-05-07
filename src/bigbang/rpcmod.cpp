@@ -9,12 +9,14 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/regex.hpp>
 #include <regex>
 //#include <algorithm>
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
+#include "template/fork.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -76,7 +78,7 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
 }
 
 static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
-                                 const uint256& hashFork, int nDepth, const string& fromAddr = string())
+                                 const uint256& hashFork, const uint256& blockHash, int nDepth, const string& fromAddr = string())
 {
     CTransactionData ret;
     ret.strTxid = txid.GetHex();
@@ -85,6 +87,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.nTime = tx.nTimeStamp;
     ret.nLockuntil = tx.nLockUntil;
     ret.strAnchor = tx.hashAnchor.GetHex();
+    ret.strBlockhash = (!blockHash) ? std::string() : blockHash.GetHex();
     for (const CTxIn& txin : tx.vInput)
     {
         CTransactionData::CVin vin;
@@ -163,6 +166,7 @@ CRPCMod::CRPCMod()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+    pForkManager = nullptr;
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
@@ -203,6 +207,10 @@ CRPCMod::CRPCMod()
         ("sendtransaction", &CRPCMod::RPCSendTransaction)
         //
         ("getforkheight", &CRPCMod::RPCGetForkHeight)
+        //
+        ("getvotes", &CRPCMod::RPCGetVotes)
+        //
+        ("listdelegate", &CRPCMod::RPCListDelegate)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
         //
@@ -308,7 +316,11 @@ bool CRPCMod::HandleInitialize()
         Error("Failed to request datastat");
         return false;
     }
-
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
+        return false;
+    }
     fWriteRPCLog = RPCServerConfig()->fRPCLogEnable;
 
     return true;
@@ -320,6 +332,7 @@ void CRPCMod::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pService = nullptr;
     pDataStat = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
@@ -666,15 +679,19 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     auto spParam = CastParamPtr<CListForkParam>(param);
     vector<pair<uint256, CProfile>> vFork;
     pService->ListFork(vFork, spParam->fAll);
-
     auto spResult = MakeCListForkResultPtr();
     for (size_t i = 0; i < vFork.size(); i++)
     {
         CProfile& profile = vFork[i].second;
-        spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
-                                         (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
-                                         profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
-                                         CAddress(profile.destOwner).ToString() });
+        //auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
+        //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
+        if (pForkManager->IsAllowed(vFork[i].first))
+        {
+            spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
+                                             (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
+                                             profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
+                                             CAddress(profile.destOwner).ToString() });
+        }
     }
 
     return spResult;
@@ -831,14 +848,18 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     }
     data.strFork = fork.GetHex();
     data.nHeight = height;
-    int nDepth = height < 0 ? 0 : pService->GetBlockCount(fork) - height;
+    int nDepth = height < 0 ? 0 : pService->GetForkHeight(fork) - height;
     CAddress fromMint;
-    if (!pService->GetTxSender(block.txMint.GetHash(), fromMint))
+    if (!pService->GetTxSender(block.txMint, fromMint))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this block's mint transaction");
     }
-    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, fork, nDepth, fromMint.ToString());
+    if (fork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        nDepth = nDepth * 30;
+    }
+    data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, hashBlock, fork, nDepth, fromMint.ToString());
     if (block.IsProofOfWork())
     {
         CProofOfHashWorkCompact proof;
@@ -852,12 +873,12 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(CRPCParamPtr param)
     for (const CTransaction& tx : block.vtx)
     {
         CAddress from;
-        if (!pService->GetTxSender(tx.GetHash(), from))
+        if (!pService->GetTxSender(tx, from))
         {
             throw CRPCException(RPC_INTERNAL_ERROR,
                                 "No information available about the previous ones of this block's transactions");
         }
-        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, nDepth, from.ToString()));
+        data.vecTx.push_back(TxToJSON(tx.GetHash(), tx, fork, hashBlock, nDepth, from.ToString()));
     }
     return MakeCgetblockdetailResultPtr(data);
 }
@@ -929,13 +950,50 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
         return spResult;
     }
 
-    int nDepth = nHeight < 0 ? 0 : pService->GetBlockCount(hashFork) - nHeight;
+    int nDepth = nHeight < 0 ? 0 : pService->GetForkHeight(hashFork) - nHeight;
     CAddress from;
-    if (!pService->GetTxSender(txid, from))
+    if (!pService->GetTxSender(tx, from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the previous one of this transaction");
     }
-    spResult->transaction = TxToJSON(txid, tx, hashFork, nDepth, from.ToString());
+
+    uint256 hashBlock;
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        nDepth = nDepth * 30;
+    }
+
+    if (nHeight != -1)
+    {
+        std::vector<uint256> vHashBlock;
+        if (!pService->GetBlockHash(hashFork, nHeight, vHashBlock))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the vector of block hash");
+        }
+
+        for (const auto& hash : vHashBlock)
+        {
+            CBlock block;
+            uint256 tempHashFork;
+            int tempHeight = 0;
+            if (!pService->GetBlock(hash, block, tempHashFork, tempHeight))
+            {
+                throw CRPCException(RPC_INTERNAL_ERROR, "No information available about the block");
+            }
+
+            auto iter = std::find_if(block.vtx.begin(), block.vtx.end(), [&txid](const CTransaction& tx) -> bool {
+                return txid == tx.GetHash();
+            });
+
+            if (iter != block.vtx.end())
+            {
+                hashBlock = hash;
+                break;
+            }
+        }
+    }
+
+    spResult->transaction = TxToJSON(txid, tx, hashFork, hashBlock, nDepth, from.ToString());
     return spResult;
 }
 
@@ -982,6 +1040,47 @@ CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
     }
 
     return MakeCGetForkHeightResultPtr(pService->GetForkHeight(hashFork));
+}
+
+CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetVotesParam>(param);
+
+    CAddress destDelegate(spParam->strAddress);
+    if (destDelegate.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
+    }
+
+    int64 nVotesToken;
+    string strFailCause;
+    if (!pService->GetVotes(destDelegate, nVotesToken, strFailCause))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, strFailCause);
+    }
+
+    return MakeCGetVotesResultPtr(ValueFromAmount(nVotesToken));
+}
+
+CRPCResultPtr CRPCMod::RPCListDelegate(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDelegateParam>(param);
+
+    std::multimap<int64, CDestination> mapVotes;
+    if (!pService->ListDelegate(spParam->nCount, mapVotes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Query fail");
+    }
+
+    auto spResult = MakeCListDelegateResultPtr();
+    for (const auto& d : boost::adaptors::reverse(mapVotes))
+    {
+        CListDelegateResult::CDelegate delegateData;
+        delegateData.strAddress = CAddress(d.second).ToString();
+        delegateData.dVotes = ValueFromAmount(d.first);
+        spResult->vecDelegate.push_back(delegateData);
+    }
+    return spResult;
 }
 
 /* Wallet */
@@ -1572,7 +1671,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         }
     }
 
-    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
@@ -1581,6 +1680,17 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             nTxFee = nUserTxFee;
         }
         StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
+    if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        nAmount -= nTxFee;
+    }
+
+    CTemplateId tid;
+    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
     CTransaction txNew;
@@ -1619,6 +1729,13 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from address");
         }
+    }
+
+    if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
+    {
+        txNew.vchSig.clear();
+        CODataStream ds(txNew.vchSig);
+        ds << pService->GetForkHeight(hashFork) << (txNew.nTxFee + txNew.nAmount);
     }
 
     if (!pService->SignTransaction(txNew, fCompleted))
@@ -1682,17 +1799,23 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
 
-    int64 nTxFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
 
-        int64 nFee = CalcMinTxFee(vchData.size(), MIN_TX_FEE);
+        int64 nFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
         if (nTxFee < nFee)
         {
             nTxFee = nFee;
         }
         StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
+    }
+
+    CTemplateId tid;
+    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "create transaction nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
     CTransaction txNew;
@@ -1942,7 +2065,18 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CImportWalletParam>(param);
 
-    fs::path pLoad(string(spParam->strPath));
+#ifdef BOOST_CYGWIN_FS_PATH
+    std::string strCygWinPathPrefix = "/cygdrive";
+    std::size_t found = string(spParam->strPath).find(strCygWinPathPrefix);
+    if (found != std::string::npos)
+    {
+        strCygWinPathPrefix = "";
+    }
+#else
+    std::string strCygWinPathPrefix;
+#endif
+
+    fs::path pLoad(string(strCygWinPathPrefix + spParam->strPath));
     //check if the file name given is available
     if (!pLoad.is_absolute())
     {
@@ -2070,6 +2204,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
     int64 nAmount = AmountFromValue(spParam->dAmount);
     int64 nMintReward = AmountFromValue(spParam->dReward);
+    if (!RewardRange(nMintReward))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
+    }
 
     if (spParam->strName.empty() || spParam->strName.size() > 128
         || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
@@ -2098,7 +2236,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nJointHeight = nJointHeight;
     profile.nAmount = nAmount;
     profile.nMintReward = nMintReward;
-    profile.nMinTxFee = MIN_TX_FEE;
+    profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 
@@ -2215,7 +2353,7 @@ CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                      + ErrorString(err));
+                                                          + ErrorString(err));
     }
 
     return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
@@ -2345,12 +2483,12 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }
 
     CAddress from;
-    if (!pService->GetTxSender(rawTx.GetHash(), from))
+    if (!pService->GetTxSender(rawTx, from))
     {
         throw CRPCException(RPC_INTERNAL_ERROR,
                             "No information available about the previous one of this transaction");
     }
-    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, -1, from.ToString()));
+    return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, uint256(), -1, from.ToString()));
 }
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)

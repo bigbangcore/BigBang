@@ -6,7 +6,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-// #include "template/fork.h"
+#include "template/fork.h"
 
 using namespace std;
 using namespace xengine;
@@ -136,43 +136,43 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
 
 void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)
 {
-    // boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
-    // CForkSchedule& sched = mapForkSched[update.hashFork];
-    // if (!sched.IsJointEmpty())
-    // {
-    //     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-    //     {
-    //         if (!block.IsExtended() && !block.IsVacant())
-    //         {
-    //             sched.RemoveJoint(block.GetHash(), vActive);
-    //             if (sched.IsHalted())
-    //             {
-    //                 vDeactive.push_back(update.hashFork);
-    //             }
-    //         }
-    //     }
-    // }
-    // if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
-    // {
-    // for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
-    // {
-    //     for (const CTransaction& tx : block.vtx)
-    //     {
-    //         CTemplateId tid;
-    //         if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-    //             && !tx.vchData.empty()
-    //             && tx.nAmount >= CTemplateFork::LockedCoin(update.nLastBlockHeight))
-    //         {
-    //             CForkContext ctxt;
-    //             if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
-    //             {
-    //                 AddNewForkContext(ctxt, vActive);
-    //             }
-    //         }
-    //     }
-    // }
-    // }
+    CForkSchedule& sched = mapForkSched[update.hashFork];
+    if (!sched.IsJointEmpty())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            if (!block.IsExtended() && !block.IsVacant())
+            {
+                sched.RemoveJoint(block.GetHash(), vActive);
+                if (sched.IsHalted())
+                {
+                    vDeactive.push_back(update.hashFork);
+                }
+            }
+        }
+    }
+    if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        {
+            for (const CTransaction& tx : block.vtx)
+            {
+                CTemplateId tid;
+                if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
+                    && !tx.vchData.empty()
+                    && tx.nAmount >= CTemplateFork::CreatedCoin())
+                {
+                    CForkContext ctxt;
+                    if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
+                    {
+                        AddNewForkContext(ctxt, vActive);
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& vActive)
@@ -184,7 +184,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         if (ctxt.hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
             vActive.push_back(ctxt.hashFork);
-            setForkIndex.insert(CForkLink(ctxt));
+            setForkIndex.insert(CForkLink(ctxt, 0));
             return true;
         }
 
@@ -219,7 +219,13 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         }
     }
 
-    setForkIndex.insert(CForkLink(ctxt));
+    uint256 hashFork;
+    int nHeight;
+    if (!pBlockChain->GetTxLocation(ctxt.txidEmbedded, hashFork, nHeight))
+    {
+        return false;
+    }
+    setForkIndex.insert(CForkLink(ctxt, nHeight));
 
     return true;
 }
@@ -256,6 +262,20 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
     vSubline.assign(mapSubline.begin(), mapSubline.end());
 
     return true;
+}
+
+bool CForkManager::GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+
+    const CForkLinkSetByFork& idxFork = setForkIndex.get<0>();
+    const CForkLinkSetByFork::iterator it = idxFork.find(hashFork);
+    if (it != idxFork.end())
+    {
+        nCreatedHeight = it->nCreatedHeight;
+        return true;
+    }
+    return false;
 }
 
 bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const

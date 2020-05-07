@@ -91,6 +91,7 @@ public:
     bool Collect(const CDestination& destFrom, const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
     void GetAgreement(uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
     void GetProof(std::vector<unsigned char>& vchProof);
+    bool IsCollectCompleted();
 
 protected:
     bool VerifySignature(const CDelegateData& delegateData);
@@ -104,7 +105,10 @@ protected:
 public:
     uint256 blockHash;
     bool is_enroll;
-    bool is_public;
+    bool is_published;
+    int64 nPublishedTime;
+    uint256 hashDistributeBlock;
+    uint256 hashPublishBlock;
 };
 
 } // namespace delegate

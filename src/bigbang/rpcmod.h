@@ -92,6 +92,8 @@ private:
     rpc::CRPCResultPtr RPCGetTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSendTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetForkHeight(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetVotes(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListDelegate(rpc::CRPCParamPtr param);
     /* Wallet */
     rpc::CRPCResultPtr RPCListKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetNewKey(rpc::CRPCParamPtr param);
@@ -137,6 +139,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IService* pService;
     IDataStat* pDataStat;
+    IForkManager* pForkManager;
 
 private:
     std::map<std::string, RPCFunc> mapRPCFunc;
