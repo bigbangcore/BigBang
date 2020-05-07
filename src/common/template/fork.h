@@ -10,7 +10,7 @@
 class CTemplateFork : virtual public CTemplate, virtual public CLockedCoinTemplate
 {
 public:
-    static int64 LockedCoin(const int32 nForkHeight);
+    static int64 CreatedCoin();
 
 public:
     CTemplateFork(const CDestination& destRedeemIn = CDestination(), const uint256& hashForkIn = uint256());
