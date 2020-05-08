@@ -34,7 +34,7 @@ public:
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
     virtual bool IsDposHeight(int height) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t> mapBallot,
+    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight) override;
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
