@@ -51,14 +51,14 @@ install:
     sudo apt-get update -qq;
     sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libprotobuf-dev protobuf-compiler libncurses5-dev autoconf;
     sudo apt install -y cppcheck valgrind clang-format-8;
-    wget https://github.com/jedisct1/libsodium/releases/download/1.0.18-RELEASE/libsodium-1.0.18.tar.gz
-    tar -zxvf libsodium-1.0.18.tar.gz
-    cd libsodium-1.0.18
-    ./autogen
-    ./configure
-    make -j2
-    sudo make install
-    cd ..
+    wget https://github.com/jedisct1/libsodium/releases/download/1.0.18-RELEASE/libsodium-1.0.18.tar.gz;
+    tar -zxvf libsodium-1.0.18.tar.gz;
+    cd libsodium-1.0.18;
+    ./autogen;
+    ./configure;
+    make -j2;
+    sudo make install;
+    cd ../;
   fi
 
 before_script:
