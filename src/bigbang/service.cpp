@@ -20,7 +20,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr),pNetChannel(nullptr)
 {
 }
 
@@ -90,6 +90,7 @@ void CService::HandleDeinitialize()
     pWallet = nullptr;
     pNetwork = nullptr;
     pForkManager = nullptr;
+    pNetChannel = nullptr;
 }
 
 bool CService::HandleInvoke()
