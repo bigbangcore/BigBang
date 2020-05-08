@@ -2491,6 +2491,14 @@
                     "type": "double",
                     "desc": "amount"
                 },
+                "inputs": {
+                    "type": "string",
+                    "desc": "inputs data"
+                },
+                "ts": {
+                    "type": "int",
+                    "desc": "ts"
+                },
                 "txfee": {
                     "type": "double",
                     "desc": "transaction fee",
