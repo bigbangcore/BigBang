@@ -821,6 +821,7 @@
             "{\"code\":-32600,\"message\":\"Invalid super node\"}",
             "{\"code\":-6,\"message\":\"Invalid ip address\"}",
             "{\"code\":-6,\"message\":\"Failed: IP of fork node must not be 0.0.0.0\"}",
+            "{\"code\":-6,\"message\":\"Failed: parameters are not matched\"}",
             "{\"code\":-6,\"message\":\"Failed: IP of dpos node must be 0.0.0.0\"}",
             "{\"code\":-6,\"message\":\"Invalid fork(s)\"}",
             "{\"code\":-6,\"message\":\"No fork hash parameter\"}",
