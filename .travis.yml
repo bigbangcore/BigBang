@@ -49,8 +49,16 @@ install:
     export OPENSSL_ROOT_DIR=`brew --prefix openssl`;
   else
     sudo apt-get update -qq;
-    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libsodium-dev libprotobuf-dev protobuf-compiler libncurses5-dev;
+    sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libprotobuf-dev protobuf-compiler libncurses5-dev autoconf;
     sudo apt install -y cppcheck valgrind clang-format-8;
+    wget https://github.com/jedisct1/libsodium/releases/download/1.0.18-RELEASE/libsodium-1.0.18.tar.gz
+    tar -zxvf libsodium-1.0.18.tar.gz
+    cd libsodium-1.0.18
+    ./autogen
+    ./configure
+    make -j2
+    sudo make install
+    cd ..
   fi
 
 before_script:
@@ -58,8 +66,10 @@ before_script:
 
 script:
 - ./INSTALL.sh
-- ./build/test/test_big
-- ./build/test/test_ctsdb
+- cd build/test/ 
+- ./test_big
+- ./test_ctsdb
+- cd ../../
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test . ;
   fi
