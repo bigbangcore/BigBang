@@ -328,11 +328,6 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    if (mapContext.empty())
-    {
-        return;
-    }
-
     int nStartHeight = update.nLastBlockHeight - update.vBlockAddNew.size();
     if (!update.vBlockRemove.empty())
     {
