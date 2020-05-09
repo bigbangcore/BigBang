@@ -533,6 +533,15 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     consParam.nPrevTime = nLastTime;
     consParam.nPrevHeight = nLastHeight;
     consParam.nPrevMintType = nLastMintType;
+    consParam.agreement.Clear();
+
+    if (!pCoreProtocol->IsDposHeight(nLastHeight + 1))
+    {
+        consParam.nWaitTime = 0;
+        consParam.fCompleted = true;
+        consParam.ret = true;
+        return true;
+    }
 
     int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK, nLastHeight + 1);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
