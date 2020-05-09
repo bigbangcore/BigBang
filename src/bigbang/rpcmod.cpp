@@ -2229,6 +2229,19 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Prev block should not be extended/vacant block");
     }
 
+    int nForkHeight = pService->GetForkHeight(hashParent);
+    if (nForkHeight - nJointHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
+    }
+
+    uint256 hashBlockRef;
+    int64 nTimeRef;
+    if (!pService->GetLastBlockOfHeight(pCoreProtocol->GetGenesisBlockHash(), nJointHeight + 1, hashBlockRef, nTimeRef))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed to query main chain reference block");
+    }
+
     CProfile profile;
     profile.strName = spParam->strName;
     profile.strSymbol = spParam->strSymbol;
@@ -2244,7 +2257,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     CBlock block;
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_ORIGIN;
-    block.nTimeStamp = blockPrev.nTimeStamp + BLOCK_TARGET_SPACING;
+    block.nTimeStamp = nTimeRef;
     block.hashPrev = hashPrev;
     profile.Save(block.vchProof);
 

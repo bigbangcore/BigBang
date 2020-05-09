@@ -20,7 +20,7 @@ class CForkLink
 {
 public:
     CForkLink()
-      : nJointHeight(-1) {}
+      : nJointHeight(-1), nCreatedHeight(-1) {}
     CForkLink(const CForkContext& ctxt, const int nCreatedHeight)
       : hashFork(ctxt.hashFork), hashParent(ctxt.hashParent), hashJoint(ctxt.hashJoint),
         nJointHeight(ctxt.nJointHeight), nCreatedHeight(nCreatedHeight)

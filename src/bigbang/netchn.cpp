@@ -139,7 +139,9 @@ CNetChannel::CNetChannel()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pConsensus = nullptr;
     fStartIdlePushTxTimer = false;
+    
 }
 
 CNetChannel::~CNetChannel()
@@ -201,6 +203,7 @@ void CNetChannel::HandleDeinitialize()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
+    pConsensus = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()

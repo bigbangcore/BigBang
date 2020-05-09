@@ -272,6 +272,15 @@ public:
       : nHeightInterval(nHeightIntervalIn) {}
     CTxCache(const CTxCache& cache)
       : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
+    CTxCache& operator=(const CTxCache& cache)
+    {
+        if(this != &cache)
+        {
+            this->nHeightInterval = cache.nHeightInterval;
+            this->mapCache = cache.mapCache;
+        }
+        return *this;
+    }
     bool Exists(const uint256& hash)
     {
         return mapCache.count(hash) > 0;
