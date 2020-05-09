@@ -621,6 +621,25 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
+    if (pIndexPrev->IsExtended() || pIndexPrev->IsVacant())
+    {
+        Log("Prev block should not be extended/vacant block");
+        return ERR_BLOCK_TYPE_INVALID;
+    }
+
+    uint256 hashBlockRef;
+    int64 nTimeRef;
+    if (!GetLastBlockOfHeight(pCoreProtocol->GetGenesisBlockHash(), block.GetBlockHeight(), hashBlockRef, nTimeRef))
+    {
+        Log("Failed to query main chain reference block");
+        return ERR_SYS_STORAGE_ERROR;
+    }
+    if (block.GetBlockTime() != nTimeRef)
+    {
+        Log("Invalid origin block time");
+        return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+    }
+
     CProfile parent;
     if (!cntrBlock.RetrieveProfile(pIndexPrev->GetOriginHash(), parent))
     {

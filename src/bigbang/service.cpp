@@ -20,7 +20,7 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr),pNetChannel(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr), pNetChannel(nullptr)
 {
 }
 
@@ -313,6 +313,11 @@ bool CService::GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& ha
 {
     return pBlockChain->GetBlockEx(hashBlock, block)
            && pBlockChain->GetBlockLocation(hashBlock, hashFork, nHeight);
+}
+
+bool CService::GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime)
+{
+    return pBlockChain->GetLastBlockOfHeight(hashFork, nHeight, hashBlock, nTime);
 }
 
 void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
