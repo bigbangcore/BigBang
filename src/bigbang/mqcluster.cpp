@@ -111,7 +111,7 @@ void CMQCluster::HandleDeinitialize()
 
 bool CMQCluster::HandleInvoke()
 {
-    if (NODE_CATEGORY::BBCNODE == catNode) // todo:
+    if (NODE_CATEGORY::BBCNODE == catNode)
     {
         Log("CMQCluster::HandleInvoke(): bbc node so bypass");
         return true;
@@ -175,14 +175,11 @@ bool CMQCluster::HandleInvoke()
             clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
 
-//        for (int n = 0; n < 100; ++n)
-//        {
-            if (!PostBlockRequest(-1))
-            {
-                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
-                return false;
-            }
-//        }
+        if (!PostBlockRequest(-1))
+        {
+            Error("CMQCluster::HandleInvoke(): failed to post requesting block");
+            return false;
+        }
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
@@ -204,18 +201,7 @@ bool CMQCluster::HandleInvoke()
             "[%s][%s]", clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str());
-/*
-        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "DPOSNODE" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-        for (int n = 0; n < 100; ++n)
-        {
-            if (!PostBlockRequest(-1))
-            {
-                Error("CMQCluster::HandleInvoke(): failed to post requesting block");
-                return false;
-            }
-        }
-        arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "FORKNODE-001" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-*/
+
         nodes.clear();
         if (!pBlockChain->FetchSuperNode(nodes, 1 << 1))
         {
@@ -544,7 +530,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     Log("CMQCluster::PostBlockRequest(): posting request for block hash[%s]", hash.ToString().c_str());
 
     CSyncBlockRequest req;
-    req.ipAddr = ipAddr; //16777343 - 127.0.0.1; 1111638320 - "0ABB"
+    req.ipAddr = ipAddr;
     req.forkNodeIdLen = clientID.size();
     req.forkNodeId = clientID;
     req.forkNum = setBizFork.size();
