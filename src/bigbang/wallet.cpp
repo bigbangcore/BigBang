@@ -8,6 +8,7 @@
 #include "address.h"
 #include "defs.h"
 #include "template/delegate.h"
+#include "template/fork.h"
 #include "template/mint.h"
 #include "template/payment.h"
 #include "template/vote.h"
@@ -543,7 +544,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
     }
 
     // locked coin template
-    if (CTemplate::IsLockedCoin(dest))
+    if ((dest.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == pCoreProtocol->GetGenesisBlockHash()))
     {
         // TODO: No redemption temporarily
         // CTemplatePtr ptr = GetTemplate(dest.GetTemplateId());
@@ -551,7 +552,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
         // {
         //     return false;
         // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(CDestination(), nForkHeight);
+        // int64 nLockedCoin = boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(CDestination(), nForkHeight);
         // if (balance.nLocked < nLockedCoin)
         // {
         //     balance.nLocked = nLockedCoin;
@@ -682,7 +683,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     int64 nTargetValue = tx.nAmount + tx.nTxFee;
 
     // locked coin template
-    if (CTemplate::IsLockedCoin(destIn))
+    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == pCoreProtocol->GetGenesisBlockHash()))
     {
         // TODO: No redemption temporarily
         return false;
@@ -692,7 +693,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
         //     StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
         //     return false;
         // }
-        // nTargetValue += boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
+        // nTargetValue += boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
     }
 
     vector<CTxOutPoint> vCoins;

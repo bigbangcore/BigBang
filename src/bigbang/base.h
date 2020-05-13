@@ -48,8 +48,8 @@ public:
                                    const CDelegateAgreement& agreement)
         = 0;
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) = 0;
-    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork) = 0;
-    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork) = 0;
+    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& hashFork) = 0;
+    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& hashFork) = 0;
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool IsDposHeight(int height) = 0;
@@ -196,12 +196,12 @@ public:
     IForkManager()
       : IBase("forkmanager") {}
     virtual bool IsAllowed(const uint256& hashFork) const = 0;
-    virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const = 0;
+    virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int32& nJointHeight) const = 0;
     virtual bool LoadForkContext(std::vector<uint256>& vActive) = 0;
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
-    virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
-    virtual bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const = 0;
+    virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const = 0;
+    virtual bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const = 0;
     const CForkConfig* ForkConfig()
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());

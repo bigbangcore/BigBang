@@ -102,13 +102,13 @@ public:
     CForkManager();
     ~CForkManager();
     bool IsAllowed(const uint256& hashFork) const override;
-    bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const override;
+    bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int32& nJointHeight) const override;
     bool LoadForkContext(std::vector<uint256>& vActive) override;
     void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
     bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive);
     void GetForkList(std::vector<uint256>& vFork) const override;
-    bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
-    bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const override;
+    bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const override;
+    bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const override;
 
 protected:
     bool HandleInitialize() override;

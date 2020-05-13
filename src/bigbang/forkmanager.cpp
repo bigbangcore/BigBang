@@ -94,10 +94,10 @@ bool CForkManager::IsAllowed(const uint256& hashFork) const
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
     map<uint256, CForkSchedule>::const_iterator it = mapForkSched.find(hashFork);
-    return (it != mapForkSched.end() && (*it).second.IsAllowed());
+    return (it != mapForkSched.end() && it->second.IsAllowed());
 }
 
-bool CForkManager::GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const
+bool CForkManager::GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int32& nJointHeight) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -105,9 +105,9 @@ bool CForkManager::GetJoint(const uint256& hashFork, uint256& hashParent, uint25
     const CForkLinkSetByFork::iterator it = idxFork.find(hashFork);
     if (it != idxFork.end())
     {
-        hashParent = (*it).hashParent;
-        hashJoint = (*it).hashJoint;
-        nHeight = (*it).nJointHeight;
+        hashParent = it->hashParent;
+        hashJoint = it->hashJoint;
+        nJointHeight = it->nJointHeight;
         return true;
     }
     return false;
@@ -220,7 +220,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
     }
 
     uint256 hashFork;
-    int nHeight;
+    int32 nHeight;
     if (!pBlockChain->GetTxLocation(ctxt.txidEmbedded, hashFork, nHeight))
     {
         return false;
@@ -241,7 +241,7 @@ void CForkManager::GetForkList(std::vector<uint256>& vFork) const
     }
 }
 
-bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>>& vSubline) const
+bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int32, uint256>>& vSubline) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
 
@@ -253,7 +253,7 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
         return false;
     }
 
-    multimap<int, uint256> mapSubline;
+    multimap<int32, uint256> mapSubline;
     for (; itBegin != itEnd; ++itBegin)
     {
         mapSubline.insert(make_pair(itBegin->nJointHeight, itBegin->hashFork));

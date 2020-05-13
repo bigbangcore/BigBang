@@ -54,12 +54,6 @@ public:
     virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const = 0;
 };
 
-class CLockedCoinTemplate
-{
-public:
-    virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const = 0;
-};
-
 enum TemplateType
 {
     TEMPLATE_MIN,
@@ -130,9 +124,6 @@ public:
 
     // Return delegate address.
     static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
-
-    // Return dest limits coin on transaction or not.
-    static bool IsLockedCoin(const CDestination& dest);
 
 public:
     // Deconstructor

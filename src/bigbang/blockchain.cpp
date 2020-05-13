@@ -666,8 +666,8 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     CBlockIndex* pIndexDuplicated;
     if (cntrBlock.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
-        Log("AddNewOrigin Validate Origin Error(duplated fork name): %s, \nexisted: %s",
-            hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
+        Warn("AddNewOrigin Validate Origin Error(duplated fork name), name: %s, new fork: %s, existed fork: %s",
+            profile.strName.c_str(), hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
         return ERR_ALREADY_HAVE;
     }
 

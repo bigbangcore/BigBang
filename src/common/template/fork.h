@@ -7,7 +7,7 @@
 
 #include "template.h"
 
-class CTemplateFork : virtual public CTemplate, virtual public CLockedCoinTemplate
+class CTemplateFork : virtual public CTemplate
 {
 public:
     static int64 CreatedCoin();
@@ -18,7 +18,7 @@ public:
     virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
-    virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const;
+    virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight, const int32 nCreatedHeight) const;
 
 protected:
     virtual bool ValidateParam() const;

@@ -54,9 +54,16 @@ int64 CTemplateFork::CreatedCoin()
     return MORTGAGE_BASE;
 }
 
-int64 CTemplateFork::LockedCoin(const CDestination& destTo, const int32 nForkHeight) const
+int64 CTemplateFork::LockedCoin(const CDestination& destTo, const int32 nForkHeight, const int32 nCreatedHeight) const
 {
-    return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, nForkHeight / MORTGAGE_DECAY_CYCLE));
+    if (nCreatedHeight < 0 || nForkHeight < nCreatedHeight)
+    {
+        return MORTGAGE_BASE;
+    }
+    else
+    {
+        return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, (nForkHeight - nCreatedHeight) / MORTGAGE_DECAY_CYCLE));
+    }
 }
 
 bool CTemplateFork::ValidateParam() const
