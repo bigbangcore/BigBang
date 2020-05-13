@@ -722,11 +722,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
 
+            Log("CMQCluster::OnReceiveMessage(): rbheight[%d] from dpos node, "
+                "lastheight[%d] on this fork node", rb.rbHeight, int(lastHeightResp));
+
             if (rb.rbHeight < lastHeightResp)
             {
-                Log("CMQCluster::OnReceiveMessage(): rbheight[%d], lastheight[%d]",
-                    rb.rbHeight, int(lastHeightResp));
-
                 //cancel request sync timer
                 if (nReqBlkTimerID != 0)
                 {
@@ -1186,9 +1186,9 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         {
         case MQ_CLI_ACTION::CONN:
         {
-            cout << "Initializing for server '" << addrBroker << "'..." << endl;
+            Log("CMQCluster::ClientAgent(): Initializing for connecting to broker[%s]...", addrBroker.c_str());
             client.set_callback(cb);
-            cout << "  ...OK" << endl;
+            Log("CMQCluster::ClientAgent(): ...set callback OK");
 /*            client.set_message_callback([this](mqtt::const_message_ptr msg) {
                 Log("CMQCluster::ClientAgent(): entering lambda");
                 std::cout << msg->get_payload_str() << std::endl;
@@ -1198,11 +1198,11 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
             });
             cout << "  ...OK" << endl;*/
 
-            cout << "\nConnecting..." << endl;
+            Log("CMQCluster::ClientAgent(): Connecting...");
             conntok = client.connect();
-            cout << "Waiting for the connection..." << endl;
+            Log("CMQCluster::ClientAgent(): Waiting for the connection...");
             conntok->wait();
-            cout << "  ...OK" << endl;
+            Log("CMQCluster::ClientAgent(): ...Connected OK");
             break;
         }
         case MQ_CLI_ACTION::SUB:
@@ -1283,13 +1283,15 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 
             auto toks = client.get_pending_delivery_tokens();
             if (!toks.empty())
-                cout << "Error: There are pending delivery tokens!" << endl;
+            {
+                Error("CMQCluster::ClientAgent(): There are pending delivery tokens!");
+            }
 
             // Disconnect
-            cout << "\nDisconnecting..." << endl;
+            Log("CMQCluster::ClientAgent(): Disconnecting from broker...");
             conntok = client.disconnect();
             conntok->wait();
-            cout << "  ...OK" << endl;
+            Log("CMQCluster::ClientAgent(): ...Disconnected OK");
             break;
         }
         }
