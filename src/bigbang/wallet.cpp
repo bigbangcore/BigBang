@@ -9,8 +9,8 @@
 #include "defs.h"
 #include "template/delegate.h"
 #include "template/mint.h"
-#include "template/vote.h"
 #include "template/payment.h"
+#include "template/vote.h"
 
 using namespace std;
 using namespace xengine;
@@ -598,7 +598,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             {
                 CBlock block;
                 std::multimap<int64, CDestination> mapVotes;
-                if (!pBlockChain->ListDelegatePayment(payment->m_height_exec,block,mapVotes))
+                if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes))
                 {
                     return false;
                 }
@@ -1420,7 +1420,8 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
 
     for (const CWalletTxOut& out : walletCoins.setCoins)
     {
-        if (out.IsLocked(nForkHeight) || out.GetTxTime() > nTxTime)
+        if (out.IsLocked(nForkHeight) || out.GetTxTime() > nTxTime
+            || (out.spWalletTx->nType == CTransaction::TX_CERT && out.n == 0))
         {
             continue;
         }
@@ -1624,7 +1625,7 @@ void CWallet::UpdateAutoLock(const std::set<crypto::CPubKey>& setSignedKey)
     }
 
     boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
-    for (auto& key: setSignedKey)
+    for (auto& key : setSignedKey)
     {
         map<crypto::CPubKey, CWalletKeyStore>::iterator it = mapKeyStore.find(key);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
