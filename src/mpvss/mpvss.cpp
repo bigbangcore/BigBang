@@ -20,7 +20,7 @@ CMPParticipant::CMPParticipant()
 }
 
 CMPParticipant::CMPParticipant(const CMPCandidate& candidate, const uint256& nSharedKeyIn)
-  : candidate(candidate), nSharedKey(nSharedKeyIn)
+  : candidate(candidate), nSharedKey(nSharedKeyIn), nIndex(-1)
 {
 }
 

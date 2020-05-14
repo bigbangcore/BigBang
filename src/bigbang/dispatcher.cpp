@@ -237,7 +237,17 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 {
     Errno err = OK;
-    err = pCoreProtocol->ValidateTransaction(tx);
+    uint256 hashBlock;
+    int nHeight = 0;
+    int64 nTime = 0;
+    uint16 nMintType = 0;
+    if(!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
+    {
+        StdError("CDispatcher", "AddNewTx: GetLastBlock fail, fork: %s", pCoreProtocol->GetGenesisBlockHash().GetHex().c_str());
+        return ERR_NOT_FOUND;
+    }
+    
+    err = pCoreProtocol->ValidateTransaction(tx, nHeight);
     if (err != OK)
     {
         StdError("CDispatcher", "AddNewTx: ValidateTransaction fail, txid: %s", tx.GetHash().GetHex().c_str());
@@ -290,6 +300,19 @@ bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination
 bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
     return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+}
+
+void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
+{
+    CConsensusParam consParam;
+    consParam.hashPrev = agreeBlock.hashPrev;
+    consParam.nPrevTime = agreeBlock.nPrevTime;
+    consParam.nPrevHeight = agreeBlock.nPrevHeight;
+    consParam.nPrevMintType = agreeBlock.nPrevMintType;
+    consParam.nWaitTime = agreeBlock.nWaitTime;
+    consParam.fPow = agreeBlock.agreement.IsProofOfWork();
+    consParam.ret = agreeBlock.ret;
+    pNetChannel->SubmitCachePowBlock(consParam);
 }
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)

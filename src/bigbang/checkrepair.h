@@ -34,8 +34,8 @@ namespace bigbang
 class CCheckBlockTx
 {
 public:
-    CCheckBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn)
-      : tx(txIn), txContxt(contxtIn), txIndex(nHeight, nFileNoIn, nOffsetIn)
+    CCheckBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn)
+      : tx(txIn), txContxt(contxtIn), hashAtFork(hashAtForkIn), txIndex(nHeight, nFileNoIn, nOffsetIn)
     {
     }
 
@@ -43,6 +43,7 @@ public:
     CTransaction tx;
     CTxContxt txContxt;
     CTxIndex txIndex;
+    uint256 hashAtFork;
 };
 
 class CCheckTxOut : public CTxOut
@@ -414,7 +415,7 @@ public:
       : nMaxTrustHeight(0), nMaxTrustTimeStamp(0), pOrigin(nullptr), pLast(nullptr) {}
 
     void UpdateMaxTrust(CBlockIndex* pBlockIndex);
-    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn);
+    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn);
     bool AddBlockSpent(const CTxOutPoint& txPoint, const uint256& txidSpent, const CDestination& sendTo);
     bool AddBlockUnspent(const CTxOutPoint& txPoint, const CTxOut& txOut);
     bool CheckTxExist(const uint256& txid, int& nHeight);
@@ -443,9 +444,9 @@ public:
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
-    uint256 GetBlockTrust(const CBlockEx& block, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr);
+    bool GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0);
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);
-    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement);
+    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust);
     bool GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled);
     bool RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange, int64 nMinEnrollAmount,
                                map<CDestination, size_t>& mapWeight, map<CDestination, vector<unsigned char>>& mapEnrollData,
@@ -453,7 +454,7 @@ public:
 
     bool UpdateBlockNext();
     bool UpdateBlockTx(CCheckForkManager& objForkMn);
-    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
+    bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline);
     void ClearBlockIndex();

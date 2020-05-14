@@ -507,7 +507,8 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nTargetHeight);
+        size_t nEnrollTrust = 0;
+        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
     }
 }
 
@@ -515,6 +516,92 @@ void CConsensus::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
     delegate.GetProof(nTargetHeight, vchProof);
+}
+
+bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
+{
+    boost::unique_lock<boost::mutex> lock(mutex);
+
+    consParam.nWaitTime = 1;
+    consParam.ret = false;
+
+    uint256 hashLastBlock;
+    int nLastHeight;
+    int64 nLastTime;
+    uint16 nLastMintType;
+    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock, nLastHeight, nLastTime, nLastMintType))
+    {
+        Error("GetNextConsensus CBlockChain::GetLastBlock fail");
+        return false;
+    }
+    consParam.hashPrev = hashLastBlock;
+    consParam.nPrevTime = nLastTime;
+    consParam.nPrevHeight = nLastHeight;
+    consParam.nPrevMintType = nLastMintType;
+    consParam.agreement.Clear();
+
+    if (!pCoreProtocol->IsDposHeight(nLastHeight + 1))
+    {
+        consParam.nWaitTime = 0;
+        consParam.fCompleted = true;
+        consParam.ret = true;
+        return true;
+    }
+
+    int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK, nLastHeight + 1);
+    consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+    if (consParam.nWaitTime >= -60)
+    {
+        int64 nAgreementWaitTime = GetAgreementWaitTime(nLastHeight + 1);
+        if (nAgreementWaitTime > 0 && consParam.nWaitTime < nAgreementWaitTime)
+        {
+            consParam.nWaitTime = nAgreementWaitTime;
+        }
+    }
+    if (consParam.nWaitTime > 0)
+    {
+        return false;
+    }
+
+    if (hashLastBlock != cacheAgreementBlock.hashPrev)
+    {
+        if (!GetInnerAgreement(nLastHeight + 1, consParam.agreement.nAgreement, consParam.agreement.nWeight,
+                               consParam.agreement.vBallot, consParam.fCompleted))
+        {
+            Error("GetNextConsensus GetInnerAgreement fail");
+            return false;
+        }
+        cacheAgreementBlock = consParam;
+    }
+    else
+    {
+        if (cacheAgreementBlock.agreement.IsProofOfWork() && !cacheAgreementBlock.fCompleted)
+        {
+            if (!GetInnerAgreement(nLastHeight + 1, cacheAgreementBlock.agreement.nAgreement, cacheAgreementBlock.agreement.nWeight,
+                                   cacheAgreementBlock.agreement.vBallot, cacheAgreementBlock.fCompleted))
+            {
+                Error("GetNextConsensus GetInnerAgreement fail");
+                return false;
+            }
+            if (!cacheAgreementBlock.agreement.IsProofOfWork())
+            {
+                StdDebug("CConsensus", "GetNextConsensus: consensus change dpos, target height: %d", cacheAgreementBlock.nPrevHeight + 1);
+            }
+        }
+        consParam = cacheAgreementBlock;
+        consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+    }
+    if (!cacheAgreementBlock.agreement.IsProofOfWork())
+    {
+        nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE, nLastHeight + 1);
+        consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+        if (consParam.nWaitTime > 0)
+        {
+            return false;
+        }
+    }
+    consParam.ret = true;
+    return true;
 }
 
 bool CConsensus::LoadDelegateTx()
@@ -555,6 +642,70 @@ bool CConsensus::LoadChain()
         }
     }*/
     return true;
+}
+
+bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted)
+{
+    if (mapContext.empty())
+    {
+        fCompleted = true;
+        return true;
+    }
+    if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
+    {
+        uint256 hashBlock;
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1, hashBlock))
+        {
+            Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
+            return false;
+        }
+
+        fCompleted = delegate.IsCompleted(nTargetHeight);
+
+        map<CDestination, size_t> mapBallot;
+        delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
+
+        if (nAgreement != 0 && mapBallot.size() > 0)
+        {
+            CDelegateEnrolled enrolled;
+            if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+            {
+                Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+            int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+            if (nMoneySupply < 0)
+            {
+                Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+            size_t nEnrollTrust = 0;
+            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
+        }
+    }
+    else
+    {
+        fCompleted = true;
+    }
+    return true;
+}
+
+int64 CConsensus::GetAgreementWaitTime(int nTargetHeight)
+{
+    if (mapContext.empty())
+    {
+        return 0;
+    }
+    if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
+    {
+        int64 nPublishedTime = delegate.GetPublishedTime(nTargetHeight);
+        if (nPublishedTime <= 0)
+        {
+            return -1;
+        }
+        return nPublishedTime + WAIT_AGREEMENT_PUBLISH_TIMEOUT - GetTime();
+    }
+    return 0;
 }
 
 } // namespace bigbang
