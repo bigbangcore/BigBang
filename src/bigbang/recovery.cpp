@@ -44,6 +44,7 @@ protected:
 };
 
 CRecovery::CRecovery()
+    : pDispatcher(nullptr)
 {
 }
 
