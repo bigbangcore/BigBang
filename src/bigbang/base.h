@@ -392,6 +392,17 @@ public:
     virtual bool GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemP2pSyn>& vStatData) = 0;
 };
 
+class IRecovery : public xengine::IBase
+{
+public:
+    IRecovery()
+      : IBase("recovery") {}
+    const CStorageConfig* StorageConfig()
+    {
+        return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
+    }
+};
+
 } // namespace bigbang
 
 #endif //BIGBANG_BASE_H
