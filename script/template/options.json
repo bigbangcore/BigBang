@@ -293,7 +293,7 @@
             "opt": "recoverydir",
             "default": "",
             "format": "-recoverydir=<path>",
-            "desc": "Set block data directory to recovery from it. It will clear all old database except wallet address"
+            "desc": "Set block data(block_000001.dat) directory to recovery from it. It will clear all <-datadir> database except wallet address, so <-recoverydir> must be not equal <-datadir>"
         }
     ],
     "CNetworkConfigOption": [
