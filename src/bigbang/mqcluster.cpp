@@ -260,7 +260,12 @@ void CMQCluster::HandleHalt()
 
     fAbort = true;
 
-    condMQ.notify_all();
+    {
+        boost::unique_lock<boost::mutex> lock(mtxSend);
+        deqSendBuff.clear();
+    }
+    condSend.notify_one();
+
     if (thrMqttClient.IsRunning())
     {
         thrMqttClient.Interrupt();
@@ -338,12 +343,18 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork [%s] intended to be produced by this node [%s]:",
                     fork.ToString().c_str(), clientID.c_str());
             }
-
+/*
             if (!PostBlockRequest(-1))
             {
                 Error("CMQCluster::HandleEvent(CEventMQEnrollUpdate): failed to post requesting block");
                 return false;
+            }*/
+            if (0 != nReqBlkTimerID)
+            {
+                CancelTimer(nReqBlkTimerID);
+                nReqBlkTimerID = 0;
             }
+            nReqBlkTimerID = SetTimer(50, boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
 
             return true;
         }
@@ -407,7 +418,7 @@ bool CMQCluster::HandleEvent(CEventMQAgreement& eventMqAgreement)
 
 bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
 {
-    Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): biz forks payload is coming");
+    Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): biz forks payload is coming...");
 
     const storage::CForkKnownIpSetByIp& idxIP = eventMqBizFork.data.get<1>();
     {
@@ -589,6 +600,7 @@ void CMQCluster::RequestBlockTimerFunc(uint32 nTimer)
 
 void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 {
+    cout << "\nReceived message from [" << topic << "]..." << endl;
     payload.Dump();
 
     switch (catNode)
@@ -617,7 +629,12 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 
             if (-1 == resp.height)
             { //has reached the best height for the first time communication,
-                // then set timer to process the following business rather than req/resp model
+              // then set timer to process the following business rather than req/resp model
+                if (0 != nReqBlkTimerID)
+                {
+                    CancelTimer(nReqBlkTimerID);
+                    nReqBlkTimerID = 0;
+                }
                 nReqBlkTimerID = SetTimer(1000 * 30,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
                 return;
@@ -687,6 +704,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (resp.isBest)
             { //when reach best height, send request by timer
                 std::atomic_store(&isMainChainBlockBest, true);
+                if (0 != nReqBlkTimerID)
+                {
+                    CancelTimer(nReqBlkTimerID);
+                    nReqBlkTimerID = 0;
+                }
                 nReqBlkTimerID = SetTimer(1000 * 60,
                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
                 return;
@@ -829,6 +851,15 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     }
                     nRollNum = rb.rbSize;
                 }
+            }
+            else
+            {
+                if (0 != nReqBlkTimerID)
+                {
+                    CancelTimer(nReqBlkTimerID);
+                    nReqBlkTimerID = 0;
+                }
+                nReqBlkTimerID = SetTimer(50, boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
             }
 
             return;
@@ -1117,8 +1148,14 @@ public:
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
-            mqCluster.nReqBlkTimerID = mqCluster.SetTimer(200,
+            if (0 != mqCluster.nReqBlkTimerID)
+            {
+                mqCluster.CancelTimer(mqCluster.nReqBlkTimerID);
+                mqCluster.nReqBlkTimerID = 0;
+            }
+            mqCluster.nReqBlkTimerID = mqCluster.SetTimer(500,
                                                           boost::bind(&CMQCluster::RequestBlockTimerFunc, &mqCluster, _1));
+            cout << "Set timer[" << mqCluster.nReqBlkTimerID << "]" << endl;
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
@@ -1149,7 +1186,7 @@ public:
     {
         cout << "Message arrived" << endl;
         cout << "\ttopic: '" << msg->get_topic() << "'" << endl;
-        cout << "\tpayload: '" << msg->to_string() << "'\n"
+        cout << "\tpayload: '................'\n"
              << endl;
         mqCluster.LogEvent("[message_arrived]");
         /*
@@ -1234,12 +1271,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 buf = deqSendBuff.front();
             }
 
-            //            while (!deqSendBuff.empty())
+//            while (!deqSendBuff.empty())
             {
                 Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
                 //                pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
-                //                buf.second->Dump();
+//                buf.second->Dump();
 
                 mqtt::message_ptr pubmsg = mqtt::make_message(
                     buf.first, buf.second->GetData(), buf.second->GetSize());
@@ -1257,8 +1294,8 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 }
                 //                delitok = client.publish(pubmsg, nullptr, cb);
                 delitok = client.publish(pubmsg);
-                //                delitok->wait();
-                //                buf.second->Dump();
+                delitok->wait();
+                buf.second->Dump();
                 //                client.publish(pubmsg);
                 /*                if (delitok->wait_for(100))
                 {
@@ -1291,8 +1328,21 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::DISCONN:
         {
-            // Double check that there are no pending tokens
+            //cleanup retained message of biz fork assignment
+            if (NODE_CATEGORY::DPOSNODE == catNode)
+            {
+                boost::unique_lock<boost::mutex> lock(mtxCluster);
+                for (auto const& sub : mapBizForkUpdateTopic)
+                {
+                    mqtt::message_ptr pubmsg = mqtt::make_message(sub.second, nullptr, 0);
+                    pubmsg->set_retained(true);
+                    delitok = client.publish(pubmsg);
+                    delitok->wait();
+                    Log("CMQCluster::ClientAgent(): Cleaned up biz fork assignment [%s]", sub.second.c_str());
+                }
+            }
 
+            // Double check that there are no pending tokens
             auto toks = client.get_pending_delivery_tokens();
             if (!toks.empty())
             {
@@ -1353,12 +1403,19 @@ void CMQCluster::MqttThreadFunc()
     {
         {
             boost::unique_lock<boost::mutex> lock(mtxSend);
-            while (deqSendBuff.empty())
+            while (deqSendBuff.empty() && !fAbort)
             {
                 condSend.wait(lock);
             }
         }
-        ClientAgent(MQ_CLI_ACTION::PUB);
+        if (!fAbort)
+        {
+            ClientAgent(MQ_CLI_ACTION::PUB);
+        }
+        else
+        {
+            break;
+        }
         //        condSend.notify_all();
         Log("thread function of MQTT: go through an iteration");
     }
