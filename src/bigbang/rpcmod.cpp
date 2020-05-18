@@ -1291,7 +1291,7 @@ CRPCResultPtr CRPCMod::RPCImportPrivKey(CRPCParamPtr param)
         {
             throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
-        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        if (spParam->fSynctx && !pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
         }
@@ -1362,7 +1362,7 @@ CRPCResultPtr CRPCMod::RPCImportKey(CRPCParamPtr param)
         {
             throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to add key: ") + *strErr);
         }
-        if (!pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
+        if (spParam->fSynctx && !pService->SynchronizeWalletTx(CDestination(key.GetPubKey())))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
         }
@@ -1405,7 +1405,7 @@ CRPCResultPtr CRPCMod::RPCAddNewTemplate(CRPCParamPtr param)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
         }
-        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        if (spParam->data.fSynctx && !pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
         }
@@ -1429,7 +1429,7 @@ CRPCResultPtr CRPCMod::RPCImportTemplate(CRPCParamPtr param)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to add template");
         }
-        if (!pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
+        if (spParam->fSynctx && !pService->SynchronizeWalletTx(CDestination(ptr->GetTemplateId())))
         {
             throw CRPCException(RPC_WALLET_ERROR, "Failed to sync wallet tx");
         }
