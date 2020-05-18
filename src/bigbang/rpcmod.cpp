@@ -2427,10 +2427,6 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
     std::vector<std::string> vFork = spParam->vecForks;
 
     string dposid = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
-    if (NODE_CAT_DPOSNODE == nNodeCat && dposid != id)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: parameters are not matched");
-    }
     if (NODE_CAT_DPOSNODE == nNodeCat && dposid == id && 0 != ipNum)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");
@@ -2470,7 +2466,9 @@ CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
         }
     }
 
-    if (NODE_CAT_FORKNODE == nNodeCat)
+    if (NODE_CAT_FORKNODE == nNodeCat
+        || (NODE_CAT_DPOSNODE == nNodeCat && dposid != id
+            && id != storage::CLIENT_ID_OUT_OF_MQ_CLUSTER))
     {
         if (forks.end() != find(forks.begin(), forks.end(), hashGenesis))
         {

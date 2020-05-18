@@ -8,10 +8,10 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <future>
 #include <iostream>
 #include <string>
 #include <thread> // For sleep
-#include <future>
 
 #include "async_client.h"
 
@@ -174,12 +174,12 @@ bool CMQCluster::HandleInvoke()
         Log("CMQCluster::HandleInvoke(): fork node clientid [%s] with sub topics:\n\t[%s]\n\t[%s]\n\t[%s]\npub topic:\n\t[%s]",
             clientID.c_str(), arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str());
-
+        /*
         if (!PostBlockRequest(-1))
         {
             Error("CMQCluster::HandleInvoke(): failed to post requesting block");
             return false;
-        }
+        }*/
     }
     else if (NODE_CATEGORY::DPOSNODE == catNode)
     {
@@ -198,7 +198,8 @@ bool CMQCluster::HandleInvoke()
         arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
         arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]; //only placeholder
         Log("CMQCluster::HandleInvoke(): dpos node clientid [%s] with sub topic [%s], pub topics[%s]"
-            "[%s][%s]", clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
+            "[%s][%s]",
+            clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
             arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str());
 
@@ -366,7 +367,8 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
             condStatus.notify_all();
 
             Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): dpos node clientid [%s] with sub topic [%s], pub topics[%s]"
-                "[%s][%s]", clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
+                "[%s][%s]",
+                clientID.c_str(), arrTopic[TOPIC_SUFFIX_REQ_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_RESP_BLOCK].c_str(), arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK].c_str(),
                 arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK].c_str());
 
@@ -636,7 +638,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             err = pDispatcher->AddNewBlock(resp.block);
             if (err != OK)
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to add new block (%d) : %s\n", err, ErrorString(err));
+                Error("CMQCluster::OnReceiveMessage(): failed to add new block (%d) : %s height[%d]\n",
+                      err, ErrorString(err), resp.height);
                 if (ERR_ALREADY_HAVE == err)
                 {
                     lastHeightResp = resp.height;
@@ -723,7 +726,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             }
 
             Log("CMQCluster::OnReceiveMessage(): rbheight[%d] from dpos node, "
-                "lastheight[%d] on this fork node", rb.rbHeight, int(lastHeightResp));
+                "lastheight[%d] on this fork node",
+                rb.rbHeight, int(lastHeightResp));
 
             if (rb.rbHeight < lastHeightResp)
             {
@@ -877,7 +881,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
             Log("CMQCluster::OnReceiveMessage(): adding new outer total (%d) nodes from mq broker "
-                "by dpos node succeeded", outers.size());
+                "by dpos node succeeded",
+                outers.size());
 
             //launch connecting those outer nodes if main chain has been best block
             if (std::atomic_load(&isMainChainBlockBest))
@@ -938,13 +943,15 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         if (req.lastHeight > best)
         {
             Error("CMQCluster::OnReceiveMessage(): block height owned by fork node [%s]"
-                  "should not be greater than the best one on dpos node", req.forkNodeId.c_str());
+                  "should not be greater than the best one on dpos node",
+                  req.forkNodeId.c_str());
             return;
         }
         else if (req.lastHeight == best)
         {
             Log("CMQCluster::OnReceiveMessage(): block height[%d] owned by fork node[%s] "
-                "has reached the best one on dpos node, please wait...", best, req.forkNodeId.c_str());
+                "has reached the best one on dpos node, please wait...",
+                best, req.forkNodeId.c_str());
             resp.height = -1;
             resp.hash = uint256();
             resp.isBest = 1;
@@ -958,20 +965,23 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
             {
                 Error("CMQCluster::OnReceiveMessage(): failed to get checking height and hash match "
-                      "at height of [%d] with fork node [%s]", req.lastHeight, req.forkNodeId.c_str());
+                      "at height of [%d] with fork node [%s]",
+                      req.lastHeight, req.forkNodeId.c_str());
                 return;
             }
             if (hash != req.lastHash)
             {
                 Error("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
-                      "at height of [%d] with fork node [%s]", hash.ToString().c_str(),
+                      "at height of [%d] with fork node [%s]",
+                      hash.ToString().c_str(),
                       req.lastHash.ToString().c_str(), req.lastHeight, req.forkNodeId.c_str());
                 return;
             }
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
             {
                 Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of [%d] "
-                      "with fork node [%s]", req.lastHeight + 1, req.forkNodeId.c_str());
+                      "with fork node [%s]",
+                      req.lastHeight + 1, req.forkNodeId.c_str());
                 return;
             }
             CBlock block;
@@ -1096,19 +1106,19 @@ public:
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_RESP_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
             asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK], CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_UPDATE_BLOCK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
             asynCli.subscribe(mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK], CMQCluster::QOS1, nullptr, subListener);
             cout << "\nSubscribing to topic '" << mqCluster.arrTopic[CMQCluster::TOPIC_SUFFIX_ASGN_BIZFORK] << "'\n"
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            mqCluster.nReqBlkTimerID = mqCluster.SetTimer(200,
+                                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, &mqCluster, _1));
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
@@ -1142,20 +1152,20 @@ public:
         cout << "\tpayload: '" << msg->to_string() << "'\n"
              << endl;
         mqCluster.LogEvent("[message_arrived]");
-/*
+        /*
         xengine::CBufStream ss;
         ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
         mqCluster.OnReceiveMessage(msg->get_topic(), ss);
 */
         mqCluster.LogEvent("[asyncing...]");
         std::async(std::launch::async,
-            [this, &msg] () {
-            mqCluster.LogEvent("[entered, handling recv...]");
-            xengine::CBufStream ss;
-            ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
-            mqCluster.OnReceiveMessage(msg->get_topic(), ss);
-            mqCluster.LogEvent("[handled recv]");
-        });
+                   [this, &msg]() {
+                       mqCluster.LogEvent("[entered, handling recv...]");
+                       xengine::CBufStream ss;
+                       ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
+                       mqCluster.OnReceiveMessage(msg->get_topic(), ss);
+                       mqCluster.LogEvent("[handled recv]");
+                   });
         mqCluster.LogEvent("[asynced]");
     }
 
@@ -1189,7 +1199,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
             Log("CMQCluster::ClientAgent(): Initializing for connecting to broker[%s]...", addrBroker.c_str());
             client.set_callback(cb);
             Log("CMQCluster::ClientAgent(): ...set callback OK");
-/*            client.set_message_callback([this](mqtt::const_message_ptr msg) {
+            /*            client.set_message_callback([this](mqtt::const_message_ptr msg) {
                 Log("CMQCluster::ClientAgent(): entering lambda");
                 std::cout << msg->get_payload_str() << std::endl;
                 xengine::CBufStream ss;
@@ -1224,17 +1234,17 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 buf = deqSendBuff.front();
             }
 
-//            while (!deqSendBuff.empty())
+            //            while (!deqSendBuff.empty())
             {
                 Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
-//                pair<string, CBufferPtr> buf = deqSendBuff.front();
+                //                pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
-                buf.second->Dump();
+                //                buf.second->Dump();
 
                 mqtt::message_ptr pubmsg = mqtt::make_message(
                     buf.first, buf.second->GetData(), buf.second->GetSize());
                 pubmsg->set_qos(QOS1);
-//                pubmsg->set_qos(QOS0);
+                //                pubmsg->set_qos(QOS0);
                 if (string::npos != buf.first.find("AssignBizFork"))
                 {
                     Log("CMQCluster::ClientAgent(): AssignBizFork so set retained true[%s]", buf.first.c_str());
@@ -1245,10 +1255,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     Log("CMQCluster::ClientAgent(): non-AssignBizFork so set retained false[%s]", buf.first.c_str());
                     pubmsg->set_retained(mqtt::message::DFLT_RETAINED);
                 }
-//                delitok = client.publish(pubmsg, nullptr, cb);
-//                delitok = client.publish(pubmsg);
-                client.publish(pubmsg);
-/*                if (delitok->wait_for(100))
+                //                delitok = client.publish(pubmsg, nullptr, cb);
+                delitok = client.publish(pubmsg);
+                //                delitok->wait();
+                //                buf.second->Dump();
+                //                client.publish(pubmsg);
+                /*                if (delitok->wait_for(100))
                 {
                     Log("CMQCluster::ClientAgent(): delivery token waiting success[%s]", buf.first.c_str());
                 }
@@ -1257,7 +1269,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     Error("CMQCluster::ClientAgent(): delivery token waiting fail[%s]", buf.first.c_str());
                 }*/
 
-//                deqSendBuff.pop_front();
+                //                deqSendBuff.pop_front();
             }
 
             {
@@ -1333,7 +1345,7 @@ void CMQCluster::MqttThreadFunc()
 
     if (NODE_CATEGORY::FORKNODE == catNode)
     {   //wait for subscribing done before sending request for main chain block
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        //        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     //publish topics
@@ -1347,7 +1359,7 @@ void CMQCluster::MqttThreadFunc()
             }
         }
         ClientAgent(MQ_CLI_ACTION::PUB);
-//        condSend.notify_all();
+        //        condSend.notify_all();
         Log("thread function of MQTT: go through an iteration");
     }
 
