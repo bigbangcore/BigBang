@@ -78,7 +78,7 @@ public:
     void ChangeTxSet(const CTxSetChange& change);
     void AddNewTx(const CAssembledTx& tx);
     bool BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 nTime,
-                       const uint256& hashAnchor, int64 nTxFee, const std::vector<unsigned char>& vchData);
+                       const uint256& hashAnchor, const std::vector<unsigned char>& vchData);
 
 protected:
     CDestination destDelegate;
