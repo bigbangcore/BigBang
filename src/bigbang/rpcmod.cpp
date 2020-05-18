@@ -101,14 +101,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.dTxfee = ValueFromAmount(tx.nTxFee);
 
     std::string str(tx.vchData.begin(), tx.vchData.end());
-    if (str.substr(0, 4) == "msg:")
-    {
-        ret.strData = str;
-    }
-    else
-    {
-        ret.strData = xengine::ToHexString(tx.vchData);
-    }
+    ret.strData = xengine::ToHexString(tx.vchData);
     ret.strSig = xengine::ToHexString(tx.vchSig);
     ret.strFork = hashFork.GetHex();
     if (nDepth >= 0)
@@ -1660,15 +1653,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     if (spParam->strData.IsValid())
     {
         auto strDataTmp = spParam->strData;
-        if (((std::string)strDataTmp).substr(0, 4) == "msg:")
-        {
-            auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
-            vchData = ParseHexString(hex);
-        }
-        else
-        {
-            vchData = ParseHexString(strDataTmp);
-        }
+        vchData = ParseHexString(strDataTmp);
     }
 
     int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
