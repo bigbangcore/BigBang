@@ -580,7 +580,7 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
         deqSendBuff.emplace_back(make_pair(topic, payload));
         Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
     }
-    condSend.notify_all();
+    condSend.notify_one();
 
     return true;
 }
@@ -765,7 +765,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     boost::unique_lock<boost::mutex> lock(mtxSend);
                     deqSendBuff.clear();
                 }
-                condSend.notify_all();
+                condSend.notify_one();
 
                 //check hard fork point
                 uint256 hash;
@@ -1408,15 +1408,14 @@ void CMQCluster::MqttThreadFunc()
                 condSend.wait(lock);
             }
         }
-        if (!fAbort)
-        {
-            ClientAgent(MQ_CLI_ACTION::PUB);
-        }
-        else
+
+        if (fAbort)
         {
             break;
         }
-        //        condSend.notify_all();
+
+        ClientAgent(MQ_CLI_ACTION::PUB);
+
         Log("thread function of MQTT: go through an iteration");
     }
 
