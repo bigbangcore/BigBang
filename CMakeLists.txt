@@ -38,7 +38,7 @@ elseif(UNIX)
     set(CMAKE_CXX_EXTENSIONS OFF)
     
 else()
-    message(FATAL_ERROR "Unsupported plantform")
+    message(FATAL_ERROR "Unsupported platform")
 endif()
 
 # build type

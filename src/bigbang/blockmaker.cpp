@@ -136,7 +136,8 @@ bool CBlockMaker::HandleInitialize()
         }
     }
 
-    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && 1 != nNodeCat)
     {
         CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
         if (profile.IsValid())

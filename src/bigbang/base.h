@@ -17,6 +17,7 @@
 #include "destination.h"
 #include "error.h"
 #include "key.h"
+#include "mqdb.h"
 #include "param.h"
 #include "peer.h"
 #include "profile.h"
@@ -123,6 +124,10 @@ public:
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
+    virtual Errno AddNewSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
+    virtual bool FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask) = 0;
+    virtual bool AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
@@ -197,6 +202,7 @@ public:
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
+    virtual bool SetForkFilter(const std::vector<uint256>& vFork = std::vector<uint256>(), const std::vector<uint256>& vGroup = std::vector<uint256>()) = 0;
     virtual bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const = 0;
     const CForkConfig* ForkConfig()
     {
@@ -314,6 +320,7 @@ public:
     virtual void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) = 0;
     virtual bool AddNode(const xengine::CNetHost& node) = 0;
     virtual bool RemoveNode(const xengine::CNetHost& node) = 0;
+    virtual bool AddBizForkNodes(const std::vector<uint32>& nodes) = 0;
     /* Blockchain & Tx Pool*/
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
@@ -377,6 +384,8 @@ public:
         = 0;
     /* Util */
     virtual bool GetTxSender(const CTransaction& tx, CAddress& sender) = 0;
+    virtual bool AddSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

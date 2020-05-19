@@ -20,7 +20,15 @@ namespace bigbang
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr), pNetChannel(nullptr)
+  : pCoreProtocol(nullptr),
+    pBlockChain(nullptr),
+    pTxPool(nullptr),
+    pDispatcher(nullptr),
+    pWallet(nullptr),
+    pNetwork(nullptr),
+    pForkManager(nullptr),
+    pMQCluster(nullptr),
+    pNetChannel(nullptr)
 {
 }
 
@@ -72,6 +80,12 @@ bool CService::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("mqcluster", pMQCluster))
+    {
+        Error("Failed to request mqcluster");
+        return false;
+    }
+
     if (!GetObject("netchannel", pNetChannel))
     {
         Error("Failed to request netchannel");
@@ -90,6 +104,7 @@ void CService::HandleDeinitialize()
     pWallet = nullptr;
     pNetwork = nullptr;
     pForkManager = nullptr;
+    pMQCluster = nullptr;
     pNetChannel = nullptr;
 }
 
@@ -184,6 +199,25 @@ bool CService::RemoveNode(const CNetHost& node)
     CEventPeerNetRemoveNode eventRemoveNode(0);
     eventRemoveNode.data = node;
     return pNetwork->DispatchEvent(&eventRemoveNode);
+}
+
+bool CService::AddBizForkNodes(const std::vector<uint32>& nodes)
+{
+    for (auto const& node : nodes)
+    {
+        string strIP = storage::CSuperNode::Int2Ip(node);
+        CNetHost host(strIP, DEFAULT_P2PPORT);
+        CEventPeerNetAddNode eventAddNode(0);
+        eventAddNode.data = host;
+        if (!pNetwork->DispatchEvent(&eventAddNode))
+        {
+            StdError("CService", "AddBizForkNodes: Adding biz fork peer node[%s] failed", strIP.c_str());
+            return false;
+        }
+        StdLog("CService", "AddBizForkNodes: Adding biz fork peer node[%s] succeeded", strIP.c_str());
+    }
+
+    return true;
 }
 
 int CService::GetForkCount()
@@ -808,6 +842,41 @@ bool CService::GetTxSender(const CTransaction& tx, CAddress& sender)
     catch (exception& e)
     {
         StdError("CService::GetTxSender", (std::string("get tx sender failed: ") + std::string(e.what())).c_str());
+        return false;
+    }
+
+    return true;
+}
+
+bool CService::AddSuperNode(const storage::CSuperNode& node)
+{
+    if (OK != pBlockChain->AddNewSuperNode(node))
+    {
+        StdError("CService::AddSuperNode", "Adding new super node failed.");
+        return false;
+    }
+    StdLog("CService::AddSuperNode", "Adding new super node succeeded.");
+
+    CEventMQEnrollUpdate* pEvent = new CEventMQEnrollUpdate(0);
+    if (nullptr != pEvent)
+    {
+        pEvent->data.superNodeClientID = node.superNodeID;
+        pEvent->data.ipAddr = node.ipAddr;
+        pEvent->data.vecForksOwned = node.vecOwnedForks;
+        pMQCluster->PostEvent(pEvent);
+        StdLog("CService::AddSuperNode", "Posting CEventMQEnrollUpdate succeeded.");
+    }
+
+    pForkManager->SetForkFilter(node.vecOwnedForks);
+
+    return true;
+}
+
+bool CService::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
+{
+    if (!pBlockChain->ListSuperNode(nodes))
+    {
+        StdError("CService::ListSuperNode", "list super nodes failed.");
         return false;
     }
 

@@ -27,6 +27,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "mqcluster.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -91,17 +92,24 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
+    // list config if in debug mode
+    if (config.GetConfig()->fDebug)
+    {
+        config.ListConfig();
+    }
+
+    // check node category
+    if (config.GetConfig()->nCatOfNode < 0 || config.GetConfig()->nCatOfNode > 2)
+    {
+        cerr << "Node Category should be 0(BBCNODE), 1(FORKNODE) or 2(DPOSNODE) but it is " << config.GetConfig()->nCatOfNode << "\n";
+        return false;
+    }
+
     // purge
     if (config.GetConfig()->fPurge)
     {
         PurgeStorage();
         return false;
-    }
-
-    // list config if in debug mode
-    if (config.GetConfig()->fDebug)
-    {
-        config.ListConfig();
     }
 
     // check log size
@@ -196,12 +204,12 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetConfig()->fTestNet)
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET; 
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
     }
     else
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET; 
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
     }
 
     // modules
@@ -393,6 +401,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::MQCLUSTER:
+        {
+            if (!AttachModule(new CMQCluster(config.GetConfig()->nCatOfNode)))
             {
                 return false;
             }

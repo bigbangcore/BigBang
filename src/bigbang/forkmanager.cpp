@@ -6,6 +6,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
+#include "defs.h"
 #include "template/fork.h"
 
 using namespace std;
@@ -53,26 +54,35 @@ void CForkManager::HandleDeinitialize()
 
 bool CForkManager::HandleInvoke()
 {
-    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-
-    fAllowAnyFork = ForkConfig()->fAllowAnyFork;
-    if (!fAllowAnyFork)
+    int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (NODE_CAT_DPOSNODE == nodeCat)
     {
         setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
-        for (const string& strFork : ForkConfig()->vFork)
+        return true;
+    }
+
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+        fAllowAnyFork = ForkConfig()->fAllowAnyFork;
+        if (!fAllowAnyFork)
         {
-            uint256 hashFork(strFork);
-            if (hashFork != 0)
+            setForkAllowed.insert(pCoreProtocol->GetGenesisBlockHash());
+            for (const string& strFork : ForkConfig()->vFork)
             {
-                setForkAllowed.insert(hashFork);
+                uint256 hashFork(strFork);
+                if (hashFork != 0)
+                {
+                    setForkAllowed.insert(hashFork);
+                }
             }
-        }
-        for (const string& strFork : ForkConfig()->vGroup)
-        {
-            uint256 hashFork(strFork);
-            if (hashFork != 0)
+            for (const string& strFork : ForkConfig()->vGroup)
             {
-                setGroupAllowed.insert(hashFork);
+                uint256 hashFork(strFork);
+                if (hashFork != 0)
+                {
+                    setGroupAllowed.insert(hashFork);
+                }
             }
         }
     }
@@ -260,6 +270,40 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>
     }
 
     vSubline.assign(mapSubline.begin(), mapSubline.end());
+
+    return true;
+}
+
+bool CForkManager::SetForkFilter(const std::vector<uint256>& vFork, const std::vector<uint256>& vGroup)
+{
+    int8 nodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (NODE_CAT_DPOSNODE == nodeCat)
+    {
+        return true;
+    }
+
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        if (!fAllowAnyFork)
+        {
+            for (auto const& fork : vFork)
+            {
+                if (fork != 0)
+                {
+                    setForkAllowed.insert(fork);
+                    Log("CForkManager::SetForkFilter: set fork filter[%s]", fork.ToString().c_str());
+                }
+            }
+            for (auto const& group : vGroup)
+            {
+                if (group != 0)
+                {
+                    setGroupAllowed.insert(group);
+                    Log("CForkManager::SetForkFilter: set fork group filter[%s]", group.ToString().c_str());
+                }
+            }
+        }
+    }
 
     return true;
 }

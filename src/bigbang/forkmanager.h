@@ -108,6 +108,7 @@ public:
     bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive);
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
+    bool SetForkFilter(const std::vector<uint256>& vFork = std::vector<uint256>(), const std::vector<uint256>& vGroup = std::vector<uint256>()) override;
     bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const override;
 
 protected:

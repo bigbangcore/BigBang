@@ -252,7 +252,7 @@ bool CMiner::SendRequest(uint64 nNonce, const string& content)
     CHttpReqData& httpReqData = eventHttpGet.data;
     httpReqData.strIOModule = GetOwnKey();
     httpReqData.nTimeout = Config()->nRPCConnectTimeout;
-    ;
+
     if (Config()->fRPCSSLEnable)
     {
         httpReqData.strProtocol = "https";

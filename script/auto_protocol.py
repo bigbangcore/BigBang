@@ -1074,20 +1074,20 @@ def CreateConfig_h(w):
     indent = brace_begin(w)
 
     if len(config_class) == 0:
-        w.write(indent + 'return new mode_impl::CCombinConfig<T...>();\n')
+        w.write(indent + 'return new mode_impl::CCombineConfig<T...>();\n')
     else:
         w.write(indent)
         for cmd, name in config_class.items():
             w.write('if (cmd == "' + cmd + '")\n')
             indent = brace_begin(w, indent)
-            w.write(indent + 'return new mode_impl::CCombinConfig<' +
+            w.write(indent + 'return new mode_impl::CCombineConfig<' +
                     name + ', T...>;\n')
             indent = brace_end(w, indent)
             w.write(indent + 'else ')
 
         empty_line(w)
         indent = brace_begin(w, indent)
-        w.write(indent + 'return new mode_impl::CCombinConfig<T...>();\n')
+        w.write(indent + 'return new mode_impl::CCombineConfig<T...>();\n')
         indent = brace_end(w, indent)
 
     brace_end(w, indent)

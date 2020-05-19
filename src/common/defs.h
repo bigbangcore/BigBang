@@ -15,5 +15,11 @@ static const unsigned int HEIGHT_HASH_TX_DATA_MAINNET = 133060;
 static const unsigned int HEIGHT_HASH_TX_DATA_TESTNET = 40;
 extern unsigned int HEIGHT_HASH_TX_DATA;
 
+enum
+{
+    NODE_CAT_BBCNODE = 0,
+    NODE_CAT_FORKNODE = 1,
+    NODE_CAT_DPOSNODE = 2
+};
 
 #endif //BIGBANG_DEFS_H

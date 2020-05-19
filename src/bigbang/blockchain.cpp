@@ -718,6 +718,45 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     return OK;
 }
 
+Errno CBlockChain::AddNewSuperNode(const storage::CSuperNode& node)
+{
+    if (!cntrBlock.AddNewSuperNode(node))
+    {
+        return FAILED;
+    }
+    return OK;
+}
+
+bool CBlockChain::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
+{
+    if (!cntrBlock.ListSuperNode(nodes))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask)
+{
+    if (!cntrBlock.FetchSuperNode(nodes, mask))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool CBlockChain::AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper)
+{
+    if (!cntrBlock.AddOuterNodes(outers, fSuper))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 // uint320 GetBlockTrust() const
 // {
 //     if (IsVacant() && vchProof.empty())

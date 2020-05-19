@@ -448,7 +448,7 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
         CForkContext ctxt(hashGenesis, uint64(0), uint64(0), profile);
         if (!dbBlock.AddNewForkContext(ctxt))
         {
-            StdTrace("BlockBase", "Add New Fork COntext %s block failed", hashGenesis.ToString().c_str());
+            StdTrace("BlockBase", "Add New Fork Context %s block failed", hashGenesis.ToString().c_str());
             return false;
         }
 
@@ -552,6 +552,76 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
         return false;
     }
     Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
+    return true;
+}
+
+bool CBlockBase::AddNewSuperNode(const CSuperNode& superNode)
+{
+    if (!dbBlock.AddNewSuperNode(superNode))
+    {
+        Error("CBlockBase::AddNewSuperNode", "Failed to addnew supernode in %s", superNode.superNodeID.c_str());
+        return false;
+    }
+    Log("CBlockBase::AddNewSuperNode", "AddNew supernode,cliID=%s with %d forks", superNode.superNodeID.c_str(),
+        superNode.vecOwnedForks.size());
+    for (const auto& i : superNode.vecOwnedForks)
+    {
+        Log("CBlockBase::AddNewSuperNode", "AddNew supernode with fork [%s]", i.ToString().c_str());
+    }
+    return true;
+}
+
+bool CBlockBase::ListSuperNode(vector<storage::CSuperNode>& nodes)
+{
+    if (!dbBlock.ListSuperNode(nodes))
+    {
+        Error("CBlockBase::ListSuperNode", "Failed to list supernode");
+        return false;
+    }
+    Log("CBlockBase::ListSuperNode", "List supernode successfully");
+    for (const auto& node : nodes)
+    {
+        for (const auto& fork : node.vecOwnedForks)
+        {
+            Log("CBlockBase::ListSuperNode", "supernode client ID [%s] IP [%s]: fork [%s]",
+                node.superNodeID.c_str(), CSuperNode::Int2Ip(node.ipAddr).c_str(), fork.ToString().c_str());
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::FetchSuperNode(vector<storage::CSuperNode>& nodes, const uint8 mask)
+{
+    if (!dbBlock.FetchSuperNode(nodes, mask))
+    {
+        Error("CBlockBase::FetchSuperNode", "Failed to fetch supernode");
+        return false;
+    }
+    Log("CBlockBase::FetchSuperNode", "Fetch supernode successfully");
+    for (const auto& node : nodes)
+    {
+        for (const auto& fork : node.vecOwnedForks)
+        {
+            Log("CBlockBase::FetchSuperNode", "supernode client ID [%s] IP [%s]: fork [%s]",
+                node.superNodeID.c_str(), CSuperNode::Int2Ip(node.ipAddr).c_str(), fork.ToString().c_str());
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper)
+{
+    if (!dbBlock.AddOuterNodes(outers, fSuper))
+    {
+        Error("CBlockBase::AddOuterNodes", "Failed to add [%d] outer nodes", outers.size());
+        return false;
+    }
+
+    Log("CBlockBase::AddOuterNodes", "Adding [%d] outer nodes successfully", outers.size());
+    for (auto const& o : outers)
+    {
+        Log("CBlockBase::AddOuterNodes", "Succeeded in adding outer node :[%s]", o.ToString().c_str());
+    }
     return true;
 }
 
@@ -2284,9 +2354,9 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
 
         CVarInt var(block.vtx.size());
         nOffset += ss.GetSerializeSize(var);
-        for (int i = 0; i < block.vtx.size(); i++)
+        for (int j = 0; j < block.vtx.size(); j++)
         {
-            CTransaction& tx = block.vtx[i];
+            CTransaction& tx = block.vtx[j];
             uint256 txid = tx.GetHash();
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
             vTxNew.push_back(make_pair(txid, txIndex));

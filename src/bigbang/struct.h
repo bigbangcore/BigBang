@@ -126,10 +126,10 @@ public:
 public:
     uint256 hashFork;
     uint256 hashParent;
-    int nOriginHeight;
+    int32 nOriginHeight;
     uint256 hashLastBlock;
     int64 nLastBlockTime;
-    int nLastBlockHeight;
+    int32 nLastBlockHeight;
     uint16 nLastMintType;
     int64 nMoneySupply;
     std::set<uint256> setTxUpdate;
@@ -286,6 +286,24 @@ public:
     uint256 nAgreement;
     std::size_t nWeight;
     uint16 nMintType;
+};
+
+/* Super node */
+class CMqRollbackUpdate
+{
+public:
+    int32 triHeight;
+    uint256 triHash;
+    int actRollBackLen;
+    std::vector<uint256> vShort;
+};
+
+class CMqSuperNodeUpdate
+{
+public:
+    std::string superNodeClientID;
+    uint32 ipAddr;
+    std::vector<uint256> vecForksOwned;
 };
 
 /* Net Channel */

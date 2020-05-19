@@ -103,7 +103,7 @@ private:
         }
         else
         {
-            return new mode_impl::CCombinConfig<
+            return new mode_impl::CCombineConfig<
                 typename std::remove_pointer<typename std::tuple_element<
                     static_cast<int>(t),
                     decltype(config_type::___ConfigTypeTemplate)>::type>::type...>;
@@ -171,6 +171,7 @@ public:
                 EModuleType::HTTPSERVER,
                 EModuleType::RPCMODE,
                 EModuleType::BLOCKMAKER,
+                EModuleType::MQCLUSTER,
                 EModuleType::DATASTAT } },
             { EModeType::CONSOLE,
               { EModuleType::HTTPGET,

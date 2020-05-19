@@ -11,13 +11,13 @@ set(template
     template/template.h     template/template.cpp
     template/weighted.h     template/weighted.cpp 
     template/multisig.h     template/multisig.cpp 
-    template/fork.h         template/fork.cpp 
-    template/mint.h         template/mint.cpp 
+    template/fork.h         template/fork.cpp
+    template/mint.h         template/mint.cpp
     template/proof.h        template/proof.cpp 
-    template/delegate.h     template/delegate.cpp 
-    template/exchange.h     template/exchange.cpp 
-    template/vote.h         template/vote.cpp 
-    template/payment.h      template/payment.cpp 
+    template/delegate.h     template/delegate.cpp
+    template/exchange.h     template/exchange.cpp
+    template/vote.h         template/vote.cpp
+    template/payment.h      template/payment.cpp
 )
 
 set(sources

@@ -8,6 +8,7 @@
 #include <future>
 #include <thread>
 
+#include "defs.h"
 #include "event.h"
 
 using namespace std;
@@ -32,6 +33,7 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pMQCluster = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -106,6 +108,17 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
+
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (!GetObject("mqcluster", pMQCluster))
+        {
+            Error("Failed to request mqcluster");
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -122,6 +135,7 @@ void CDispatcher::HandleDeinitialize()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -129,7 +143,7 @@ bool CDispatcher::HandleInvoke()
     vector<uint256> vActive;
     if (!pForkManager->LoadForkContext(vActive))
     {
-        Error("Failed to load for context");
+        Error("Failed to load fork context");
         return false;
     }
 
@@ -377,6 +391,31 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     SyncForkHeight(updateBlockChain.nLastBlockHeight);
+
+    if (NODE_CAT_DPOSNODE == nNodeCat && !updateBlockChain.vBlockRemove.empty())
+    {
+        CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
+        if (pMqChainUpdate != nullptr)
+        {
+            pMqChainUpdate->data.actRollBackLen = updateBlockChain.vBlockAddNew.size();
+            pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
+            for (const auto& rb : updateBlockChain.vBlockRemove)
+            {
+                Log("CDispatcher::UpdatePrimaryBlock: removed short link block [%s]",
+                    rb.GetHash().ToString().c_str());
+                pMqChainUpdate->data.vShort.emplace_back(rb.GetHash());
+            }
+            reverse(pMqChainUpdate->data.vShort.begin(), pMqChainUpdate->data.vShort.end());
+            pMqChainUpdate->data.triHeight = pMqChainUpdate->data.vShort.front().Get32(7) - 1;
+            pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
+                                      pMqChainUpdate->data.triHeight,
+                                      pMqChainUpdate->data.triHash);
+            Log("CDispatcher::UpdatePrimaryBlock: forked block hash [%s] with height [%d]",
+                pMqChainUpdate->data.triHash.ToString().c_str(), pMqChainUpdate->data.triHeight);
+
+            pMQCluster->PostEvent(pMqChainUpdate);
+        }
+    }
 }
 
 void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
