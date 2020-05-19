@@ -328,11 +328,23 @@ bool CConsensus::HandleInvoke()
         return false;
     }
 
-    if (!LoadChain())
+    if (!datVoteSave.Initialize(Config()->pathData))
+    {
+        Error("Failed to initialize vote data");
+        return false;
+    }
+
+    if (!datVoteSave.Load(delegate))
+    {
+        Error("Failed to load vote data");
+        return false;
+    }
+
+    /*if (!LoadChain())
     {
         Error("Failed to load chain");
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -340,6 +352,8 @@ bool CConsensus::HandleInvoke()
 void CConsensus::HandleHalt()
 {
     boost::unique_lock<boost::mutex> lock(mutex);
+
+    datVoteSave.Save(delegate);
 
     delegate.Deinitialize();
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
@@ -660,6 +674,7 @@ bool CConsensus::LoadChain()
             delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result, hashBlock);
         }
     }*/
+
     return true;
 }
 

@@ -31,6 +31,12 @@ bool CDelegate::Initialize()
 void CDelegate::Deinitialize()
 {
     mapVote.clear();
+    mapDistributeVote.clear();
+}
+
+void CDelegate::Clear()
+{
+    Deinitialize();
 }
 
 void CDelegate::AddNewDelegate(const CDestination& destDelegate)

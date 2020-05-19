@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "delegate.h"
+#include "delegatevotesave.h"
 
 namespace bigbang
 {
@@ -124,6 +125,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    storage::CDelegateVoteSave datVoteSave;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
     CAgreementBlock cacheAgreementBlock;

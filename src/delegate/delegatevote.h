@@ -17,6 +17,8 @@ namespace delegate
 
 class CDelegateData
 {
+    friend class xengine::CStream;
+
 public:
     CDelegateData()
     {
@@ -54,6 +56,15 @@ public:
         return os.str();
     }
 
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nIdentFrom, opt);
+        s.Serialize(mapShare, opt);
+        s.Serialize(nR, opt);
+        s.Serialize(nS, opt);
+    }
+
 public:
     uint256 nIdentFrom;
     std::map<uint256, std::vector<uint256>> mapShare;
@@ -76,6 +87,8 @@ protected:
 
 class CDelegateVote
 {
+    friend class xengine::CStream;
+
 public:
     CDelegateVote();
     ~CDelegateVote();
@@ -95,6 +108,21 @@ public:
 
 protected:
     bool VerifySignature(const CDelegateData& delegateData);
+
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(mapDelegate, opt);
+        s.Serialize(witness, opt);
+        s.Serialize(vCollected, opt);
+
+        s.Serialize(blockHash, opt);
+        s.Serialize(is_enroll, opt);
+        s.Serialize(is_published, opt);
+        s.Serialize(nPublishedTime, opt);
+        s.Serialize(hashDistributeBlock, opt);
+        s.Serialize(hashPublishBlock, opt);
+    }
 
 protected:
     std::map<CDestination, CSecretShare> mapDelegate;

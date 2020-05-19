@@ -33,11 +33,14 @@ public:
 
 class CDelegate
 {
+    friend class xengine::CStream;
+
 public:
     CDelegate();
     ~CDelegate();
     bool Initialize();
     void Deinitialize();
+    void Clear();
     void AddNewDelegate(const CDestination& destDelegate);
     void RemoveDelegate(const CDestination& destDelegate);
 
@@ -53,6 +56,14 @@ public:
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof);
     bool IsCompleted(int nTargetHeight);
     int64 GetPublishedTime(int nTargetHeight);
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(mapVote, opt);
+        s.Serialize(mapDistributeVote, opt);
+    }
 
 protected:
     std::set<CDestination> setDelegate;
