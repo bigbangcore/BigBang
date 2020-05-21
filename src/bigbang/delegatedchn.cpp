@@ -46,7 +46,7 @@ void CDelegatedChannelChain::Update(int nStartHeight,
                                     const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
                                     const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
                                     const map<CDestination, vector<unsigned char>>& mapPublishData,
-                                    const uint256& hashDistributeOfPublish, int64 nPublishTime)
+                                    const uint256& hashDistributeOfPublish)
 {
     if (nLastBlockHeight < nStartHeight)
     {
@@ -98,7 +98,6 @@ void CDelegatedChannelChain::Update(int nStartHeight,
     {
         CDelegatedChannelChainData& data = mapChainData[hashDistributeOfPublish];
         data.mapPublishData.insert(mapPublishData.begin(), mapPublishData.end());
-        data.nPublishTime = nPublishTime;
     }
 }
 
@@ -121,7 +120,7 @@ uint64 CDelegatedChannelChain::GetPublishBitmap(const uint256& hashAnchor)
     if (listBlockHash.size() == CONSENSUS_DISTRIBUTE_INTERVAL + 1 && hashAnchor == listBlockHash.back())
     {
         map<uint256, CDelegatedChannelChainData>::iterator it = mapChainData.find(hashAnchor);
-        if (it != mapChainData.end() && GetTime() >= it->second.nPublishTime)
+        if (it != mapChainData.end())
         {
             return (it->second.GetBitmap((*it).second.mapPublishData));
         }
@@ -516,26 +515,12 @@ void CDelegatedChannel::PrimaryUpdate(int nStartHeight,
                                       const vector<pair<uint256, map<CDestination, size_t>>>& vEnrolledWeight,
                                       const vector<pair<uint256, map<CDestination, vector<unsigned char>>>>& vDistributeData,
                                       const map<CDestination, vector<unsigned char>>& mapPublishData,
-                                      const uint256& hashDistributeOfPublish, int64 nPublishTime)
+                                      const uint256& hashDistributeOfPublish)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwPeer);
 
-    dataChain.Update(nStartHeight, vEnrolledWeight, vDistributeData, mapPublishData, hashDistributeOfPublish, nPublishTime);
+    dataChain.Update(nStartHeight, vEnrolledWeight, vDistributeData, mapPublishData, hashDistributeOfPublish);
 
-    if (!mapPublishData.empty())
-    {
-        int64 nTimeLen = nPublishTime - GetTime();
-        if (nTimeLen > 0)
-        {
-            boost::unique_lock<boost::mutex> lock(mtxBulletin);
-            if (nTimerPublish != 0)
-            {
-                CancelTimer(nTimerPublish);
-                nTimerPublish = 0;
-            }
-            nTimerPublish = SetTimer(nTimeLen * 1000, boost::bind(&CDelegatedChannel::PublishTimerFunc, this, _1));
-        }
-    }
     if (!vDistributeData.empty() || !mapPublishData.empty())
     {
         BroadcastBulletin(true);

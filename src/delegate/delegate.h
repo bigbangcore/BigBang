@@ -47,7 +47,7 @@ public:
     void Evolve(int nBlockHeight, const std::map<CDestination, std::size_t>& mapWeight,
                 const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData,
                 CDelegateEvolveResult& result, const uint256& hashBlock);
-    void Rollback(int nBlockHeightFrom, int nBlockHeightTo);
+    void GetEvolveData(int nBlockHeight, CDelegateEvolveResult& result, const uint256& hashBlock);
     bool HandleDistribute(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
                           const std::vector<unsigned char>& vchDistributeData);
     bool HandlePublish(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,

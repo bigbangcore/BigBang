@@ -940,12 +940,12 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     vBallot.clear();
     if (nAgreement == 0 || mapBallot.size() == 0)
     {
-        StdTrace("Core", "GetDelegatedBallot: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
+        StdTrace("Core", "Get delegated ballot: height: %d, nAgreement: %s, mapBallot.size: %ld", nBlockHeight, nAgreement.GetHex().c_str(), mapBallot.size());
         return;
     }
     if (nMoneySupply < 0)
     {
-        StdTrace("Core", "GetDelegatedBallot: nMoneySupply < 0");
+        StdTrace("Core", "Get delegated ballot: nMoneySupply < 0");
         return;
     }
     if (vecAmount.size() != mapBallot.size())
@@ -965,54 +965,42 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     nEnrollTrust = 0;
     for (auto& amount : vecAmount)
     {
-        StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
-                 CAddress(amount.first).ToString().c_str(), amount.second);
+        StdTrace("Core", "Get delegated ballot: height: %d, vote dest: %s, amount: %lld",
+                 nBlockHeight, CAddress(amount.first).ToString().c_str(), amount.second);
         if (mapBallot.find(amount.first) != mapBallot.end())
         {
             size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
             mapSelectBallot[amount.first] = nDestWeight;
             nEnrollWeight += nDestWeight;
             nEnrollTrust += (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT));
-            StdTrace("Core", "Get delegated ballot: ballot dest: %s, weight: %lld",
-                     CAddress(amount.first).ToString().c_str(), nDestWeight);
+            StdTrace("Core", "Get delegated ballot: height: %d, ballot dest: %s, weight: %lld",
+                     nBlockHeight, CAddress(amount.first).ToString().c_str(), nDestWeight);
         }
     }
     nEnrollTrust /= DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
-    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu, enroll trust: %llu", mapSelectBallot.size(), nEnrollTrust);
+    StdTrace("Core", "Get delegated ballot: trust height: %d, ballot dest count is %llu, enroll trust: %llu", nBlockHeight, mapSelectBallot.size(), nEnrollTrust);
 
     size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
                          / (nMaxWeight * nMaxWeight);
-    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
-             nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
+    StdTrace("Core", "Get delegated ballot: weight height: %d, nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
+             nBlockHeight, nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
     {
-        // size_t nTrust = mapSelectBallot.size();
         size_t total = nEnrollWeight;
-        // set<CDestination> setMaker;
-        // for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
-        // {
-        //     nSelected += *p;
         size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
         for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
         {
             if (n < it->second)
             {
                 vBallot.push_back(it->first);
-                // total -= it->second;
-                // mapSelectBallot.erase(it);
                 break;
             }
             n -= (*it).second;
         }
-        //     --nTrust;
-        // }
     }
 
-    StdTrace("Core", "vBallot size: %lu", vBallot.size());
-    for (auto& ballot : vBallot)
-    {
-        StdTrace("Core", "Get delegated ballot: sequence dest: %s", CAddress(ballot).ToString().c_str());
-    }
+    StdTrace("Core", "Get delegated ballot: height: %d, consensus: %s, ballot dest: %s",
+             nBlockHeight, (vBallot.size() > 0 ? "dpos" : "pow"), (vBallot.size() > 0 ? CAddress(vBallot[0]).ToString().c_str() : ""));
 }
 
 int64 CCoreProtocol::MinEnrollAmount()
