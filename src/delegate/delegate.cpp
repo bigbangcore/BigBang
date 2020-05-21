@@ -86,6 +86,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
             // 通过本机的Delegate地址初始化CDelegateVote中的mapDelegate<CDelegate, CSecretShare>
             vote.CreateDelegate(setDelegate);
+            // 把SealBox数据写入result.mapEnrollData, 发出去，然后随着高度增长，对端收到就进入Enroll 和Distribute阶段
             vote.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, hashBlock);
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
@@ -107,6 +108,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             }
 
             //CDelegateVote& vote = (*it).second;
+            // 其实就是校验CDelegateVote的各种字段
             if (it->second.hashDistributeBlock != 0
                 && it->second.hashDistributeBlock != hashBlock
                 && mapDistributeVote.find(it->second.hashDistributeBlock) != mapDistributeVote.end())

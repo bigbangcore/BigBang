@@ -94,7 +94,7 @@ void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned c
         CSecretShare& delegate = (*it).second;
         CMPSealedBox sealed;
         delegate.Setup(nMaxThresh, sealed);
-
+        // 密封盒子加密后的内容都会随着EnrollData发送到P2P网络上参与共识
         CODataStream os(mapEnrollData[(*it).first]);
         os << sealed.nPubKey << sealed.vEncryptedCoeff << sealed.nR << sealed.nS;
     }
@@ -151,9 +151,11 @@ void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
     //     mapEnrollData.size() > 0 ? mapEnrollData.begin()->first.ToString().c_str() : "...",
     //     mapEnrollData.size() > 0 ? xengine::ToHexString(mapEnrollData.begin()->second).c_str() : "...");
     vector<CMPCandidate> vCandidate;
+    // 有权重的Delegate地址的节点都是候选DPoS节点
     vCandidate.reserve(mapWeight.size());
     for (map<CDestination, size_t>::const_iterator it = mapWeight.begin(); it != mapWeight.end(); ++it)
     {
+        // 达到投票权重的节点deleteate地址，EnrollData把其中的SealedBox的数据取出来(加密后的系数列表，OpenedBox公钥，以及R S)
         map<CDestination, vector<unsigned char>>::const_iterator mi = mapEnrollData.find((*it).first);
         if (mi != mapEnrollData.end())
         {

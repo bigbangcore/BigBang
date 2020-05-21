@@ -102,7 +102,9 @@ const uint256 CMPOpenedBox::Polynomial(std::size_t nThresh, uint32_t nX) const
 
 void CMPOpenedBox::Signature(const uint256& hash, const uint256& r, uint256& nR, uint256& nS) const
 {
+    // 随机数r所对应的公钥nR
     nR = MPEccPubkey(r);
+    // 以私钥对Deletgate模板ID进行签名，并加入了随CMPOpenedBox数r作为nS输出
     nS = MPEccSign(PrivKey(), r, hash);
 }
 
@@ -111,6 +113,7 @@ bool CMPOpenedBox::VerifySignature(const uint256& hash, const uint256& nR, const
     return MPEccVerify(PubKey(), nR, nS, hash);
 }
 
+// 其实SealBox就是OpenedBox加密以后的Box
 bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, const uint256& r) const
 {
     if (!Validate() || !r)
@@ -124,9 +127,12 @@ bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, co
         sealed.vEncryptedCoeff.resize(vCoeff.size());
         for (int i = 0; i < vCoeff.size(); i++)
         {
+            // 加密后的所谓的多项式系数就是以原系数为标量，生成公钥来作为加密后的系数
             sealed.vEncryptedCoeff[i] = MPEccPubkey(vCoeff[i]);
         }
+        // 就是随机生成的uint256私钥对应的Ed25519上的公钥
         sealed.nPubKey = PubKey();
+        // 以随机数r作为输入，用OpenBox的私钥签名Delegate模板ID，并输出SealBox的nR nS
         Signature(nIdent, r, sealed.nR, sealed.nS);
         return true;
     }
