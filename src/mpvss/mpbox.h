@@ -13,6 +13,7 @@
 
 class CMPSealedBox;
 
+// 多方公开的盒子
 class CMPOpenedBox
 {
 public:
@@ -38,7 +39,7 @@ public:
     bool MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, const uint256& r) const;
 
 public:
-    std::vector<uint256> vCoeff;
+    std::vector<uint256> vCoeff; // 多项式的系数列表
     uint256 nPrivKey;
 };
 

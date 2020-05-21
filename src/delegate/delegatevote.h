@@ -98,7 +98,7 @@ protected:
     bool VerifySignature(const CDelegateData& delegateData);
 
 protected:
-    std::map<CDestination, CSecretShare> mapDelegate;
+    std::map<CDestination, CSecretShare> mapDelegate; // 每个Delegate地址上的CSecretShare
     CSecretShare witness;
 
     std::vector<CDelegateData> vCollected;

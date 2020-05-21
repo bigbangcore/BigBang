@@ -105,10 +105,13 @@ void CMPSecretShare::RandGeneretor(uint256& r)
     }
 }
 
+// 生成一个有特定模式的uint256随机数
 const uint256 CMPSecretShare::RandShare()
 {
     uint256 r;
+    // 生成一个uint256长的随机数
     RandGeneretor(r);
+    // 随机数高32 bit只取其的低24位
     r[7] &= 0x0FFFFFFFULL;
     return r;
 }
@@ -133,17 +136,22 @@ bool CMPSecretShare::GetParticipantRange(const uint256& nIdentIn, size_t& nIndex
     return true;
 }
 
+// 创建多方密封盒子(CMPSealedBox)
 void CMPSecretShare::Setup(size_t nMaxThresh, CMPSealedBox& sealed)
 {
     myBox.vCoeff.clear();
+    // 多少个DPoS节点就有多少个多项式的系数
     myBox.vCoeff.resize(nMaxThresh);
     do
     {
+        // 多方秘密共享中的多方公开盒子中的私钥也是随机数
         myBox.nPrivKey = RandShare();
+        // 系数也是随机有特定模式的uint256随机数
         for (int i = 0; i < nMaxThresh; i++)
         {
             myBox.vCoeff[i] = RandShare();
         }
+        // 通过这些私钥，系数的随机数，还有Delegate模板ID来构造密封盒子(SealedBox),构造失败就重新重复相同的过程尝试
     } while (!myBox.MakeSealedBox(sealed, nIdent, RandShare()));
 
     nIndex = 0;

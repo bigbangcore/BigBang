@@ -50,6 +50,7 @@ public:
     std::vector<uint256> vShare;
 };
 
+// 一个Delegate Template地址上对应一个CMPSecretShare，多方秘密共享
 class CMPSecretShare
 {
 public:
@@ -81,7 +82,7 @@ protected:
     bool GetParticipantRange(const uint256& nIdentIn, std::size_t& nIndexRet, std::size_t& nWeightRet);
 
 public:
-    uint256 nIdent;
+    uint256 nIdent; // Delegate模板ID
     CMPOpenedBox myBox;
     std::size_t nWeight;
     std::size_t nIndex;

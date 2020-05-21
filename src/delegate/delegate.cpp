@@ -79,10 +79,12 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
         }
         else
         {
+            // 如果target将要出块的高度没有CDelegateVote,就新建一个
             CDelegateVote& vote = mapVote[nTarget];
 
             auto t0 = boost::posix_time::microsec_clock::universal_time();
 
+            // 通过本机的Delegate地址初始化CDelegateVote中的mapDelegate<CDelegate, CSecretShare>
             vote.CreateDelegate(setDelegate);
             vote.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, hashBlock);
 

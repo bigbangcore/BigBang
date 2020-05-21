@@ -16,9 +16,11 @@ using namespace xengine;
 //////////////////////////////
 // CMPSealedBox
 
+// 返回以s为标量的Ed25519 曲线的uint256公钥
 static inline const uint256 MPEccPubkey(const uint256& s)
 {
     uint256 pubkey;
+    // P = k*G, (k = s, G = Ed25519 base point, P = public key)
     crypto_scalarmult_ed25519_base_noclamp(pubkey.begin(), s.begin());
     return pubkey;
 }
@@ -118,6 +120,7 @@ bool CMPOpenedBox::MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, co
 
     try
     {
+        // 密封盒子中保存有加密后的多项式系数
         sealed.vEncryptedCoeff.resize(vCoeff.size());
         for (int i = 0; i < vCoeff.size(); i++)
         {

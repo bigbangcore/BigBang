@@ -87,6 +87,7 @@ void CDelegateVote::CreateDelegate(const set<CDestination>& setDelegate)
 void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned char>>& mapEnrollData, const uint256& block_hash)
 {
     // StdWarn("vote", "CDelegateVote::Setup enter............... mapDelegate size: %llu", mapDelegate.size());
+    // 为每个Delegate模板地址的
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
         // StdWarn("vote", "CDelegateVote::Setup dest: %s", it->first.ToString().c_str());
