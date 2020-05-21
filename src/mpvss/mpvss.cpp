@@ -19,8 +19,8 @@ CMPParticipant::CMPParticipant()
 {
 }
 
-CMPParticipant::CMPParticipant(const CMPCandidate& candidate, size_t nIndexIn, const uint256& nSharedKeyIn)
-  : nWeight(candidate.nWeight), nIndex(nIndexIn), sBox(candidate.sBox), nSharedKey(nSharedKeyIn)
+CMPParticipant::CMPParticipant(const CMPCandidate& candidate, const uint256& nSharedKeyIn)
+  : candidate(candidate), nSharedKey(nSharedKeyIn), nIndex(-1)
 {
 }
 
@@ -40,7 +40,7 @@ bool CMPParticipant::AcceptShare(size_t nThresh, size_t nIndexIn, const vector<u
     for (size_t i = 0; i < vEncrypedShare.size(); i++)
     {
         vShare[i] = Decrypt(vEncrypedShare[i]);
-        if (!sBox.VerifyPolynomial(nIndexIn + i, vShare[i]))
+        if (!candidate.sBox.VerifyPolynomial(nIndexIn + i, vShare[i]))
         {
             vShare.clear();
             return false;
@@ -53,7 +53,7 @@ bool CMPParticipant::VerifyShare(size_t nThresh, size_t nIndexIn, const vector<u
 {
     for (size_t i = 0; i < vShare.size(); i++)
     {
-        if (!sBox.VerifyPolynomial(nIndexIn + i, vShare[i]))
+        if (!candidate.sBox.VerifyPolynomial(nIndexIn + i, vShare[i]))
         {
             return false;
         }
@@ -63,7 +63,17 @@ bool CMPParticipant::VerifyShare(size_t nThresh, size_t nIndexIn, const vector<u
 
 void CMPParticipant::PrepareVerification(std::size_t nThresh, std::size_t nLastIndex)
 {
-    sBox.PrecalcPolynomial(nThresh, nLastIndex);
+    candidate.sBox.PrecalcPolynomial(nThresh, nLastIndex);
+}
+
+const CMPCandidate& CMPParticipant::GetCandidate() const
+{
+    return candidate;
+}
+
+bool CMPParticipant::IsNull() const
+{
+    return !nSharedKey;
 }
 
 //////////////////////////////
@@ -74,6 +84,7 @@ CMPSecretShare::CMPSecretShare()
     nIndex = 0;
     nThresh = 0;
     nWeight = 0;
+    fCollectCompleted = false;
 }
 
 CMPSecretShare::CMPSecretShare(const uint256& nIdentIn)
@@ -82,6 +93,7 @@ CMPSecretShare::CMPSecretShare(const uint256& nIdentIn)
     nIndex = 0;
     nThresh = 0;
     nWeight = 0;
+    fCollectCompleted = false;
 }
 
 void CMPSecretShare::RandGeneretor(uint256& r)
@@ -117,7 +129,7 @@ bool CMPSecretShare::GetParticipantRange(const uint256& nIdentIn, size_t& nIndex
     }
 
     nIndexRet = (*it).second.nIndex;
-    nWeightRet = (*it).second.nWeight;
+    nWeightRet = (*it).second.candidate.nWeight;
     return true;
 }
 
@@ -137,6 +149,7 @@ void CMPSecretShare::Setup(size_t nMaxThresh, CMPSealedBox& sealed)
     nIndex = 0;
     nThresh = 0;
     nWeight = 0;
+    fCollectCompleted = false;
     mapParticipant.clear();
     mapOpenedShare.clear();
 }
@@ -148,47 +161,83 @@ void CMPSecretShare::SetupWitness()
     nIndex = 0;
     nThresh = 0;
     nWeight = 0;
+    fCollectCompleted = false;
     mapParticipant.clear();
     mapOpenedShare.clear();
 }
 
 void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
 {
-    size_t nLastIndex = 1;
+    // prepare parallel computation
+    vector<CMPParticipant*> vParticipant;
+    vParticipant.reserve(vCandidate.size());
+
     for (size_t i = 0; i < vCandidate.size(); i++)
     {
         const CMPCandidate& candidate = vCandidate[i];
         if (candidate.nIdent == nIdent)
         {
-            nIndex = nLastIndex;
             nWeight = candidate.nWeight;
-            nLastIndex += candidate.nWeight;
+            vParticipant.push_back(new CMPParticipant());
         }
-        else if (!mapParticipant.count(candidate.nIdent) && candidate.Verify())
+        else if (!mapParticipant.count(candidate.nIdent))
         {
             try
             {
                 uint256 shared = myBox.SharedKey(candidate.PubKey());
-                mapParticipant[candidate.nIdent] = CMPParticipant(candidate, nLastIndex, shared);
-                nLastIndex += candidate.nWeight;
+                auto ret = mapParticipant.insert(make_pair(candidate.nIdent, CMPParticipant(candidate, shared)));
+                vParticipant.push_back(&ret.first->second);
             }
             catch (exception& e)
             {
                 StdError(__PRETTY_FUNCTION__, e.what());
+                vParticipant.push_back(nullptr);
+            }
+        }
+        else
+        {
+            vParticipant.push_back(nullptr);
+        }
+    }
+
+    // parallel verify signature
+    vector<bool> vVerify;
+    vVerify.resize(vParticipant.size());
+    computer.Transform(vParticipant.begin(), vParticipant.end(), vVerify.begin(),
+                       [&](CMPParticipant* p) { return (p == nullptr || p->IsNull()) ? false : p->candidate.Verify(); });
+
+    size_t nLastIndex = 1;
+    for (size_t i = 0; i < vParticipant.size(); i++)
+    {
+        if (vParticipant[i] != nullptr)
+        {
+            if (vParticipant[i]->IsNull())
+            {
+                // self
+                nIndex = nLastIndex;
+                nLastIndex += vCandidate[i].nWeight;
+                delete vParticipant[i];
+                vParticipant[i] = nullptr;
+            }
+            else if (!vVerify[i])
+            {
+                // verification fail
+                mapParticipant.erase(vParticipant[i]->candidate.nIdent);
+                vParticipant[i] = nullptr;
+            }
+            else
+            {
+                // verification success
+                vParticipant[i]->nIndex = nLastIndex;
+                nLastIndex += vParticipant[i]->candidate.nWeight;
             }
         }
     }
     nThresh = (nLastIndex - 1) / 2 + 1;
 
-    // parallel compute
-    vector<CMPParticipant*> vParticipant;
-    vParticipant.reserve(mapParticipant.size());
-    for (auto& x : mapParticipant)
-    {
-        vParticipant.push_back(&x.second);
-    }
+    // parallel prepare polynomial
     computer.Execute(vParticipant.begin(), vParticipant.end(),
-                     [&](CMPParticipant* p) { p->PrepareVerification(nThresh, nLastIndex); });
+                     [&](CMPParticipant* p) { if (p) p->PrepareVerification(nThresh, nLastIndex); });
 }
 
 void CMPSecretShare::Distribute(map<uint256, vector<uint256>>& mapShare)
@@ -212,8 +261,8 @@ void CMPSecretShare::Distribute(map<uint256, vector<uint256>>& mapShare)
         },
         [&](CMPParticipant* p) {
             vector<uint256> vShare;
-            vShare.resize(p->nWeight);
-            for (size_t i = 0; i < p->nWeight; i++)
+            vShare.resize(p->candidate.nWeight);
+            for (size_t i = 0; i < p->candidate.nWeight; i++)
             {
                 vShare[i] = p->Encrypt(myBox.Polynomial(nThresh, p->nIndex + i));
             }
@@ -253,11 +302,9 @@ void CMPSecretShare::Publish(map<uint256, vector<uint256>>& mapShare)
     }
 }
 
-bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vector<uint256>>& mapShare, bool& fCompleted)
+bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vector<uint256>>& mapShare)
 {
     size_t nIndexFrom, nWeightFrom;
-
-    fCompleted = false;
 
     if (!GetParticipantRange(nIdentFrom, nIndexFrom, nWeightFrom))
     {
@@ -316,7 +363,7 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
             nCompleteCollect++;
         }
     }
-    fCompleted = (nCompleteCollect >= mapShare.size());
+    fCollectCompleted = (nCompleteCollect >= mapShare.size());
     return true;
 }
 
@@ -379,5 +426,10 @@ bool CMPSecretShare::VerifySignature(const uint256& nIdentFrom, const uint256& h
         return false;
     }
     CMPParticipant& participant = (*it).second;
-    return participant.sBox.VerifySignature(hash, nR, nS);
+    return participant.candidate.sBox.VerifySignature(hash, nR, nS);
+}
+
+bool CMPSecretShare::IsCollectCompleted() const
+{
+    return fCollectCompleted;
 }

@@ -245,18 +245,25 @@ public:
         setTxLinkIndex.clear();
         mapSpent.clear();
     }
+    void SetLastBlock(const uint256& hash, int64 nTime)
+    {
+        hashLastBlock = hash;
+        nLastBlockTime = nTime;
+    }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
-                        std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount);
+                        std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
 private:
     void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
     bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
-                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount);
+                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;
     std::map<CTxOutPoint, CSpent> mapSpent;
+    uint256 hashLastBlock;
+    int64 nLastBlockTime;
 };
 
 class CTxCache
@@ -266,6 +273,15 @@ public:
       : nHeightInterval(nHeightIntervalIn) {}
     CTxCache(const CTxCache& cache)
       : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
+    CTxCache& operator=(const CTxCache& cache)
+    {
+        if(this != &cache)
+        {
+            this->nHeightInterval = cache.nHeightInterval;
+            this->mapCache = cache.mapCache;
+        }
+        return *this;
+    }
     bool Exists(const uint256& hash)
     {
         return mapCache.count(hash) > 0;
@@ -378,7 +394,7 @@ protected:
         return ((++nLastSequenceNumber) << 24);
     }
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
-                        std::vector<CTransaction>& vtx, int64& nTotalTxFee);
+                        std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight);
 
 protected:
     storage::CTxPoolData datTxPool;

@@ -34,11 +34,11 @@ inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
     }
     if (multiplier > 5)
     {
-        return nMinFee + 1000 + (multiplier - 5) * 400;
+        return nMinFee + nMinFee * 10 + (multiplier - 5) * nMinFee * 4;
     }
     else
     {
-        return nMinFee + multiplier * 200;
+        return nMinFee + multiplier * nMinFee * 2;
     }
 }
 
@@ -109,6 +109,7 @@ public:
         hashLastBlock = pIndex->GetBlockHash();
         nLastBlockTime = pIndex->GetBlockTime();
         nLastBlockHeight = pIndex->GetBlockHeight();
+        nLastMintType = pIndex->nMintType;
         nMoneySupply = pIndex->GetMoneySupply();
     }
     void SetNull()
@@ -116,6 +117,7 @@ public:
         hashFork = 0;
         nOriginHeight = -1;
         nLastBlockHeight = -1;
+        nLastMintType = 0;
     }
     bool IsNull() const
     {
@@ -129,6 +131,7 @@ public:
     uint256 hashLastBlock;
     int64 nLastBlockTime;
     int nLastBlockHeight;
+    uint16 nLastMintType;
     int64 nMoneySupply;
     std::set<uint256> setTxUpdate;
     std::vector<CBlockEx> vBlockAddNew;
@@ -243,6 +246,22 @@ public:
     uint256 nAgreement;
     std::size_t nWeight;
     std::vector<CDestination> vBallot;
+};
+
+class CAgreementBlock
+{
+public:
+    CAgreementBlock()
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fCompleted(false), ret(false) {}
+
+    uint256 hashPrev;
+    int64 nPrevTime;
+    int nPrevHeight;
+    uint16 nPrevMintType;
+    CDelegateAgreement agreement;
+    int64 nWaitTime;
+    bool fCompleted;
+    bool ret;
 };
 
 /* Protocol & Event */

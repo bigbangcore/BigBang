@@ -209,6 +209,12 @@
                         "desc": "pledge"
                     }
                 }
+            },
+            "synctx": {
+                "type": "bool",
+                "desc": "sync tx or not",
+                "default": true,
+                "required": false
             }
         }
     },
@@ -1868,6 +1874,13 @@
                 "passphrase": {
                     "type": "string",
                     "desc": "passphrase"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -1937,6 +1950,13 @@
                 "pubkey": {
                     "type": "string",
                     "desc": "public key data"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -2047,6 +2067,13 @@
                 "data": {
                     "type": "string",
                     "desc": "template data"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -3119,7 +3146,7 @@
                     "type": "uint",
                     "desc": "maximum unspents(0 means unlimited)",
                     "opt": "n",
-                    "default": 3,
+                    "default": 10,
                     "required": false
                 },
                 "file": {

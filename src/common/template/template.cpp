@@ -166,7 +166,7 @@ string CTemplate::GetTypeName(uint16 nTypeIn)
     return pTypeInfo ? pTypeInfo->strName : "";
 }
 
-bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
+bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint16 nType, const uint256& hash, const uint256& hashAnchor,
                                   const CDestination& destTo, const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
 {
     CTemplatePtr ptr = CreateTemplatePtr(nIdIn.GetType(), vchSig);
@@ -180,7 +180,7 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
         return false;
     }
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
-    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
+    return ptr->VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }
 
 bool CTemplate::IsTxSpendable(const CDestination& dest)
@@ -323,18 +323,18 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor,
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor,
                                  const CDestination& destTo, const int32 nForkHeight,
                                  const vector<uint8>& vchPreSig, vector<uint8>& vchSig,
                                  bool& fCompleted) const
 {
     vchSig = vchData;
-    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))
+    if (!VerifyTxSignature(hash, nType, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))
     {
         return false;
     }
 
-    return BuildTxSignature(hash, hashAnchor, destTo, vchPreSig, vchSig);
+    return BuildTxSignature(hash, nType, hashAnchor, destTo, vchPreSig, vchSig);
 }
 
 CTemplate::CTemplate(const uint16 nTypeIn)
@@ -352,7 +352,7 @@ void CTemplate::BuildTemplateId()
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(&vchData[0], vchData.size()));
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                  const vector<uint8>& vchPreSig, vector<uint8>& vchSig) const
 {
     vchSig.insert(vchSig.end(), vchPreSig.begin(), vchPreSig.end());

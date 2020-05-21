@@ -68,6 +68,7 @@ CDelegateVote::CDelegateVote()
     witness.SetupWitness();
     is_enroll = false;
     is_published = false;
+    nPublishedTime = 0;
 }
 
 CDelegateVote::~CDelegateVote()
@@ -233,12 +234,28 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
         is >> delegateData;
         if (delegateData.nIdentFrom == DestToIdentUInt256(destFrom) && VerifySignature(delegateData))
         {
-            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
+            fCompleted = witness.IsCollectCompleted();
+            if (fCompleted)
             {
-                vCollected.push_back(delegateData);
-                // StdWarn("vote", "CDelegateVote::Accept exit ...............");
+                StdTrace("vote", "CDelegateVote::Collect is enough");
                 return true;
             }
+
+            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare))
+            {
+                vCollected.push_back(delegateData);
+                fCompleted = witness.IsCollectCompleted();
+                return true;
+            }
+            else
+            {
+                StdError("vote", "CDelegateVote::Collect witness collect fail");
+            }
+        }
+        else
+        {
+            StdError("vote", "CDelegateVote::Collect fail, delegateData.nIdentFrom == DestToIdentUInt256(destFrom): %d, VerifySignature(delegateData): %d",
+                     delegateData.nIdentFrom == DestToIdentUInt256(destFrom), VerifySignature(delegateData));
         }
     }
     catch (exception& e)
@@ -262,6 +279,10 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
 
     if (!mapSecret.empty())
     {
+        if (!witness.IsCollectCompleted())
+        {
+            StdLog("CDelegateVote", "Get agreement: mapSecret not is empty, completed: false");
+        }
         vector<unsigned char> vch;
         CODataStream os(vch);
         for (map<uint256, pair<uint256, size_t>>::iterator it = mapSecret.begin();
@@ -275,7 +296,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     }
     else
     {
-        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty");
+        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty, completed: %s", (witness.IsCollectCompleted() ? "true" : "false"));
     }
 }
 
@@ -283,6 +304,11 @@ void CDelegateVote::GetProof(vector<unsigned char>& vchProof)
 {
     CODataStream os(vchProof);
     os << vCollected;
+}
+
+bool CDelegateVote::IsCollectCompleted()
+{
+    return witness.IsCollectCompleted();
 }
 
 bool CDelegateVote::VerifySignature(const CDelegateData& delegateData)

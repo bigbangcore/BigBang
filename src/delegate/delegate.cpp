@@ -171,6 +171,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                        nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str(),
                        vote.hashPublishBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
                 vote.is_published = false;
+                vote.nPublishedTime = 0;
             }
             if (vote.is_published)
             {
@@ -181,9 +182,10 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
             auto t0 = boost::posix_time::microsec_clock::universal_time();
 
-            vote.is_published = true;
             vote.Publish(result.mapPublishData);
             vote.hashPublishBlock = hashBlock;
+            vote.is_published = true;
+            vote.nPublishedTime = GetTime();
             result.hashDistributeOfPublish = hashDistribute;
 
             auto t1 = boost::posix_time::microsec_clock::universal_time();
@@ -361,6 +363,58 @@ void CDelegate::GetProof(int nTargetHeight, vector<unsigned char>& vchProof)
         return;
     }
     mt->second.GetProof(vchProof);
+}
+
+bool CDelegate::IsCompleted(int nTargetHeight)
+{
+    map<int, CDelegateVote>::iterator it = mapVote.find(nTargetHeight);
+    if (it == mapVote.end())
+    {
+        StdError("CDelegate", "Is completed: find target height fail, height: %d", nTargetHeight);
+        return false;
+    }
+    const uint256& hashDistribute = it->second.hashDistributeBlock;
+    if (hashDistribute == 0)
+    {
+        StdError("CDelegate", "Is completed: hashDistributeBlock is null, target height: %d", nTargetHeight);
+        return false;
+    }
+    map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(hashDistribute);
+    if (mt == mapDistributeVote.end())
+    {
+        StdError("CDelegate", "Is completed: find distribute vote fail, target height: %d", nTargetHeight);
+        return false;
+    }
+    return mt->second.IsCollectCompleted();
+}
+
+int64 CDelegate::GetPublishedTime(int nTargetHeight)
+{
+    map<int, CDelegateVote>::iterator it = mapVote.find(nTargetHeight);
+    if (it == mapVote.end())
+    {
+        StdError("CDelegate", "Get publish time: find target height fail, target height: %d", nTargetHeight);
+        return -1;
+    }
+    const uint256& hashDistribute = it->second.hashDistributeBlock;
+    if (hashDistribute == 0)
+    {
+        StdError("CDelegate", "Get publish time: hashDistributeBlock is null, target height: %d", nTargetHeight);
+        return -1;
+    }
+    map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(hashDistribute);
+    if (mt == mapDistributeVote.end())
+    {
+        StdError("CDelegate", "Get publish time: find distribute vote fail, target height: %d", nTargetHeight);
+        return -1;
+    }
+    CDelegateVote& vote = mt->second;
+
+    if (vote.is_published)
+    {
+        return vote.nPublishedTime;
+    }
+    return 0;
 }
 
 } // namespace delegate

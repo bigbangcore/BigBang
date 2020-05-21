@@ -190,6 +190,16 @@ void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTx
     mapUnspent[CTxOutPoint(txid, 1)].Disable();
 }
 
+void CBlockView::AddBlock(const uint256& hash, const CBlockEx& block)
+{
+    InsertBlockList(hash, block, vBlockAddNew);
+}
+
+void CBlockView::RemoveBlock(const uint256& hash, const CBlockEx& block)
+{
+    InsertBlockList(hash, block, vBlockRemove);
+}
+
 // 拿到BlockView中未被花费的Unspent列表和被花费的OutPoint列表
 void CBlockView::GetUnspentChanges(vector<CTxUnspent>& vAddNew, vector<CTxOutPoint>& vRemove)
 {
@@ -243,6 +253,46 @@ void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
         }
     }
 }
+
+void CBlockView::GetBlockChanges(vector<CBlockEx>& vAdd, vector<CBlockEx>& vRemove) const
+{
+    vAdd.clear();
+    vAdd.reserve(vBlockAddNew.size());
+    for (auto& pair : vBlockAddNew)
+    {
+        vAdd.push_back(pair.second);
+    }
+
+    vRemove.clear();
+    vRemove.reserve(vBlockRemove.size());
+    for (auto& pair : vBlockRemove)
+    {
+        vRemove.push_back(pair.second);
+    }
+}
+
+void CBlockView::InsertBlockList(const uint256& hash, const CBlockEx& block, list<pair<uint256, CBlockEx>>& blockList)
+{
+    // store reserve block order
+    auto pair = make_pair(hash, block);
+    if (blockList.empty())
+    {
+        blockList.push_back(pair);
+    }
+    else if (block.hashPrev == blockList.front().first)
+    {
+        blockList.push_front(pair);
+    }
+    else if (blockList.back().second.hashPrev == hash)
+    {
+        blockList.push_back(pair);
+    }
+    else
+    {
+        StdError("CBlockView", "InsertBlockList error, no prev and next of block: %s", hash.ToString().c_str());
+    }
+}
+
 
 //////////////////////////////
 // CForkHeightIndex
@@ -956,6 +1006,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 view.RemoveTx(block.txMint.GetHash(), block.txMint);
                 ++nTxRemoved;
             }
+            view.RemoveBlock(p->GetBlockHash(), block);
         }
         // 从分叉点到短链尾端的Block数量，也就是回滚BLock数量
         if (nBlockRemoved > 0)
@@ -996,6 +1047,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
                 ++nTxAdded;
             }
+            view.AddBlock(vPath[i]->GetBlockHash(), block);
         }
         // 从分叉点到长链尾端的Block数量
         if (vPath.size() > 0)
@@ -1010,10 +1062,14 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
 bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
 {
-    boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    boost::shared_ptr<CBlockFork> spFork;
     {
-        return false;
+        CReadLock rlock(rwAccess);
+        spFork = GetFork(hashFork);
+        if (spFork == nullptr)
+        {
+            return false;
+        }
     }
     view.Initialize(this, spFork, hashFork, false);
     return true;

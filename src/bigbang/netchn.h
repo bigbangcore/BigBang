@@ -178,25 +178,37 @@ public:
     }
     void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
     {
-        mapSubscribedFork[hashFork].ResetTxInvSynStatus(fIsComplete);
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.ResetTxInvSynStatus(fIsComplete);
+        }
     }
     void SetWaitGetTxComplete(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].fWaitGetTxComplete = true;
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.fWaitGetTxComplete = true;
+        }
     }
     bool CheckWaitGetTxComplete(const uint256& hashFork)
     {
-        CNetChannelPeerFork& peer = mapSubscribedFork[hashFork];
-        if (peer.fWaitGetTxComplete)
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
         {
-            peer.fWaitGetTxComplete = false;
+            it->second.fWaitGetTxComplete = false;
             return true;
         }
         return false;
     }
     void SetPeerGetDataTime(const uint256& hashFork)
     {
-        mapSubscribedFork[hashFork].SetPeerGetDataTime();
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            it->second.SetPeerGetDataTime();
+        }
     }
     std::string GetRemoteAddress()
     {
@@ -204,7 +216,12 @@ public:
     }
     int CheckTxInvSynStatus(const uint256& hashFork)
     {
-        return mapSubscribedFork[hashFork].CheckTxInvSynStatus();
+        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+        if (it != mapSubscribedFork.end())
+        {
+            return it->second.CheckTxInvSynStatus();
+        }
+        return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
     }
     bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
 
@@ -234,6 +251,9 @@ public:
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
+    bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
+    bool IsLocalCachePowBlock(int nHeight) override;
+    bool AddCacheLocalPowBlock(const CBlock& block) override;
 
 protected:
     enum
@@ -286,7 +306,8 @@ protected:
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer, std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
+                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer,
+                     std::vector<std::pair<uint256, uint256>>& vRefNextBlock, bool fCheckPow);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
@@ -297,6 +318,13 @@ protected:
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
+    void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
+    void InnerSubmitCachePowBlock();
+
+    const CBasicConfig* Config()
+    {
+        return dynamic_cast<const CBasicConfig*>(xengine::IBase::Config());
+    }
 
 protected:
     network::CBbPeerNet* pPeerNet;

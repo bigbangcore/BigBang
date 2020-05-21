@@ -78,7 +78,7 @@ public:
     void ChangeTxSet(const CTxSetChange& change);
     void AddNewTx(const CAssembledTx& tx);
     bool BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 nTime,
-                       const uint256& hashAnchor, int64 nTxFee, const std::vector<unsigned char>& vchData);
+                       const uint256& hashAnchor, const std::vector<unsigned char>& vchData);
 
 protected:
     CDestination destDelegate;
@@ -100,6 +100,13 @@ public:
     bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
     void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
+    bool GetNextConsensus(CAgreementBlock& consParam) override;
+
+public:
+    enum
+    {
+        WAIT_AGREEMENT_PUBLISH_TIMEOUT = 10
+    };
 
 protected:
     bool HandleInitialize() override;
@@ -109,6 +116,8 @@ protected:
 
     bool LoadDelegateTx();
     bool LoadChain();
+    bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted);
+    int64 GetAgreementWaitTime(int nTargetHeight);
 
 protected:
     boost::mutex mutex;
@@ -117,6 +126,7 @@ protected:
     ITxPool* pTxPool;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
+    CAgreementBlock cacheAgreementBlock;
 };
 
 } // namespace bigbang
