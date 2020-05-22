@@ -54,8 +54,6 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
 
     result.Clear();
 
-    CSecretShare witness;
-
     if (nDelete > 0)
     {
         map<int, CDelegateVote>::iterator it = mapVote.find(nDelete);
