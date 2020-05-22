@@ -31,6 +31,12 @@ bool CDelegate::Initialize()
 void CDelegate::Deinitialize()
 {
     mapVote.clear();
+    mapDistributeVote.clear();
+}
+
+void CDelegate::Clear()
+{
+    Deinitialize();
 }
 
 void CDelegate::AddNewDelegate(const CDestination& destDelegate)
@@ -104,7 +110,6 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                 break;
             }
 
-            //CDelegateVote& vote = (*it).second;
             if (it->second.hashDistributeBlock != 0
                 && it->second.hashDistributeBlock != hashBlock
                 && mapDistributeVote.find(it->second.hashDistributeBlock) != mapDistributeVote.end())
@@ -157,7 +162,6 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
                 break;
             }
 
-            //CDelegateVote& vote = (*it).second;
             CDelegateVote& vote = mt->second;
             if (!vote.is_enroll)
             {
@@ -177,6 +181,8 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             {
                 StdError("CDelegate", "Evolve Publish: already public, target height: %d, distribute block: [%d] %s",
                          nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str());
+                vote.Publish(result.mapPublishData);
+                result.hashDistributeOfPublish = hashDistribute;
                 break;
             }
 
@@ -196,27 +202,71 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
     }
 }
 
-void CDelegate::Rollback(int nBlockHeightFrom, int nBlockHeightTo)
+void CDelegate::GetEvolveData(int nBlockHeight, CDelegateEvolveResult& result, const uint256& hashBlock)
 {
-    /*
-    // init
-    {
-        mapVote.erase(mapVote.upper_bound(nBlockHeightTo + CONSENSUS_INTERVAL), mapVote.end());
-    }
-    // enroll
-    {
-        mapVote.erase(mapVote.upper_bound(nBlockHeightTo + CONSENSUS_DISTRIBUTE_INTERVAL),
-                      mapVote.upper_bound(nBlockHeightFrom + CONSENSUS_DISTRIBUTE_INTERVAL));
-    }
+    const int nEnrollEnd = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
+    const int nPublish = nBlockHeight + 1;
+
+    result.Clear();
+
     // distribute
     {
-        mapVote.erase(mapVote.upper_bound(nBlockHeightTo + 1),
-                      mapVote.upper_bound(nBlockHeightFrom + 1));
+        map<int, CDelegateVote>::iterator it = mapVote.find(nEnrollEnd);
+        do
+        {
+            if (it == mapVote.end())
+            {
+                StdError("CDelegate", "GetEvolveData Enroll: find target height fail, target height: %d", nEnrollEnd);
+                break;
+            }
+            if (it->second.hashDistributeBlock == 0)
+            {
+                StdError("CDelegate", "GetEvolveData Enroll: hashDistributeBlock is 0, target height: %d", nEnrollEnd);
+                break;
+            }
+            if (it->second.hashDistributeBlock != hashBlock)
+            {
+                StdError("CDelegate", "GetEvolveData Enroll: hashDistributeBlock not is hashBlock, target height: %d, hashDistributeBlock: %s, hashBlock: %s",
+                         nEnrollEnd, it->second.hashDistributeBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                break;
+            }
+            map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(it->second.hashDistributeBlock);
+            if (mt == mapDistributeVote.end())
+            {
+                StdError("CDelegate", "GetEvolveData Enroll: find distribute vote fail, target height: %d, distribute block: [%d] %s",
+                         nEnrollEnd, it->second.hashDistributeBlock.Get32(7), it->second.hashDistributeBlock.GetHex().c_str());
+                break;
+            }
+            mt->second.Distribute(result.mapDistributeData);
+        } while (0);
     }
+
     // publish
     {
-        mapVote.erase(nBlockHeightFrom + 1);
-    }*/
+        map<int, CDelegateVote>::iterator it = mapVote.find(nPublish);
+        do
+        {
+            if (it == mapVote.end())
+            {
+                StdError("CDelegate", "GetEvolveData Publish: find target height fail, target height: %d", nPublish);
+                break;
+            }
+            if (it->second.hashDistributeBlock == 0)
+            {
+                StdError("CDelegate", "GetEvolveData Publish: hashDistributeBlock is null, target height: %d", nPublish);
+                break;
+            }
+            map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(it->second.hashDistributeBlock);
+            if (mt == mapDistributeVote.end())
+            {
+                StdError("CDelegate", "GetEvolveData Publish: find distribute vote fail, target height: %d, distribute block: [%d] %s",
+                         nPublish, it->second.hashDistributeBlock.Get32(7), it->second.hashDistributeBlock.GetHex().c_str());
+                break;
+            }
+            mt->second.Publish(result.mapPublishData);
+            result.hashDistributeOfPublish = it->second.hashDistributeBlock;
+        } while (0);
+    }
 }
 
 bool CDelegate::HandleDistribute(int nTargetHeight, const uint256& hashDistributeAnchor, const CDestination& destFrom,
@@ -331,8 +381,8 @@ void CDelegate::GetAgreement(int nTargetHeight, const uint256& hashDistributeAnc
     mt->second.GetAgreement(nAgreement, nWeight, mapBallot);
     auto t1 = boost::posix_time::microsec_clock::universal_time();
 
-    StdDebug("CDelegate", "Get agreement: Reconstruct target height: %d, time: %ld us, mapBallot.size: %ld, distribute block: [%d] %s",
-             nTargetHeight, (t1 - t0).ticks(), mapBallot.size(),
+    StdDebug("CDelegate", "Get agreement: Reconstruct target height: %d, time: %ld us, nAgreement: %s, nWeight: %ld, mapBallot.size: %ld, distribute block: [%d] %s",
+             nTargetHeight, (t1 - t0).ticks(), nAgreement.GetHex().c_str(), nWeight, mapBallot.size(),
              hashDistribute.Get32(7), hashDistribute.GetHex().c_str());
 }
 

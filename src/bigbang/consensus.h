@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "delegate.h"
+#include "delegatevotesave.h"
 
 namespace bigbang
 {
@@ -101,6 +102,7 @@ public:
     void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
     bool GetNextConsensus(CAgreementBlock& consParam) override;
+    bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) override;
 
 public:
     enum
@@ -115,7 +117,6 @@ protected:
     void HandleHalt() override;
 
     bool LoadDelegateTx();
-    bool LoadChain();
     bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted);
     int64 GetAgreementWaitTime(int nTargetHeight);
 
@@ -124,6 +125,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    storage::CDelegateVoteSave datVoteSave;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
     CAgreementBlock cacheAgreementBlock;

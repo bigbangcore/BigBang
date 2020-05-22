@@ -220,6 +220,7 @@ public:
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
     virtual bool GetNextConsensus(CAgreementBlock& consParam) = 0;
+    virtual bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc

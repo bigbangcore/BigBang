@@ -138,6 +138,14 @@ bool CDispatcher::HandleInvoke()
         ActivateFork(hashFork, 0);
     }
 
+    CDelegateRoutine routine;
+    int nStartHeight = 0;
+    if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
+    {
+        pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
+                                         routine.vEnrolledWeight, routine.vDistributeData,
+                                         routine.mapPublishData, routine.hashDistributeOfPublish);
+    }
     return true;
 }
 
@@ -333,10 +341,9 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
-    int64 nPublishTime = GetTime();
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                      routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, nPublishTime);
+                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {

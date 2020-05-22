@@ -20,6 +20,7 @@ set(sources
     leveldbeng.cpp      leveldbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
+    delegatevotesave.cpp delegatevotesave.h
 )
 
 add_library(storage ${sources})
