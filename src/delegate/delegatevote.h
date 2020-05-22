@@ -56,6 +56,7 @@ public:
         return os.str();
     }
 
+protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {

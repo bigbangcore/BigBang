@@ -140,7 +140,7 @@ bool CDispatcher::HandleInvoke()
 
     CDelegateRoutine routine;
     int nStartHeight = 0;
-    if (pConsensus->LoadConsensusData(nStartHeight, routine))
+    if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
     {
         pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
                                          routine.vEnrolledWeight, routine.vDistributeData,

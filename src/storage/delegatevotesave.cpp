@@ -26,19 +26,19 @@ CDelegateVoteSave::~CDelegateVoteSave()
 
 bool CDelegateVoteSave::Initialize(const path& pathData)
 {
-    path pathTxPool = pathData / "delegatevote";
+    path pathVoteSave = pathData / "delegatevote";
 
-    if (!exists(pathTxPool))
+    if (!exists(pathVoteSave))
     {
-        create_directories(pathTxPool);
+        create_directories(pathVoteSave);
     }
 
-    if (!is_directory(pathTxPool))
+    if (!is_directory(pathVoteSave))
     {
         return false;
     }
 
-    pathDelegateVoteFile = pathTxPool / "votedata.dat";
+    pathDelegateVoteFile = pathVoteSave / "votedata.dat";
 
     if (exists(pathDelegateVoteFile) && !is_regular_file(pathDelegateVoteFile))
     {

@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 
 #include "delegate.h"
-#include "transaction.h"
 #include "xengine.h"
 
 namespace bigbang
