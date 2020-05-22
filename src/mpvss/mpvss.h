@@ -11,6 +11,8 @@
 
 class CMPCandidate
 {
+    friend class xengine::CStream;
+
 public:
     CMPCandidate() {}
     CMPCandidate(const uint256& nIdentIn, std::size_t nWeightIn, const CMPSealedBox& sBoxIn)
@@ -24,6 +26,15 @@ public:
         return sBox.PubKey();
     }
 
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nIdent, opt);
+        s.Serialize(nWeight, opt);
+        s.Serialize(sBox, opt);
+    }
+
 public:
     uint256 nIdent;
     std::size_t nWeight;
@@ -32,6 +43,8 @@ public:
 
 class CMPParticipant
 {
+    friend class xengine::CStream;
+
 public:
     CMPParticipant();
     CMPParticipant(const CMPCandidate& candidate, const uint256& nSharedKeyIn);
@@ -43,6 +56,16 @@ public:
     const CMPCandidate& GetCandidate() const;
     bool IsNull() const;
 
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(candidate, opt);
+        s.Serialize(nIndex, opt);
+        s.Serialize(nSharedKey, opt);
+        s.Serialize(vShare, opt);
+    }
+
 public:
     CMPCandidate candidate;
     std::size_t nIndex;
@@ -52,6 +75,8 @@ public:
 
 class CMPSecretShare
 {
+    friend class xengine::CStream;
+
 public:
     CMPSecretShare();
     CMPSecretShare(const uint256& nIdentIn);
@@ -79,6 +104,19 @@ protected:
     virtual void RandGeneretor(uint256& r);
     const uint256 RandShare();
     bool GetParticipantRange(const uint256& nIdentIn, std::size_t& nIndexRet, std::size_t& nWeightRet);
+
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nIdent, opt);
+        s.Serialize(myBox, opt);
+        s.Serialize(nWeight, opt);
+        s.Serialize(nIndex, opt);
+        s.Serialize(nThresh, opt);
+        s.Serialize(fCollectCompleted, opt);
+        s.Serialize(mapParticipant, opt);
+        s.Serialize(mapOpenedShare, opt);
+    }
 
 public:
     uint256 nIdent;
