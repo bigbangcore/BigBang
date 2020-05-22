@@ -263,6 +263,8 @@ CRPCMod::CRPCMod()
         ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
         //
         ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
+        //
+        ("signofflinetransaction", &CRPCMod::RPCSignOfflineTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -2370,6 +2372,46 @@ CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
     }
 
     return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSignOfflineTransactionParam>(param);
+
+    CTemplateId tid;
+    tid.SetHex(spParam->strDestin);
+    CDestination destIn(tid);
+    if (!(destIn.IsTemplate() && tid.GetType() == TEMPLATE_DELEGATE))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Not a delegate template address used to sign");
+    }
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+    }
+
+    bool fCompleted = false;
+    if (!pService->SignOfflineTransaction(destIn, rawTx, fCompleted))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign offline transaction");
+    }
+
+    CBufStream ssNew;
+    ssNew << rawTx;
+
+    auto spResult = MakeCSignTransactionResultPtr();
+    spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
+    spResult->fCompleted = fCompleted;
+    return spResult;
 }
 
 /* Util */

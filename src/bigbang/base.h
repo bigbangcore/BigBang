@@ -264,6 +264,7 @@ public:
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
+    virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) = 0;
     /* Update */
     virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
     virtual bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) = 0;
@@ -367,6 +368,7 @@ public:
     virtual bool ResynchronizeWalletTx() = 0;
     virtual bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
     virtual Errno SendRawTransaction(CTransaction& tx) = 0;
+    virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,

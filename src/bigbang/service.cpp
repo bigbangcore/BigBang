@@ -664,6 +664,26 @@ Errno CService::SendRawTransaction(CTransaction& tx)
     return pDispatcher->AddNewTx(tx, 0);
 }
 
+bool CService::SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted)
+{
+    uint256 hashFork;
+    int nHeight;
+    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    {
+        StdError("CService", "SignOfflineTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+        return false;
+    }
+
+    int32 nForkHeight = GetForkHeight(hashFork);
+    if (!pWallet->SignTransaction(destIn, tx, nForkHeight, fCompleted))
+    {
+        StdError("CService", "SignOfflineTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
+        return false;
+    }
+
+    return true;
+}
+
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                        uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
                        int& nBits, const CTemplateMintPtr& templMint)

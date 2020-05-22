@@ -799,6 +799,89 @@
             "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
         ]
     },
+    "signofflinetransaction": {
+        "type": "command",
+        "name": "SignOfflineTransaction",
+        "introduction": "Sign a transaction offline.",
+        "desc": [
+            "Return json object with keys:",
+            "  hex : raw transaction with signature(s) (hex-encoded string)",
+            "  completed : true if transaction has a completed set of signature (false if not)"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "destin": {
+                    "type": "string",
+                    "desc": "hex string of pubkey or templateid used to sign offline transaction"
+                },
+                "txdata": {
+                    "type": "string",
+                    "desc": "raw transaction data(hex string)"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "signature",
+            "content": {
+                "hex": {
+                    "type": "string",
+                    "desc": "hex of transaction data"
+                },
+                "completed": {
+                    "type": "bool",
+                    "desc": "transaction completed or not"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli signofflinetransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400",
+                "response": "{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signofflinetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}"
+        ]
+    },
+    "sendofflinetransaction": {
+        "type": "command",
+        "name": "SendOfflineTransaction",
+        "desc": "Submit transaction raw data(serialized, hex-encoded) with offline signature using delegate template address.",
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "hex string of transaction binary data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "data",
+            "desc": "txid: hash of transaction raw data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli sendofflinetransaction 010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c",
+                "response": "5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"sendofflinetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c\"}}' http://127.0.0.1:19902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319\"}"            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"Raw tx decode failed\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
+        ]
+    },
     "getpeercount": {
         "type": "command",
         "name": "GetPeerCount",
