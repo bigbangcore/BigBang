@@ -88,7 +88,7 @@ public:
     std::size_t nIndex;
     std::size_t nThresh;
     bool fCollectCompleted;
-    std::map<uint256, CMPParticipant> mapParticipant;
+    std::map<uint256, CMPParticipant> mapParticipant; // 多方秘密共享的参与者
     std::map<uint256, std::vector<std::pair<uint32_t, uint256>>> mapOpenedShare;
     ParallelComputer computer;
 };

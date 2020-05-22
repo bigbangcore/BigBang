@@ -166,7 +166,7 @@ void CDelegateVote::Enroll(const map<CDestination, size_t>& mapWeight,
 
                 CIDataStream is((*mi).second);
                 is >> nPubKey >> vEncryptedCoeff >> nR >> nS;
-
+                // 从模板ID，模板地址权重，恢复构造完成的SealedBox来构造多方候选者(CMPCandidate),并压入候选者队列
                 vCandidate.push_back(CMPCandidate(DestToIdentUInt256((*it).first), (*it).second,
                                                   CMPSealedBox(vEncryptedCoeff, nPubKey, nR, nS)));
             }

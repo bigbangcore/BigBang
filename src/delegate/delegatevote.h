@@ -99,7 +99,7 @@ protected:
 
 protected:
     std::map<CDestination, CSecretShare> mapDelegate; // 每个Delegate地址上的CSecretShare
-    CSecretShare witness;
+    CSecretShare witness; // 秘密共享的见证者
 
     std::vector<CDelegateData> vCollected;
 

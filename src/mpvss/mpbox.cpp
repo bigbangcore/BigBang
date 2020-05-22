@@ -48,6 +48,7 @@ static inline bool MPEccVerify(const uint256& pubkey, const uint256& rG, const u
     return false;
 }
 
+// shared = P(other) * key
 static inline const uint256 MPEccSharedKey(const uint256& key, const uint256& other)
 {
     uint256 shared;
@@ -82,7 +83,8 @@ const uint256 CMPOpenedBox::PubKey() const
 
 const uint256 CMPOpenedBox::SharedKey(const uint256& pubkey) const
 {
-    return MPEccSharedKey(PrivKey(), pubkey);
+  // shared = public key * priv key 
+  return MPEccSharedKey(PrivKey(), pubkey);
 }
 
 const uint256 CMPOpenedBox::Polynomial(std::size_t nThresh, uint32_t nX) const

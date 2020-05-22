@@ -174,6 +174,7 @@ void CMPSecretShare::SetupWitness()
     mapOpenedShare.clear();
 }
 
+// witness给候选节点登记
 void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
 {
     // prepare parallel computation
@@ -183,15 +184,19 @@ void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
     for (size_t i = 0; i < vCandidate.size(); i++)
     {
         const CMPCandidate& candidate = vCandidate[i];
+        // 候选者中有witness自己
         if (candidate.nIdent == nIdent)
         {
             nWeight = candidate.nWeight;
             vParticipant.push_back(new CMPParticipant());
         }
+        // 参与者中没有候选者
         else if (!mapParticipant.count(candidate.nIdent))
         {
             try
             {
+                // 让候选者变成参与者
+                // shared = myBox.PrivKey * candidate.PubKey
                 uint256 shared = myBox.SharedKey(candidate.PubKey());
                 auto ret = mapParticipant.insert(make_pair(candidate.nIdent, CMPParticipant(candidate, shared)));
                 vParticipant.push_back(&ret.first->second);
@@ -210,6 +215,7 @@ void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
 
     // parallel verify signature
     vector<bool> vVerify;
+    // 参与者的校验bitmap，校验通过，就在相应的bit写上true
     vVerify.resize(vParticipant.size());
     computer.Transform(vParticipant.begin(), vParticipant.end(), vVerify.begin(),
                        [&](CMPParticipant* p) { return (p == nullptr || p->IsNull()) ? false : p->candidate.Verify(); });
@@ -241,6 +247,7 @@ void CMPSecretShare::Enroll(const vector<CMPCandidate>& vCandidate)
             }
         }
     }
+    // 达到权重的参与者数量的51%的阈值nThresh
     nThresh = (nLastIndex - 1) / 2 + 1;
 
     // parallel prepare polynomial
