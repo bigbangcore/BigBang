@@ -63,7 +63,7 @@ public:
     bool Lock(const crypto::CPubKey& pubkey) override;
     bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) override;
     bool SignSignature(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<unsigned char>& vchSig) override;
-    bool SignTransaction(CTransaction& tx, bool& fCompleted) override;
+    bool SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToData, bool& fCompleted) override;
     bool HaveTemplate(const CTemplateId& tid) override;
     void GetTemplateIds(std::set<CTemplateId>& setTid) override;
     bool AddTemplate(CTemplatePtr& ptr) override;
