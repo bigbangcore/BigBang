@@ -265,6 +265,8 @@ CRPCMod::CRPCMod()
         ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
         //
         ("signofflinetransaction", &CRPCMod::RPCSignOfflineTransaction)
+        //
+        ("sendofflinesignedtransaction", &CRPCMod::RPCSendOfflineSignedTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -2378,12 +2380,17 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSignOfflineTransactionParam>(param);
 
-    CTemplateId tid;
-    tid.SetHex(spParam->strDestin);
-    CDestination destIn(tid);
-    if (!(destIn.IsTemplate() && tid.GetType() == TEMPLATE_DELEGATE))
+    CAddress addr(spParam->strAddrin);
+    crypto::CPubKey pubkey;
+    CTemplateId tid(addr.data);
+    bool fPubkey = true;
+    if (addr.IsPubKey())
     {
-        throw CRPCException(RPC_WALLET_ERROR, "Not a delegate template address used to sign");
+        pubkey.SetHex(spParam->strAddrin);
+    }
+    else if (addr.IsTemplate())
+    {
+        fPubkey = false;
     }
 
     vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
@@ -2400,6 +2407,16 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
     }
 
     bool fCompleted = false;
+    CDestination destIn;
+    if (fPubkey)
+    {
+        destIn.SetPubKey(pubkey);
+    }
+    else
+    {
+        destIn.SetTemplateId(tid);
+    }
+
     if (!pService->SignOfflineTransaction(destIn, rawTx, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign offline transaction");
@@ -2412,6 +2429,33 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
     spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
     spResult->fCompleted = fCompleted;
     return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSendOfflineSignedTransactionParam>(param);
+
+    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
+    CBufStream ss;
+    ss.Write((char*)&txData[0], txData.size());
+    CTransaction rawTx;
+    try
+    {
+        ss >> rawTx;
+    }
+    catch (const std::exception& e)
+    {
+        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Signed offline raw tx decode failed");
+    }
+
+    Errno err = pService->SendRawTransaction(rawTx);
+    if (err != OK)
+    {
+        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
+                                                      + ErrorString(err));
+    }
+
+    return MakeCSendOfflineSignedTransactionResultPtr(rawTx.GetHash().GetHex());
 }
 
 /* Util */

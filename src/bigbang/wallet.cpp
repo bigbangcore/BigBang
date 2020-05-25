@@ -640,24 +640,10 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             return false;
         }
     }
-    /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
     {
-        if (fDestInRecorded)
-        {
-            CDestination preDestIn;
-            if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, preDestIn, vchSig) || preDestIn != destIn)
-            {
-                StdError("CWallet", "SignTransaction: ParseDestIn fail, destIn: %s, txid: %s",
-                         destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        else
-        {
-            vchSig = move(tx.vchSig);
-        }
-    }*/
+        vchSig = move(tx.vchSig);
+    }
 
     set<crypto::CPubKey> setSignedKey;
     {
@@ -1549,14 +1535,7 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
         auto it = mapKeyStore.find(pubkey);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
-            if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
-            {
-                fSigned |= it->second.key.MultiSignDefect(setPubKey, hashAnchor, hash, vchSig);
-            }
-            else
-            {
-                fSigned |= it->second.key.MultiSign(setPubKey, hash, vchSig);
-            }
+            fSigned |= it->second.key.MultiSign(setPubKey, hash, vchSig);
             setSignedKey.insert(pubkey);
         }
     }
