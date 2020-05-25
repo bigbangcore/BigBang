@@ -58,7 +58,7 @@ bool CTemplateVote::ValidateParam() const
     {
         return false;
     }
-    if (!destOwner.IsPubKey())
+    if (!IsTxSpendable(destOwner))
     {
         return false;
     }
