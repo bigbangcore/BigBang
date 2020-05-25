@@ -9,7 +9,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-// #include "delegate.h"
+#include "delegate.h"
 // #include "exchange.h"
 // #include "fork.h"
 #include "multisig.h"
@@ -44,7 +44,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_MULTISIG, new CTemplateMultiSig, "multisig" },
     // { TEMPLATE_FORK, new CTemplateFork, "fork" },
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
-    // { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
+    { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     // { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
 };
 

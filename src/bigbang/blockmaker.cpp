@@ -7,7 +7,8 @@
 #include <thread>
 
 #include "address.h"
-// #include "template/delegate.h"
+#include "defs.h"
+#include "template/delegate.h"
 #include "template/mint.h"
 #include "template/proof.h"
 #include "util.h"
@@ -131,7 +132,7 @@ bool CBlockMaker::HandleInitialize()
     // }
 
     int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
-    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && 1 != nNodeCat)
+    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && NODE_CAT_FORKNODE != nNodeCat)
     {
         CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
         if (profile.IsValid())

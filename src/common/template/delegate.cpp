@@ -29,7 +29,7 @@ CTemplateDelegate* CTemplateDelegate::clone() const
 bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    return false;
+//    return false;
 
     if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
     {
@@ -43,7 +43,7 @@ bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::ve
     }
     else
     {
-        setSubDest.insert(tx.sendTo);
+        setSubDest.insert(destOwner);
     }
 
     return true;
