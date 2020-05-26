@@ -2907,6 +2907,38 @@
             }
         ]
     },
+    "getdestination": {
+        "type": "command",
+        "name": "getdestination",
+        "desc": "Return destination for address.",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "address"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "destination",
+            "desc": "destination of addr"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getdestination 20m0997062yn5vzk5ahjmfkyt2bjq8s6dt5xqynjq71k0rxcrbfc94w9x",
+                "response": "d85b98750c663857567f7bd1cd6474e512dacf47655465fe5daa17069c94000502"
+            },
+            {
+                "request": "curl -d '{\"id\":44,\"method\":\"getdestination\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"1403z1wmkmymbggvm72ka3acprrwqxsp4w5396c5pgcfgvrd8remrmmag\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":44,\"jsonrpc\":\"2.0\",\"result\":\"a9c3a8e10d1f83b6309346e1c4e67e39c696a9a1a6387443b8a8a793f2f0072001\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid pubkey\"}"
+        ]
+    },
     "getpubkeyaddress": {
         "type": "command",
         "name": "GetPubkeyAddress",
