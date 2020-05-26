@@ -212,41 +212,42 @@ public:
     }
     bool Retrieve(const int64 nTime, const K& key, V& value)
     {
-            xengine::CReadLock rlock(rwUpper);
+            xengine::CReadLock rupperlock(rwUpper);
             MapType& mapUpper = dblMeta.GetUpperMap();
 
-            typename MapType::iterator it = mapUpper.find(nTime);
-            if (it != mapUpper.end())
             {
-                std::map<K, V>& mapValue = (*it).second;
-                typename std::map<K, V>::iterator mi = mapValue.find(key);
-                if (mi != mapValue.end())
+                typename MapType::iterator it = mapUpper.find(nTime);
+                if (it != mapUpper.end())
                 {
-                    value = (*mi).second;
-                    return true;
+                    std::map<K, V>& mapValue = (*it).second;
+                    typename std::map<K, V>::iterator mi = mapValue.find(key);
+                    if (mi != mapValue.end())
+                    {
+                        value = (*mi).second;
+                        return true;
                 }
                 return false;
+                }
             }
-        
-
-        
-            xengine::CReadLock rlock(rwLower);
+            
+            xengine::CReadLock rlowerlock(rwLower);
             MapType& mapLower = dblMeta.GetLowerMap();
 
-            typename MapType::iterator it = mapLower.find(nTime);
-            if (it != mapLower.end())
             {
-                std::map<K, V>& mapValue = (*it).second;
-                typename std::map<K, V>::iterator mi = mapValue.find(key);
-                if (mi != mapValue.end())
+                typename MapType::iterator it = mapLower.find(nTime);
+                if (it != mapLower.end())
                 {
-                    value = (*mi).second;
-                    return true;
+                    std::map<K, V>& mapValue = (*it).second;
+                    typename std::map<K, V>::iterator mi = mapValue.find(key);
+                    if (mi != mapValue.end())
+                    {
+                        value = (*mi).second;
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             }
-        
-
+            
         C chunk;
         if (LoadFromFile(nTime, chunk))
         {
