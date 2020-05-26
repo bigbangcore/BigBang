@@ -1526,8 +1526,9 @@ bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vec
     return true;
 }
 
-bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor,
-                              const int32 nForkHeight, vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey)
+bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& hash,
+                              const uint256& hashAnchor, vector<uint8>& vchSig,
+                              std::set<crypto::CPubKey>& setSignedKey)
 {
     bool fSigned = false;
     for (auto& pubkey : setPubKey)
@@ -1542,9 +1543,9 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
     return fSigned;
 }
 
-bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx,
-                              const uint256& hash, vector<uint8>& vchSig,
-                              const int32 nForkHeight, std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted)
+bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash,
+                              vector<uint8>& vchSig, const int32 nForkHeight,
+                              std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {
@@ -1600,7 +1601,7 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
                 setPubKey.insert(dest.GetPubKey());
             }
 
-            if (!SignMultiPubKey(setPubKey, hash, tx.hashAnchor, nForkHeight, vchSubSig, setSignedKey))
+            if (!SignMultiPubKey(setPubKey, hash, tx.hashAnchor, vchSubSig, setSignedKey))
             {
                 StdError("CWallet", "SignDestination: SignMultiPubKey fail, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
