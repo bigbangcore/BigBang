@@ -14,7 +14,7 @@ namespace bigbang
 namespace storage
 {
 
-#define TXINDEX_FLUSH_INTERVAL (3600)
+#define TXINDEX_FLUSH_INTERVAL (600)
 //////////////////////////////
 // CTxIndexDB
 

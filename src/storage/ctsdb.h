@@ -212,9 +212,7 @@ public:
     }
     bool Retrieve(const int64 nTime, const K& key, V& value)
     {
-        {
             xengine::CReadLock rlock(rwUpper);
-
             MapType& mapUpper = dblMeta.GetUpperMap();
 
             typename MapType::iterator it = mapUpper.find(nTime);
@@ -229,9 +227,9 @@ public:
                 }
                 return false;
             }
-        }
+        
 
-        {
+        
             xengine::CReadLock rlock(rwLower);
             MapType& mapLower = dblMeta.GetLowerMap();
 
@@ -247,7 +245,7 @@ public:
                 }
                 return false;
             }
-        }
+        
 
         C chunk;
         if (LoadFromFile(nTime, chunk))
