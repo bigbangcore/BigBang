@@ -70,10 +70,19 @@ def main():
         block_dict = get_block(block_hash)
         block_type = get_block_type(block_dict)
         if is_primary_block(block_type):
+            
+            mint_tx  = get_block_minttx(block_dict) 
+            try:
+                gettransaction(txid)
+            except KeyError:
+                print "mint tx index invalid: %s, height: %d" % (mint_tx, height)
+
             vtx_list = get_block_vtx(block_dict)
             for txid in vtx_list:
-
-
+                try:
+                    gettransaction(txid)
+                except KeyError:
+                    print "tx index invalid: %s, height: %d" % (txid, height)
 
 if __name__ == '__main__':
     main()
