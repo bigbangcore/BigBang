@@ -613,57 +613,6 @@ bool CService::ResynchronizeWalletTx()
     return pWallet->ResynchronizeWalletTx();
 }
 
-bool CService::SignRawTransaction(const CDestination& destIn, CTransaction& tx,
-                                  bool& fCompleted)
-{
-    crypto::CPubKey pubkey = destIn.GetPubKey();
-    if (!pWallet->Sign(pubkey, tx.GetSignatureHash(), tx.vchSig))
-    {
-        StdError("CService", "SignRawTransaction: PubKey SignPubKey fail, txid: "
-                             "%s, destIn: %s",
-                 tx.GetHash().GetHex().c_str(),
-                 destIn.ToString().c_str());
-        return false;
-    }
-
-    return true;
-}
-
-Errno CService::SendRawTransaction(CTransaction& tx)
-{
-    uint256 hashFork;
-    int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
-    {
-        StdError("CService", "SendRawTransaction: GetBlockLocation fail, "
-                             "txid: %s, hashAnchor: %s",
-                 tx.GetHash().GetHex().c_str(),
-                 tx.hashAnchor.GetHex().c_str());
-        return FAILED;
-    }
-    vector<CTxOut> vUnspent;
-    if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
-    {
-        StdError("CService", "SendRawTransaction: FetchInputs fail or vUnspent "
-                             "is empty, txid: %s",
-                 tx.GetHash().GetHex().c_str());
-        return FAILED;
-    }
-
-    int32 nForkHeight = GetForkHeight(hashFork);
-    const CDestination& destIn = vUnspent[0].destTo;
-    if (pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) != OK)
-    {
-        StdError("CService", "SendRawTransaction: ValidateTransaction fail, "
-                             "txid: %s, destIn: %s",
-                 tx.GetHash().GetHex().c_str(),
-                 destIn.ToString().c_str());
-        return FAILED;
-    }
-
-    return pDispatcher->AddNewTx(tx, 0);
-}
-
 bool CService::SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted)
 {
     uint256 hashFork;

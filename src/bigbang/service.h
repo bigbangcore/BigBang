@@ -75,8 +75,6 @@ public:
                                                    const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;
-    bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
-    Errno SendRawTransaction(CTransaction& tx) override;
     bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
     Errno SendOfflineSignedTransaction(CTransaction& tx) override;
     /* Mint */

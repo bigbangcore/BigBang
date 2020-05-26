@@ -260,10 +260,6 @@ CRPCMod::CRPCMod()
         //
         ("makeorigin", &CRPCMod::RPCMakeOrigin)
         //
-        ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
-        //
-        ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
-        //
         ("signofflinetransaction", &CRPCMod::RPCSignOfflineTransaction)
         //
         ("sendofflinesignedtransaction", &CRPCMod::RPCSendOfflineSignedTransaction)
@@ -2309,73 +2305,6 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CSignRawTransactionWithWalletParam>(param);
-
-    crypto::CPubKey pubkey;
-    pubkey.SetHex(spParam->strPubkey);
-    CDestination destIn(pubkey);
-    if (destIn.IsTemplate())
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Not a pubkey used to sign");
-    }
-
-    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
-    CBufStream ss;
-    ss.Write((char*)&txData[0], txData.size());
-    CTransaction rawTx;
-    try
-    {
-        ss >> rawTx;
-    }
-    catch (const std::exception& e)
-    {
-        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
-    }
-
-    bool fCompleted = true;
-    if (!pService->SignRawTransaction(destIn, rawTx, fCompleted))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign raw transaction");
-    }
-
-    CBufStream ssNew;
-    ssNew << rawTx;
-
-    auto spResult = MakeCSignTransactionResultPtr();
-    spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
-    spResult->fCompleted = fCompleted;
-    return spResult;
-}
-
-CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CSendRawTransactionParam>(param);
-
-    vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
-    CBufStream ss;
-    ss.Write((char*)&txData[0], txData.size());
-    CTransaction rawTx;
-    try
-    {
-        ss >> rawTx;
-    }
-    catch (const std::exception& e)
-    {
-        throw CRPCException(RPC_DESERIALIZATION_ERROR, "Raw tx decode failed");
-    }
-
-    Errno err = pService->SendRawTransaction(rawTx);
-    if (err != OK)
-    {
-        throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                          + ErrorString(err));
-    }
-
-    return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
-}
-
 CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSignOfflineTransactionParam>(param);
@@ -2426,7 +2355,7 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
     CBufStream ssNew;
     ssNew << rawTx;
 
-    auto spResult = MakeCSignTransactionResultPtr();
+    auto spResult = MakeCSignOfflineTransactionResultPtr();
     spResult->strHex = ToHexString((const unsigned char*)ssNew.GetData(), ssNew.GetSize());
     spResult->fCompleted = fCompleted;
     return spResult;
@@ -2449,7 +2378,7 @@ CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "Signed offline raw tx decode failed");
     }
 
-    Errno err = pService->SendRawTransaction(rawTx);
+    Errno err = pService->SendOfflineSignedTransaction(rawTx);
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
