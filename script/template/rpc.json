@@ -716,89 +716,6 @@
             }
         ]
     },
-    "signrawtransactionwithwallet": {
-        "type": "command",
-        "name": "SignRawTransactionWithWallet",
-        "introduction": "Sign a raw transaction with wallet",
-        "desc": [
-            "Return json object with signature:",
-            "  hex : raw transaction with signature(s) (hex-encoded string)",
-            "  completed : true if transaction has a completed set of signature (false if not)"
-        ],
-        "request": {
-            "type": "object",
-            "content": {
-                "pubkey": {
-                    "type": "string",
-                    "desc": "hex string of pubkey used to sign raw transaction"
-                },
-                "txdata": {
-                    "type": "string",
-                    "desc": "raw transaction data(hex string)"
-                }
-            }
-        },
-        "response": {
-            "type": "object",
-            "name": "signature",
-            "content": {
-                "hex": {
-                    "type": "string",
-                    "desc": "hex string of transaction data"
-                },
-                "completed": {
-                    "type": "bool",
-                    "desc": "transaction completed or not"
-                }
-            }
-        },
-        "example": [
-            {
-                "request": "bigbang-cli signrawtransactionwithwallet 8eb642ae260a8319cb79ff4f13ad9ad737b5dc828f39f8e0fc463a519e8646f4 010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c00000000000000",
-                "response": "{\"hex\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c\",\"completed\":true}"
-            },
-            {
-                "request": "curl -d '{\"id\":2,\"method\":\"signrawtransactionwithwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"8eb642ae260a8319cb79ff4f13ad9ad737b5dc828f39f8e0fc463a519e8646f4\",\"txdata\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c00000000000000\"}}' http://127.0.0.1:19902",
-                "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c\",\"completed\":true}}"            }
-        ],
-        "error": [
-            "{\"code\":-401,\"message\":\"Not a pubkey used to sign\"}",
-            "{\"code\":-8,\"message\":\"Raw tx decode failed\"}",
-            "{\"code\":-401,\"message\":\"Failed to sign raw transaction\"}"
-        ]
-    },
-    "sendrawtransaction": {
-        "type": "command",
-        "name": "SendRawTransaction",
-        "desc": "Submit raw transaction (serialized, hex-encoded) with offline signature to current node and broadcast it to p2p network.",
-        "request": {
-            "type": "object",
-            "content": {
-                "txdata": {
-                    "type": "string",
-                    "desc": "hex string of transaction binary data"
-                }
-            }
-        },
-        "response": {
-            "type": "string",
-            "name": "data",
-            "desc": "txid: hash of transaction raw data"
-        },
-        "example": [
-            {
-                "request": "bigbang-cli sendrawtransaction 010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c",
-                "response": "5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319"
-            },
-            {
-                "request": "curl -d '{\"id\":3,\"method\":\"sendrawtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c\"}}' http://127.0.0.1:19902",
-                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319\"}"            }
-        ],
-        "error": [
-            "{\"code\":-8,\"message\":\"Raw tx decode failed\"}",
-            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
-        ]
-    },
     "signofflinetransaction": {
         "type": "command",
         "name": "SignOfflineTransaction",
@@ -837,17 +754,25 @@
         },
         "example": [
             {
-                "request": "bigbang-cli signofflinetransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400",
-                "response": "{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}"
+                "request": "bigbang-cli signofflinetransaction 20m0fetg8ypthr01xxyxmdxbr27bt0fp8j151d321w72ht9ywfkzxxnf5 01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a000000000010270000000000000000",
+                "response": "{\"hex\":\"01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000ee75b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01014b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b08\",\"completed\":false}"
             },
             {
-                "request": "curl -d '{\"id\":62,\"method\":\"signofflinetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
-                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03\",\"complete\":true}}"
+                "request": "curl -d '{\"id\":62,\"method\":\"signofflinetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"addrIn\":\"20m0fetg8ypthr01xxyxmdxbr27bt0fp8j151d321w72ht9ywfkzxxnf5\",\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000fd2e0175b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01054b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b087f54c5679e286e77d07c6f9df1e3084daab9bb8accd5725b9146c4fe99f645c177e4d0079dacca1d85afb4f70044eb64e803054dbe150d7c4e6bb5c2bcc78007\",\"completed\":true}}"
+            },
+            {
+                "request": "bigbang-cli signofflinetransaction 16g92n3v2p04htxgck0r3awk878d9x7gx60kp3wmc47wwdp6b491pxa9x 0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000000",
+                "response": "{\"hex\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\",\"completed\":true}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signofflinetransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"addrIn\":\"16g92n3v2p04htxgck0r3awk878d9x7gx60kp3wmc47wwdp6b491pxa9x\",\"txdata\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000000\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\",\"completed\":true}}"
             }
         ],
         "error": [
             "{\"code\":-8,\"message\":\"TX decode failed\"}",
-            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}"
+            "{\"code\":-401,\"message\":\"Failed to sign offline transaction\"}"
         ]
     },
     "sendofflinesignedtransaction": {
@@ -870,12 +795,12 @@
         },
         "example": [
             {
-                "request": "bigbang-cli sendofflinesignedtransaction 010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c",
-                "response": "5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319"
+                "request": "bigbang-cli sendofflinesignedtransaction 01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000fd2e0175b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01054b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b087f54c5679e286e77d07c6f9df1e3084daab9bb8accd5725b9146c4fe99f645c177e4d0079dacca1d85afb4f70044eb64e803054dbe150d7c4e6bb5c2bcc78007",
+                "response": "5eccd2e09fe34ae041d9a90d896759041b2bc2844f43ed6929889b53e826386b"
             },
             {
-                "request": "curl -d '{\"id\":3,\"method\":\"sendofflinesignedtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"010000002bec545e00000000d4a8f445791e35471b69254e444a4eac2e2448f57b420a6535f935c300000000017ce5f6359c021294863e5a84ec873b2fdbbe9833b31ec7e0fc91c1ee41eb545e0001b84ac4218ecd8e54173a42ebf93fba72246e007a75b43fa996f717a9fe754dac000e270700000000404b4c0000000000004041569011a7f6fbcc7854725179529bad72a0185add2288eeb43e6e7c9f174301c8ac34c2725ba9c6037cc41a3d3ae1ee856088ec3adf3d8457bdecba679d760c\"}}' http://127.0.0.1:19902",
-                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"5e54ec2b2bf20773a05dad519160ff27fcd729260d4fbb6f83a0df819ebbe319\"}"            }
+                "request": "curl -d '{\"id\":3,\"method\":\"sendofflinesignedtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\"}}' http://127.0.0.1:19902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"5eccd565e410131217f89ade75e3f89a5a17627edaa7da7638babc94e331ea49\"}"            }
         ],
         "error": [
             "{\"code\":-8,\"message\":\"Raw tx decode failed\"}",
