@@ -2382,14 +2382,15 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
 
     CAddress addr(spParam->strAddrin);
     crypto::CPubKey pubkey;
-    CTemplateId tid(addr.data);
+    CTemplateId tid;
     bool fPubkey = true;
     if (addr.IsPubKey())
     {
-        pubkey.SetHex(spParam->strAddrin);
+        pubkey = addr.data;
     }
     else if (addr.IsTemplate())
     {
+        tid = addr.data;
         fPubkey = false;
     }
 
