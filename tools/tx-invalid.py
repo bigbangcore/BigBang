@@ -43,7 +43,7 @@ def get_block_height(block_dict):
 def get_block_vtx(block_dict):
     return block_dict['tx']
 
-def get_block_minttx(block_dic):
+def get_block_minttx(block_dict):
     return block_dict['txmint']
 
 def is_primary_block(block_type):
@@ -73,14 +73,14 @@ def main():
             
             mint_tx  = get_block_minttx(block_dict) 
             try:
-                gettransaction(txid)
+                get_transaction(mint_tx)
             except KeyError:
                 print "mint tx index invalid: %s, height: %d" % (mint_tx, height)
 
             vtx_list = get_block_vtx(block_dict)
             for txid in vtx_list:
                 try:
-                    gettransaction(txid)
+                    get_transaction(txid)
                 except KeyError:
                     print "tx index invalid: %s, height: %d" % (txid, height)
 
