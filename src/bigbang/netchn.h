@@ -311,8 +311,7 @@ protected:
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
-    void PostAddNew(const uint256& hashFork, CSchedule& sched,
-                    std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void PostAddNew(const uint256& hashFork, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
