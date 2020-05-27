@@ -212,10 +212,9 @@ public:
     }
     bool Retrieve(const int64 nTime, const K& key, V& value)
     {
-            xengine::CReadLock rupperlock(rwUpper);
-            MapType& mapUpper = dblMeta.GetUpperMap();
-
             {
+                xengine::CReadLock rlock(rwUpper);
+                MapType& mapUpper = dblMeta.GetUpperMap();
                 typename MapType::iterator it = mapUpper.find(nTime);
                 if (it != mapUpper.end())
                 {
@@ -225,15 +224,14 @@ public:
                     {
                         value = (*mi).second;
                         return true;
-                }
-                return false;
+                    }
+                    return false;
                 }
             }
-            
-            xengine::CReadLock rlowerlock(rwLower);
-            MapType& mapLower = dblMeta.GetLowerMap();
 
             {
+                xengine::CReadLock rlowerlock(rwLower);
+                MapType& mapLower = dblMeta.GetLowerMap();
                 typename MapType::iterator it = mapLower.find(nTime);
                 if (it != mapLower.end())
                 {
