@@ -58,7 +58,6 @@ def main():
     # Get last height from best primary chain
     end_height = get_primary_fork_height()
 
-    # block at least have 1000 confirms
     height_list = [i for i in range(end_height)]
 
     for height in height_list:
@@ -67,7 +66,7 @@ def main():
         if not is_success:
             continue
 
-        print "Current check height is: %d" height
+        print "Current check height is: %d" % height
         
         block_dict = get_block(block_hash)
         block_type = get_block_type(block_dict)
