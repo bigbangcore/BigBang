@@ -371,7 +371,12 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         {
             delegate::CDelegateEvolveResult result;
             delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
-
+            
+            if(result.witness.IsWitnessEnrolled())
+            {
+                pBlockChain->AddNewWitness(hash, result.witness);
+            }
+            
             std::map<CDestination, int64> mapDelegateVote;
             int64 nDelegateMinAmount = pBlockChain->GetDelegateMinEnrollAmount(hash);
             bool fGetVote = pBlockChain->GetBlockDelegateVote(hash, mapDelegateVote);

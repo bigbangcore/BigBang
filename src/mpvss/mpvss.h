@@ -63,6 +63,10 @@ public:
     {
         return (nIndex != 0);
     }
+    bool IsWitnessEnrolled() const
+    {
+        return mapParticipant.empty() ? false : true;
+    }
     void Setup(std::size_t nMaxThresh, CMPSealedBox& sealed);
     void SetupWitness();
     void Enroll(const std::vector<CMPCandidate>& vCandidate);

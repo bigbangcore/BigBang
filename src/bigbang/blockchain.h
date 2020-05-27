@@ -61,6 +61,7 @@ public:
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
+    void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
 
     /////////////    CheckPoints    /////////////////////
@@ -70,7 +71,6 @@ public:
     CCheckPoint LatestCheckPoint() const override;
     bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(CBlock& block) override;
-
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -98,7 +98,7 @@ protected:
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
-
+    xengine::CCache<uint256, delegate::CSecretShare> cacheWitness;
     std::map<int, CCheckPoint> mapCheckPoints;
     std::vector<CCheckPoint> vecCheckPoints;
 };

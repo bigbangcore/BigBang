@@ -18,7 +18,23 @@ namespace delegate
 CDelegateVerify::CDelegateVerify(const map<CDestination, size_t>& mapWeight,
                                  const map<CDestination, vector<unsigned char>>& mapEnrollData)
 {
-    Enroll(mapWeight, mapEnrollData);
+    CDelegateVote::Enroll(mapWeight, mapEnrollData);
+}
+
+CDelegateVerify::CDelegateVerify(const CSecretShare& witnessIn)
+{
+    witness = witnessIn;
+}
+
+void CDelegateVerify::Enroll(const CSecretShare& witnessIn)
+{
+    witness = witnessIn;
+}
+
+void CDelegateVerify::Enroll(const std::map<CDestination, std::size_t>& mapWeight,
+                    const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData)
+{
+    CDelegateVote::Enroll(mapWeight, mapEnrollData);
 }
 
 bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,

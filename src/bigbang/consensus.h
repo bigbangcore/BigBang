@@ -101,13 +101,11 @@ public:
     void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
     bool GetNextConsensus(CAgreementBlock& consParam) override;
-
 public:
     enum
     {
         WAIT_AGREEMENT_PUBLISH_TIMEOUT = 10
     };
-
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;

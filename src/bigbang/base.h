@@ -26,6 +26,7 @@
 #include "transaction.h"
 #include "uint256.h"
 #include "wallettx.h"
+#include "delegatevote.h"
 
 namespace bigbang
 {
@@ -148,6 +149,7 @@ public:
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
+    virtual void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
 
     const CBasicConfig* Config()

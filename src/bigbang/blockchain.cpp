@@ -12,6 +12,7 @@ using namespace xengine;
 
 #define ENROLLED_CACHE_COUNT (120)
 #define AGREEMENT_CACHE_COUNT (16)
+#define WITNESS_CACHE_COUNT (120)
 
 namespace bigbang
 {
@@ -20,7 +21,7 @@ namespace bigbang
 // CBlockChain
 
 CBlockChain::CBlockChain()
-  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
+  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT), cacheWitness(WITNESS_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
@@ -1129,6 +1130,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     return OK;
 }
 
+void CBlockChain::AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness)
+{
+    cacheWitness.AddNew(hashBlock, witness);
+}
+
 bool CBlockChain::CheckContainer()
 {
     if (cntrBlock.IsEmpty())
@@ -1292,7 +1298,17 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
         return false;
     }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    delegate::CSecretShare witness;
+    delegate::CDelegateVerify verifier;
+    if (cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
+    {
+        verifier.Enroll(witness);
+    }
+    else
+    {
+        verifier.Enroll(enrolled.mapWeight, enrolled.mapEnrollData);
+    }
+
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
