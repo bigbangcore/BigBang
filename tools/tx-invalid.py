@@ -67,6 +67,8 @@ def main():
         if not is_success:
             continue
 
+        print "Current check height is: %d" height
+        
         block_dict = get_block(block_hash)
         block_type = get_block_type(block_dict)
         if is_primary_block(block_type):
