@@ -87,7 +87,7 @@ bool CBlockChain::HandleInvoke()
     }
 
     // Check local block compared to checkpoint
-    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+/*    if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
         CBlock block;
         if (!FindPreviousCheckPointBlock(block))
@@ -95,7 +95,7 @@ bool CBlockChain::HandleInvoke()
             StdError("BlockChain", "Find CheckPoint Error when the node starting, you should purge data(bigbang -purge) to resync blockchain");
             return false;
         }
-    }
+    }*/
 
     return true;
 }
@@ -542,8 +542,9 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
-        Log("AddNew Block : Short chain, new block height: %d, block: %s, fork chain trust: %s, fork last block: %s",
-            pIndexNew->GetBlockHeight(), hash.GetHex().c_str(), pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str());
+        Log("AddNew Block : Short chain, new block height: %d, block type: %s, block: %s, fork chain trust: %s, fork last block: %s, fork: %s",
+            pIndexNew->GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(), hash.GetHex().c_str(),
+            pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str(), pIndexFork->GetOriginHash().GetHex().c_str());
         return OK;
     }
 
@@ -553,11 +554,14 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    StdTrace("BlockChain", "AddNewBlock: commit blockchain success, block tx count: %ld, block: %s", block.vtx.size(), hash.GetHex().c_str());
-
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
+
+    StdLog("BlockChain", "AddNewBlock: Commit blockchain success, height: %d, block type: %s, add block: %ld, remove block: %ld, block tx count: %ld, block: %s, fork: %s",
+           block.GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(),
+           update.vBlockAddNew.size(), update.vBlockRemove.size(),
+           block.vtx.size(), hash.GetHex().c_str(), pIndexFork->GetOriginHash().GetHex().c_str());
 
     if (!update.vBlockRemove.empty())
     {
@@ -1516,8 +1520,7 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
-        /*vecCheckPoints.assign(
+/*        vecCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
               { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
               { 1000, uint256("000003e86cc97e8b16aaa92216a66c2797c977a239bbd1a12476bad68580be73") },
@@ -1529,7 +1532,16 @@ void CBlockChain::InitCheckPoints()
               { 31000, uint256("000079188913bbe13cb3ff76df2ba2f9d2180854750ab9a37dc8d197668d2215") },
               { 40000, uint256("00009c40c22952179a522909e8bec05617817952f3b9aebd1d1e096413fead5b") },
               { 50000, uint256("0000c3506e5e7fae59bee39965fb45e284f86c993958e5ce682566810832e7e8") },
-              { 70000, uint256("000111701e15e979b4633e45b762067c6369e6f0ca8284094f6ce476b10f50de") } });*/
+              { 70000, uint256("000111701e15e979b4633e45b762067c6369e6f0ca8284094f6ce476b10f50de") },
+              { 90000, uint256("00015f902819ebe9915f30f0faeeb08e7cd063b882d9066af898a1c67257927c") },
+              { 110000, uint256("0001adb06ed43e55b0f960a212590674c8b10575de7afa7dc0bb0e53e971f21b") },
+              { 130000, uint256("0001fbd054458ec9f75e94d6779def1ee6c6d009dbbe2f7759f5c6c75c4f9630") },
+              { 150000, uint256("000249f070fe5b5fcb1923080c5dcbd78a6f31182ae32717df84e708b225370b") },
+              { 170000, uint256("00029810ac925d321a415e2fb83d703dcb2ebb2d42b66584c3666eb5795d8ad6") },
+              { 190000, uint256("0002e6304834d0f859658c939b77f9077073f42e91bf3f512bee644bd48180e1") },
+              { 210000, uint256("000334508ed90eb9419392e1fce660467973d3dede5ca51f6e457517d03f2138") },
+              { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
+              { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") } });*/
     }
 
     for (const auto& point : vecCheckPoints)

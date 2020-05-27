@@ -148,24 +148,9 @@ bool CTemplateWeighted::VerifyTxSignature(const uint256& hash, const uint16 nTyp
     }
 
     set<uint256> setPartKey;
-    // before HEIGHT_HASH_MULTI_SIGNER, used defect multi-sign algorithm
-    if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
+    if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
     {
-        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
-        if (!CryptoMultiVerifyDefect(setPubKey, hashAnchor.begin(), hashAnchor.size(), hash.begin(), hash.size(), vchSig, setPartKey))
-        {
-            return false;
-        }
-        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: (0, %u)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
-    }
-    else
-    {
-        xengine::StdTrace("multi-sign-template", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
-        if (!CryptoMultiVerify(setPubKey, hash.begin(), hash.size(), vchSig, setPartKey))
-        {
-            return false;
-        }
-        xengine::StdTrace("multi-sign-template-success", "nHeight: %u, range: [%u, infinite)", nForkHeight, HEIGHT_HASH_MULTI_SIGNER);
+        return false;
     }
 
     int nWeight = 0;
