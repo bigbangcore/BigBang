@@ -828,8 +828,11 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
 void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed, uint64_t height)
 {
     unsigned int height_ = *((unsigned int *)((unsigned char*)data + 36));
-    cn_slow_hash_1(data, length, hash, variant, prehashed, height_);
-    return;
+    if ((height_ < HEIGHT_HASH_MULTI_SIGNER) || (height_ > HEIGHT_HASH_TX_DATA))
+    {
+        cn_slow_hash_1(data, length, hash, variant, prehashed, height_);
+        return;
+    }
 
     RDATA_ALIGN16 uint8_t expandedKey[240];  /* These buffers are aligned to use later with SSE functions */
 

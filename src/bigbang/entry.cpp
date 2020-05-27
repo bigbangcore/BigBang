@@ -192,6 +192,18 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
 
+    // hard fork version
+    if (config.GetConfig()->fTestNet)
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
+    }
+    else
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
+    }
+
     // modules
     return InitializeModules(config.GetModeType());
 }

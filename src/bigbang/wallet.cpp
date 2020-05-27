@@ -583,12 +583,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
                 boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
             }
         }
-        else
-        {
-            StdError("CWallet", "SignTransaction: failed to get vote template[%s] received from tx[%s]",
-                     CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
-            return false;
-        }
         if (sendToDelegate.IsNull() || sendToOwner.IsNull())
         {
             CTemplatePtr tempPtr = GetTemplate(tid);

@@ -18,7 +18,7 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-//#define BBCP_SET_TOKEN_DISTRIBUTION
+#define BBCP_SET_TOKEN_DISTRIBUTION
 
 static const int64 MAX_CLOCK_DRIFT = 80;
 
@@ -279,7 +279,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                 || tid.GetType() == TEMPLATE_DELEGATE
                 || tid.GetType() == TEMPLATE_VOTE)
             {
-//                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
+                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
             }
         }
     }
