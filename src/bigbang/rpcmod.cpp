@@ -1738,7 +1738,13 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         ds << pService->GetForkHeight(hashFork) << (txNew.nTxFee + txNew.nAmount);
     }
 
-    if (!pService->SignTransaction(txNew, fCompleted))
+    vector<uint8> vchSendToData;
+    if (to.IsTemplate() && spParam->strSendtodata.IsValid())
+    {
+        vchSendToData = ParseHexString(spParam->strSendtodata);
+    }
+
+    if (!pService->SignTransaction(txNew, vchSendToData, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
     }
@@ -1849,8 +1855,9 @@ CRPCResultPtr CRPCMod::RPCSignTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
 
+    vector<uint8> vchSendToData;
     bool fCompleted = false;
-    if (!pService->SignTransaction(rawTx, fCompleted))
+    if (!pService->SignTransaction(rawTx, vchSendToData, fCompleted))
     {
         throw CRPCException(RPC_WALLET_ERROR, "Failed to sign transaction");
     }

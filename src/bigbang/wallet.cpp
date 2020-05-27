@@ -566,7 +566,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
     return true;
 }
 
-bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted)
+bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted)
 {
     vector<uint8> vchSig;
     CDestination sendToDelegate;
@@ -575,10 +575,13 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     CTemplateId tid;
     if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
     {
-        CTemplatePtr tempPtr = GetTemplate(tid);
-        if (tempPtr != nullptr)
+        if (!vchSendToData.empty())
         {
-            boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
+            CTemplatePtr tempPtr = CTemplate::Import(vchSendToData);
+            if (tempPtr != nullptr && tempPtr->GetTemplateId() == tid)
+            {
+                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
+            }
         }
         else
         {
@@ -588,9 +591,17 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
         if (sendToDelegate.IsNull() || sendToOwner.IsNull())
         {
-            StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
-                     CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
-            return false;
+            CTemplatePtr tempPtr = GetTemplate(tid);
+            if (tempPtr != nullptr)
+            {
+                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
+            }
+            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
+            {
+                StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
+                         CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
         }
         fDestInRecorded = true;
     }
