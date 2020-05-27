@@ -4,6 +4,7 @@
 
 import json
 import subprocess
+import sys
 
 # btcd confirmations is 2016, but we could reduce from 2016 to 1000 confirms,
 # cause we cannot compared with BTC' Hash Rate in the main network
@@ -58,7 +59,7 @@ def main():
     # Get last height from best primary chain
     end_height = get_primary_fork_height()
 
-    height_list = [i for i in range(end_height)]
+    height_list = [i for i in range(int(sys.argv[1]),end_height)]
 
     for height in height_list:
 
