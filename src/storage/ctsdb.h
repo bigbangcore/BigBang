@@ -13,6 +13,8 @@
 #include "timeseries.h"
 #include "xengine.h"
 
+#define FLUSH_THRESH (1000)
+
 namespace bigbang
 {
 namespace storage
@@ -238,13 +240,18 @@ public:
         return false;
     }
 
-    bool Flush()
+    bool Flush(bool fAll = true)
     {
         xengine::CUpgradeLock ulock(rwMap);
 
         std::vector<int64> vTime, vDel;
         std::vector<C> vChunk;
         MapType& flushMap = dblMeta.GetUpperMap();
+        if (!fAll && flushMap.size() < FLUSH_THRESH)
+        {
+            return false;
+        }
+
         for (typename MapType::iterator it = flushMap.begin(); it != flushMap.end(); ++it)
         {
             std::map<K, V>& mapValue = (*it).second;
