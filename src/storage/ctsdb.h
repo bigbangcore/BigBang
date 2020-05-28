@@ -307,7 +307,7 @@ public:
 
     bool Flush(bool fAll = false)
     {
-        bool fFlushSuccess = false;
+        bool fFlushSuccess = true;
         if(!fAll)
         {
             {
