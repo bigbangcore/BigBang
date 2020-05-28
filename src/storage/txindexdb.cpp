@@ -71,7 +71,7 @@ void CTxIndexDB::Deinitialize()
         {
             std::shared_ptr<CForkTxDB> spTxDB = (*it).second;
 
-            spTxDB->Flush(true);
+            spTxDB->Flush();
             spTxDB->Deinitialize();
         }
         mapTxDB.clear();
@@ -187,7 +187,7 @@ void CTxIndexDB::Flush(const uint256& hashFork)
     }
 
     std::shared_ptr<CForkTxDB> spTxDB = (*it).second;
-    spTxDB->Flush(true);
+    spTxDB->Flush();
 }
 
 void CTxIndexDB::FlushProc()
@@ -223,7 +223,7 @@ void CTxIndexDB::FlushProc()
             }
             for (int i = 0; i < vTxDB.size(); i++)
             {
-                vTxDB[i]->Flush(false);
+                vTxDB[i]->Flush();
             }
         }
     }
