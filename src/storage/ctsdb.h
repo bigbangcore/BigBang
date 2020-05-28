@@ -259,48 +259,28 @@ public:
     bool Flush(bool fAll)
     {
         bool fFlushSuccess = true;
-        if(!fAll)
+        
         {
+            xengine::CWriteLock wupperlock(rwUpper);
+            MapType& mapUpper = dblMeta.GetUpperMap();
+            if (fAll || mapUpper.size() >= UPPER_THRESH)
             {
-                xengine::CWriteLock wupperlock(rwUpper);
-                MapType& mapUpper = dblMeta.GetUpperMap();
-                if (mapUpper.size() >= UPPER_THRESH)
-                {
-                    PushDownAndCompact(mapUpper);
-                    mapUpper.clear();
-                }
-            } 
-
-            {
-                xengine::CUpgradeLock ulock(rwLower);
-                MapType& mapLower = dblMeta.GetLowerMap();
-                if (mapLower.size() >= LOWER_THRESH)
-                {
-                    fFlushSuccess = Flush();
-                    ulock.Upgrade();
-                    mapLower.clear();
-                }
-            }
-        }
-        else
-        {
-            {
-                xengine::CWriteLock wupperlock(rwUpper);
-                MapType& mapUpper = dblMeta.GetUpperMap();
                 PushDownAndCompact(mapUpper);
                 mapUpper.clear();
-                
-            } 
+            }
+        } 
 
+        {
+            xengine::CUpgradeLock ulock(rwLower);
+            MapType& mapLower = dblMeta.GetLowerMap();
+            if (fAll || mapLower.size() >= LOWER_THRESH)
             {
-                xengine::CUpgradeLock ulock(rwLower);
                 fFlushSuccess = Flush();
                 ulock.Upgrade();
-                MapType& mapLower = dblMeta.GetLowerMap();
                 mapLower.clear();
             }
         }
-        
+       
         return fFlushSuccess;
     }
 
