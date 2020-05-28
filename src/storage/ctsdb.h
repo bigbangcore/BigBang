@@ -228,7 +228,6 @@ public:
                     value = (*mi).second;
                     return true;
                 }
-                return false;
             }
         }
 
@@ -245,7 +244,6 @@ public:
                     value = (*mi).second;
                     return true;
                 }
-                return false;
             }
         }
             
