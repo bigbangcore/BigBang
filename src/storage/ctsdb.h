@@ -13,6 +13,9 @@
 #include "timeseries.h"
 #include "xengine.h"
 
+#define UPPER_THRESH 300
+#define LOWER_THRESH 1800
+
 namespace bigbang
 {
 namespace storage
@@ -255,52 +258,132 @@ public:
         return false;
     }
 
+    // bool Flush()
+    // {
+    //     xengine::CUpgradeLock ulock(rwLower);
+
+    //     std::vector<int64> vTime, vDel;
+    //     std::vector<C> vChunk;
+    //     MapType& mapFlush = dblMeta.GetLowerMap();
+    //     for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
+    //     {
+    //         std::map<K, V>& mapValue = (*it).second;
+    //         if (mapValue.empty())
+    //         {
+    //             vDel.push_back((*it).first);
+    //         }
+    //         else
+    //         {
+    //             vTime.push_back((*it).first);
+    //             vChunk.push_back(C(mapValue.begin(), mapValue.end()));
+    //         }
+    //     }
+
+    //     std::vector<CDiskPos> vPos;
+    //     if (!vChunk.empty())
+    //     {
+    //         if (!tsChunk.WriteBatch(vChunk, vPos))
+    //         {
+    //             return false;
+    //         }
+    //     }
+    //     if (!vPos.empty() || !vDel.empty())
+    //     {
+    //         if (!dbIndex.Update(vTime, vPos, vDel))
+    //         {
+    //             return false;
+    //         }
+    //     }
+
+    //     ulock.Upgrade();
+
+    //     {
+    //         xengine::CWriteLock wlock(rwUpper);
+    //         dblMeta.Flip();
+    //     }
+
+    //     return true;
+    // }
+
     bool Flush()
     {
-        xengine::CUpgradeLock ulock(rwLower);
-
-        std::vector<int64> vTime, vDel;
-        std::vector<C> vChunk;
-        MapType& mapFlush = dblMeta.GetLowerMap();
-        for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
         {
-            std::map<K, V>& mapValue = (*it).second;
-            if (mapValue.empty())
+            xengine::CWriteLock wupperlock(rwUpper);
+            MapType& mapUpper = dblMeta.GetUpperMap();
+            if (mapUpper.size() >= UPPER_THRESH)
             {
-                vDel.push_back((*it).first);
-            }
-            else
-            {
-                vTime.push_back((*it).first);
-                vChunk.push_back(C(mapValue.begin(), mapValue.end()));
-            }
-        }
+                xengine::CWriteLock wlowerlock(rwLower);
+                MapType& mapLower = dblMeta.GetLowerMap();
+                for (typename MapType::iterator it = mapUpper.begin(); it != mapUpper.end(); ++it)
+                {
+                    
+                    typename MapType::iterator iter = mapLower.find(it->first);
+                    if (iter != mapLower.end())
+                    {
+                        std::map<K, V>& upperMapValue = (*it).second;
+                        std::map<K, V>& lowerMapValue = (*iter).second;
+                        for(typename std::map<K, V>::iterator upIter = upperMapValue.begin(); upIter != upperMapValue.end(); ++upIter)
+                        {
+                            lowerMapValue[upIter->first] = upIter->second;   
+                        }
 
-        std::vector<CDiskPos> vPos;
-        if (!vChunk.empty())
-        {
-            if (!tsChunk.WriteBatch(vChunk, vPos))
-            {
-                return false;
+                    }
+                    else
+                    {
+                        mapLower[it->first] = (*it).second;
+                    }
+                    
+                }
+                mapUpper.clear();
             }
-        }
-        if (!vPos.empty() || !vDel.empty())
-        {
-            if (!dbIndex.Update(vTime, vPos, vDel))
-            {
-                return false;
-            }
-        }
-
-        ulock.Upgrade();
+        } 
 
         {
-            xengine::CWriteLock wlock(rwUpper);
-            dblMeta.Flip();
+            xengine::CUpgradeLock ulock(rwLower);
+            MapType& mapFlush = dblMeta.GetLowerMap();
+            if (mapFlush.size() >= LOWER_THRESH)
+            {
+                std::vector<int64> vTime, vDel;
+                std::vector<C> vChunk;
+                for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
+                {
+                    std::map<K, V>& mapValue = (*it).second;
+                    if (mapValue.empty())
+                    {
+                        vDel.push_back((*it).first);
+                    }
+                    else
+                    {
+                        vTime.push_back((*it).first);
+                        vChunk.push_back(C(mapValue.begin(), mapValue.end()));
+                    }
+                }
+
+                std::vector<CDiskPos> vPos;
+                if (!vChunk.empty())
+                {
+                    if (!tsChunk.WriteBatch(vChunk, vPos))
+                    {
+                        return false;
+                    }
+                }
+        
+                if (!vPos.empty() || !vDel.empty())
+                {
+                    if (!dbIndex.Update(vTime, vPos, vDel))
+                    {
+                        return false;
+                    }
+                }
+
+                ulock.Upgrade();
+                mapFlush.clear();
+            }
         }
 
         return true;
     }
+
 
 protected:
     std::map<K, V>& GetUpdateMap(const int64 nTime)
