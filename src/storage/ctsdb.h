@@ -305,82 +305,50 @@ public:
     //     return true;
     // }
 
-    bool Flush()
+    bool Flush(bool fAll = false)
     {
+        if(!fAll)
         {
-            xengine::CWriteLock wupperlock(rwUpper);
-            MapType& mapUpper = dblMeta.GetUpperMap();
-            if (mapUpper.size() >= UPPER_THRESH)
             {
-                xengine::CWriteLock wlowerlock(rwLower);
-                MapType& mapLower = dblMeta.GetLowerMap();
-                for (typename MapType::iterator it = mapUpper.begin(); it != mapUpper.end(); ++it)
+                xengine::CWriteLock wupperlock(rwUpper);
+                MapType& mapUpper = dblMeta.GetUpperMap();
+                if (mapUpper.size() >= UPPER_THRESH)
                 {
-                    
-                    typename MapType::iterator iter = mapLower.find(it->first);
-                    if (iter != mapLower.end())
-                    {
-                        std::map<K, V>& upperMapValue = (*it).second;
-                        std::map<K, V>& lowerMapValue = (*iter).second;
-                        for(typename std::map<K, V>::iterator upIter = upperMapValue.begin(); upIter != upperMapValue.end(); ++upIter)
-                        {
-                            lowerMapValue[upIter->first] = upIter->second;   
-                        }
-
-                    }
-                    else
-                    {
-                        mapLower[it->first] = (*it).second;
-                    }
-                    
+                    PushDownAndCompact(mapUpper);
+                    mapUpper.clear();
                 }
-                mapUpper.clear();
+            } 
+
+            {
+                xengine::CUpgradeLock ulock(rwLower);
+                MapType& mapFlush = dblMeta.GetLowerMap();
+                if (mapFlush.size() >= LOWER_THRESH)
+                {
+                    Flush(mapFlush);
+                    ulock.Upgrade();
+                    mapFlush.clear();
+                }
             }
-        } 
-
+        }
+        else
         {
-            xengine::CUpgradeLock ulock(rwLower);
-            MapType& mapFlush = dblMeta.GetLowerMap();
-            if (mapFlush.size() >= LOWER_THRESH)
             {
-                std::vector<int64> vTime, vDel;
-                std::vector<C> vChunk;
-                for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
-                {
-                    std::map<K, V>& mapValue = (*it).second;
-                    if (mapValue.empty())
-                    {
-                        vDel.push_back((*it).first);
-                    }
-                    else
-                    {
-                        vTime.push_back((*it).first);
-                        vChunk.push_back(C(mapValue.begin(), mapValue.end()));
-                    }
-                }
+                xengine::CWriteLock wupperlock(rwUpper);
+                MapType& mapUpper = dblMeta.GetUpperMap();
+                PushDownAndCompact(mapUpper);
+                mapUpper.clear();
+                
+            } 
 
-                std::vector<CDiskPos> vPos;
-                if (!vChunk.empty())
-                {
-                    if (!tsChunk.WriteBatch(vChunk, vPos))
-                    {
-                        return false;
-                    }
-                }
-        
-                if (!vPos.empty() || !vDel.empty())
-                {
-                    if (!dbIndex.Update(vTime, vPos, vDel))
-                    {
-                        return false;
-                    }
-                }
-
+            {
+                xengine::CUpgradeLock ulock(rwLower);
+                MapType& mapFlush = dblMeta.GetLowerMap();
+                Flush(mapFlush);
                 ulock.Upgrade();
                 mapFlush.clear();
             }
         }
-
+        
         return true;
     }
 
@@ -416,6 +384,7 @@ protected:
         }
         return mapUpdate[nTime];
     }
+    
     bool LoadFromFile(const int64 nTime, C& chunk)
     {
         CDiskPos pos;
@@ -424,6 +393,65 @@ protected:
             return tsChunk.Read(chunk, pos);
         }
         return false;
+    }
+
+    void PushDownAndCompact(const MapType& upperMap)
+    {
+        xengine::CWriteLock wlowerlock(rwLower);
+        MapType& mapLower = dblMeta.GetLowerMap();
+        for (typename MapType::iterator it = mapUpper.begin(); it != mapUpper.end(); ++it)
+        {
+            typename MapType::iterator iter = mapLower.find(it->first);
+            if (iter != mapLower.end())
+            {
+                std::map<K, V>& upperMapValue = (*it).second;
+                std::map<K, V>& lowerMapValue = (*iter).second;
+                for(typename std::map<K, V>::iterator upIter = upperMapValue.begin(); upIter != upperMapValue.end(); ++upIter)
+                {
+                    lowerMapValue[upIter->first] = upIter->second;   
+                }
+            }
+            else
+            {
+                mapLower[it->first] = (*it).second;
+            }    
+        }
+    }
+
+    void Flush(const MapType& flushMap)
+    {
+        std::vector<int64> vTime, vDel;
+        std::vector<C> vChunk;
+        for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
+        {
+            std::map<K, V>& mapValue = (*it).second;
+            if (mapValue.empty())
+            {
+                vDel.push_back((*it).first);
+            }
+            else
+            {
+                vTime.push_back((*it).first);
+                vChunk.push_back(C(mapValue.begin(), mapValue.end()));
+            }
+        }
+
+        std::vector<CDiskPos> vPos;
+        if (!vChunk.empty())
+        {
+            if (!tsChunk.WriteBatch(vChunk, vPos))
+            {
+                return false;
+            }
+        }
+
+        if (!vPos.empty() || !vDel.empty())
+        {
+            if (!dbIndex.Update(vTime, vPos, vDel))
+            {
+                return false;
+            }
+        }
     }
 
 protected:
