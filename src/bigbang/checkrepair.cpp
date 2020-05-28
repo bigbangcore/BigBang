@@ -2224,7 +2224,6 @@ bool CCheckRepairData::CheckTxIndex()
                 StdLog("check", "Repair tx index update fail");
             }
             dbTxIndex.Flush(fork.first);
-            dbTxIndex.Flush(fork.first);
         }
         StdLog("check", "Repair tx index success");
     }
