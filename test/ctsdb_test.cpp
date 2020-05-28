@@ -73,9 +73,9 @@ BOOST_AUTO_TEST_CASE(ctsdb)
             }
         }
         xengine::CTicks t1;
-        BOOST_CHECK(db.Flush());
+        BOOST_CHECK(db.Flush(true));
         xengine::CTicks t2;
-        BOOST_CHECK(db.Flush());
+        BOOST_CHECK(db.Flush(true));
         std::cout << "Flush : " << (t2 - t1) << " " << (t2.Elapse() / 1000) << "\n";
     }
 

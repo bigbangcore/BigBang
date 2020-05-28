@@ -223,7 +223,7 @@ void CTxIndexDB::FlushProc()
             }
             for (int i = 0; i < vTxDB.size(); i++)
             {
-                vTxDB[i]->Flush();
+                vTxDB[i]->Flush(false);
             }
         }
     }

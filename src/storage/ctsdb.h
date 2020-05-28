@@ -258,7 +258,7 @@ public:
         return false;
     }
 
-    bool Flush(bool fAll = false)
+    bool Flush(bool fAll)
     {
         bool fFlushSuccess = true;
         if(!fAll)
@@ -275,12 +275,12 @@ public:
 
             {
                 xengine::CUpgradeLock ulock(rwLower);
-                MapType& mapFlush = dblMeta.GetLowerMap();
-                if (mapFlush.size() >= LOWER_THRESH)
+                MapType& mapLower = dblMeta.GetLowerMap();
+                if (mapLower.size() >= LOWER_THRESH)
                 {
-                    fFlushSuccess = Flush(mapFlush);
+                    fFlushSuccess = Flush();
                     ulock.Upgrade();
-                    mapFlush.clear();
+                    mapLower.clear();
                 }
             }
         }
@@ -296,10 +296,10 @@ public:
 
             {
                 xengine::CUpgradeLock ulock(rwLower);
-                MapType& mapFlush = dblMeta.GetLowerMap();
-                fFlushSuccess = Flush(mapFlush);
+                fFlushSuccess = Flush();
                 ulock.Upgrade();
-                mapFlush.clear();
+                MapType& mapLower = dblMeta.GetLowerMap();
+                mapLower.clear();
             }
         }
         
@@ -372,10 +372,11 @@ protected:
         }
     }
 
-    bool Flush(MapType& flushMap)
+    bool Flush()
     {
         std::vector<int64> vTime, vDel;
         std::vector<C> vChunk;
+        MapType& flushMap = dblMeta.GetLowerMap();
         for (typename MapType::iterator it = flushMap.begin(); it != flushMap.end(); ++it)
         {
             std::map<K, V>& mapValue = (*it).second;
