@@ -233,7 +233,7 @@ public:
         }
 
         {
-            xengine::CReadLock rlowerlock(rwLower);
+            xengine::CReadLock rlock(rwLower);
             MapType& mapLower = dblMeta.GetLowerMap();
             typename MapType::iterator it = mapLower.find(nTime);
             if (it != mapLower.end())
