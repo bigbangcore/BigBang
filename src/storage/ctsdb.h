@@ -307,6 +307,7 @@ public:
 
     bool Flush(bool fAll = false)
     {
+        bool fFlushSuccess = false;
         if(!fAll)
         {
             {
@@ -324,7 +325,7 @@ public:
                 MapType& mapFlush = dblMeta.GetLowerMap();
                 if (mapFlush.size() >= LOWER_THRESH)
                 {
-                    Flush(mapFlush);
+                    fFlushSuccess = Flush(mapFlush);
                     ulock.Upgrade();
                     mapFlush.clear();
                 }
@@ -343,13 +344,13 @@ public:
             {
                 xengine::CUpgradeLock ulock(rwLower);
                 MapType& mapFlush = dblMeta.GetLowerMap();
-                Flush(mapFlush);
+                fFlushSuccess = Flush(mapFlush);
                 ulock.Upgrade();
                 mapFlush.clear();
             }
         }
         
-        return true;
+        return fFlushSuccess;
     }
 
 
@@ -395,11 +396,11 @@ protected:
         return false;
     }
 
-    void PushDownAndCompact(const MapType& upperMap)
+    void PushDownAndCompact(MapType& upperMap)
     {
         xengine::CWriteLock wlowerlock(rwLower);
         MapType& mapLower = dblMeta.GetLowerMap();
-        for (typename MapType::iterator it = mapUpper.begin(); it != mapUpper.end(); ++it)
+        for (typename MapType::iterator it = upperMap.begin(); it != upperMap.end(); ++it)
         {
             typename MapType::iterator iter = mapLower.find(it->first);
             if (iter != mapLower.end())
@@ -418,11 +419,11 @@ protected:
         }
     }
 
-    void Flush(const MapType& flushMap)
+    bool Flush(MapType& flushMap)
     {
         std::vector<int64> vTime, vDel;
         std::vector<C> vChunk;
-        for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
+        for (typename MapType::iterator it = flushMap.begin(); it != flushMap.end(); ++it)
         {
             std::map<K, V>& mapValue = (*it).second;
             if (mapValue.empty())
@@ -452,6 +453,8 @@ protected:
                 return false;
             }
         }
+
+        return true;
     }
 
 protected:
