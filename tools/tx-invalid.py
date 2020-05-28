@@ -6,10 +6,6 @@ import json
 import subprocess
 import sys
 
-# btcd confirmations is 2016, but we could reduce from 2016 to 1000 confirms,
-# cause we cannot compared with BTC' Hash Rate in the main network
-
-
 def get_block_hash(height):
     json_str = str(subprocess.check_output(
         ['bigbang', 'getblockhash', str(height)]))
