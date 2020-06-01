@@ -18,8 +18,8 @@ namespace bigbang
 class CRecoveryWalker : public storage::CTSWalker<CBlockEx>
 {
 public:
-    CRecoveryWalker(IDispatcher* pDispatcherIn)
-      : pDispatcher(pDispatcherIn) {}
+    CRecoveryWalker(IDispatcher* pDispatcherIn, const size_t nSizeIn)
+      : pDispatcher(pDispatcherIn), nSize(nSizeIn), nNextSize(nSizeIn / 100), nWalkedFileSize(0) {}
     bool Walk(const CBlockEx& t, uint32 nFile, uint32 nOffset) override
     {
         if (!t.IsGenesis())
@@ -36,15 +36,25 @@ public:
                 return false;
             }
         }
+
+        if (nWalkedFileSize + nOffset > nNextSize)
+        {
+            xengine::StdLog("CRecovery", "....................... Recovered %d%% ..................", nNextSize / (nSize / 100));
+            nNextSize += (nSize / 100);
+        }
+
         return true;
     }
 
 protected:
     IDispatcher* pDispatcher;
+    const size_t nSize;
+    size_t nNextSize;
+    size_t nWalkedFileSize;
 };
 
 CRecovery::CRecovery()
-    : pDispatcher(nullptr)
+  : pDispatcher(nullptr)
 {
 }
 
@@ -101,7 +111,8 @@ bool CRecovery::HandleInvoke()
             return false;
         }
 
-        CRecoveryWalker walker(pDispatcher);
+        size_t nSize = tsBlock.GetSize();
+        CRecoveryWalker walker(pDispatcher, nSize);
         uint32 nLastFile;
         uint32 nLastPos;
         if (!tsBlock.WalkThrough(walker, nLastFile, nLastPos, false))
@@ -109,6 +120,7 @@ bool CRecovery::HandleInvoke()
             Error("Recovery walkthrough fail");
             return false;
         }
+        xengine::StdLog("CRecovery", "....................... Recovered success .......................");
 
         Log("Recovery [%s] end", StorageConfig()->strRecoveryDir.c_str());
     }
