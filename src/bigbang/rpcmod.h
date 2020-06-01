@@ -119,8 +119,8 @@ private:
     rpc::CRPCResultPtr RPCExportWallet(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportWallet(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeOrigin(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSignOfflineTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendRawTransaction(rpc::CRPCParamPtr param);
     /* Util */
     rpc::CRPCResultPtr RPCVerifyMessage(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeKeyPair(rpc::CRPCParamPtr param);

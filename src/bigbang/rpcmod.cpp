@@ -260,9 +260,9 @@ CRPCMod::CRPCMod()
         //
         ("makeorigin", &CRPCMod::RPCMakeOrigin)
         //
-        ("signofflinetransaction", &CRPCMod::RPCSignOfflineTransaction)
+        ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
         //
-        ("sendofflinesignedtransaction", &CRPCMod::RPCSendOfflineSignedTransaction)
+        ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -2312,7 +2312,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSignRawTransactionWithWalletParam>(param);
 
@@ -2368,7 +2368,7 @@ CRPCResultPtr CRPCMod::RPCSignOfflineTransaction(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CSendRawTransactionParam>(param);
 
