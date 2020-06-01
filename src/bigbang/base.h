@@ -366,8 +366,8 @@ public:
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
-    virtual bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
-    virtual Errno SendRawTransaction(CTransaction& tx) = 0;
+    virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
+    virtual Errno SendOfflineSignedTransaction(CTransaction& tx) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,

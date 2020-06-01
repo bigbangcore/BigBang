@@ -645,24 +645,10 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             return false;
         }
     }
-    /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
     if (!tx.vchSig.empty())
     {
-        if (fDestInRecorded)
-        {
-            CDestination preDestIn;
-            if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, preDestIn, vchSig) || preDestIn != destIn)
-            {
-                StdError("CWallet", "SignTransaction: ParseDestIn fail, destIn: %s, txid: %s",
-                         destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        else
-        {
-            vchSig = move(tx.vchSig);
-        }
-    }*/
+        vchSig = move(tx.vchSig);
+    }
 
     set<crypto::CPubKey> setSignedKey;
     {
@@ -1519,8 +1505,9 @@ bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vec
     return true;
 }
 
-bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor,
-                              const int32 nForkHeight, vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey)
+bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint256& hash,
+                              const uint256& hashAnchor, vector<uint8>& vchSig,
+                              std::set<crypto::CPubKey>& setSignedKey)
 {
     bool fSigned = false;
     for (auto& pubkey : setPubKey)
@@ -1528,23 +1515,16 @@ bool CWallet::SignMultiPubKey(const set<crypto::CPubKey>& setPubKey, const uint2
         auto it = mapKeyStore.find(pubkey);
         if (it != mapKeyStore.end() && it->second.key.IsPrivKey())
         {
-            if (nForkHeight > 0 && nForkHeight < HEIGHT_HASH_MULTI_SIGNER)
-            {
-                fSigned |= it->second.key.MultiSignDefect(setPubKey, hashAnchor, hash, vchSig);
-            }
-            else
-            {
-                fSigned |= it->second.key.MultiSign(setPubKey, hash, vchSig);
-            }
+            fSigned |= it->second.key.MultiSign(setPubKey, hash, vchSig);
             setSignedKey.insert(pubkey);
         }
     }
     return fSigned;
 }
 
-bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx,
-                              const uint256& hash, vector<uint8>& vchSig,
-                              const int32 nForkHeight, std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted)
+bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash,
+                              vector<uint8>& vchSig, const int32 nForkHeight,
+                              std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted)
 {
     if (destIn.IsPubKey())
     {
@@ -1552,11 +1532,11 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
         if (!fCompleted)
         {
             StdError("CWallet", "SignDestination: PubKey SignPubKey fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
-            return false;
         }
         return fCompleted;
     }
-    else if (destIn.IsTemplate())
+
+    if (destIn.IsTemplate())
     {
         CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
         if (!ptr)
@@ -1593,18 +1573,20 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
             {
                 if (!dest.IsPubKey())
                 {
-                    StdError("CWallet", "SignDestination: dest not is pubkey, txid: %s, dest: %s", tx.GetHash().GetHex().c_str(), dest.ToString().c_str());
+                    StdError("CWallet", "SignDestination: dest not is pubkey, txid: %s, dest: %s",
+                             tx.GetHash().GetHex().c_str(), dest.ToString().c_str());
                     return false;
                 }
                 setPubKey.insert(dest.GetPubKey());
             }
 
-            if (!SignMultiPubKey(setPubKey, hash, tx.hashAnchor, nForkHeight, vchSubSig, setSignedKey))
+            if (!SignMultiPubKey(setPubKey, hash, tx.hashAnchor, vchSubSig, setSignedKey))
             {
                 StdError("CWallet", "SignDestination: SignMultiPubKey fail, txid: %s", tx.GetHash().GetHex().c_str());
                 return false;
             }
         }
+
         if (ptr->GetTemplateType() == TEMPLATE_EXCHANGE)
         {
             CTemplateExchangePtr pe = boost::dynamic_pointer_cast<CTemplateExchange>(ptr);
@@ -1619,13 +1601,13 @@ bool CWallet::SignDestination(const CDestination& destIn, const CTransaction& tx
                 return false;
             }
         }
+
+        return true;
     }
-    else
-    {
-        StdError("CWallet", "SignDestination: destIn type error, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
-        return false;
-    }
-    return true;
+
+    StdError("CWallet", "SignDestination: destIn type error, txid: %s, destIn: %s",
+             tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
+    return false;
 }
 
 void CWallet::UpdateAutoLock(const std::set<crypto::CPubKey>& setSignedKey)
