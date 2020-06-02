@@ -257,7 +257,9 @@ public:
             const CSpent& spent = kv.second;
             if (spent.destTo == destIn && !spent.IsSpent())
             {
-                CTxUnspent txUnSpent(outpoint, static_cast<CTxOut>(spent));
+                CTxOut out;
+                GetUnspent(outpoint, out);
+                CTxUnspent txUnSpent(outpoint, out);
                 vTxUnspent.push_back(txUnSpent);
             }
         }
