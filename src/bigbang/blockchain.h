@@ -35,6 +35,7 @@ public:
     bool GetOrigin(const uint256& hashFork, CBlock& block) override;
     bool Exists(const uint256& hashBlock) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx) override;
+    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
     bool ExistsTx(const uint256& txid) override;
     bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) override;
     bool GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,

@@ -318,6 +318,11 @@ bool CBlockChain::GetTransaction(const uint256& txid, CTransaction& tx)
     return cntrBlock.RetrieveTx(txid, tx);
 }
 
+bool CBlockChain::GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight)
+{
+    return cntrBlock.RetrieveTx(txid, tx, hashFork, nHeight);
+}
+
 bool CBlockChain::ExistsTx(const uint256& txid)
 {
     return cntrBlock.ExistsTx(txid);
