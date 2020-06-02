@@ -679,6 +679,30 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
+       const CTxPoolView& txPoolView = it->second;
+       for (size_t i= 0; i < vUnspentOnChain.size(); i++)
+       {
+            const CTxUnspent& unspentOnChain = vUnspentOnChain[i];
+            CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
+            if(txPoolView.IsSpent(outpoint))
+            {
+                
+
+                // find last unspent
+
+                //txPoolView.GetUnspent()
+            }
+            else
+            {
+                vUnspent.push_back(unspentOnChain);
+            }
+              
+       }
+
+
+       
+       
+       
        return true;
     }
 
