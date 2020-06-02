@@ -407,11 +407,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 }
 
-void CTxPoolView::ListUnspent(const CDestination& destIn, std::vector<CTxUnspent>& vTxUnspent) const
-{
-
-}
-
 //////////////////////////////
 // CCertTxDestCache
 

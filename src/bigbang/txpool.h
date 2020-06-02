@@ -249,10 +249,22 @@ public:
         hashLastBlock = hash;
         nLastBlockTime = nTime;
     }
+    void ListUnspent(const CDestination& destIn, std::vector<CTxUnspent>& vTxUnspent) const
+    {
+        for(const auto& kv : mapSpent)
+        {
+            const CTxOutPoint& outpoint = kv.first;
+            const CSpent& spent = kv.second;
+            if (spent.destTo == destIn && !spent.IsSpent())
+            {
+                CTxUnspent txUnSpent(outpoint, static_cast<CTxOut>(spent));
+                vTxUnspent.push_back(txUnSpent);
+            }
+        }
+    }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
                         std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
-    void ListUnspent(const CDestination& destIn, std::vector<CTxUnspent>& vTxUnspent) const;
 
 private:
     void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
