@@ -255,10 +255,9 @@ public:
         {
             const CTxOutPoint& outpoint = kv.first;
             const CSpent& spent = kv.second;
-            if (spent.destTo == destIn && !spent.IsSpent())
+            CTxOut out;
+            if (!spent.IsSpent() && GetUnspent(outpoint, out) && out.destTo == destIn)
             {
-                CTxOut out;
-                GetUnspent(outpoint, out);
                 CTxUnspent txUnSpent(outpoint, out);
                 vTxUnspent.push_back(txUnSpent);
             }
