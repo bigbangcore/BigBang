@@ -407,6 +407,11 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     }
 }
 
+void CTxPoolView::ListUnspent(const CDestination& destIn, std::vector<CTxUnspent>& vTxUnspent) const
+{
+
+}
+
 //////////////////////////////
 // CCertTxDestCache
 
@@ -688,13 +693,17 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
            return !txPoolView.IsSpent(outpoint);
        });
 
-       
+        std::vector<CTxUnspent> vTxPoolUnspent;
+        txPoolView.ListUnspent(dest, vTxPoolUnspent);
+        vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
 
-       return true;
+        return true;
     }
 
     return false;
 }
+
+
 
 bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {
