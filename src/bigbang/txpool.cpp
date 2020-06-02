@@ -673,6 +673,8 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
     }
 }
 
+
+
 bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
@@ -680,29 +682,14 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     if (it != mapPoolView.end())
     {
        const CTxPoolView& txPoolView = it->second;
-       for (size_t i= 0; i < vUnspentOnChain.size(); i++)
-       {
-            const CTxUnspent& unspentOnChain = vUnspentOnChain[i];
-            CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
-            if(txPoolView.IsSpent(outpoint))
-            {
-                
 
-                // find last unspent
-
-                //txPoolView.GetUnspent()
-            }
-            else
-            {
-                vUnspent.push_back(unspentOnChain);
-            }
-              
-       }
-
+       std::copy_if(vUnspentOnChain.begin(), vUnspentOnChain.end(), vUnspent.begin(), [&txPoolView](const CTxUnspent& unspentOnChain) -> bool{
+           CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
+           return !txPoolView.IsSpent(outpoint);
+       });
 
        
-       
-       
+
        return true;
     }
 
