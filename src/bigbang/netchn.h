@@ -252,7 +252,7 @@ public:
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
     bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
-    bool IsLocalCachePowBlock(int nHeight) override;
+    bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
 
 protected:
