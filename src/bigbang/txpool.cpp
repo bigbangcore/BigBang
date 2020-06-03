@@ -712,6 +712,18 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     return false;
 }
 
+bool CTxPool::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const std::map<CDestination, std::vector<CTxUnspent>>& mapUnspentOnChain, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
+    if (it != mapPoolView.end())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 
 
 bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
