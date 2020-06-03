@@ -683,13 +683,27 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     {
        const CTxPoolView& txPoolView = it->second;
 
-       std::copy_if(vUnspentOnChain.begin(), vUnspentOnChain.end(), vUnspent.begin(), [&txPoolView](const CTxUnspent& unspentOnChain) -> bool{
-           CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
-           return !txPoolView.IsSpent(outpoint);
-       });
+        uint32 nCount = 0;
+        for (size_t i = 0; i < vUnspentOnChain.size(); i++)
+        {
+            const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
+            CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
+
+            if (nCount >= nMax)
+            {
+                return true;
+            }
+
+            if(!txPoolView.IsSpent(outpoint))
+            {
+                vUnspent.push_back(unspentOnChain);
+                nCount++;
+            }
+        }
+       
 
         std::vector<CTxUnspent> vTxPoolUnspent;
-        txPoolView.ListUnspent(dest, vTxPoolUnspent);
+        txPoolView.ListUnspent(dest, nMax - nCount, vTxPoolUnspent);
         vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
 
         return true;

@@ -249,17 +249,23 @@ public:
         hashLastBlock = hash;
         nLastBlockTime = nTime;
     }
-    void ListUnspent(const CDestination& destIn, std::vector<CTxUnspent>& vTxUnspent) const
+    void ListUnspent(const CDestination& destIn, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
     {
+        uint32 nCount = 0;
         for(const auto& kv : mapSpent)
         {
             const CTxOutPoint& outpoint = kv.first;
             const CSpent& spent = kv.second;
             CTxOut out;
+            if(nCount >= nMax)
+            {
+                break;
+            }
             if (!spent.IsSpent() && GetUnspent(outpoint, out) && out.destTo == destIn)
             {
                 CTxUnspent txUnSpent(outpoint, out);
                 vTxUnspent.push_back(txUnSpent);
+                nCount++;
             }
         }
     }
