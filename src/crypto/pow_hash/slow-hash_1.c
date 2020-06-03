@@ -791,23 +791,23 @@ void cn_slow_hash_1(const void *data, size_t length, char *hash, int variant, in
     // the useAes test is only performed once, not every iteration.
     for(i = 0; i < ITER / 2; i++)
     {
-      pre_aes();
-      _c = _mm_aesenc_si128(_c, _a);
-			_c_aes = _c;
-      for (int j = 0; j < 10; j++) 
-      {
-				_c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
-			}
-      if (height < HEIGHT_HASH_MULTI_SIGNER)
-      {
-      	for (int j = 0; j < 17; j++) 
+        pre_aes();
+        _c = _mm_aesenc_si128(_c, _a);
+        _c_aes = _c;
+        for (int j = 0; j < 10; j++)
         {
-				  _c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
-			  }
-      }
-			post_aes();
-			a[0] ^= U64(&_c_aes)[0];
-			a[1] ^= U64(&_c_aes)[1];
+            _c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
+        }
+        if (height < HEIGHT_HASH_MULTI_SIGNER)
+        {
+            for (int j = 0; j < 17; j++)
+            {
+                _c_aes = _mm_aesenc_si128(_c_aes, _c_aes);
+            }
+        }
+        post_aes();
+        a[0] ^= U64(&_c_aes)[0];
+        a[1] ^= U64(&_c_aes)[1];
     }
 
     /* CryptoNight Step 4:  Sequentially pass through the mixing buffer and use 10 rounds

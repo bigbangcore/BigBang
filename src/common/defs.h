@@ -15,5 +15,4 @@ static const unsigned int HEIGHT_HASH_TX_DATA_MAINNET = 133060;
 static const unsigned int HEIGHT_HASH_TX_DATA_TESTNET = 40;
 extern unsigned int HEIGHT_HASH_TX_DATA;
 
-
 #endif //BIGBANG_DEFS_H

@@ -208,9 +208,13 @@ protected:
 
     std::shared_ptr<CWalletTx> LoadWalletTx(const uint256& txid);
     std::shared_ptr<CWalletTx> InsertWalletTx(const uint256& txid, const CAssembledTx& tx, const uint256& hashFork, bool fIsMine, bool fFromMe);
-    bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey);
-    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor, const int32 nForkHeight, std::vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey);
-    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, std::vector<uint8>& vchSig, const int32 nForkHeight, std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted);
+    bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig,
+                    std::set<crypto::CPubKey>& setSignedKey);
+    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor,
+                         std::vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey);
+    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash,
+                         std::vector<uint8>& vchSig, const int32 nForkHeight,
+                         std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted);
     void UpdateAutoLock(const std::set<crypto::CPubKey>& setSignedKey);
     bool UpdateFork();
     void GetWalletTxFork(const uint256& hashFork, int nHeight, std::vector<uint256>& vFork);
