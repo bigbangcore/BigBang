@@ -274,7 +274,7 @@ public:
       : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
     CTxCache& operator=(const CTxCache& cache)
     {
-        if(this != &cache)
+        if (this != &cache)
         {
             this->nHeightInterval = cache.nHeightInterval;
             this->mapCache = cache.mapCache;
@@ -366,6 +366,7 @@ public:
     Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
     void Pop(const uint256& txid) override;
     bool Get(const uint256& txid, CTransaction& tx) const override;
+    bool Get(const uint256& txid, CAssembledTx& tx) const override;
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;

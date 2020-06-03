@@ -645,6 +645,18 @@ bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
     return false;
 }
 
+bool CTxPool::Get(const uint256& txid, CAssembledTx& tx) const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
+    if (it != mapTx.end())
+    {
+        tx = (*it).second;
+        return true;
+    }
+    return false;
+}
+
 void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);

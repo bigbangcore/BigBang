@@ -326,9 +326,10 @@ void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>&
     pTxPool->ListTx(hashFork, vTxPool);
 }
 
-bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight)
+bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight, uint256& hashBlock, CDestination& destIn)
 {
-    if (pTxPool->Get(txid, tx))
+    CAssembledTx txTemp;
+    if (pTxPool->Get(txid, txTemp))
     {
         int nAnchorHeight;
         if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
@@ -336,18 +337,50 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
             StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
             return false;
         }
+        tx = txTemp;
         nHeight = -1;
-        return true;
+        destIn = txTemp.destIn;
     }
-    if (!pBlockChain->GetTransaction(txid, tx))
+    else
     {
-        StdLog("CService", "GetTransaction: BlockChain GetTransaction fail, txid: %s", txid.GetHex().c_str());
-        return false;
-    }
-    if (!pBlockChain->GetTxLocation(txid, hashFork, nHeight))
-    {
-        StdLog("CService", "GetTransaction: BlockChain GetTxLocation fail, txid: %s", txid.GetHex().c_str());
-        return false;
+        if (!pBlockChain->GetTransaction(txid, tx, hashFork, nHeight))
+        {
+            StdLog("CService", "GetTransaction: BlockChain GetTransaction fail, txid: %s", txid.GetHex().c_str());
+            return false;
+        }
+
+        std::vector<uint256> vHashBlock;
+        if (!GetBlockHash(hashFork, nHeight, vHashBlock))
+        {
+            StdLog("CService", "GetTransaction: GetBlockHash fail, txid: %s, fork: %s, height: %d",
+                   txid.GetHex().c_str(), hashFork.GetHex().c_str(), nHeight);
+            return false;
+        }
+        for (const auto& hash : vHashBlock)
+        {
+            CBlockEx block;
+            uint256 tempHashFork;
+            int tempHeight = 0;
+            if (!GetBlockEx(hash, block, tempHashFork, tempHeight))
+            {
+                StdLog("CService", "GetTransaction: GetBlockEx fail, txid: %s, block: %s",
+                       txid.GetHex().c_str(), hash.GetHex().c_str());
+                return false;
+            }
+            for (int i = 0; i < block.vtx.size(); i++)
+            {
+                if (txid == block.vtx[i].GetHash())
+                {
+                    hashBlock = hash;
+                    destIn = block.vTxContxt[i].destIn;
+                    break;
+                }
+            }
+            if (hashBlock != 0)
+            {
+                break;
+            }
+        }
     }
     return true;
 }
@@ -648,7 +681,8 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
         StdError("CService", "SendOfflineSignedTransaction: FetchInputs fail or vUnspent"
-                             " is empty, txid: %s", tx.GetHash().GetHex().c_str());
+                             " is empty, txid: %s",
+                 tx.GetHash().GetHex().c_str());
         return FAILED;
     }
 
@@ -798,55 +832,6 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         return FAILED;
     }
     return OK;
-}
-
-bool CService::GetTxSender(const CTransaction& tx, CAddress& sender)
-{
-    try
-    {
-        sender = GetBackSender(tx);
-    }
-    catch (exception& e)
-    {
-        StdError("CService::GetTxSender", (std::string("get tx sender failed: ") + std::string(e.what())).c_str());
-        return false;
-    }
-
-    return true;
-}
-
-CAddress CService::GetBackSender(const CTransaction& tx)
-{
-    static uint256 fork;
-    int height;
-    CTransaction tempTx(tx);
-
-    while ((tempTx.nType != CTransaction::TX_WORK && tempTx.nType != CTransaction::TX_STAKE && tempTx.nType != CTransaction::TX_GENESIS)
-           && (tempTx.vInput.size() > 0 ? 0 != tempTx.vInput[0].prevout.n : false))
-    {
-        uint256 txHash = tempTx.vInput[0].prevout.hash;
-        if (!GetTransaction(txHash, tempTx, fork, height))
-        {
-            throw std::runtime_error("get prev tx failed.");
-        }
-    }
-
-    if (tempTx.nType == CTransaction::TX_WORK || tempTx.nType == CTransaction::TX_STAKE || tempTx.nType == CTransaction::TX_GENESIS)
-    {
-        return CAddress(CDestination());
-    }
-
-    if (tempTx.vInput.size() > 0 && 0 == tempTx.vInput[0].prevout.n)
-    {
-        uint256 txHash = tempTx.vInput[0].prevout.hash;
-        if (!GetTransaction(txHash, tempTx, fork, height))
-        {
-            throw std::runtime_error("get prev tx failed.");
-        }
-        return tempTx.sendTo;
-    }
-
-    throw std::runtime_error("get back sender failed.");
 }
 
 } // namespace bigbang
