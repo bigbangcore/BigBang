@@ -386,7 +386,12 @@ bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest
 bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
 {
     std::map<CDestination, std::vector<CTxUnspent>> mapUnspentOnChain;
-    return pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspentOnChain);
+    if (pBlockChain->ListForkUnspentBatch(hashFork, nMax, mapUnspentOnChain) && pTxPool->ListForkUnspentBatch(hashFork, nMax, mapUnspentOnChain, mapUnspent))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause)
