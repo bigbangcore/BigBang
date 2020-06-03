@@ -681,31 +681,8 @@ bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest,
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        const CTxPoolView& txPoolView = it->second;
-
-        uint32 nCount = 0;
-        for (size_t i = 0; i < vUnspentOnChain.size(); i++)
-        {
-            const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
-            CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
-
-            if (nCount >= nMax)
-            {
-                return true;
-            }
-
-            if(!txPoolView.IsSpent(outpoint))
-            {
-                vUnspent.push_back(unspentOnChain);
-                nCount++;
-            }
-        }
-       
-
-        std::vector<CTxUnspent> vTxPoolUnspent;
-        txPoolView.ListUnspent(dest, nMax - nCount, vTxPoolUnspent);
-        vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
-
+        const CTxPoolView& txPoolView = it->second;  
+        ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, vUnspent);
         return true;
     }
 
@@ -721,30 +698,9 @@ bool CTxPool::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const s
         const CTxPoolView& txPoolView = it->second;
         for(const auto& kv : mapUnspentOnChain)
         {
-            uint32 nCount = 0;
             const CDestination& dest = kv.first;
             const std::vector<CTxUnspent>& vUnspentOnChain = kv.second;
-            for (size_t i = 0; i < vUnspentOnChain.size(); i++)
-            {
-                const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
-                CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
-
-                if (nCount >= nMax)
-                {
-                    break;
-                }
-
-                if(!txPoolView.IsSpent(outpoint))
-                {
-                    mapUnspent[dest].push_back(unspentOnChain);
-                    nCount++;
-                }
-            }
-       
-
-            std::vector<CTxUnspent> vTxPoolUnspent;
-            txPoolView.ListUnspent(dest, nMax - nCount, vTxPoolUnspent);
-            mapUnspent[dest].insert(mapUnspent[dest].end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
+            ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, mapUnspent[dest]);
         }
         
         return true;
@@ -753,7 +709,30 @@ bool CTxPool::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const s
     return false;
 }
 
+void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent)
+{
+    uint32 nCount = 0;
+    for (size_t i = 0; i < vUnspentOnChain.size(); i++)
+    {
+        const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
+        CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
 
+        if (nCount >= nMax)
+        {
+            return;
+        }
+
+        if(!txPoolView.IsSpent(outpoint))
+        {
+            vUnspent.push_back(unspentOnChain);
+            nCount++;
+        }
+    }
+    
+    std::vector<CTxUnspent> vTxPoolUnspent;
+    txPoolView.ListUnspent(dest, nMax - nCount, vTxPoolUnspent);
+    vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
+}
 
 bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
 {

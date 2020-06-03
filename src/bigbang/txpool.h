@@ -417,6 +417,8 @@ protected:
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight);
 
+    void ListUnspent(const CTxPoolView& txPoolView, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent);
+
 protected:
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
