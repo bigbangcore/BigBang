@@ -369,11 +369,6 @@ bool CService::RemovePendingTx(const uint256& txid)
 
 bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
-    //if (pWallet->ListForkUnspent(hashFork, dest, nMax, vUnspent))
-    //{
-      //  return true;
-    //}
-
     std::vector<CTxUnspent> vUnspentOnChain;
     if (pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspentOnChain) && pTxPool->ListForkUnspent(hashFork, dest, nMax, vUnspentOnChain, vUnspent))
     {
