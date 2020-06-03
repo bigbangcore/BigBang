@@ -333,6 +333,7 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     IConsensus* pConsensus;
+    IForkManager* pForkManager;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;

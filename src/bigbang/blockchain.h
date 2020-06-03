@@ -44,7 +44,7 @@ public:
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) override;
     bool ListForkContext(std::vector<CForkContext>& vForkCtxt) override;
     Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
-    Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
+    Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
@@ -62,7 +62,7 @@ public:
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
-    Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    Errno VerifyPowBlock(const CBlock& block, bool& fLongChain, const CForkSetManager& forkSetMgr) override;
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const override;

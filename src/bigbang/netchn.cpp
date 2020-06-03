@@ -140,6 +140,7 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pForkManager = nullptr;
     fStartIdlePushTxTimer = false;
 }
 
@@ -187,7 +188,13 @@ bool CNetChannel::HandleInitialize()
 
     if (!GetObject("consensus", pConsensus))
     {
-        Error("Failed to request consensus\n");
+        Error("Failed to request consensus");
+        return false;
+    }
+
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
         return false;
     }
 
@@ -203,6 +210,7 @@ void CNetChannel::HandleDeinitialize()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()
@@ -463,7 +471,7 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
         CSchedule& sched = GetSchedule(pCoreProtocol->GetGenesisBlockHash());
 
         bool fLongChain = false;
-        if (pBlockChain->VerifyPowBlock(block, fLongChain) != OK)
+        if (pBlockChain->VerifyPowBlock(block, fLongChain, pForkManager->GetForkSetManager()) != OK)
         {
             StdError("NetChannel", "AddCacheLocalPowBlock VerifyPowBlock fail: height: %d, block: %s",
                      block.GetBlockHeight(), block.GetHash().GetHex().c_str());
@@ -1437,7 +1445,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 if (!fVerifyPowBlock)
                 {
                     bool fLongChain = false;
-                    if (pBlockChain->VerifyPowBlock(*pBlock, fLongChain) != OK)
+                    if (pBlockChain->VerifyPowBlock(*pBlock, fLongChain, pForkManager->GetForkSetManager()) != OK)
                     {
                         StdLog("NetChannel", "AddNewBlock VerifyPowBlock fail, peer: %s, height: %d, block: %s",
                                GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());

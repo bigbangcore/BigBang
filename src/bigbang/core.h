@@ -22,8 +22,10 @@ public:
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
-    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& hashFork) override;
-    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& hashFork) override;
+    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, const int nForkHeight,
+                                const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr) override;
+    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, const int nForkHeight,
+                                    const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr) override;
 
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) override;
     virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
@@ -46,6 +48,8 @@ protected:
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
     bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
+    Errno VerifyForkTx(const CTransaction& txFork, const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
+    Errno VerifyRedeemTx(const CTransaction& txFork, const int64 nValueIn, const uint256& hashFork, const int nForkHeight, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
 
 protected:
     uint256 hashGenesisBlock;

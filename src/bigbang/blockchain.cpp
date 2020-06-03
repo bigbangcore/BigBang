@@ -419,7 +419,7 @@ Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& c
     return OK;
 }
 
-Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
+Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr)
 {
     uint256 hash = block.GetHash();
     Errno err = OK;
@@ -484,6 +484,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
+    CForkSetManager unconfirmedForkSetMgr;
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -496,7 +497,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         }
         if (!pTxPool->Exists(txid))
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
             if (err != OK)
             {
                 Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
@@ -1014,7 +1015,7 @@ uint32 CBlockChain::DPoSTimestamp(const uint256& hashPrev)
     return pCoreProtocol->DPoSTimestamp(pIndexPrev);
 }
 
-Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
+Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const CForkSetManager& forkSetMgr)
 {
     uint256 hash = block.GetHash();
     Errno err = OK;
@@ -1079,6 +1080,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
+    CForkSetManager unconfirmedForkSetMgr;
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -1091,7 +1093,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         }
         if (!pTxPool->Exists(txid))
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
             if (err != OK)
             {
                 Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());

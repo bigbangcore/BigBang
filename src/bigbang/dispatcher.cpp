@@ -165,7 +165,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     CBlockChainUpdate updateBlockChain;
     if (!block.IsOrigin())
     {
-        err = pBlockChain->AddNewBlock(block, updateBlockChain);
+        err = pBlockChain->AddNewBlock(block, updateBlockChain, pForkManager->GetForkSetManager());
         if (err == OK && !block.IsVacant())
         {
             if (!nNonce)
@@ -189,7 +189,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     }
 
     CTxSetChange changeTxSet;
-    if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))
+    if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet, pForkManager->GetForkSetManager()))
     {
         StdError("CDispatcher", "AddNewBlock: TxPool SynchronizeBlockChain fail, block: %s", block.GetHash().GetHex().c_str());
         return ERR_SYS_DATABASE_ERROR;
@@ -265,7 +265,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     uint256 hashFork;
     CDestination destIn;
     int64 nValueIn;
-    err = pTxPool->Push(tx, hashFork, destIn, nValueIn);
+    err = pTxPool->Push(tx, hashFork, destIn, nValueIn, pForkManager->GetForkSetManager());
     if (err != OK)
     {
         StdError("CDispatcher", "AddNewTx: TxPool Push fail, txid: %s", tx.GetHash().GetHex().c_str());

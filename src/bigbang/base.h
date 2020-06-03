@@ -48,8 +48,12 @@ public:
                                    const CDelegateAgreement& agreement)
         = 0;
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) = 0;
-    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& hashFork) = 0;
-    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& hashFork) = 0;
+    virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, const int nForkHeight,
+                                const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+        = 0;
+    virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, const int nForkHeight,
+                                    const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+        = 0;
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool IsDposHeight(int height) = 0;
@@ -122,7 +126,7 @@ public:
     virtual bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) = 0;
     virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
-    virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
+    virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
@@ -149,7 +153,7 @@ public:
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
-    virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain, const CForkSetManager& forkSetMgr) = 0;
 
     const CBasicConfig* Config()
     {
@@ -169,7 +173,7 @@ public:
     virtual bool Exists(const uint256& txid) = 0;
     virtual void Clear() = 0;
     virtual std::size_t Count(const uint256& fork) const = 0;
-    virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
+    virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn, const CForkSetManager& forkSetMgr) = 0;
     virtual void Pop(const uint256& txid) = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
     virtual bool Get(const uint256& txid, CAssembledTx& tx) const = 0;
@@ -182,7 +186,7 @@ public:
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)
         = 0;
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
-    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
+    virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change, const CForkSetManager& forkSetMgr) = 0;
     virtual void AddDestDelegate(const CDestination& destDeleage) = 0;
     const CStorageConfig* StorageConfig()
     {
@@ -202,6 +206,7 @@ public:
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const = 0;
     virtual bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const = 0;
+    virtual const CForkSetManager& GetForkSetManager() const = 0;
     const CForkConfig* ForkConfig()
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());

@@ -521,7 +521,8 @@ Errno CCoreProtocol::VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev)
     return OK;
 }
 
-Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& hashFork)
+Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, const int nForkHeight,
+                                   const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
 {
     const CDestination& destIn = txContxt.destIn;
     int64 nValueIn = 0;
@@ -594,26 +595,22 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         }
     }
 
-    // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
+    // check creating fork tx
+    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
+        if (VerifyForkTx(tx, hashFork, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
+        }
     }
 
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
+    // check fork template redeem tx
+    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
     {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
+        if (VerifyRedeemTx(tx, nValueIn, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
+        }
     }
 
     if (!VerifyDestRecorded(tx, vchSig))
@@ -629,7 +626,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     return OK;
 }
 
-Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& hashFork)
+Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput, const int nForkHeight,
+                                       const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
 {
     CDestination destIn = vPrevOutput[0].destTo;
     int64 nValueIn = 0;
@@ -658,26 +656,8 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
-
-    // record destIn in vchSig
+    // check record destIn in vchSig or not
     vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
     if (!VerifyDestRecorded(tx, vchSig))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
@@ -1103,6 +1083,95 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
         vchSigOut = move(tx.vchSig);
     }
     return true;
+}
+
+Errno CCoreProtocol::VerifyForkTx(const CTransaction& stx, const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+{
+    if (hashFork != GetGenesisBlockHash())
+    {
+        Log("VerifyForkTx the transaction sending to fork template must be on mainfork, fork: %s", hashFork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID_FORK;
+    }
+
+    if (stx.nAmount < CTemplateFork::CreatedCoin())
+    {
+        Log("VerifyForkTx creating fork nAmount must be at least %ld, tx amount: %ld ", CTemplateFork::CreatedCoin(), stx.nAmount);
+        return ERR_TRANSACTION_INVALID_FORK;
+    }
+
+    uint256 txid = stx.GetHash();
+
+    CBlock block;
+    CProfile profile;
+    try
+    {
+        CBufStream ss;
+        ss.Write((const char*)&stx.vchData[0], stx.vchData.size());
+        ss >> block;
+        if (!block.IsOrigin() || block.IsPrimary())
+        {
+            throw std::runtime_error("invalid block");
+        }
+        if (!profile.Load(block.vchProof))
+        {
+            throw std::runtime_error("invalid profile");
+        }
+    }
+    catch (...)
+    {
+        Error("VerifyForkTx Invalid orign block found in tx (%s)", txid.GetHex().c_str());
+        return ERR_BLOCK_INVALID_FORK;
+    }
+
+    CForkContextEx ctxtParent;
+    if (!forkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent) && !unconfirmedForkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent))
+    {
+        Log("VerifyForkTx Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
+        return ERR_MISSING_PREV;
+    }
+
+    CProfile forkProfile;
+    Errno err = ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
+    if (err != OK)
+    {
+        Log("VerifyForkTx Validate Block Error(%s) : %s ", ErrorString(err), block.GetHash().ToString().c_str());
+        return err;
+    }
+
+    unconfirmedForkSetMgr.Add(CForkContext(block.GetHash(), block.hashPrev, txid, profile));
+    return OK;
+}
+
+Errno CCoreProtocol::VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn, const uint256& hashFork, const int nForkHeight, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+{
+    if (hashFork != GetGenesisBlockHash())
+    {
+        Log("VerifyRedeemTx the transaction sending from fork template must be on mainfork, fork: %s", hashFork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID_FORK;
+    }
+
+    CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_FORK, tx.vchSig);
+    boost::shared_ptr<CTemplateFork> forkPtr = boost::dynamic_pointer_cast<CTemplateFork>(ptr);
+    if (!forkPtr)
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
+    }
+
+    int nCreatedHeight = -1;
+    CForkContextEx ctxt;
+    if (forkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt) || unconfirmedForkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt))
+    {
+        nCreatedHeight = ctxt.nCreatedHeight;
+    }
+
+    int64 nLockedCoin = forkPtr->LockedCoin(tx.sendTo, nForkHeight, nCreatedHeight);
+    if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
+    {
+        Log("VerifyRedeemTx valuein is not enough to locked coin valueIn: %ld, amount: %ld, fee: %ld, locked: %d", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
+        return ERR_TRANSACTION_INPUT_INVALID;
+    }
+
+    return OK;
 }
 
 ///////////////////////////////

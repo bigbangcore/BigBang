@@ -386,7 +386,7 @@ public:
     bool Exists(const uint256& txid) override;
     void Clear() override;
     std::size_t Count(const uint256& fork) const override;
-    Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
+    Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn, const CForkSetManager& forkSetMgr) override;
     void Pop(const uint256& txid) override;
     bool Get(const uint256& txid, CTransaction& tx) const override;
     bool Get(const uint256& txid, CAssembledTx& tx) const override;
@@ -398,7 +398,7 @@ public:
     bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
-    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
+    bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change, const CForkSetManager& forkSetMgr) override;
     void AddDestDelegate(const CDestination& destDeleage) override;
 
 protected:
@@ -408,7 +408,7 @@ protected:
     void HandleHalt() override;
     bool LoadData();
     bool SaveData();
-    Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight);
+    Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight, const CForkSetManager& forkSetMgr);
     void RemoveTx(const uint256& txid);
     uint64 GetSequenceNumber()
     {
@@ -433,6 +433,7 @@ protected:
     uint64 nLastSequenceNumber;
     std::map<uint256, CTxCache> mapTxCache;
     CCertTxDestCache certTxDest;
+    CForkSetManager unconfirmedForkSetMgr;
 };
 
 } // namespace bigbang

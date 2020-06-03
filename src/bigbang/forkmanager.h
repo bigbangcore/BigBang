@@ -16,38 +16,6 @@
 namespace bigbang
 {
 
-class CForkLink
-{
-public:
-    CForkLink()
-      : nJointHeight(-1), nCreatedHeight(-1) {}
-    CForkLink(const CForkContext& ctxt, const int nCreatedHeight)
-      : hashFork(ctxt.hashFork), hashParent(ctxt.hashParent), hashJoint(ctxt.hashJoint),
-        nJointHeight(ctxt.nJointHeight), nCreatedHeight(nCreatedHeight)
-    {
-    }
-
-public:
-    uint256 hashFork;
-    uint256 hashParent;
-    uint256 hashJoint;
-    int nJointHeight;
-    int nCreatedHeight;
-};
-
-typedef boost::multi_index_container<
-    CForkLink,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<boost::multi_index::member<CForkLink, uint256, &CForkLink::hashFork>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkLink, uint256, &CForkLink::hashJoint>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkLink, int, &CForkLink::nJointHeight>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkLink, uint256, &CForkLink::hashParent>>>>
-    CForkLinkSet;
-typedef CForkLinkSet::nth_index<0>::type CForkLinkSetByFork;
-typedef CForkLinkSet::nth_index<1>::type CForkLinkSetByJoint;
-typedef CForkLinkSet::nth_index<2>::type CForkLinkSetByHeight;
-typedef CForkLinkSet::nth_index<3>::type CForkLinkSetByParent;
-
 class CForkSchedule
 {
 public:
@@ -109,6 +77,7 @@ public:
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const override;
     bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const override;
+    const CForkSetManager& GetForkSetManager() const override;
 
 protected:
     bool HandleInitialize() override;
@@ -125,7 +94,7 @@ protected:
     std::set<uint256> setForkAllowed;
     std::set<uint256> setGroupAllowed;
     std::map<uint256, CForkSchedule> mapForkSched;
-    CForkLinkSet setForkIndex;
+    CForkSetManager forkSetMgr;
 };
 
 } // namespace bigbang

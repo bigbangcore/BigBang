@@ -570,7 +570,7 @@ size_t CTxPool::Count(const uint256& fork) const
     return 0;
 }
 
-Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn)
+Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn, const CForkSetManager& forkSetMgr)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
     uint256 txid = tx.GetHash();
@@ -606,7 +606,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     }
 
     CTxPoolView& txView = mapPoolView[hashFork];
-    Errno err = AddNew(txView, txid, tx, hashFork, nHeight);
+    Errno err = AddNew(txView, txid, tx, hashFork, nHeight, forkSetMgr);
     if (err == OK)
     {
         CPooledTx* pPooledTx = txView.Get(txid);
@@ -902,7 +902,7 @@ bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vecto
     return true;
 }
 
-bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change)
+bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change, const CForkSetManager& forkSetMgr)
 {
     change.hashFork = update.hashFork;
 
@@ -969,7 +969,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
                 txView.GetSpent(CTxOutPoint(txid, 0), spent0);
                 txView.GetSpent(CTxOutPoint(txid, 1), spent1);
-                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight) == OK)
+                if (AddNew(txView, txid, tx, update.hashFork, update.nLastBlockHeight, forkSetMgr) == OK)
                 {
                     if (spent0 != 0)
                         txView.SetSpent(CTxOutPoint(txid, 0), spent0);
@@ -1114,7 +1114,7 @@ bool CTxPool::SaveData()
     return datTxPool.Save(vTx);
 }
 
-Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
+Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight, const CForkSetManager& forkSetMgr)
 {
     if (tx.nType == CTransaction::TX_CERT)
     {
@@ -1157,7 +1157,7 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         nValueIn += vPrevOutput[i].nAmount;
     }
 
-    Errno err = pCoreProtocol->VerifyTransaction(tx, vPrevOutput, nForkHeight, hashFork);
+    Errno err = pCoreProtocol->VerifyTransaction(tx, vPrevOutput, nForkHeight, hashFork, forkSetMgr, unconfirmedForkSetMgr);
     if (err != OK)
     {
         StdTrace("CTxPool", "AddNew: VerifyTransaction fail, txid: %s", txid.GetHex().c_str());

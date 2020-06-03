@@ -66,6 +66,11 @@ int64 CTemplateFork::LockedCoin(const CDestination& destTo, const int32 nForkHei
     }
 }
 
+const uint256& CTemplateFork::GetHashFork() const
+{
+    return hashFork;
+}
+
 bool CTemplateFork::ValidateParam() const
 {
     if (!IsTxSpendable(destRedeem))

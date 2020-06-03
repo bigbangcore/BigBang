@@ -563,9 +563,10 @@ bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToD
         return false;
     }
 
+    CForkSetManager forkSetMgr;
     if (!fCompleted
         || (pCoreProtocol->ValidateTransaction(tx, nForkHeight) == OK
-            && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
+            && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork, pForkManager->GetForkSetManager(), forkSetMgr) == OK))
     {
         return true;
     }
@@ -696,7 +697,8 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
 
     int32 nForkHeight = GetForkHeight(hashFork);
     const CDestination& destIn = vUnspent[0].destTo;
-    if (OK != pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork))
+    CForkSetManager forkSetMgr;
+    if (OK != pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork, pForkManager->GetForkSetManager(), forkSetMgr))
     {
         StdError("CService", "SendOfflineSignedTransaction: ValidateTransaction fail,"
                              " txid: %s, destIn: %s",

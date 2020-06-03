@@ -82,7 +82,7 @@ bool CForkManager::HandleInvoke()
 
 void CForkManager::HandleHalt()
 {
-    setForkIndex.clear();
+    forkSetMgr.Clear();
     mapForkSched.clear();
     setForkAllowed.clear();
     setGroupAllowed.clear();
@@ -99,15 +99,12 @@ bool CForkManager::IsAllowed(const uint256& hashFork) const
 
 bool CForkManager::GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int32& nJointHeight) const
 {
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-
-    const CForkLinkSetByFork& idxFork = setForkIndex.get<0>();
-    const CForkLinkSetByFork::iterator it = idxFork.find(hashFork);
-    if (it != idxFork.end())
+    CForkContextEx ctxt;
+    if (forkSetMgr.RetrieveByFork(hashFork, ctxt))
     {
-        hashParent = it->hashParent;
-        hashJoint = it->hashJoint;
-        nJointHeight = it->nJointHeight;
+        hashParent = ctxt.hashParent;
+        hashJoint = ctxt.hashJoint;
+        nJointHeight = ctxt.nJointHeight;
         return true;
     }
     return false;
@@ -184,7 +181,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         if (ctxt.hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
             vActive.push_back(ctxt.hashFork);
-            setForkIndex.insert(CForkLink(ctxt, 0));
+            forkSetMgr.Add(CForkContextEx(ctxt, 0));
             return true;
         }
 
@@ -225,57 +222,46 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
     {
         return false;
     }
-    setForkIndex.insert(CForkLink(ctxt, nHeight));
+    forkSetMgr.Add(CForkContextEx(ctxt, nHeight));
 
     return true;
 }
 
 void CForkManager::GetForkList(std::vector<uint256>& vFork) const
 {
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-
-    vFork.reserve(setForkIndex.size());
-    for (auto it = setForkIndex.begin(); it != setForkIndex.end(); it++)
-    {
-        vFork.push_back(it->hashFork);
-    }
+    forkSetMgr.GetForkList(vFork);
 }
 
 bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int32, uint256>>& vSubline) const
 {
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-
-    const CForkLinkSetByParent& idxParent = setForkIndex.get<3>();
-    CForkLinkSetByParent::const_iterator itBegin = idxParent.lower_bound(hashFork);
-    CForkLinkSetByParent::const_iterator itEnd = idxParent.upper_bound(hashFork);
-    if (itBegin == itEnd)
+    set<CForkContextEx> setCtxt;
+    if (forkSetMgr.RetrieveByParent(hashFork, setCtxt))
     {
-        return false;
+        multimap<int32, uint256> mapSubline;
+        for (auto& link : setCtxt)
+        {
+            mapSubline.insert(make_pair(link.nJointHeight, link.hashFork));
+        }
+        vSubline.assign(mapSubline.begin(), mapSubline.end());
+        return true;
     }
-
-    multimap<int32, uint256> mapSubline;
-    for (; itBegin != itEnd; ++itBegin)
-    {
-        mapSubline.insert(make_pair(itBegin->nJointHeight, itBegin->hashFork));
-    }
-
-    vSubline.assign(mapSubline.begin(), mapSubline.end());
-
-    return true;
+    return false;
 }
 
 bool CForkManager::GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const
 {
-    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-
-    const CForkLinkSetByFork& idxFork = setForkIndex.get<0>();
-    const CForkLinkSetByFork::iterator it = idxFork.find(hashFork);
-    if (it != idxFork.end())
+    CForkContextEx ctxt;
+    if (forkSetMgr.RetrieveByFork(hashFork, ctxt))
     {
-        nCreatedHeight = it->nCreatedHeight;
+        nCreatedHeight = ctxt.nCreatedHeight;
         return true;
     }
     return false;
+}
+
+const CForkSetManager& CForkManager::GetForkSetManager() const
+{
+    return forkSetMgr;
 }
 
 bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const
