@@ -249,7 +249,7 @@ public:
         hashLastBlock = hash;
         nLastBlockTime = nTime;
     }
-    void ListUnspent(const CDestination& destIn, const std::set<CTxUnspent>& setTxUnspent, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
+    void ListUnspent(const CDestination& dest, const std::set<CTxUnspent>& setTxUnspent, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
     {
         uint32 nCount = 0;
         for(const auto& kv : mapSpent)
@@ -261,7 +261,7 @@ public:
             {
                 break;
             }
-            if (!spent.IsSpent() && GetUnspent(outpoint, out) && out.destTo == destIn)
+            if (!spent.IsSpent() && GetUnspent(outpoint, out) && out.destTo == dest)
             {
                 CTxUnspent txUnSpent(outpoint, out);
                 if (setTxUnspent.count(txUnSpent) == 0)
