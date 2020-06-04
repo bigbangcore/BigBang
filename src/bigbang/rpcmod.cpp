@@ -2194,7 +2194,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     }
 
     int nForkHeight = pService->GetForkHeight(hashParent);
-    if (nForkHeight - nJointHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT)
+    if (nForkHeight < nJointHeight + MIN_CREATE_FORK_INTERVAL_HEIGHT)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
     }
