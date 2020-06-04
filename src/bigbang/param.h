@@ -35,7 +35,11 @@ static const unsigned int PROOF_OF_WORK_BLOCK_SPACING = 20;
 static const unsigned int MINT_MATURITY = 120; // 120 blocks about 2 hours
 static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
+#ifdef BIGBANG_TESTNET
+static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 0;
+#else
 static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 30;
+#endif
 
 enum ConsensusMethod
 {

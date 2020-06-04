@@ -18,13 +18,11 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
-
 static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
 #else
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
@@ -37,15 +35,23 @@ static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
 static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
+#ifdef BIGBANG_TESTNET
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
+#else
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000 * COIN;
+#endif
 static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
+#ifdef BIGBANG_TESTNET
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
+#else
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
+#endif
 
-#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
@@ -920,7 +926,9 @@ bool CCoreProtocol::IsDposHeight(int height)
 
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
+    return BBCP_BASE_REWARD_TOKEN * COIN;
+#else
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
     for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
     {
@@ -930,8 +938,6 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
         }
     }
     return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-#else
-    return BBCP_BASE_REWARD_TOKEN * COIN;
 #endif
 }
 
