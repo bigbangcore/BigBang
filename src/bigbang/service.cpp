@@ -332,9 +332,9 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     if (pTxPool->Get(txid, txTemp))
     {
         int nAnchorHeight;
-        if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nAnchorHeight))
+        if (!pBlockChain->GetBlockLocation(txTemp.hashAnchor, hashFork, nAnchorHeight))
         {
-            StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+            StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), txTemp.hashAnchor.GetHex().c_str());
             return false;
         }
         tx = txTemp;
