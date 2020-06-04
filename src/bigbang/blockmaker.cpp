@@ -192,18 +192,14 @@ bool CBlockMaker::HandleInvoke()
         return false;
     }
 
-    fExit = true;
-    if (!mapDelegatedProfile.empty())
+    fExit = false;
+    if (!ThreadDelayStart(thrMaker))
     {
-        fExit = false;
-        if (!ThreadDelayStart(thrMaker))
-        {
-            return false;
-        }
+        return false;
     }
+
     if (!mapWorkProfile.empty())
     {
-        fExit = false;
         if (!ThreadDelayStart(thrPow))
         {
             return false;
@@ -241,15 +237,41 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
         return true;
     }
 
-    boost::unique_lock<boost::mutex> lock(mutex);
+    {
+        uint256 nAgreement;
+        size_t nWeight;
+        vector<CDestination> vBallot;
+        pConsensus->GetAgreement(eventUpdate.data.nBlockHeight, nAgreement, nWeight, vBallot);
 
-    CBlockMakerUpdate& data = eventUpdate.data;
-    lastStatus.hashLastBlock = data.hashBlock;
-    lastStatus.nLastBlockTime = data.nBlockTime;
-    lastStatus.nLastBlockHeight = data.nBlockHeight;
-    lastStatus.nMintType = data.nMintType;
+        string strMintType = "dpos";
+        if (eventUpdate.data.nMintType == CTransaction::TX_WORK)
+        {
+            strMintType = "pow";
+        }
 
-    condBlock.notify_all();
+        if (vBallot.size() == 0)
+        {
+            Log("MakerUpdate: height: %d, consensus: pow, block type: %s, block: %s",
+                eventUpdate.data.nBlockHeight, strMintType.c_str(), eventUpdate.data.hashBlock.GetHex().c_str());
+        }
+        else
+        {
+            Log("MakerUpdate: height: %d, consensus: dpos, block type: %s, block: %s, ballot address: %s",
+                eventUpdate.data.nBlockHeight, strMintType.c_str(), eventUpdate.data.hashBlock.GetHex().c_str(), CAddress(vBallot[0]).ToString().c_str());
+        }
+    }
+
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+
+        CBlockMakerUpdate& data = eventUpdate.data;
+        lastStatus.hashLastBlock = data.hashBlock;
+        lastStatus.nLastBlockTime = data.nBlockTime;
+        lastStatus.nLastBlockHeight = data.nBlockHeight;
+        lastStatus.nMintType = data.nMintType;
+
+        condBlock.notify_all();
+    }
     return true;
 }
 

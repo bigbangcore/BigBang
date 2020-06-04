@@ -138,6 +138,14 @@ bool CDispatcher::HandleInvoke()
         ActivateFork(hashFork, 0);
     }
 
+    CDelegateRoutine routine;
+    int nStartHeight = 0;
+    if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
+    {
+        pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
+                                         routine.vEnrolledWeight, routine.vDistributeData,
+                                         routine.mapPublishData, routine.hashDistributeOfPublish);
+    }
     return true;
 }
 
@@ -241,12 +249,12 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
     int nHeight = 0;
     int64 nTime = 0;
     uint16 nMintType = 0;
-    if(!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
+    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashBlock, nHeight, nTime, nMintType))
     {
         StdError("CDispatcher", "AddNewTx: GetLastBlock fail, fork: %s", pCoreProtocol->GetGenesisBlockHash().GetHex().c_str());
         return ERR_NOT_FOUND;
     }
-    
+
     err = pCoreProtocol->ValidateTransaction(tx, nHeight);
     if (err != OK)
     {
@@ -333,15 +341,17 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
-    int64 nPublishTime = GetTime();
     pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
                                      routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish, nPublishTime);
+                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
 
     for (const CTransaction& tx : routineDelegate.vEnrollTx)
     {
-        //if (!pTxPool->Exists(tx.vInput[0].prevout.hash))
-        //{
+        if (tx.vInput.size() == 0)
+        {
+            Error("Send DelegateTx: tx.vInput.size() == 0.");
+            continue;
+        }
         Errno err = AddNewTx(tx, nNonce);
         if (err == OK)
         {
@@ -355,7 +365,6 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
                 err, ErrorString(err), tx.GetHash().GetHex().c_str(),
                 tx.vInput[0].prevout.hash.GetHex().c_str());
         }
-        //}
     }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);

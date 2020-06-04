@@ -12,14 +12,23 @@ fi
 cd build
 
 # cmake
-flag=""
-if [ "$1" == "debug" ]; then
-    flag="-DCMAKE_BUILD_TYPE=Debug"
+flagdebug=""
+if [[ "$1" = "debug" || "$2" = "debug" ]]
+then
+    flagdebug="-DCMAKE_BUILD_TYPE=Debug"
 else
-    flag="-DCMAKE_BUILD_TYPE=Release"
+    flagdebug="-DCMAKE_BUILD_TYPE=Release"
 fi
 
-cmake .. $flag
+flagtestnet=""
+if [[ "$1" = "testnet" || "$2" = "testnet" ]]
+then
+    flagtestnet="-DTESTNET=on"
+else
+    flagtestnet="-DTESTNET=off"
+fi
+
+cmake .. $flagdebug $flagtestnet
 if [ $? -ne 0 ]; then 
     cd $origin_path
     exit 1 
