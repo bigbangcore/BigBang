@@ -257,7 +257,7 @@ public:
             const CTxOutPoint& outpoint = kv.first;
             const CSpent& spent = kv.second;
             CTxOut out;
-            if(nCount >= nMax)
+            if(nMax != 0 && nCount >= nMax)
             {
                 break;
             }

@@ -718,7 +718,7 @@ void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& des
         const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
         CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
 
-        if (nCount >= nMax)
+        if (nMax != 0 && nCount >= nMax)
         {
             return;
         }
@@ -732,7 +732,7 @@ void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& des
     }
     
     std::vector<CTxUnspent> vTxPoolUnspent;
-    txPoolView.ListUnspent(dest, setTxUnspent, nMax - nCount, vTxPoolUnspent);
+    txPoolView.ListUnspent(dest, setTxUnspent, (nMax != 0) ? (nMax - nCount) : nMax, vTxPoolUnspent);
     vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
 }
 
