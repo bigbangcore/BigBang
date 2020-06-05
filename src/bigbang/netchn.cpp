@@ -12,9 +12,6 @@ using namespace std;
 using namespace xengine;
 using boost::asio::ip::tcp;
 
-#define PUSHTX_TIMEOUT (1000)
-#define SYNTXINV_TIMEOUT (1000 * 60)
-
 namespace bigbang
 {
 
@@ -125,16 +122,6 @@ CNetChannelPeer::CNetChannelPeer(uint64 nServiceIn, const network::CAddress& add
     {
         strRemoteAddress = ep.address().to_string() + ":" + std::to_string(ep.port());
     }
-}
-
-bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
-{
-    map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
-    if (it != mapSubscribedFork.end())
-    {
-        return it->second.fSynchronized;
-    }
-    return false;
 }
 
 void CNetChannelPeer::Subscribe(const uint256& hashFork)
@@ -875,9 +862,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
 
                 {
                     boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-                    CNetChannelPeer& peer = mapPeer[nNonce];
-                    //peer.AddKnownTx(hashFork, vTxHash, 0);
-                    peer.SetWaitGetTxComplete(hashFork);
+                    map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+                    if (it != mapPeer.end())
+                    {
+                        it->second.SetWaitGetTxComplete(hashFork);
+                    }
                 }
 
                 network::CEventPeerMsgRsp eventMsgRsp(nNonce, hashFork);
@@ -980,7 +969,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
     }
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce].SetPeerGetDataTime(hashFork);
+        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        if (it != mapPeer.end())
+        {
+            it->second.SetPeerGetDataTime(hashFork);
+        }
     }
     return true;
 }
@@ -1233,22 +1226,23 @@ bool CNetChannel::HandleEvent(network::CEventPeerMsgRsp& eventMsgRsp)
                      GetPeerAddressInfo(nNonce).c_str(), eventMsgRsp.data.nRspResult);
             return false;
         }
+        bool fRspCompleteResult = (eventMsgRsp.data.nRspResult == MSGRSP_RESULT_TXINV_COMPLETE);
         bool fResetTxInvSyn = false;
         {
             boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
             map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
             if (it != mapPeer.end())
             {
-                it->second.ResetTxInvSynStatus(hashFork, eventMsgRsp.data.nRspResult == MSGRSP_RESULT_TXINV_COMPLETE);
+                it->second.ResetTxInvSynStatus(hashFork, fRspCompleteResult);
                 fResetTxInvSyn = true;
             }
         }
         if (fResetTxInvSyn)
         {
             StdTrace("NetChannel", "CEventPeerMsgRsp: recv tx inv response: %s, peer: %s, fork: %s",
-                     (eventMsgRsp.data.nRspResult == MSGRSP_RESULT_TXINV_COMPLETE ? "peer completed" : "peer received"),
+                     (fRspCompleteResult ? "peer completed" : "peer received"),
                      GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
-            if (eventMsgRsp.data.nRspResult == MSGRSP_RESULT_TXINV_COMPLETE)
+            if (fRspCompleteResult)
             {
                 BroadcastTxInv(hashFork);
             }
@@ -1256,7 +1250,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerMsgRsp& eventMsgRsp)
         else
         {
             StdError("NetChannel", "CEventPeerMsgRsp: recv tx inv response: %s, not find peer, peer: %s, fork: %s",
-                     (eventMsgRsp.data.nRspResult == MSGRSP_RESULT_TXINV_COMPLETE ? "peer completed" : "peer received"),
+                     (fRspCompleteResult ? "peer completed" : "peer received"),
                      GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
         }
         break;
@@ -1408,7 +1402,7 @@ void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSched
         {
             DispatchGetBlocksEvent(nNonce, hashFork);
         }
-        else
+        else if (!eventGetData.data.empty())
         {
             sched.SetNextGetBlocksTime(nNonce, 0);
         }
@@ -1899,10 +1893,13 @@ void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool
     bool fInverted = false;
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        CNetChannelPeer& peer = mapPeer[nNonce];
-        if (!peer.SetSyncStatus(hashFork, fSync, fInverted))
+        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        if (it != mapPeer.end())
         {
-            return;
+            if (!it->second.SetSyncStatus(hashFork, fSync, fInverted))
+            {
+                return;
+            }
         }
     }
 
@@ -1958,7 +1955,6 @@ void CNetChannel::ForkPushTxTimerFunc(uint32 nTimerId)
                 PostEvent(pEvent);
                 nPrevPushTime = GetTime();
             }
-            break;
         }
         if (nPrevPushTime > 0 && GetTime() - nPrevPushTime > 3600 * 24)
         {
@@ -2009,6 +2005,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
             }
         }
     }
+
     for (auto& vd : vPeer)
     {
         network::CEventPeerInv eventInv(vd.first, hashFork);

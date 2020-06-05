@@ -252,12 +252,12 @@ public:
     void ListUnspent(const CDestination& dest, const std::set<CTxUnspent>& setTxUnspent, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
     {
         uint32 nCount = 0;
-        for(const auto& kv : mapSpent)
+        for (const auto& kv : mapSpent)
         {
             const CTxOutPoint& outpoint = kv.first;
             const CSpent& spent = kv.second;
             CTxOut out;
-            if(nMax != 0 && nCount >= nMax)
+            if (nMax != 0 && nCount >= nMax)
             {
                 break;
             }
@@ -427,6 +427,10 @@ protected:
     void ListUnspent(const CTxPoolView& txPoolView, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent);
 
 protected:
+    enum
+    {
+        MAX_SYN_CACHE_TX_COUNT = 100000
+    };
     storage::CTxPoolData datTxPool;
     mutable boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;

@@ -685,15 +685,13 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
     }
 }
 
-
-
 bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
     map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
     if (it != mapPoolView.end())
     {
-        const CTxPoolView& txPoolView = it->second;  
+        const CTxPoolView& txPoolView = it->second;
         ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, vUnspent);
         return true;
     }
@@ -708,13 +706,13 @@ bool CTxPool::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const s
     if (it != mapPoolView.end())
     {
         const CTxPoolView& txPoolView = it->second;
-        for(const auto& kv : mapUnspentOnChain)
+        for (const auto& kv : mapUnspentOnChain)
         {
             const CDestination& dest = kv.first;
             const std::vector<CTxUnspent>& vUnspentOnChain = kv.second;
             ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, mapUnspent[dest]);
         }
-        
+
         return true;
     }
 
@@ -727,7 +725,7 @@ void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& des
     std::set<CTxUnspent> setTxUnspent;
     for (size_t i = 0; i < vUnspentOnChain.size(); i++)
     {
-        const CTxUnspent& unspentOnChain = vUnspentOnChain[i]; 
+        const CTxUnspent& unspentOnChain = vUnspentOnChain[i];
         CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
 
         if (nMax != 0 && nCount >= nMax)
@@ -735,14 +733,14 @@ void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& des
             return;
         }
 
-        if(!txPoolView.IsSpent(outpoint))
+        if (!txPoolView.IsSpent(outpoint))
         {
             vUnspent.push_back(unspentOnChain);
             setTxUnspent.insert(unspentOnChain);
             nCount++;
         }
     }
-    
+
     std::vector<CTxUnspent> vTxPoolUnspent;
     txPoolView.ListUnspent(dest, setTxUnspent, (nMax != 0) ? (nMax - nCount) : nMax, vTxPoolUnspent);
     vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
@@ -1259,14 +1257,24 @@ CPooledTx* CTxPool::AddTxData(const uint256& hashFork, const uint256& txid, cons
     {
         return nullptr;
     }
-    mapSynTx[hashFork].push_back(make_pair(1, tx));
+    auto& vSynFork = mapSynTx[hashFork];
+    if (vSynFork.size() >= MAX_SYN_CACHE_TX_COUNT)
+    {
+        vSynFork.clear();
+    }
+    vSynFork.push_back(make_pair(1, tx));
     return &(mi->second);
 }
 
 void CTxPool::RemoveTxData(const uint256& hashFork, const uint256& txid)
 {
     mapTx.erase(txid);
-    mapSynTx[hashFork].push_back(make_pair(0, txid));
+    auto& vSynFork = mapSynTx[hashFork];
+    if (vSynFork.size() >= MAX_SYN_CACHE_TX_COUNT)
+    {
+        vSynFork.clear();
+    }
+    vSynFork.push_back(make_pair(0, txid));
 }
 
 } // namespace bigbang

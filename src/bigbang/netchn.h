@@ -55,7 +55,6 @@ public:
     CNetChannelPeer()
       : nService(0) {}
     CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary);
-    bool IsSynchronized(const uint256& hashFork) const;
     bool SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted);
     void Subscribe(const uint256& hashFork);
     void Unsubscribe(const uint256& hashFork);
@@ -103,7 +102,9 @@ protected:
     {
         MAX_GETBLOCKS_COUNT = 128,
         GET_BLOCKS_INTERVAL_DEF_TIME = 120,
-        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600
+        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600,
+        PUSHTX_TIMEOUT = 1000,
+        SYNTXINV_TIMEOUT = 1000 * 60
     };
     enum
     {

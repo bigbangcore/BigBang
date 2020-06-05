@@ -65,7 +65,7 @@ void COrphan::RemoveNext(const uint256& prev)
     mapOrphanByPrev.erase(prev);
 }
 
-void COrphan::RemoveBranch(const uint256& root, std::vector<uint256>& vBranch)
+void COrphan::RemoveBranch(const uint256& root, vector<uint256>& vBranch)
 {
     set<uint256> setBranch;
     vBranch.reserve(mapOrphanByPrev.size());
@@ -530,7 +530,7 @@ bool CSchedule::SetDelayedClear(const network::CInv& inv, int64 nDelayedTime)
     return false;
 }
 
-void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash)
+void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, vector<pair<uint256, int>>& vPowBlockHash)
 {
     for (auto it = mapHeightBlock.begin(); it != mapHeightBlock.end(); ++it)
     {
@@ -692,16 +692,16 @@ void CSchedule::SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlock
     }
 }
 
-void CSchedule::AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData)
+void CSchedule::AddSynTxData(vector<pair<int, CSynTx>>& vSynTxData)
 {
-    std::vector<std::pair<int, std::pair<uint256, uint64>>> vTempSynTxId;
+    vector<pair<int, pair<uint256, uint64>>> vTempSynTxId;
     for (auto& vd : vSynTxData)
     {
         if (vd.first == 1)
         {
             CTransaction& tx = boost::get<CTransaction>(vd.second);
             uint256 txid = tx.GetHash();
-            std::map<uint256, CTransaction>::iterator it = mapSynTxPool.find(txid);
+            map<uint256, CTransaction>::iterator it = mapSynTxPool.find(txid);
             if (it == mapSynTxPool.end())
             {
                 mapSynTxPool.insert(make_pair(txid, tx));
@@ -726,7 +726,7 @@ void CSchedule::AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData)
             vTempSynTxId.push_back(make_pair(vd.first, make_pair(txid, 0)));
         }
     }
-    for (std::map<uint64, CInvPeer>::iterator mt = mapPeer.begin(); mt != mapPeer.end(); ++mt)
+    for (map<uint64, CInvPeer>::iterator mt = mapPeer.begin(); mt != mapPeer.end(); ++mt)
     {
         mt->second.UpdateSynTx(vTempSynTxId);
     }
@@ -734,16 +734,12 @@ void CSchedule::AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData)
 
 void CSchedule::UpdateTxIndexToPeer(uint64 nNonce)
 {
-    std::map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
-    if (mt != mapPeer.end())
-    {
-        mt->second.ReSetTxIndex(setSynTxIndex);
-    }
+    mapPeer[nNonce].ReSetTxIndex(setSynTxIndex);
 }
 
-bool CSchedule::GetSynTxInv(uint64 nNonce, std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv)
+bool CSchedule::GetSynTxInv(uint64 nNonce, size_t nMaxInvCount, vector<network::CInv>& vSynTxInv)
 {
-    std::map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
+    map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
     if (mt != mapPeer.end())
     {
         mt->second.GetSynTxInv(nMaxInvCount, vSynTxInv);
@@ -777,7 +773,7 @@ bool CSchedule::ScheduleKnownInv(uint64 nPeerNonce, CInvPeer& peer, uint32 type,
     vInv.clear();
     if (type == network::CInv::MSG_TX && !setMissPrevTxInv.empty())
     {
-        std::set<network::CInv>::iterator mt = setMissPrevTxInv.begin();
+        set<network::CInv>::iterator mt = setMissPrevTxInv.begin();
         while (mt != setMissPrevTxInv.end())
         {
             const network::CInv& inv = *mt;
