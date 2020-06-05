@@ -193,9 +193,13 @@ bool CBlockMaker::HandleInvoke()
     }
 
     fExit = false;
-    if (!ThreadDelayStart(thrMaker))
+
+    if (!mapDelegatedProfile.empty())
     {
-        return false;
+        if (!ThreadDelayStart(thrMaker))
+        {
+            return false;
+        }
     }
 
     if (!mapWorkProfile.empty())
