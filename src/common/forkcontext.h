@@ -5,8 +5,16 @@
 #ifndef COMMON_FORKCONTEXT_H
 #define COMMON_FORKCONTEXT_H
 
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <map>
 #include <stream/stream.h>
 #include <string>
+#include <vector>
 
 #include "destination.h"
 #include "profile.h"
@@ -146,6 +154,318 @@ protected:
         s.Serialize(nJointHeight, opt);
         s.Serialize(destOwner, opt);
     }
+};
+
+class CForkContextEx : public CForkContext
+{
+    friend class xengine::CStream;
+
+public:
+    CForkContextEx()
+        : nCreatedHeight(-1), fActived(true)
+    {
+    }
+    CForkContextEx(const CForkContext& ctxtIn, const int nCreatedHeightIn = -1, const bool fActivedIn = true)
+      : CForkContext(ctxtIn), nCreatedHeight(nCreatedHeightIn), fActived(fActivedIn)
+    {
+    }
+
+    bool operator<(const CForkContextEx& ctxt) const
+    {
+        return hashFork < ctxt.hashFork;
+    }
+
+public:
+    int nCreatedHeight;
+    bool fActived;
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        CForkContext::Serialize(s, opt);
+        s.Serialize(nCreatedHeight, opt);
+        s.Serialize(fActived, opt);
+    }
+};
+
+typedef boost::multi_index_container<
+    CForkContextEx,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashFork>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashJoint>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, int, &CForkContext::nJointHeight>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashParent>>,
+        boost::multi_index::ordered_unique<boost::multi_index::member<CForkContext, std::string, &CForkContext::strName>>,
+        boost::multi_index::ordered_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::txidEmbedded>>>>
+    CForkContextExSet;
+typedef CForkContextExSet::nth_index<0>::type CForkContextExSetByFork;
+typedef CForkContextExSet::nth_index<1>::type CForkContextExSetByJoint;
+typedef CForkContextExSet::nth_index<2>::type CForkContextExSetByHeight;
+typedef CForkContextExSet::nth_index<3>::type CForkContextExSetByParent;
+typedef CForkContextExSet::nth_index<4>::type CForkContextExSetByName;
+typedef CForkContextExSet::nth_index<5>::type CForkContextExSetByTx;
+
+class CForkSetManager
+{
+public:
+    CForkSetManager()
+    {
+    }
+    ~CForkSetManager()
+    {
+    }
+    CForkSetManager(const CForkSetManager& mgr)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(mgr.rwAccess);
+        forkSet = mgr.forkSet;
+    }
+    CForkSetManager(CForkSetManager&& mgr)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(mgr.rwAccess);
+        forkSet = std::move(mgr.forkSet);
+    }
+    CForkSetManager& operator=(const CForkSetManager& mgr)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(mgr.rwAccess, boost::defer_lock);
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess, boost::defer_lock);
+        boost::lock(rlock, wlock);
+        forkSet = mgr.forkSet;
+        return *this;
+    }
+    CForkSetManager& operator=(CForkSetManager&& mgr)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock1(mgr.rwAccess, boost::defer_lock);
+        boost::unique_lock<boost::shared_mutex> wlock2(rwAccess, boost::defer_lock);
+        boost::lock(wlock1, wlock2);
+        forkSet = std::move(mgr.forkSet);
+        return *this;
+    }
+
+    void Clear()
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        forkSet.clear();
+    }
+    
+    void ClearInactived()
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        for (auto it = forkSet.begin(); it != forkSet.end(); )
+        {
+            if (!it->fActived)
+            {
+                forkSet.erase(it++);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    void Insert(const CForkContextEx& ctxt)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        forkSet.insert(ctxt);
+    }
+
+    void EraseByFork(const uint256& hashFork)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        CForkContextExSetByFork& idxFork = forkSet.get<0>();
+        idxFork.erase(hashFork);
+    }
+
+    void ChangeActived(const uint256& hashFork, bool fActived)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        CForkContextExSetByFork& idxFork = forkSet.get<0>();
+        CForkContextExSetByFork::iterator it = idxFork.find(hashFork);
+        if (it != idxFork.end())
+        {
+            if (it->fActived ^ fActived)
+            {
+                CForkContextEx ctxt = *it;
+                ctxt.fActived = fActived;
+                idxFork.replace(it, ctxt);
+            }
+        }
+    }
+
+    bool RetrieveByFork(const uint256& hashFork, CForkContextEx& ctxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByFork& idxFork = forkSet.get<0>();
+        const CForkContextExSetByFork::iterator it = idxFork.find(hashFork);
+        if (it != idxFork.end())
+        {
+            ctxt = *it;
+            return true;
+        }
+        return false;
+    }
+
+    bool RetrieveByJoint(const uint256& hashFork, std::set<CForkContextEx>& setCtxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByJoint& idxJoint = forkSet.get<1>();
+        CForkContextExSetByJoint::const_iterator itBegin = idxJoint.lower_bound(hashFork);
+        CForkContextExSetByJoint::const_iterator itEnd = idxJoint.upper_bound(hashFork);
+        if (itBegin == itEnd)
+        {
+            return false;
+        }
+        for (; itBegin != itEnd; ++itBegin)
+        {
+            setCtxt.insert(*itBegin);
+        }
+        return true;
+    }
+
+    bool RetrieveByHeight(const int nHeight, std::set<CForkContextEx>& setCtxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByHeight& idxHeight = forkSet.get<2>();
+        CForkContextExSetByHeight::const_iterator itBegin = idxHeight.lower_bound(nHeight);
+        CForkContextExSetByHeight::const_iterator itEnd = idxHeight.upper_bound(nHeight);
+        if (itBegin == itEnd)
+        {
+            return false;
+        }
+        for (; itBegin != itEnd; ++itBegin)
+        {
+            setCtxt.insert(*itBegin);
+        }
+        return true;
+    }
+
+    bool RetrieveByParent(const uint256& hashFork, std::set<CForkContextEx>& setCtxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByParent& idxParent = forkSet.get<3>();
+        CForkContextExSetByParent::const_iterator itBegin = idxParent.lower_bound(hashFork);
+        CForkContextExSetByParent::const_iterator itEnd = idxParent.upper_bound(hashFork);
+        if (itBegin == itEnd)
+        {
+            return false;
+        }
+        for (; itBegin != itEnd; ++itBegin)
+        {
+            setCtxt.insert(*itBegin);
+        }
+        return true;
+    }
+
+    bool RetrieveByName(const std::string& strName, CForkContextEx& ctxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByName& idxName = forkSet.get<4>();
+        const CForkContextExSetByName::iterator it = idxName.find(strName);
+        if (it != idxName.end())
+        {
+            ctxt = *it;
+            return true;
+        }
+        return false;
+    }
+
+    bool RetrieveByTx(const uint256& txid, CForkContextEx& ctxt) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        const CForkContextExSetByTx& idxTx = forkSet.get<5>();
+        const CForkContextExSetByTx::iterator it = idxTx.find(txid);
+        if (it != idxTx.end())
+        {
+            ctxt = *it;
+            return true;
+        }
+        return false;
+    }
+    
+    void GetForkList(std::vector<uint256>& vFork) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        vFork.reserve(forkSet.size());
+        for (auto it = forkSet.begin(); it != forkSet.end(); it++)
+        {
+            vFork.push_back(it->hashFork);
+        }
+    }
+
+    void GetForkNameList(std::vector<std::string>& vName) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        vName.reserve(forkSet.size());
+        for (auto it = forkSet.begin(); it != forkSet.end(); it++)
+        {
+            vName.push_back(it->strName);
+        }
+    }
+
+    void GetRepeatedForkList(const CForkSetManager& forkSetMgr, std::set<uint256>& setDuplicatedFork, std::set<uint256>& setDuplicatedName) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+        CForkContextEx ctxt;
+        for (auto it = forkSet.begin(); it != forkSet.end(); it++)
+        {
+            if (forkSetMgr.RetrieveByFork(it->hashFork, ctxt))
+            {
+                setDuplicatedFork.insert(it->hashFork);
+            }
+            else if (forkSetMgr.RetrieveByName(it->strName, ctxt))
+            {
+                setDuplicatedName.insert(it->hashFork);
+            }
+        }
+    }
+
+    bool GetSubline(const uint256& hashFork, std::map<uint256, int32>& mapSubline) const
+    {
+        std::set<CForkContextEx> setCtxt;
+        if (RetrieveByParent(hashFork, setCtxt))
+        {
+            for (auto& ctxt : setCtxt)
+            {
+                mapSubline.insert(std::make_pair(ctxt.hashFork, ctxt.nJointHeight));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    bool GetDescendant(const uint256& hashFork, std::vector<std::pair<uint256, uint256>>& vDescendant) const
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+
+        CForkContextEx ctxt;
+        if (!RetrieveByFork(hashFork, ctxt))
+        {
+            return false;
+        }
+
+        vDescendant.clear();
+        vDescendant.reserve(forkSet.size());
+        vDescendant.push_back(std::make_pair(hashFork, ctxt.txidEmbedded));
+
+        const CForkContextExSetByParent& idxParent = forkSet.get<3>();
+        for (size_t i = 0; i < vDescendant.size(); i++)
+        {
+            const uint256& hash = vDescendant[i].first;
+            CForkContextExSetByParent::const_iterator itBegin = idxParent.lower_bound(hash);
+            CForkContextExSetByParent::const_iterator itEnd = idxParent.upper_bound(hash);
+            for (; itBegin != itEnd; ++itBegin)
+            {
+                vDescendant.push_back(std::make_pair(itBegin->hashFork, itBegin->txidEmbedded));
+            }
+        }
+
+        return true;
+    }
+
+protected:
+    mutable boost::shared_mutex rwAccess;
+    CForkContextExSet forkSet;
 };
 
 #endif //COMMON_FORKCONTEXT_H

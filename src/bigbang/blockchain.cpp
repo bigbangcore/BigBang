@@ -560,7 +560,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    update = CBlockChainUpdate(pIndexNew);
+    update = CBlockChainUpdate(pIndexNew, move(unconfirmedForkSetMgr));
     view.GetTxUpdated(update.setTxUpdate);
     view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
 

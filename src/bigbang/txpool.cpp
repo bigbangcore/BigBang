@@ -996,6 +996,51 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         }
     }
 
+    // delete double spent or duplicated name fork tx and it's subline
+    if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        CForkContextEx ctxt;
+        set<CForkContextEx> setInvalidForkContext;
+        set<uint256> setInvalidForkTx;
+
+        // double spent
+        for (auto it = viewInvolvedTx.setTxLinkIndex.begin(); it != viewInvolvedTx.setTxLinkIndex.end(); it++)
+        {
+            if (forkSetMgr.RetrieveByTx(it->hashTX, ctxt))
+            {
+                setInvalidForkContext.insert(ctxt);
+            }
+        }
+
+        // duplicated name
+        set<uint256> setDuplicatedFork, setDuplicatedName;
+        unconfirmedForkSetMgr.GetRepeatedForkList(update.forkSetMgr, setDuplicatedFork, setDuplicatedName);
+        for (const uint256& hash : setDuplicatedName)
+        {
+            if (forkSetMgr.RetrieveByFork(hash, ctxt))
+            {
+                setInvalidForkContext.insert(ctxt);
+            }
+        }
+
+        // invalid fork tx and subline fork tx
+        for (const CForkContextEx& ctxt : setInvalidForkContext)
+        {
+            vector<pair<uint256, uint256>> vDescendant;
+            unconfirmedForkSetMgr.GetDescendant(ctxt.hashFork, vDescendant);
+
+            for (auto& d : vDescendant)
+            {
+                CPooledTx* pTx = txView.Get(ctxt.txidEmbedded);
+                if (pTx != nullptr)
+                {
+                    viewInvolvedTx.AddNew(ctxt.txidEmbedded, *pTx);
+                }
+                unconfirmedForkSetMgr.ChangeActived(d.first, false);
+            }
+        }
+    }
+
     const CPooledTxLinkSetBySequenceNumber& idxInvolvedTx = viewInvolvedTx.setTxLinkIndex.get<1>();
     change.vTxRemove.reserve(idxInvolvedTx.size() + vTxRemove.size());
     for (const auto& txseq : boost::adaptors::reverse(idxInvolvedTx))
@@ -1034,6 +1079,11 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 void CTxPool::AddDestDelegate(const CDestination& destDeleage)
 {
     certTxDest.AddDelegate(destDeleage);
+}
+
+void CTxPool::ClearInactivedFork()
+{
+    unconfirmedForkSetMgr.ClearInactived();
 }
 
 bool CTxPool::LoadData()

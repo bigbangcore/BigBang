@@ -181,7 +181,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         if (ctxt.hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
             vActive.push_back(ctxt.hashFork);
-            forkSetMgr.Add(CForkContextEx(ctxt, 0));
+            forkSetMgr.Insert(CForkContextEx(ctxt, 0));
             return true;
         }
 
@@ -222,7 +222,7 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
     {
         return false;
     }
-    forkSetMgr.Add(CForkContextEx(ctxt, nHeight));
+    forkSetMgr.Insert(CForkContextEx(ctxt, nHeight));
 
     return true;
 }
@@ -238,9 +238,9 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int32, uint25
     if (forkSetMgr.RetrieveByParent(hashFork, setCtxt))
     {
         multimap<int32, uint256> mapSubline;
-        for (auto& link : setCtxt)
+        for (auto& ctxt : setCtxt)
         {
-            mapSubline.insert(make_pair(link.nJointHeight, link.hashFork));
+            mapSubline.insert(make_pair(ctxt.nJointHeight, ctxt.hashFork));
         }
         vSubline.assign(mapSubline.begin(), mapSubline.end());
         return true;

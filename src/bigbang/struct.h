@@ -9,7 +9,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/mem_fun.hpp>
+#include <boost/thread/mutex.hpp>
 #include <map>
 #include <set>
 #include <vector>
@@ -102,7 +102,8 @@ public:
     {
         SetNull();
     }
-    CBlockChainUpdate(CBlockIndex* pIndex)
+    CBlockChainUpdate(CBlockIndex* pIndex, CForkSetManager&& forkSetMgrIn = CForkSetManager())
+        : forkSetMgr(forkSetMgrIn)
     {
         hashFork = pIndex->GetOriginHash();
         hashParent = pIndex->GetParentHash();
@@ -137,6 +138,7 @@ public:
     std::set<uint256> setTxUpdate;
     std::vector<CBlockEx> vBlockAddNew;
     std::vector<CBlockEx> vBlockRemove;
+    CForkSetManager forkSetMgr;
 };
 
 class CTxSetChange
@@ -351,141 +353,6 @@ public:
 
     uint64 nSynRecvTxTPS;
     uint64 nSynSendTxTPS;
-};
-
-class CForkContextEx : public CForkContext
-{
-public:
-    CForkContextEx()
-        : nCreatedHeight(-1)
-    {
-    }
-    CForkContextEx(const CForkContext& ctxtIn, const int nCreatedHeight = -1)
-      : CForkContext(ctxtIn), nCreatedHeight(nCreatedHeight)
-    {
-    }
-
-    bool operator<(const CForkContextEx& ctxt) const
-    {
-        return hashFork < ctxt.hashFork;
-    }
-
-public:
-    int nCreatedHeight;
-};
-
-typedef boost::multi_index_container<
-    CForkContextEx,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashFork>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashJoint>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, int, &CForkContext::nJointHeight>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkContext, uint256, &CForkContext::hashParent>>>>
-    CForkContextExSet;
-typedef CForkContextExSet::nth_index<0>::type CForkContextExSetByFork;
-typedef CForkContextExSet::nth_index<1>::type CForkContextExSetByJoint;
-typedef CForkContextExSet::nth_index<2>::type CForkContextExSetByHeight;
-typedef CForkContextExSet::nth_index<3>::type CForkContextExSetByParent;
-
-class CForkSetManager
-{
-public:
-    CForkSetManager()
-    {
-    }
-    ~CForkSetManager()
-    {
-    }
-
-    void Clear()
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-        forkSet.clear();
-    }
-
-    void Add(const CForkContextEx& ctxt)
-    {
-        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-        forkSet.insert(ctxt);
-    }
-
-    bool RetrieveByFork(const uint256& hashFork, CForkContextEx& ctxt) const
-    {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        const CForkContextExSetByFork& idxFork = forkSet.get<0>();
-        const CForkContextExSetByFork::iterator it = idxFork.find(hashFork);
-        if (it != idxFork.end())
-        {
-            ctxt = *it;
-            return true;
-        }
-        return false;
-    }
-
-    bool RetrieveByJoint(const uint256& hashFork, std::set<CForkContextEx>& setCtxt) const
-    {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        const CForkContextExSetByJoint& idxJoint = forkSet.get<1>();
-        CForkContextExSetByJoint::const_iterator itBegin = idxJoint.lower_bound(hashFork);
-        CForkContextExSetByJoint::const_iterator itEnd = idxJoint.upper_bound(hashFork);
-        if (itBegin == itEnd)
-        {
-            return false;
-        }
-        for (; itBegin != itEnd; ++itBegin)
-        {
-            setCtxt.insert(*itBegin);
-        }
-        return true;
-    }
-
-    bool RetrieveByHeight(const int nHeight, std::set<CForkContextEx>& setCtxt) const
-    {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        const CForkContextExSetByHeight& idxHeight = forkSet.get<2>();
-        CForkContextExSetByHeight::const_iterator itBegin = idxHeight.lower_bound(nHeight);
-        CForkContextExSetByHeight::const_iterator itEnd = idxHeight.upper_bound(nHeight);
-        if (itBegin == itEnd)
-        {
-            return false;
-        }
-        for (; itBegin != itEnd; ++itBegin)
-        {
-            setCtxt.insert(*itBegin);
-        }
-        return true;
-    }
-
-    bool RetrieveByParent(const uint256& hashFork, std::set<CForkContextEx>& setCtxt) const
-    {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        const CForkContextExSetByParent& idxParent = forkSet.get<3>();
-        CForkContextExSetByParent::const_iterator itBegin = idxParent.lower_bound(hashFork);
-        CForkContextExSetByParent::const_iterator itEnd = idxParent.upper_bound(hashFork);
-        if (itBegin == itEnd)
-        {
-            return false;
-        }
-        for (; itBegin != itEnd; ++itBegin)
-        {
-            setCtxt.insert(*itBegin);
-        }
-        return true;
-    }
-    
-    void GetForkList(std::vector<uint256>& vFork) const
-    {
-        boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        vFork.reserve(forkSet.size());
-        for (auto it = forkSet.begin(); it != forkSet.end(); it++)
-        {
-            vFork.push_back(it->hashFork);
-        }
-    }
-
-protected:
-    mutable boost::shared_mutex rwAccess;
-    CForkContextExSet forkSet;
 };
 
 } // namespace bigbang
