@@ -933,7 +933,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     {
                         certTxDest.RemoveCertTx(tx.sendTo, txid);
                     }
-                    mapTx.erase(txid);
+                    RemoveTxData(update.hashFork, txid);
                     change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
                 else
@@ -1008,7 +1008,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             {
                 certTxDest.RemoveCertTx(it->second.sendTo, txseq.hashTX);
             }
-            mapTx.erase(it);
+            RemoveTxData(update.hashFork, txseq.hashTX);
         }
     }
     change.vTxRemove.insert(change.vTxRemove.end(), vTxRemove.rbegin(), vTxRemove.rend());
@@ -1036,6 +1036,17 @@ void CTxPool::AddDestDelegate(const CDestination& destDeleage)
     certTxDest.AddDelegate(destDeleage);
 }
 
+void CTxPool::FetchSynTxData(const uint256& hashFork, std::vector<std::pair<int, CSynTx>>& vSynTxData)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    auto it = mapSynTx.find(hashFork);
+    if (it != mapSynTx.end() && !it->second.empty())
+    {
+        vSynTxData = it->second;
+        it->second.clear();
+    }
+}
+
 bool CTxPool::LoadData()
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
@@ -1043,7 +1054,7 @@ bool CTxPool::LoadData()
     vector<pair<uint256, pair<uint256, CAssembledTx>>> vTx;
     if (!datTxPool.Load(vTx))
     {
-        StdTrace("CTxPool", "Load Data failed");
+        StdError("CTxPool", "Load Data failed");
         return false;
     }
 
@@ -1053,8 +1064,13 @@ bool CTxPool::LoadData()
         const uint256& txid = vTx[i].second.first;
         const CAssembledTx& tx = vTx[i].second.second;
 
-        map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
-        mapPoolView[hashFork].AddNew(txid, (*mi).second);
+        CPooledTx* ptx = AddTxData(hashFork, txid, CPooledTx(tx, GetSequenceNumber()));
+        if (ptx == nullptr)
+        {
+            StdError("CTxPool", "Load Data AddTxData failed");
+            return false;
+        }
+        mapPoolView[hashFork].AddNew(txid, *ptx);
 
         if (tx.nType == CTransaction::TX_CERT)
         {
@@ -1116,6 +1132,12 @@ bool CTxPool::SaveData()
 
 Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
+    if (tx.vInput.empty())
+    {
+        StdTrace("CTxPool", "AddNew: vInput is null, txid: %s, hashFork: %s",
+                 txid.GetHex().c_str(), hashFork.GetHex().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
     if (tx.nType == CTransaction::TX_CERT)
     {
         uint256 txidRemove;
@@ -1174,10 +1196,15 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
     }
 
     CDestination destIn = vPrevOutput[0].destTo;
-    map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
-    if (!txView.AddNew(txid, (*mi).second))
+    CPooledTx* ptx = AddTxData(hashFork, txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn));
+    if (ptx == nullptr)
     {
-        StdTrace("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
+        StdLog("CTxPool", "AddNew: AddTxData fail, txid: %s", txid.GetHex().c_str());
+        return ERR_NOT_FOUND;
+    }
+    if (!txView.AddNew(txid, *ptx))
+    {
+        StdLog("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
         return ERR_NOT_FOUND;
     }
     if (tx.nType == CTransaction::TX_CERT)
@@ -1219,10 +1246,27 @@ void CTxPool::RemoveTx(const uint256& txid)
         {
             certTxDest.RemoveCertTx(mi->ptx->sendTo, mi->hashTX);
         }
-        mapTx.erase(mi->hashTX);
+        RemoveTxData(hashFork, mi->hashTX);
     }
 
     StdTrace("CTxPool", "RemoveTx success, txid: %s", txid.GetHex().c_str());
+}
+
+CPooledTx* CTxPool::AddTxData(const uint256& hashFork, const uint256& txid, const CPooledTx& tx)
+{
+    map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, tx)).first;
+    if (mi == mapTx.end())
+    {
+        return nullptr;
+    }
+    mapSynTx[hashFork].push_back(make_pair(1, tx));
+    return &(mi->second);
+}
+
+void CTxPool::RemoveTxData(const uint256& hashFork, const uint256& txid)
+{
+    mapTx.erase(txid);
+    mapSynTx[hashFork].push_back(make_pair(0, txid));
 }
 
 } // namespace bigbang

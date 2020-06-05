@@ -284,7 +284,14 @@ bool CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
         {
             if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_PUBLISH)
             {
-                nElapse += nTimeout[inv.nType];
+                if (inv.nType >= CInv::MSG_TX || inv.nType >= CInv::MSG_BLOCK)
+                {
+                    nElapse = RESPONSE_BLOCK_TIMEOUT * 2;
+                }
+                else
+                {
+                    nElapse += nTimeout[inv.nType];
+                }
                 string strFunc = string("InvTimer: nNonce: ") + to_string(nNonce) + ", Inv: [" + to_string(inv.nType) + "] " + inv.nHash.GetHex();
                 uint32 nTimerId = SetTimer(nNonce, nElapse, strFunc);
                 CancelTimer(pBbPeer->Request(inv, nTimerId));

@@ -172,12 +172,46 @@ public:
         }
         return 0;
     }
+    void UpdateSynTx(std::vector<std::pair<int, std::pair<uint256, uint64>>>& vSynTxId)
+    {
+        for (auto& vd : vSynTxId)
+        {
+            CSynTxIndexSetByTxId& index = setPeerSynTxIndex.get<0>();
+            if (vd.first == 1)
+            {
+                if (index.find(vd.second.first) != index.end())
+                {
+                    index.erase(vd.second.first);
+                }
+                setPeerSynTxIndex.insert(CSynTxIndex(vd.second.first, vd.second.second));
+            }
+            else
+            {
+                index.erase(vd.second.first);
+            }
+        }
+    }
+    void ReSetTxIndex(const CSynTxIndexSet& seqTxIndex)
+    {
+        setPeerSynTxIndex = seqTxIndex;
+    }
+    void GetSynTxInv(std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv)
+    {
+        CSynTxIndexSetBySeq& index = setPeerSynTxIndex.get<1>();
+        CSynTxIndexSetBySeq::iterator it = index.begin();
+        while (it != index.end() && vSynTxInv.size() < nMaxInvCount)
+        {
+            vSynTxInv.push_back(network::CInv(network::CInv::MSG_TX, it->txid));
+            index.erase(it++);
+        }
+    }
 
 public:
     CInvPeerState invKnown[2];
     uint256 hashGetBlockLocatorDepth;
     int nInvHeight;
     uint256 hashInvBlock;
+    CSynTxIndexSet setPeerSynTxIndex;
 };
 
 class COrphan
@@ -239,6 +273,9 @@ public:
     };
 
 public:
+    CSchedule()
+      : nSynTxIndexCreate(1) {}
+
     bool Exists(const network::CInv& inv);
     bool CheckPrevTxInv(const network::CInv& inv);
     void GetKnownPeer(const network::CInv& inv, std::set<uint64>& setKnownPeer);
@@ -280,6 +317,9 @@ public:
     void RemoveHeightBlock(int nHeight, const uint256& hash);
     bool GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut);
     void SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn);
+    void AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData);
+    void UpdateTxIndexToPeer(uint64 nNonce);
+    bool GetSynTxInv(uint64 nNonce, std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);
@@ -295,6 +335,9 @@ protected:
     std::multimap<uint256, std::pair<uint256, uint256>> mapRefBlock;
     std::map<int, std::vector<std::pair<uint256, int>>> mapHeightBlock;
     std::map<int, CBlock> mapKcPowBlock;
+    std::map<uint256, CTransaction> mapSynTxPool;
+    CSynTxIndexSet setSynTxIndex;
+    uint64 nSynTxIndexCreate;
 };
 
 } // namespace bigbang

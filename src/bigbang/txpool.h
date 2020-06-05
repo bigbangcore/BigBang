@@ -400,6 +400,7 @@ public:
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
     bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) override;
     void AddDestDelegate(const CDestination& destDeleage) override;
+    void FetchSynTxData(const uint256& hashFork, std::vector<std::pair<int, CSynTx>>& vSynTxData) override;
 
 protected:
     bool HandleInitialize() override;
@@ -410,6 +411,8 @@ protected:
     bool SaveData();
     Errno AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight);
     void RemoveTx(const uint256& txid);
+    CPooledTx* AddTxData(const uint256& hashFork, const uint256& txid, const CPooledTx& tx);
+    void RemoveTxData(const uint256& hashFork, const uint256& txid);
     uint64 GetSequenceNumber()
     {
         if (mapTx.empty())
@@ -433,6 +436,7 @@ protected:
     uint64 nLastSequenceNumber;
     std::map<uint256, CTxCache> mapTxCache;
     CCertTxDestCache certTxDest;
+    std::map<uint256, std::vector<std::pair<int, CSynTx>>> mapSynTx;
 };
 
 } // namespace bigbang

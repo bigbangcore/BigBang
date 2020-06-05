@@ -20,6 +20,8 @@ namespace network
 enum
 {
     EVENT_PEER_BASE = xengine::EVENT_USER_BASE,
+    //LOCAL
+    EVENT_LOCAL_BROADCASTINV,
     //PEER
     EVENT_PEER_ACTIVE,
     EVENT_PEER_DEACTIVE,
@@ -196,7 +198,33 @@ public:
     std::vector<unsigned char> vchData;
 };
 
+class CBodyLocalBroadcastInv
+{
+    friend class xengine::CStream;
+
+public:
+    CBodyLocalBroadcastInv()
+      : nInvType(0) {}
+    CBodyLocalBroadcastInv(uint32 nInvTypeIn, const uint256& hashForkIn)
+      : nInvType(nInvTypeIn), hashFork(hashForkIn) {}
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nInvType, opt);
+        s.Serialize(hashFork, opt);
+    }
+
+public:
+    uint32 nInvType;
+    uint256 hashFork;
+};
+
 class CBbPeerEventListener;
+
+#define TYPE_LOCALEVENT(type, body) \
+    xengine::CEventCategory<type, CBbPeerEventListener, body, bool>
 
 #define TYPE_PEEREVENT(type, body) \
     xengine::CEventCategory<type, CBbPeerEventListener, body, bool>
@@ -206,6 +234,8 @@ class CBbPeerEventListener;
 
 #define TYPE_PEERDELEGATEDEVENT(type, body) \
     CEventPeerDelegated<type, CBbPeerEventListener, body>
+
+typedef TYPE_LOCALEVENT(EVENT_LOCAL_BROADCASTINV, CBodyLocalBroadcastInv) CEventLocalBroadcastInv;
 
 typedef TYPE_PEEREVENT(EVENT_PEER_ACTIVE, CAddress) CEventPeerActive;
 typedef TYPE_PEEREVENT(EVENT_PEER_DEACTIVE, CAddress) CEventPeerDeactive;
@@ -228,6 +258,7 @@ class CBbPeerEventListener : virtual public xengine::CEventListener
 {
 public:
     virtual ~CBbPeerEventListener() {}
+    DECLARE_EVENTHANDLER(CEventLocalBroadcastInv);
     DECLARE_EVENTHANDLER(CEventPeerActive);
     DECLARE_EVENTHANDLER(CEventPeerDeactive);
     DECLARE_EVENTHANDLER(CEventPeerSubscribe);

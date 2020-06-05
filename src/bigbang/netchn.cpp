@@ -19,39 +19,111 @@ namespace bigbang
 {
 
 //////////////////////////////
-// CNetChannelPeer
+// CNetChannelPeerFork
 
-void CNetChannelPeer::CNetChannelPeerFork::AddKnownTx(const vector<uint256>& vTxHash, size_t nTotalSynTxCount)
+void CNetChannelPeerFork::InitTxInvSynData()
 {
-    if (nTotalSynTxCount > NETCHANNEL_KNOWNINV_MAXCOUNT)
+    nSynTxInvStatus = SYNTXINV_STATUS_INIT;
+    nSynTxInvSendTime = 0;
+    nSynTxInvRecvTime = 0;
+    nPrevGetDataTime = 0;
+}
+
+void CNetChannelPeerFork::ResetTxInvSynStatus(bool fIsComplete)
+{
+    if (!fIsComplete)
     {
-        nCacheSynTxCount = nTotalSynTxCount;
+        if (nSynTxInvStatus == SYNTXINV_STATUS_WAIT_PEER_RECEIVED)
+        {
+            int64 nWaitTime = GetTime() - nSynTxInvSendTime;
+            if (nWaitTime < 2)
+            {
+                nSingleSynTxInvCount *= 2;
+            }
+            else if (nWaitTime < 5)
+            {
+                nSingleSynTxInvCount += network::CInv::MIN_INV_COUNT;
+            }
+            else if (nWaitTime > 60)
+            {
+                nSingleSynTxInvCount /= 2;
+            }
+            else if (nWaitTime > 15)
+            {
+                nSingleSynTxInvCount -= network::CInv::MIN_INV_COUNT;
+            }
+            if (nSingleSynTxInvCount > network::CInv::MAX_INV_COUNT)
+            {
+                nSingleSynTxInvCount = network::CInv::MAX_INV_COUNT;
+            }
+            else if (nSingleSynTxInvCount < network::CInv::MIN_INV_COUNT)
+            {
+                nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
+            }
+            nSynTxInvStatus = SYNTXINV_STATUS_WAIT_PEER_COMPLETE;
+            nSynTxInvRecvTime = GetTime();
+            nPrevGetDataTime = nSynTxInvRecvTime;
+        }
     }
     else
     {
-        nCacheSynTxCount = NETCHANNEL_KNOWNINV_MAXCOUNT;
+        InitTxInvSynData();
     }
-    for (const uint256& txid : vTxHash)
-    {
-        setKnownTx.insert(CPeerKnownTx(txid));
-    }
-    ClearExpiredTx();
 }
 
-void CNetChannelPeer::CNetChannelPeerFork::ClearExpiredTx()
+int CNetChannelPeerFork::CheckTxInvSynStatus()
 {
-    int64 nExpiredAt = GetTime() - NETCHANNEL_KNOWNINV_EXPIREDTIME;
-    size_t nCtrlCount = nCacheSynTxCount + network::CInv::MAX_INV_COUNT * 2;
-    size_t nMaxCount = nCacheSynTxCount * 2;
-    if (nMaxCount < nCtrlCount + network::CInv::MAX_INV_COUNT)
+    int64 nCurTime = GetTime();
+    switch (nSynTxInvStatus)
     {
-        nMaxCount = nCtrlCount + network::CInv::MAX_INV_COUNT;
+    case SYNTXINV_STATUS_INIT:
+        break;
+    case SYNTXINV_STATUS_WAIT_PEER_RECEIVED:
+        if (nCurTime - nSynTxInvSendTime >= SYNTXINV_RECEIVE_TIMEOUT)
+        {
+            return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_WAIT_TIMEOUT;
+        }
+        break;
+    case SYNTXINV_STATUS_WAIT_PEER_COMPLETE:
+        if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
+        {
+            InitTxInvSynData();
+            nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
+        }
+        break;
+    default:
+        InitTxInvSynData();
+        break;
     }
-    CPeerKnownTxSetByTime& index = setKnownTx.get<1>();
-    CPeerKnownTxSetByTime::iterator it = index.begin();
-    while (it != index.end() && (((*it).nTime <= nExpiredAt && index.size() > nCtrlCount) || (index.size() > nMaxCount)))
+    if (nSynTxInvStatus == SYNTXINV_STATUS_INIT)
     {
-        index.erase(it++);
+        return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN;
+    }
+    return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
+}
+
+void CNetChannelPeerFork::SetPeerGetDataTime()
+{
+    nPrevGetDataTime = GetTime();
+}
+
+//////////////////////////////
+// CNetChannelPeer
+
+CNetChannelPeer::CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary)
+  : nService(nServiceIn), addressRemote(addr)
+{
+    mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+
+    boost::asio::ip::tcp::endpoint ep;
+    addressRemote.ssEndpoint.GetEndpoint(ep);
+    if (ep.address().is_v6())
+    {
+        strRemoteAddress = string("[") + ep.address().to_string() + "]:" + std::to_string(ep.port());
+    }
+    else
+    {
+        strRemoteAddress = ep.address().to_string() + ":" + std::to_string(ep.port());
     }
 }
 
@@ -63,6 +135,64 @@ bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
         return it->second.fSynchronized;
     }
     return false;
+}
+
+void CNetChannelPeer::Subscribe(const uint256& hashFork)
+{
+    mapSubscribedFork.insert(std::make_pair(hashFork, CNetChannelPeerFork()));
+}
+
+void CNetChannelPeer::Unsubscribe(const uint256& hashFork)
+{
+    mapSubscribedFork.erase(hashFork);
+}
+
+bool CNetChannelPeer::IsSubscribed(const uint256& hashFork) const
+{
+    return (!!mapSubscribedFork.count(hashFork));
+}
+
+void CNetChannelPeer::ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
+{
+    std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
+    {
+        it->second.ResetTxInvSynStatus(fIsComplete);
+    }
+}
+
+void CNetChannelPeer::SetWaitGetTxComplete(const uint256& hashFork)
+{
+    std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
+    {
+        it->second.fWaitGetTxComplete = true;
+    }
+}
+
+bool CNetChannelPeer::CheckWaitGetTxComplete(const uint256& hashFork)
+{
+    std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
+    {
+        it->second.fWaitGetTxComplete = false;
+        return true;
+    }
+    return false;
+}
+
+void CNetChannelPeer::SetPeerGetDataTime(const uint256& hashFork)
+{
+    std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    if (it != mapSubscribedFork.end())
+    {
+        it->second.SetPeerGetDataTime();
+    }
+}
+
+std::string CNetChannelPeer::GetRemoteAddress()
+{
+    return strRemoteAddress;
 }
 
 bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted)
@@ -77,55 +207,33 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
     return false;
 }
 
-void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>& vTxHash, size_t nTotalSynTxCount)
+bool CNetChannelPeer::CheckSynTxInvStatus(const uint256& hashFork, bool& fTimeout, int& nSingleSynCount)
 {
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        it->second.AddKnownTx(vTxHash, nTotalSynTxCount);
+        fTimeout = false;
+        switch (it->second.CheckTxInvSynStatus())
+        {
+        case CHECK_SYNTXINV_STATUS_RESULT_WAIT_TIMEOUT:
+            fTimeout = true;
+            return true;
+        case CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN:
+            nSingleSynCount = it->second.nSingleSynTxInvCount;
+            return true;
+        }
     }
+    return false;
 }
 
-bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& vTxPool, vector<network::CInv>& vInv)
+void CNetChannelPeer::SetSynTxInvStatus(const uint256& hashFork)
 {
     map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
-        CNetChannelPeerFork& peerFork = it->second;
-        switch (peerFork.CheckTxInvSynStatus())
-        {
-        case CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
-            break;
-        case CHECK_SYNTXINV_STATUS_RESULT_WAIT_TIMEOUT:
-            return false;
-        case CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN:
-        {
-            vector<uint256> vTxHash;
-            for (const uint256& txid : vTxPool)
-            {
-                if (vInv.size() >= peerFork.nSingleSynTxInvCount)
-                {
-                    break;
-                }
-                else if (!peerFork.IsKnownTx(txid))
-                {
-                    vInv.push_back(network::CInv(network::CInv::MSG_TX, txid));
-                    vTxHash.push_back(txid);
-                }
-            }
-            peerFork.AddKnownTx(vTxHash, vTxPool.size());
-            if (!vInv.empty())
-            {
-                peerFork.nSynTxInvStatus = CNetChannelPeerFork::SYNTXINV_STATUS_WAIT_PEER_RECEIVED;
-                peerFork.nSynTxInvSendTime = GetTime();
-            }
-            break;
-        }
-        default:
-            break;
-        }
+        it->second.nSynTxInvStatus = CNetChannelPeerFork::SYNTXINV_STATUS_WAIT_PEER_RECEIVED;
+        it->second.nSynTxInvSendTime = GetTime();
     }
-    return true;
 }
 
 //////////////////////////////
@@ -140,7 +248,7 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
-    fStartIdlePushTxTimer = false;
+    nTimerPushTx = 0;
 }
 
 CNetChannel::~CNetChannel()
@@ -209,8 +317,7 @@ bool CNetChannel::HandleInvoke()
 {
     {
         boost::unique_lock<boost::mutex> lock(mtxPushTx);
-        nTimerPushTx = 0;
-        fStartIdlePushTxTimer = false;
+        nTimerPushTx = SetTimer(SYNTXINV_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
     }
     return network::INetChannel::HandleInvoke();
 }
@@ -223,9 +330,7 @@ void CNetChannel::HandleHalt()
         {
             CancelTimer(nTimerPushTx);
             nTimerPushTx = 0;
-            fStartIdlePushTxTimer = false;
         }
-        setPushTxFork.clear();
     }
 
     network::INetChannel::HandleHalt();
@@ -283,23 +388,33 @@ void CNetChannel::BroadcastBlockInv(const uint256& hashFork, const uint256& hash
 void CNetChannel::BroadcastTxInv(const uint256& hashFork)
 {
     boost::unique_lock<boost::mutex> lock(mtxPushTx);
-    if (fStartIdlePushTxTimer && nTimerPushTx != 0)
+    std::map<uint256, std::pair<int64, uint32>>::iterator it = mapForkPushTx.find(hashFork);
+    if (it == mapForkPushTx.end())
     {
-        CancelTimer(nTimerPushTx);
-        nTimerPushTx = 0;
-        fStartIdlePushTxTimer = false;
-    }
-    if (nTimerPushTx == 0)
-    {
-        if (!PushTxInv(hashFork))
+        it = mapForkPushTx.insert(make_pair(hashFork, make_pair(0, 0))).first;
+        if (it == mapForkPushTx.end())
         {
-            setPushTxFork.insert(hashFork);
+            return;
         }
-        nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
+    }
+    int64& nPrevPushTime = it->second.first;
+    uint32& nForkPushTimeId = it->second.second;
+    if (nPrevPushTime != 0 && GetTime() - nPrevPushTime < 1)
+    {
+        if (nForkPushTimeId == 0)
+        {
+            nForkPushTimeId = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannel::ForkPushTxTimerFunc, this, _1));
+        }
     }
     else
     {
-        setPushTxFork.insert(hashFork);
+        network::CEventLocalBroadcastInv* pEvent = new network::CEventLocalBroadcastInv(0);
+        if (pEvent)
+        {
+            pEvent->data = network::CBodyLocalBroadcastInv(network::CInv::MSG_TX, hashFork);
+            PostEvent(pEvent);
+            nPrevPushTime = GetTime();
+        }
     }
 }
 
@@ -493,6 +608,32 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     return ret;
 }
 
+bool CNetChannel::HandleEvent(network::CEventLocalBroadcastInv& evenBroadcastInv)
+{
+    if (evenBroadcastInv.data.nInvType == network::CInv::MSG_TX)
+    {
+        vector<uint256> vFork;
+        if (evenBroadcastInv.data.hashFork != 0)
+        {
+            vFork.push_back(evenBroadcastInv.data.hashFork);
+        }
+        else
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            std::map<uint256, CSchedule>::const_iterator it = mapSched.begin();
+            for (; it != mapSched.end(); ++it)
+            {
+                vFork.push_back(it->first);
+            }
+        }
+        for (uint256& hash : vFork)
+        {
+            PushTxInv(hash);
+        }
+    }
+    return true;
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
@@ -524,6 +665,14 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         if (!eventSubscribe.data.empty())
         {
             pPeerNet->DispatchEvent(&eventSubscribe);
+        }
+
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
+            {
+                it->second.UpdateTxIndexToPeer(nNonce);
+            }
         }
     }
     NotifyPeerUpdate(nNonce, true, eventActive.data);
@@ -727,7 +876,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                 {
                     boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
                     CNetChannelPeer& peer = mapPeer[nNonce];
-                    peer.AddKnownTx(hashFork, vTxHash, 0);
+                    //peer.AddKnownTx(hashFork, vTxHash, 0);
                     peer.SetWaitGetTxComplete(hashFork);
                 }
 
@@ -1246,79 +1395,102 @@ void CNetChannel::DispatchMisbehaveEvent(uint64 nNonce, CEndpointManager::CloseR
 
 void CNetChannel::SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched)
 {
-    network::CEventPeerGetData eventGetData(nNonce, hashFork);
-    bool fMissingPrev = false;
-    bool fEmpty = true;
-    if (sched.ScheduleBlockInv(nNonce, eventGetData.data, 1, fMissingPrev, fEmpty))
     {
+        network::CEventPeerGetData eventGetData(nNonce, hashFork);
+        bool fMissingPrev = false;
+        bool fEmpty = true;
+        if (!sched.ScheduleBlockInv(nNonce, eventGetData.data, MAX_PEER_SCHED_COUNT, fMissingPrev, fEmpty))
+        {
+            DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv1: ScheduleBlockInv fail");
+            return;
+        }
         if (fMissingPrev)
         {
             DispatchGetBlocksEvent(nNonce, hashFork);
-        }
-        else if (eventGetData.data.empty())
-        {
-            bool fTxReceivedAll = false;
-            if (!sched.ScheduleTxInv(nNonce, eventGetData.data, MAX_PEER_SCHED_COUNT, fTxReceivedAll))
-            {
-                DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv1: ScheduleTxInv fail");
-            }
-            else
-            {
-                if (fTxReceivedAll)
-                {
-                    bool fIsWait = false;
-                    {
-                        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-                        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
-                        if (it != mapPeer.end())
-                        {
-                            fIsWait = it->second.CheckWaitGetTxComplete(hashFork);
-                        }
-                    }
-                    if (fIsWait)
-                    {
-                        network::CEventPeerMsgRsp eventMsgRsp(nNonce, hashFork);
-                        eventMsgRsp.data.nReqMsgType = network::PROTO_CMD_INV;
-                        eventMsgRsp.data.nReqMsgSubType = MSGRSP_SUBTYPE_TXINV;
-                        eventMsgRsp.data.nRspResult = MSGRSP_RESULT_TXINV_COMPLETE;
-                        pPeerNet->DispatchEvent(&eventMsgRsp);
-
-                        StdTrace("NetChannel", "SchedulePeerInv: send tx inv response: get tx complete, peer: %s, fork: %s",
-                                 GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
-                    }
-                }
-            }
         }
         else
         {
             sched.SetNextGetBlocksTime(nNonce, 0);
         }
         SetPeerSyncStatus(nNonce, hashFork, fEmpty);
-    }
-    else
-    {
-        DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv2: ScheduleBlockInv fail");
-    }
-    if (!eventGetData.data.empty())
-    {
-        pPeerNet->DispatchEvent(&eventGetData);
 
-        string strInv;
-        int nInvType = -1;
-        for (const auto& inv : eventGetData.data)
+        if (!eventGetData.data.empty())
         {
-            if (nInvType == -1)
+            pPeerNet->DispatchEvent(&eventGetData);
+
+            string strInv;
+            int nInvType = -1;
+            for (const auto& inv : eventGetData.data)
             {
-                nInvType = inv.nType;
-                strInv = inv.nHash.GetHex();
+                if (nInvType == -1)
+                {
+                    nInvType = inv.nType;
+                    strInv = inv.nHash.GetHex();
+                }
+                else
+                {
+                    strInv += (string(",") + inv.nHash.GetHex());
+                }
             }
-            else
+            StdTrace("NetChannel", "SchedulePeerInv: send [%s] getdata request, peer: %s, inv hash: %s",
+                     (nInvType == network::CInv::MSG_TX ? "tx" : "block"), GetPeerAddressInfo(nNonce).c_str(), strInv.c_str());
+        }
+    }
+
+    {
+        network::CEventPeerGetData eventGetData(nNonce, hashFork);
+        bool fTxReceivedAll = false;
+        if (!sched.ScheduleTxInv(nNonce, eventGetData.data, MAX_PEER_SCHED_COUNT * 2, fTxReceivedAll))
+        {
+            DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "SchedulePeerInv2: ScheduleTxInv fail");
+            return;
+        }
+
+        if (fTxReceivedAll)
+        {
+            bool fIsWait = false;
             {
-                strInv += (string(",") + inv.nHash.GetHex());
+                boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
+                map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+                if (it != mapPeer.end())
+                {
+                    fIsWait = it->second.CheckWaitGetTxComplete(hashFork);
+                }
+            }
+            if (fIsWait)
+            {
+                network::CEventPeerMsgRsp eventMsgRsp(nNonce, hashFork);
+                eventMsgRsp.data.nReqMsgType = network::PROTO_CMD_INV;
+                eventMsgRsp.data.nReqMsgSubType = MSGRSP_SUBTYPE_TXINV;
+                eventMsgRsp.data.nRspResult = MSGRSP_RESULT_TXINV_COMPLETE;
+                pPeerNet->DispatchEvent(&eventMsgRsp);
+
+                StdTrace("NetChannel", "SchedulePeerInv: send tx inv response: get tx complete, peer: %s, fork: %s",
+                         GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
             }
         }
-        StdTrace("NetChannel", "SchedulePeerInv: send [%s] getdata request, peer: %s, inv hash: %s",
-                 (nInvType == network::CInv::MSG_TX ? "tx" : "block"), GetPeerAddressInfo(nNonce).c_str(), strInv.c_str());
+
+        if (!eventGetData.data.empty())
+        {
+            pPeerNet->DispatchEvent(&eventGetData);
+
+            string strInv;
+            int nInvType = -1;
+            for (const auto& inv : eventGetData.data)
+            {
+                if (nInvType == -1)
+                {
+                    nInvType = inv.nType;
+                    strInv = inv.nHash.GetHex();
+                }
+                else
+                {
+                    strInv += (string(",") + inv.nHash.GetHex());
+                }
+            }
+            StdTrace("NetChannel", "SchedulePeerInv: send [%s] getdata request, peer: %s, inv hash: %s",
+                     (nInvType == network::CInv::MSG_TX ? "tx" : "block"), GetPeerAddressInfo(nNonce).c_str(), strInv.c_str());
+        }
     }
 }
 
@@ -1736,109 +1908,137 @@ void CNetChannel::SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool
 
     if (fInverted)
     {
+        boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
         if (fSync)
         {
             mapUnsync[hashFork].erase(nNonce);
-            BroadcastTxInv(hashFork);
         }
         else
         {
             mapUnsync[hashFork].insert(nNonce);
         }
     }
+    if (fInverted && fSync)
+    {
+        BroadcastTxInv(hashFork);
+    }
 }
 
 void CNetChannel::PushTxTimerFunc(uint32 nTimerId)
 {
     boost::unique_lock<boost::mutex> lock(mtxPushTx);
-    if (nTimerPushTx == nTimerId)
+    if (nTimerId == nTimerPushTx)
     {
-        nTimerPushTx = 0;
-        bool fPushComplete = true;
-        if (!setPushTxFork.empty())
+        network::CEventLocalBroadcastInv* pEvent = new network::CEventLocalBroadcastInv(0);
+        if (pEvent)
         {
-            set<uint256>::iterator it = setPushTxFork.begin();
-            while (it != setPushTxFork.end())
-            {
-                if (!PushTxInv(*it))
-                {
-                    fPushComplete = false;
-                }
-                ++it;
-            }
+            pEvent->data = network::CBodyLocalBroadcastInv(network::CInv::MSG_TX, uint256());
+            PostEvent(pEvent);
         }
-        if (!fPushComplete)
+        nTimerPushTx = SetTimer(SYNTXINV_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
+    }
+}
+
+void CNetChannel::ForkPushTxTimerFunc(uint32 nTimerId)
+{
+    boost::unique_lock<boost::mutex> lock(mtxPushTx);
+    std::map<uint256, std::pair<int64, uint32>>::iterator it = mapForkPushTx.begin();
+    while (it != mapForkPushTx.end())
+    {
+        const uint256& hashFork = it->first;
+        int64& nPrevPushTime = it->second.first;
+        uint32& nForkPushTimeId = it->second.second;
+        if (nForkPushTimeId != 0 && nForkPushTimeId == nTimerId)
         {
-            nTimerPushTx = SetTimer(PUSHTX_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
-            fStartIdlePushTxTimer = false;
+            nForkPushTimeId = 0;
+            network::CEventLocalBroadcastInv* pEvent = new network::CEventLocalBroadcastInv(0);
+            if (pEvent)
+            {
+                pEvent->data = network::CBodyLocalBroadcastInv(network::CInv::MSG_TX, hashFork);
+                PostEvent(pEvent);
+                nPrevPushTime = GetTime();
+            }
+            break;
+        }
+        if (nPrevPushTime > 0 && GetTime() - nPrevPushTime > 3600 * 24)
+        {
+            mapForkPushTx.erase(it++);
         }
         else
         {
-            nTimerPushTx = SetTimer(SYNTXINV_TIMEOUT, boost::bind(&CNetChannel::PushTxTimerFunc, this, _1));
-            fStartIdlePushTxTimer = true;
+            ++it;
         }
     }
 }
 
 bool CNetChannel::PushTxInv(const uint256& hashFork)
 {
-    // if (!IsForkSynchronized(hashFork))
-    // {
-    //     return false;
-    // }
-
-    bool fAllowSynTxInv = false;
+    std::vector<std::pair<int, CSynTx>> vSynTxData;
+    pTxPool->FetchSynTxData(hashFork, vSynTxData);
+    if (!vSynTxData.empty())
     {
-        boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); !fAllowSynTxInv && it != mapPeer.end(); ++it)
+        try
         {
-            switch (it->second.CheckTxInvSynStatus(hashFork))
-            {
-            case CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN:
-                break;
-            case CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_WAIT_TIMEOUT:
-                DispatchMisbehaveEvent(it->first, CEndpointManager::RESPONSE_FAILURE, "Wait tx inv response timeout");
-                break;
-            case CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN:
-                fAllowSynTxInv = true;
-                break;
-            }
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            GetSchedule(hashFork).AddSynTxData(vSynTxData);
+        }
+        catch (exception& e)
+        {
+            StdError("NetChannel", "PushTxInv: Find schedule fail, fork: %s, err: %s", hashFork.GetHex().c_str(), e.what());
+            return false;
         }
     }
 
-    bool fCompleted = true;
-    if (fAllowSynTxInv)
+    vector<pair<uint64, int>> vPeer;
     {
-        vector<uint256> vTxPool;
-        pTxPool->ListTx(hashFork, vTxPool);
-        if (!vTxPool.empty() && !mapPeer.empty())
+        boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
+        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
         {
-            boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
-            for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+            bool fTimeout = false;
+            int nSingleSynCount = 0;
+            if (it->second.CheckSynTxInvStatus(hashFork, fTimeout, nSingleSynCount))
             {
-                CNetChannelPeer& peer = it->second;
-                network::CEventPeerInv eventInv(it->first, hashFork);
-                if (!peer.MakeTxInv(hashFork, vTxPool, eventInv.data))
+                if (fTimeout)
                 {
                     DispatchMisbehaveEvent(it->first, CEndpointManager::RESPONSE_FAILURE, "Wait tx inv response timeout");
                 }
                 else
                 {
-                    if (!eventInv.data.empty())
-                    {
-                        pPeerNet->DispatchEvent(&eventInv);
-                        StdTrace("NetChannel", "PushTxInv: send tx inv request, inv count: %ld, peer: %s",
-                                 eventInv.data.size(), peer.GetRemoteAddress().c_str());
-                        if (fCompleted && eventInv.data.size() == network::CInv::MAX_INV_COUNT)
-                        {
-                            fCompleted = false;
-                        }
-                    }
+                    vPeer.push_back(make_pair(it->first, nSingleSynCount));
                 }
             }
         }
     }
-    return fCompleted;
+    for (auto& vd : vPeer)
+    {
+        network::CEventPeerInv eventInv(vd.first, hashFork);
+        {
+            try
+            {
+                boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                GetSchedule(hashFork).GetSynTxInv(vd.first, vd.second, eventInv.data);
+            }
+            catch (exception& e)
+            {
+                StdError("NetChannel", "PushTxInv: Find schedule fail, fork: %s, err: %s", hashFork.GetHex().c_str(), e.what());
+                return false;
+            }
+        }
+        if (!eventInv.data.empty())
+        {
+            pPeerNet->DispatchEvent(&eventInv);
+            {
+                boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
+                map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(vd.first);
+                if (it != mapPeer.end())
+                {
+                    it->second.SetSynTxInvStatus(hashFork);
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 const string CNetChannel::GetPeerAddressInfo(uint64 nNonce)

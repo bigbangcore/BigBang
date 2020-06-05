@@ -14,6 +14,7 @@
 #include "blockbase.h"
 #include "config.h"
 #include "crypto.h"
+#include "delegatevote.h"
 #include "destination.h"
 #include "error.h"
 #include "key.h"
@@ -26,7 +27,6 @@
 #include "transaction.h"
 #include "uint256.h"
 #include "wallettx.h"
-#include "delegatevote.h"
 
 namespace bigbang
 {
@@ -186,6 +186,7 @@ public:
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
     virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change) = 0;
     virtual void AddDestDelegate(const CDestination& destDeleage) = 0;
+    virtual void FetchSynTxData(const uint256& hashFork, std::vector<std::pair<int, CSynTx>>& vSynTxData) = 0;
     const CStorageConfig* StorageConfig()
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());

@@ -12,218 +12,61 @@
 namespace bigbang
 {
 
-class CNetChannelPeer
+class CNetChannelPeerFork
 {
-    class CNetChannelPeerFork
+public:
+    CNetChannelPeerFork()
+      : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT), nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
+        nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2), fWaitGetTxComplete(false)
     {
-    public:
-        CNetChannelPeerFork()
-          : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT), nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
-            nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2), fWaitGetTxComplete(false), nCacheSynTxCount(NETCHANNEL_KNOWNINV_MAXCOUNT)
-        {
-        }
-        enum
-        {
-            NETCHANNEL_KNOWNINV_EXPIREDTIME = 10 * 60,
-            NETCHANNEL_KNOWNINV_MAXCOUNT = 1024 * 64
-        };
-        void AddKnownTx(const std::vector<uint256>& vTxHash, size_t nTotalSynTxCount);
-        bool IsKnownTx(const uint256& txid) const
-        {
-            return (!!setKnownTx.get<0>().count(txid));
-        }
-        void InitTxInvSynData()
-        {
-            nSynTxInvStatus = SYNTXINV_STATUS_INIT;
-            nSynTxInvSendTime = 0;
-            nSynTxInvRecvTime = 0;
-            nPrevGetDataTime = 0;
-        }
-        void ResetTxInvSynStatus(bool fIsComplete)
-        {
-            if (!fIsComplete)
-            {
-                if (nSynTxInvStatus == SYNTXINV_STATUS_WAIT_PEER_RECEIVED)
-                {
-                    int64 nWaitTime = GetTime() - nSynTxInvSendTime;
-                    if (nWaitTime < 2)
-                    {
-                        nSingleSynTxInvCount *= 2;
-                    }
-                    else if (nWaitTime < 5)
-                    {
-                        nSingleSynTxInvCount += network::CInv::MIN_INV_COUNT;
-                    }
-                    else if (nWaitTime > 60)
-                    {
-                        nSingleSynTxInvCount /= 2;
-                    }
-                    else if (nWaitTime > 15)
-                    {
-                        nSingleSynTxInvCount -= network::CInv::MIN_INV_COUNT;
-                    }
-                    if (nSingleSynTxInvCount > network::CInv::MAX_INV_COUNT)
-                    {
-                        nSingleSynTxInvCount = network::CInv::MAX_INV_COUNT;
-                    }
-                    else if (nSingleSynTxInvCount < network::CInv::MIN_INV_COUNT)
-                    {
-                        nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
-                    }
-                    nSynTxInvStatus = SYNTXINV_STATUS_WAIT_PEER_COMPLETE;
-                    nSynTxInvRecvTime = GetTime();
-                    nPrevGetDataTime = nSynTxInvRecvTime;
-                }
-            }
-            else
-            {
-                InitTxInvSynData();
-            }
-        }
-        int CheckTxInvSynStatus()
-        {
-            int64 nCurTime = GetTime();
-            switch (nSynTxInvStatus)
-            {
-            case SYNTXINV_STATUS_INIT:
-                break;
-            case SYNTXINV_STATUS_WAIT_PEER_RECEIVED:
-                if (nCurTime - nSynTxInvSendTime >= SYNTXINV_RECEIVE_TIMEOUT)
-                {
-                    return CHECK_SYNTXINV_STATUS_RESULT_WAIT_TIMEOUT;
-                }
-                break;
-            case SYNTXINV_STATUS_WAIT_PEER_COMPLETE:
-                if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
-                {
-                    InitTxInvSynData();
-                    nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
-                }
-                break;
-            default:
-                InitTxInvSynData();
-                break;
-            }
-            if (nSynTxInvStatus == SYNTXINV_STATUS_INIT)
-            {
-                return CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN;
-            }
-            return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
-        }
-        void SetPeerGetDataTime()
-        {
-            nPrevGetDataTime = GetTime();
-        }
+    }
 
-    protected:
-        void ClearExpiredTx();
-
-    public:
-        enum
-        {
-            SYNTXINV_STATUS_INIT,
-            SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
-            SYNTXINV_STATUS_WAIT_PEER_COMPLETE
-        };
-        enum
-        {
-            SYNTXINV_RECEIVE_TIMEOUT = 1200,
-            SYNTXINV_COMPLETE_TIMEOUT = 3600 * 5,
-            SYNTXINV_GETDATA_TIMEOUT = 600
-        };
-
-        bool fSynchronized;
-        CPeerKnownTxSet setKnownTx;
-        int nSynTxInvStatus;
-        int64 nSynTxInvSendTime;
-        int64 nSynTxInvRecvTime;
-        int64 nPrevGetDataTime;
-        int nSingleSynTxInvCount;
-        bool fWaitGetTxComplete;
-        size_t nCacheSynTxCount;
-    };
+    void InitTxInvSynData();
+    void ResetTxInvSynStatus(bool fIsComplete);
+    int CheckTxInvSynStatus();
+    void SetPeerGetDataTime();
 
 public:
-    CNetChannelPeer() {}
-    CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary)
-      : nService(nServiceIn), addressRemote(addr)
+    enum
     {
-        mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        SYNTXINV_STATUS_INIT,
+        SYNTXINV_STATUS_WAIT_PEER_RECEIVED,
+        SYNTXINV_STATUS_WAIT_PEER_COMPLETE
+    };
+    enum
+    {
+        SYNTXINV_RECEIVE_TIMEOUT = 1200,
+        SYNTXINV_COMPLETE_TIMEOUT = 3600 * 5,
+        SYNTXINV_GETDATA_TIMEOUT = 600
+    };
 
-        boost::asio::ip::tcp::endpoint ep;
-        addressRemote.ssEndpoint.GetEndpoint(ep);
-        if (ep.address().is_v6())
-        {
-            strRemoteAddress = string("[") + ep.address().to_string() + "]:" + std::to_string(ep.port());
-        }
-        else
-        {
-            strRemoteAddress = ep.address().to_string() + ":" + std::to_string(ep.port());
-        }
-    }
+    bool fSynchronized;
+    int nSynTxInvStatus;
+    int64 nSynTxInvSendTime;
+    int64 nSynTxInvRecvTime;
+    int64 nPrevGetDataTime;
+    int nSingleSynTxInvCount;
+    bool fWaitGetTxComplete;
+};
+
+class CNetChannelPeer
+{
+public:
+    CNetChannelPeer()
+      : nService(0) {}
+    CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary);
     bool IsSynchronized(const uint256& hashFork) const;
     bool SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted);
-    void AddKnownTx(const uint256& hashFork, const std::vector<uint256>& vTxHash, size_t nTotalSynTxCount);
-    void Subscribe(const uint256& hashFork)
-    {
-        mapSubscribedFork.insert(std::make_pair(hashFork, CNetChannelPeerFork()));
-    }
-    void Unsubscribe(const uint256& hashFork)
-    {
-        mapSubscribedFork.erase(hashFork);
-    }
-    bool IsSubscribed(const uint256& hashFork) const
-    {
-        return (!!mapSubscribedFork.count(hashFork));
-    }
-    void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete)
-    {
-        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it != mapSubscribedFork.end())
-        {
-            it->second.ResetTxInvSynStatus(fIsComplete);
-        }
-    }
-    void SetWaitGetTxComplete(const uint256& hashFork)
-    {
-        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it != mapSubscribedFork.end())
-        {
-            it->second.fWaitGetTxComplete = true;
-        }
-    }
-    bool CheckWaitGetTxComplete(const uint256& hashFork)
-    {
-        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it != mapSubscribedFork.end() && it->second.fWaitGetTxComplete)
-        {
-            it->second.fWaitGetTxComplete = false;
-            return true;
-        }
-        return false;
-    }
-    void SetPeerGetDataTime(const uint256& hashFork)
-    {
-        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it != mapSubscribedFork.end())
-        {
-            it->second.SetPeerGetDataTime();
-        }
-    }
-    std::string GetRemoteAddress()
-    {
-        return strRemoteAddress;
-    }
-    int CheckTxInvSynStatus(const uint256& hashFork)
-    {
-        std::map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
-        if (it != mapSubscribedFork.end())
-        {
-            return it->second.CheckTxInvSynStatus();
-        }
-        return CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
-    }
-    bool MakeTxInv(const uint256& hashFork, const std::vector<uint256>& vTxPool, std::vector<network::CInv>& vInv);
+    void Subscribe(const uint256& hashFork);
+    void Unsubscribe(const uint256& hashFork);
+    bool IsSubscribed(const uint256& hashFork) const;
+    void ResetTxInvSynStatus(const uint256& hashFork, bool fIsComplete);
+    void SetWaitGetTxComplete(const uint256& hashFork);
+    bool CheckWaitGetTxComplete(const uint256& hashFork);
+    void SetPeerGetDataTime(const uint256& hashFork);
+    std::string GetRemoteAddress();
+    bool CheckSynTxInvStatus(const uint256& hashFork, bool& fTimeout, int& nSingleSynCount);
+    void SetSynTxInvStatus(const uint256& hashFork);
 
 public:
     enum
@@ -285,6 +128,7 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
 
+    bool HandleEvent(network::CEventLocalBroadcastInv& evenBroadcastInv) override;
     bool HandleEvent(network::CEventPeerActive& eventActive) override;
     bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
     bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
@@ -314,6 +158,7 @@ protected:
     void PostAddNew(const uint256& hashFork, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
+    void ForkPushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
@@ -343,8 +188,7 @@ protected:
 
     mutable boost::mutex mtxPushTx;
     uint32 nTimerPushTx;
-    bool fStartIdlePushTxTimer;
-    std::set<uint256> setPushTxFork;
+    std::map<uint256, std::pair<int64, uint32>> mapForkPushTx;
 };
 
 } // namespace bigbang

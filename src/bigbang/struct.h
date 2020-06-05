@@ -292,7 +292,8 @@ public:
 class CPeerKnownTx
 {
 public:
-    CPeerKnownTx() {}
+    CPeerKnownTx()
+      : nTime(0) {}
     CPeerKnownTx(const uint256& txidIn)
       : txid(txidIn), nTime(xengine::GetTime()) {}
 
@@ -318,6 +319,32 @@ typedef boost::multi_index_container<
         boost::multi_index::ordered_unique<boost::multi_index::identity<uint256>>>>
     CUInt256List;
 typedef CUInt256List::nth_index<1>::type CUInt256ByValue;
+
+/* Syn tx */
+typedef boost::variant<uint256, CTransaction> CSynTx;
+
+class CSynTxIndex
+{
+public:
+    CSynTxIndex()
+      : nSeq(0) {}
+    CSynTxIndex(const uint256& txidIn, uint64 nSeqIn)
+      : txid(txidIn), nSeq(nSeqIn) {}
+
+public:
+    uint256 txid;
+    uint64 nSeq;
+};
+
+typedef boost::multi_index_container<
+    CSynTxIndex,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<boost::multi_index::member<CSynTxIndex, uint256, &CSynTxIndex::txid>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CSynTxIndex, uint64, &CSynTxIndex::nSeq>>>>
+    CSynTxIndexSet;
+
+typedef CSynTxIndexSet::nth_index<0>::type CSynTxIndexSetByTxId;
+typedef CSynTxIndexSet::nth_index<1>::type CSynTxIndexSetBySeq;
 
 /* CStatItemBlockMaker & CStatItemP2pSyn */
 class CStatItemBlockMaker

@@ -343,10 +343,11 @@ bool CSchedule::ScheduleBlockInv(uint64 nPeerNonce, vector<network::CInv>& vInv,
     {
         CInvPeer& peer = (*it).second;
         fEmpty = peer.Empty(network::CInv::MSG_BLOCK);
-        if (!peer.IsAssigned())
+        size_t nAssignedCount = peer.GetAssigned(network::CInv::MSG_BLOCK).size();
+        if (nAssignedCount < nMaxCount)
         {
             bool fReceivedAll;
-            if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_BLOCK, vInv, nMaxCount, fReceivedAll))
+            if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_BLOCK, vInv, nMaxCount - nAssignedCount, fReceivedAll))
             {
                 if (fReceivedAll && peer.CheckNextGetBlocksTime() && CheckAddInvIdleLocation(nPeerNonce, network::CInv::MSG_BLOCK))
                 {
@@ -369,18 +370,22 @@ bool CSchedule::ScheduleBlockInv(uint64 nPeerNonce, vector<network::CInv>& vInv,
 bool CSchedule::ScheduleTxInv(uint64 nPeerNonce, vector<network::CInv>& vInv, size_t nMaxCount, bool& fReceivedAll)
 {
     map<uint64, CInvPeer>::iterator it = mapPeer.find(nPeerNonce);
-    if (it != mapPeer.end() && !(*it).second.IsAssigned())
+    if (it != mapPeer.end())
     {
         CInvPeer& peer = (*it).second;
-        if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_TX, vInv, nMaxCount, fReceivedAll))
+        size_t nAssignedCount = peer.GetAssigned(network::CInv::MSG_TX).size();
+        if (nAssignedCount < nMaxCount)
         {
-            return (!fReceivedAll || peer.GetCount(network::CInv::MSG_TX) < MAX_PEER_TX_INV_COUNT);
-        }
-        else
-        {
-            if (peer.Empty(network::CInv::MSG_TX))
+            if (!ScheduleKnownInv(nPeerNonce, peer, network::CInv::MSG_TX, vInv, nMaxCount - nAssignedCount, fReceivedAll))
             {
-                fReceivedAll = true;
+                return (!fReceivedAll || peer.GetCount(network::CInv::MSG_TX) < MAX_PEER_TX_INV_COUNT);
+            }
+            else
+            {
+                if (peer.Empty(network::CInv::MSG_TX))
+                {
+                    fReceivedAll = true;
+                }
             }
         }
     }
@@ -685,6 +690,66 @@ void CSchedule::SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlock
     {
         it->second.fVerifyPowBlock = fVerifyPowBlockIn;
     }
+}
+
+void CSchedule::AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData)
+{
+    std::vector<std::pair<int, std::pair<uint256, uint64>>> vTempSynTxId;
+    for (auto& vd : vSynTxData)
+    {
+        if (vd.first == 1)
+        {
+            CTransaction& tx = boost::get<CTransaction>(vd.second);
+            uint256 txid = tx.GetHash();
+            std::map<uint256, CTransaction>::iterator it = mapSynTxPool.find(txid);
+            if (it == mapSynTxPool.end())
+            {
+                mapSynTxPool.insert(make_pair(txid, tx));
+                setSynTxIndex.insert(CSynTxIndex(txid, nSynTxIndexCreate));
+            }
+            else
+            {
+                it->second = tx;
+                CSynTxIndexSetByTxId& index = setSynTxIndex.get<0>();
+                index.erase(txid);
+                setSynTxIndex.insert(CSynTxIndex(txid, nSynTxIndexCreate));
+            }
+            vTempSynTxId.push_back(make_pair(vd.first, make_pair(txid, nSynTxIndexCreate)));
+            ++nSynTxIndexCreate;
+        }
+        else
+        {
+            uint256 txid = boost::get<uint256>(vd.second);
+            mapSynTxPool.erase(txid);
+            CSynTxIndexSetByTxId& index = setSynTxIndex.get<0>();
+            index.erase(txid);
+            vTempSynTxId.push_back(make_pair(vd.first, make_pair(txid, 0)));
+        }
+    }
+    for (std::map<uint64, CInvPeer>::iterator mt = mapPeer.begin(); mt != mapPeer.end(); ++mt)
+    {
+        mt->second.UpdateSynTx(vTempSynTxId);
+    }
+}
+
+void CSchedule::UpdateTxIndexToPeer(uint64 nNonce)
+{
+    std::map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
+    if (mt != mapPeer.end())
+    {
+        mt->second.ReSetTxIndex(setSynTxIndex);
+    }
+}
+
+bool CSchedule::GetSynTxInv(uint64 nNonce, std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv)
+{
+    std::map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
+    if (mt != mapPeer.end())
+    {
+        mt->second.GetSynTxInv(nMaxInvCount, vSynTxInv);
+        return true;
+    }
+    return false;
 }
 
 void CSchedule::RemoveOrphan(const network::CInv& inv)
