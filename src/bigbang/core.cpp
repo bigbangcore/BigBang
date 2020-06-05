@@ -552,25 +552,8 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
-
+    // check record destIn in vchSig or not
     vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
@@ -700,26 +683,22 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         }
     }
 
-    // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
+    // check creating fork tx
+    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
+        if (VerifyForkTx(tx, hashFork, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
+        }
     }
 
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
+    // check fork template redeem tx
+    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
     {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
+        if (VerifyRedeemTx(tx, nValueIn, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
+        }
     }
 
     return OK;

@@ -114,14 +114,15 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
-    vector<CForkContext> vForkCtxt;
+    vector<pair<CForkContext, bool>> vForkCtxt;
     if (!pBlockChain->ListForkContext(vForkCtxt))
     {
         return false;
     }
 
-    for (const CForkContext& ctxt : vForkCtxt)
+    for (auto& p : vForkCtxt)
     {
+        CForkContextEx ctxt(p.first, -1, p.second);
         if (!AddNewForkContext(ctxt, vActive))
         {
             return false;
@@ -142,7 +143,14 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
         {
             if (!block.IsExtended() && !block.IsVacant())
             {
-                sched.RemoveJoint(block.GetHash(), vActive);
+                vector<uint256> vecNextFork = sched.RemoveJoint(block.GetHash());
+                for (const uint256& hashFork : vecNextFork)
+                {
+                    if (mapForkSched.find(hashFork) != mapForkSched.end())
+                    {
+                        vActive.push_back(hashFork);
+                    }
+                }
                 if (sched.IsHalted())
                 {
                     vDeactive.push_back(update.hashFork);
@@ -150,33 +158,76 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
             }
         }
     }
+
     if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
+        // delete fork
+        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
         {
             for (const CTransaction& tx : block.vtx)
             {
-                CTemplateId tid;
-                if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-                    && !tx.vchData.empty()
-                    && tx.nAmount >= CTemplateFork::CreatedCoin())
+                uint256 txid = tx.GetHash();
+                if (!update.setTxUpdate.count(txid) && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
                 {
-                    CForkContext ctxt;
-                    if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)
+                    CForkContextEx ctxt;
+                    if (forkSetMgr.RetrieveByTx(txid, ctxt))
                     {
-                        AddNewForkContext(ctxt, vActive);
+                        if (ctxt.fActived)
+                        {
+                            if (pBlockChain->InactivateFork(ctxt.hashFork))
+                            {
+                                forkSetMgr.ChangeActived(ctxt.hashFork, false);
+                                if (mapForkSched.find(ctxt.hashFork) != mapForkSched.end())
+                                {
+                                    mapForkSched.erase(ctxt.hashFork);
+                                    vDeactive.push_back(ctxt.hashFork);
+                                }
+                            }
+                            else
+                            {
+                                Error("fork manager inactivate fork fail, fork: %s, tx: %s", 
+                                    ctxt.hashFork.ToString().c_str(), txid.ToString().c_str());
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Error("fork manager delete fork fail, no fork tx: %s", txid.ToString().c_str());
                     }
                 }
+            }
+        }
+
+        // add fork
+        vector<CForkContextEx> vCtxt;
+        update.forkSetMgr.GetForkContextExList(vCtxt);
+        for (CForkContextEx& ctxt : vCtxt)
+        {
+            CForkContextEx tmpCtxt;
+            if (!forkSetMgr.RetrieveByFork(ctxt.hashFork, tmpCtxt) || !tmpCtxt.fActived)
+            {
+                if (pBlockChain->AddNewForkContext(ctxt))
+                {
+                    AddNewForkContext(ctxt, vActive);
+                }
+                else
+                {
+                    Error("fork manager add fork fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
+                }
+            }
+            else if (tmpCtxt.nCreatedHeight != ctxt.nCreatedHeight)
+            {
+                forkSetMgr.ChangeCreatedHeight(ctxt.hashFork, ctxt.nCreatedHeight);
             }
         }
     }
 }
 
-bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& vActive)
+bool CForkManager::AddNewForkContext(CForkContextEx& ctxt, vector<uint256>& vActive)
 {
-    if (IsAllowedFork(ctxt.hashFork, ctxt.hashParent))
+    if (IsAllowedFork(ctxt.hashFork, ctxt.hashParent) && ctxt.fActived)
     {
-        mapForkSched.insert(make_pair(ctxt.hashFork, CForkSchedule(true)));
+        mapForkSched[ctxt.hashFork] = CForkSchedule(true);
 
         if (ctxt.hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
@@ -216,13 +267,15 @@ bool CForkManager::AddNewForkContext(const CForkContext& ctxt, vector<uint256>& 
         }
     }
 
-    uint256 hashFork;
-    int32 nHeight;
-    if (!pBlockChain->GetTxLocation(ctxt.txidEmbedded, hashFork, nHeight))
+    if (ctxt.nCreatedHeight < 0)
     {
-        return false;
+        uint256 hashFork;
+        if (!pBlockChain->GetTxLocation(ctxt.txidEmbedded, hashFork, ctxt.nCreatedHeight))
+        {
+            return false;
+        }
+        forkSetMgr.Insert(ctxt);
     }
-    forkSetMgr.Insert(CForkContextEx(ctxt, nHeight));
 
     return true;
 }

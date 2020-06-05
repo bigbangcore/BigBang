@@ -110,7 +110,7 @@ bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
         return false;
     }
 
-    vector<pair<uint256, uint256>> vFork;
+    vector<tuple<uint256, uint256, bool>> vFork;
     if (!dbFork.ListFork(vFork))
     {
         StdError("check", "Fetch fork status: ListFork fail");
@@ -120,9 +120,9 @@ bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
 
     for (const auto& fork : vFork)
     {
-        const uint256 hashFork = fork.first;
+        const uint256 hashFork = get<0>(fork);
         CCheckForkStatus& status = mapForkStatus[hashFork];
-        status.hashLastBlock = fork.second;
+        status.hashLastBlock = get<1>(fork);
 
         if (!dbFork.RetrieveForkContext(hashFork, status.ctxt))
         {

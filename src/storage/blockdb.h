@@ -29,10 +29,12 @@ public:
     bool RemoveAll();
     bool AddNewForkContext(const CForkContext& ctxt);
     bool RetrieveForkContext(const uint256& hash, CForkContext& ctxt);
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
+    bool ListForkContext(std::vector<std::pair<CForkContext, bool>>& vForkCtxt);
     bool AddNewFork(const uint256& hash);
     bool RemoveFork(const uint256& hash);
-    bool ListFork(std::vector<std::pair<uint256, uint256>>& vFork);
+    bool InactivateFork(const uint256& hashFork);
+    bool ActivateFork(const uint256& hashFork);
+    bool ListFork(std::vector<std::tuple<uint256, uint256, bool>>& vFork);
     bool UpdateFork(const uint256& hash, const uint256& hashRefBlock, const uint256& hashForkBased,
                     const std::vector<std::pair<uint256, CTxIndex>>& vTxNew, const std::vector<uint256>& vTxDel,
                     const std::vector<CTxUnspent>& vAddNew, const std::vector<CTxOutPoint>& vRemove);

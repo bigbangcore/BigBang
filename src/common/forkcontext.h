@@ -176,7 +176,7 @@ public:
     }
 
 public:
-    int nCreatedHeight;
+    int32 nCreatedHeight;
     bool fActived;
 
 protected:
@@ -248,7 +248,7 @@ public:
         forkSet.clear();
     }
     
-    void ClearInactived()
+    void ClearInactive()
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
         for (auto it = forkSet.begin(); it != forkSet.end(); )
@@ -267,7 +267,24 @@ public:
     void Insert(const CForkContextEx& ctxt)
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
-        forkSet.insert(ctxt);
+        CForkContextExSetByFork& idxFork = forkSet.get<0>();
+        CForkContextExSetByFork::iterator it = idxFork.find(ctxt.hashFork);
+        if (it != idxFork.end())
+        {
+            if (it->txidEmbedded != ctxt.txidEmbedded)
+            {
+                idxFork.erase(it);
+                forkSet.insert(ctxt);
+            }
+            else
+            {
+                idxFork.replace(it, ctxt);
+            }
+        }
+        else
+        {
+            forkSet.insert(ctxt);
+        }
     }
 
     void EraseByFork(const uint256& hashFork)
@@ -288,6 +305,22 @@ public:
             {
                 CForkContextEx ctxt = *it;
                 ctxt.fActived = fActived;
+                idxFork.replace(it, ctxt);
+            }
+        }
+    }
+
+    void ChangeCreatedHeight(const uint256& hashFork, const int32 nCreatedHeight)
+    {
+        boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+        CForkContextExSetByFork& idxFork = forkSet.get<0>();
+        CForkContextExSetByFork::iterator it = idxFork.find(hashFork);
+        if (it != idxFork.end())
+        {
+            if (it->nCreatedHeight != nCreatedHeight)
+            {
+                CForkContextEx ctxt = *it;
+                ctxt.nCreatedHeight = nCreatedHeight;
                 idxFork.replace(it, ctxt);
             }
         }
@@ -393,13 +426,13 @@ public:
         }
     }
 
-    void GetForkNameList(std::vector<std::string>& vName) const
+    void GetForkContextExList(std::vector<CForkContextEx>& vCtxt) const
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-        vName.reserve(forkSet.size());
+        vCtxt.reserve(forkSet.size());
         for (auto it = forkSet.begin(); it != forkSet.end(); it++)
         {
-            vName.push_back(it->strName);
+            vCtxt.push_back(*it);
         }
     }
 

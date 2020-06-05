@@ -309,7 +309,7 @@ CBlockBase::~CBlockBase()
     tsBlock.Deinitialize();
 }
 
-bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
+bool CBlockBase::Initialize(const uint256& hashGenesis, const path& pathDataLocation, bool fDebug, bool fRenewDB)
 {
     if (!SetupLog(pathDataLocation, fDebug))
     {
@@ -394,6 +394,8 @@ void CBlockBase::Clear()
 
 bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust)
 {
+    hashGenesisBlock = hashGenesis;
+
     if (!IsEmpty())
     {
         StdTrace("BlockBase", "Is not empty");
@@ -550,7 +552,28 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
         Error("F", "Failed to addnew forkcontext in %s", ctxt.hashFork.GetHex().c_str());
         return false;
     }
+    if (!dbBlock.ActivateFork(ctxt.hashFork))
+    {
+        Error("F", "Failed to activate fork in %s", ctxt.hashFork.GetHex().c_str());
+        return false;
+    }
     Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
+    return true;
+}
+
+bool CBlockBase::InactivateFork(const uint256& hashFork)
+{
+    boost::shared_ptr<CBlockFork> spRemovedFork = GetFork(hashFork);
+    if (spRemovedFork != nullptr)
+    {
+        spRemovedFork->SetInactive();
+    }
+    if (!dbBlock.InactivateFork(hashFork))
+    {
+        Error("F", "Failed to inactivate fork in %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    Log("F", "Inactivate fork, hash=%s", hashFork.GetHex().c_str());
     return true;
 }
 
@@ -1049,9 +1072,10 @@ bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
     return true;
 }
 
-bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
+bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew, const CForkSetManager& forkSetMgr)
 {
     const uint256 hashFork = pIndexNew->GetOriginHash();
+    const uint256 hashBlock = pIndexNew->GetBlockHash();
 
     boost::shared_ptr<CBlockFork> spFork;
 
@@ -1099,15 +1123,14 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
         spFork->UpgradeToWrite();
     }
 
-    if (!dbBlock.UpdateFork(hashFork, pIndexNew->GetBlockHash(), view.GetForkHash(), vTxNew, vTxDel, vAddNew, vRemove))
+    if (!dbBlock.UpdateFork(hashFork, hashBlock, view.GetForkHash(), vTxNew, vTxDel, vAddNew, vRemove))
     {
         StdTrace("BlockBase", "CommitBlockView::UpdateFork %s  failed", hashFork.ToString().c_str());
         return false;
     }
     spFork->UpdateLast(pIndexNew);
 
-    Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(),
-        pIndexNew->GetBlockHash().ToString().c_str());
+    Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(), hashBlock.ToString().c_str());
     return true;
 }
 
@@ -1278,7 +1301,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     return true;
 }
 
-bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt)
+bool CBlockBase::ListForkContext(vector<pair<CForkContext, bool>>& vForkCtxt)
 {
     return dbBlock.ListForkContext(vForkCtxt);
 }
@@ -1421,7 +1444,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
 
     Log("B", "Consistency checking level is %d", nLevel);
 
-    vector<pair<uint256, uint256>> vFork;
+    vector<tuple<uint256, uint256, bool>> vFork;
     if (!dbBlock.ListFork(vFork))
     {
         Error("B", "List fork failed.");
@@ -1436,14 +1459,14 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         //checking of level 0: fork/block
 
         //check field refblock of table fork must be in rows in table block
-        CBlockIndex* pBlockRefIndex = GetIndex(fork.second);
+        CBlockIndex* pBlockRefIndex = GetIndex(get<1>(fork));
         if (!pBlockRefIndex)
         {
             Error("B", "Get referenced block index failed.");
             return false;
         }
 
-        boost::shared_ptr<CBlockFork> spFork = GetFork(fork.first);
+        boost::shared_ptr<CBlockFork> spFork = GetFork(get<0>(fork));
         if (nullptr == spFork)
         {
             Error("B", "Get fork failed.");
@@ -1461,7 +1484,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         if (0 == nDepth || pLastBlock->nHeight < nDepth)
         {
             nDepth = pLastBlock->nHeight;
-            Log("B", "Consistency checking depth is {%d} for fork:{%s}", nDepth, fork.first.ToString().c_str());
+            Log("B", "Consistency checking depth is {%d} for fork:{%s}", nDepth, get<0>(fork).ToString().c_str());
         }
 
         CBlockIndex* pIndex = pLastBlock;
@@ -1723,7 +1746,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         {
             //compare unspent with transaction
             CForkUnspentCheckWalker walker(mapUnspentUTXO);
-            if (!dbBlock.WalkThroughUnspent(fork.first, walker))
+            if (!dbBlock.WalkThroughUnspent(get<0>(fork), walker))
             {
                 Error("B", "{%d} ranged unspent records failed to walk through.", mapUnspentUTXO.size());
                 return false;
@@ -1736,7 +1759,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
             }
         }
 
-        Log("B", "Checking duration of fork{%s} ===> %s", fork.first.ToString().c_str(), t_fork.format().c_str());
+        Log("B", "Checking duration of fork{%s} ===> %s", get<0>(fork).ToString().c_str(), t_fork.format().c_str());
     }
 
     Log("B", "Checking duration ===> %s", t_check.format().c_str());
@@ -2107,9 +2130,9 @@ boost::shared_ptr<CBlockFork> CBlockBase::GetFork(const std::string& strName)
     return nullptr;
 }
 
-boost::shared_ptr<CBlockFork> CBlockBase::AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast)
+boost::shared_ptr<CBlockFork> CBlockBase::AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast, const bool fActive)
 {
-    boost::shared_ptr<CBlockFork> spFork = boost::shared_ptr<CBlockFork>(new CBlockFork(profileIn, pIndexLast));
+    boost::shared_ptr<CBlockFork> spFork = boost::shared_ptr<CBlockFork>(new CBlockFork(profileIn, pIndexLast, fActive));
     if (spFork != nullptr)
     {
         spFork->UpdateNext();
@@ -2337,7 +2360,7 @@ bool CBlockBase::LoadDB()
         return false;
     }
 
-    vector<pair<uint256, uint256>> vFork;
+    vector<tuple<uint256, uint256, bool>> vFork;
     if (!dbBlock.ListFork(vFork))
     {
         ClearCache();
@@ -2345,7 +2368,7 @@ bool CBlockBase::LoadDB()
     }
     for (int i = 0; i < vFork.size(); i++)
     {
-        CBlockIndex* pIndex = GetIndex(vFork[i].second);
+        CBlockIndex* pIndex = GetIndex(get<1>(vFork[i]));
         if (pIndex == nullptr)
         {
             ClearCache();
@@ -2356,7 +2379,7 @@ bool CBlockBase::LoadDB()
         {
             return false;
         }
-        boost::shared_ptr<CBlockFork> spFork = AddNewFork(profile, pIndex);
+        boost::shared_ptr<CBlockFork> spFork = AddNewFork(profile, pIndex, get<2>(vFork[i]));
         if (spFork == nullptr)
         {
             return false;

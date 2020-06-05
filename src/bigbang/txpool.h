@@ -400,7 +400,7 @@ public:
     bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) override;
     bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change, const CForkSetManager& forkSetMgr) override;
     void AddDestDelegate(const CDestination& destDeleage) override;
-    void ClearInactivedFork() override;
+    void ClearInactiveFork() override;
 
 protected:
     bool HandleInitialize() override;

@@ -236,8 +236,8 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (block.IsPrimary())
     {
-        // delay to clear txpool inactived fork for waiting to update forkmanager first
-        pTxPool->ClearInactivedFork();
+        // delay to clear txpool inactive fork for waiting to update forkmanager first
+        pTxPool->ClearInactiveFork();
         UpdatePrimaryBlock(block, updateBlockChain, changeTxSet, nNonce);
     }
 

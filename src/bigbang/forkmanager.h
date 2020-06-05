@@ -39,14 +39,16 @@ public:
     {
         mapJoint.insert(std::make_pair(hashJoint, hashFork));
     }
-    void RemoveJoint(const uint256& hashJoint, std::vector<uint256>& vFork)
+    vector<uint256> RemoveJoint(const uint256& hashJoint)
     {
+        vector<uint256> vecNextFork;
         std::multimap<uint256, uint256>::iterator it = mapJoint.lower_bound(hashJoint);
         while (it != mapJoint.upper_bound(hashJoint))
         {
-            vFork.push_back((*it).second);
+            vecNextFork.push_back(it->second);
             mapJoint.erase(it++);
         }
+        return vecNextFork;
     }
 
     void SetSyncStatus(bool fSync)
@@ -73,7 +75,6 @@ public:
     bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int32& nJointHeight) const override;
     bool LoadForkContext(std::vector<uint256>& vActive) override;
     void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
-    bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive);
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const override;
     bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const override;
@@ -84,6 +85,7 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
+    bool AddNewForkContext(CForkContextEx& ctxt, std::vector<uint256>& vActive);
     bool IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const;
 
 protected:

@@ -85,7 +85,7 @@ bool CBlockDB::RetrieveForkContext(const uint256& hash, CForkContext& ctxt)
     return dbFork.RetrieveForkContext(hash, ctxt);
 }
 
-bool CBlockDB::ListForkContext(vector<CForkContext>& vForkCtxt)
+bool CBlockDB::ListForkContext(vector<pair<CForkContext, bool>>& vForkCtxt)
 {
     vForkCtxt.clear();
     return dbFork.ListForkContext(vForkCtxt);
@@ -123,7 +123,17 @@ bool CBlockDB::RemoveFork(const uint256& hash)
     return dbFork.RemoveFork(hash);
 }
 
-bool CBlockDB::ListFork(vector<pair<uint256, uint256>>& vFork)
+bool CBlockDB::InactivateFork(const uint256& hashFork)
+{
+    return dbFork.InactivateFork(hashFork);
+}
+
+bool CBlockDB::ActivateFork(const uint256& hashFork)
+{
+    return dbFork.ActivateFork(hashFork);
+}
+
+bool CBlockDB::ListFork(vector<tuple<uint256, uint256, bool>>& vFork)
 {
     vFork.clear();
     return dbFork.ListFork(vFork);
@@ -228,7 +238,7 @@ bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,
 
 bool CBlockDB::LoadFork()
 {
-    vector<pair<uint256, uint256>> vFork;
+    vector<tuple<uint256, uint256, bool>> vFork;
     if (!dbFork.ListFork(vFork))
     {
         return false;
@@ -236,12 +246,12 @@ bool CBlockDB::LoadFork()
 
     for (int i = 0; i < vFork.size(); i++)
     {
-        if (!dbTxIndex.LoadFork(vFork[i].first))
+        if (!dbTxIndex.LoadFork(get<0>(vFork[i])))
         {
             return false;
         }
 
-        if (!dbUnspent.AddNewFork(vFork[i].first))
+        if (!dbUnspent.AddNewFork(get<0>(vFork[i])))
         {
             return false;
         }

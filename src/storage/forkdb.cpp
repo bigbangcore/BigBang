@@ -58,11 +58,12 @@ bool CForkDB::RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt)
     return Read(make_pair(string("ctxt"), hashFork), ctxt);
 }
 
-bool CForkDB::ListForkContext(vector<CForkContext>& vForkCtxt)
+bool CForkDB::ListForkContext(vector<pair<CForkContext, bool>>& vForkCtxt)
 {
     multimap<int, CForkContext> mapCtxt;
+    set<uint256> setInactiveFork;
 
-    if (!WalkThrough(boost::bind(&CForkDB::LoadCtxtWalker, this, _1, _2, boost::ref(mapCtxt))))
+    if (!WalkThrough(boost::bind(&CForkDB::LoadCtxtWalker, this, _1, _2, boost::ref(mapCtxt), boost::ref(setInactiveFork))))
     {
         return false;
     }
@@ -70,7 +71,7 @@ bool CForkDB::ListForkContext(vector<CForkContext>& vForkCtxt)
     vForkCtxt.reserve(mapCtxt.size());
     for (multimap<int, CForkContext>::iterator it = mapCtxt.begin(); it != mapCtxt.end(); ++it)
     {
-        vForkCtxt.push_back((*it).second);
+        vForkCtxt.push_back(make_pair(it->second, !setInactiveFork.count(it->second.hashFork)));
     }
 
     return true;
@@ -91,12 +92,13 @@ bool CForkDB::RetrieveFork(const uint256& hashFork, uint256& hashLastBlock)
     return Read(make_pair(string("active"), hashFork), hashLastBlock);
 }
 
-bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
+bool CForkDB::ListFork(vector<tuple<uint256, uint256, bool>>& vFork)
 {
     multimap<int, uint256> mapJoint;
     map<uint256, uint256> mapFork;
+    set<uint256> setInactiveFork;
 
-    if (!WalkThrough(boost::bind(&CForkDB::LoadForkWalker, this, _1, _2, boost::ref(mapJoint), boost::ref(mapFork))))
+    if (!WalkThrough(boost::bind(&CForkDB::LoadForkWalker, this, _1, _2, boost::ref(mapJoint), boost::ref(mapFork), boost::ref(setInactiveFork))))
     {
         return false;
     }
@@ -104,13 +106,23 @@ bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
     vFork.reserve(mapFork.size());
     for (multimap<int, uint256>::iterator it = mapJoint.begin(); it != mapJoint.end(); ++it)
     {
-        map<uint256, uint256>::iterator mi = mapFork.find((*it).second);
+        map<uint256, uint256>::iterator mi = mapFork.find(it->second);
         if (mi != mapFork.end())
         {
-            vFork.push_back(*mi);
+            vFork.push_back(make_tuple(mi->first, mi->second, !setInactiveFork.count(it->second)));
         }
     }
     return true;
+}
+
+bool CForkDB::InactivateFork(const uint256& hashFork)
+{
+    return Write(make_pair(string("inactive"), hashFork), true);
+}
+
+bool CForkDB::ActivateFork(const uint256& hashFork)
+{
+    return Erase(make_pair(string("inactive"), hashFork));
 }
 
 void CForkDB::Clear()
@@ -118,10 +130,12 @@ void CForkDB::Clear()
     RemoveAll();
 }
 
-bool CForkDB::LoadCtxtWalker(CBufStream& ssKey, CBufStream& ssValue, multimap<int, CForkContext>& mapCtxt)
+bool CForkDB::LoadCtxtWalker(CBufStream& ssKey, CBufStream& ssValue,
+                             multimap<int, CForkContext>& mapCtxt, set<uint256>& setInactiveFork)
 {
     string strPrefix;
-    ssKey >> strPrefix;
+    uint256 hashFork;
+    ssKey >> strPrefix >> hashFork;
 
     if (strPrefix == "ctxt")
     {
@@ -129,11 +143,15 @@ bool CForkDB::LoadCtxtWalker(CBufStream& ssKey, CBufStream& ssValue, multimap<in
         ssValue >> ctxt;
         mapCtxt.insert(make_pair(ctxt.nJointHeight, ctxt));
     }
+    else if (strPrefix == "inactive")
+    {
+        setInactiveFork.insert(hashFork);
+    }
     return true;
 }
 
-bool CForkDB::LoadForkWalker(CBufStream& ssKey, CBufStream& ssValue,
-                             multimap<int, uint256>& mapJoint, map<uint256, uint256>& mapFork)
+bool CForkDB::LoadForkWalker(CBufStream& ssKey, CBufStream& ssValue, multimap<int, uint256>& mapJoint,
+                             map<uint256, uint256>& mapFork, set<uint256>& setInactiveFork)
 {
     string strPrefix;
     uint256 hashFork;
@@ -150,6 +168,10 @@ bool CForkDB::LoadForkWalker(CBufStream& ssKey, CBufStream& ssValue,
         uint256 hashLastBlock;
         ssValue >> hashLastBlock;
         mapFork.insert(make_pair(hashFork, hashLastBlock));
+    }
+    else if (strPrefix == "inactive")
+    {
+        setInactiveFork.insert(hashFork);
     }
     return true;
 }

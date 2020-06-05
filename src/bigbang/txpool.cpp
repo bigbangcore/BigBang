@@ -1081,9 +1081,9 @@ void CTxPool::AddDestDelegate(const CDestination& destDeleage)
     certTxDest.AddDelegate(destDeleage);
 }
 
-void CTxPool::ClearInactivedFork()
+void CTxPool::ClearInactiveFork()
 {
-    unconfirmedForkSetMgr.ClearInactived();
+    unconfirmedForkSetMgr.ClearInactive();
 }
 
 bool CTxPool::LoadData()

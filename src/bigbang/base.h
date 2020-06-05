@@ -124,8 +124,9 @@ public:
     virtual bool ExistsTx(const uint256& txid) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) = 0;
-    virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
-    virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
+    virtual bool ListForkContext(std::vector<std::pair<CForkContext, bool>>& vForkCtxt) = 0;
+    virtual bool AddNewForkContext(const CForkContext& ctxt) = 0;
+    virtual bool InactivateFork(const uint256& hashFork) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
@@ -188,7 +189,7 @@ public:
     virtual bool FetchInputs(const uint256& hashFork, const CTransaction& tx, std::vector<CTxOut>& vUnspent) = 0;
     virtual bool SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChange& change, const CForkSetManager& forkSetMgr) = 0;
     virtual void AddDestDelegate(const CDestination& destDeleage) = 0;
-    virtual void ClearInactivedFork() = 0;
+    virtual void ClearInactiveFork() = 0;
     const CStorageConfig* StorageConfig()
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());

@@ -23,7 +23,6 @@ CBlockChain::CBlockChain()
   : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
-    pTxPool = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -38,12 +37,6 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("txpool", pTxPool))
-    {
-        Error("Failed to request txpool");
-        return false;
-    }
-
     InitCheckPoints();
 
     return true;
@@ -52,12 +45,11 @@ bool CBlockChain::HandleInitialize()
 void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
-    pTxPool = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
 {
-    if (!cntrBlock.Initialize(Config()->pathData, Config()->fDebug))
+    if (!cntrBlock.Initialize(pCoreProtocol->GetGenesisBlockHash(), Config()->pathData, Config()->fDebug))
     {
         Error("Failed to initialize container");
         return false;
@@ -362,61 +354,19 @@ bool CBlockChain::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filte
     return cntrBlock.FilterTx(hashFork, nDepth, filter);
 }
 
-bool CBlockChain::ListForkContext(vector<CForkContext>& vForkCtxt)
+bool CBlockChain::ListForkContext(vector<pair<CForkContext, bool>>& vForkCtxt)
 {
     return cntrBlock.ListForkContext(vForkCtxt);
 }
 
-Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
+bool CBlockChain::AddNewForkContext(const CForkContext& ctxt)
 {
-    uint256 txid = txFork.GetHash();
+    return cntrBlock.AddNewForkContext(ctxt);
+}
 
-    CBlock block;
-    CProfile profile;
-    try
-    {
-        CBufStream ss;
-        ss.Write((const char*)&txFork.vchData[0], txFork.vchData.size());
-        ss >> block;
-        if (!block.IsOrigin() || block.IsPrimary())
-        {
-            throw std::runtime_error("invalid block");
-        }
-        if (!profile.Load(block.vchProof))
-        {
-            throw std::runtime_error("invalid profile");
-        }
-    }
-    catch (...)
-    {
-        Error("Invalid orign block found in tx (%s)", txid.GetHex().c_str());
-        return ERR_BLOCK_INVALID_FORK;
-    }
-    uint256 hashFork = block.GetHash();
-
-    CForkContext ctxtParent;
-    if (!cntrBlock.RetrieveForkContext(profile.hashParent, ctxtParent))
-    {
-        Log("AddNewForkContext Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
-        return ERR_MISSING_PREV;
-    }
-
-    CProfile forkProfile;
-    Errno err = pCoreProtocol->ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
-    if (err != OK)
-    {
-        Log("AddNewForkContext Validate Block Error(%s) : %s ", ErrorString(err), hashFork.ToString().c_str());
-        return err;
-    }
-
-    ctxt = CForkContext(block.GetHash(), block.hashPrev, txid, profile);
-    if (!cntrBlock.AddNewForkContext(ctxt))
-    {
-        Log("AddNewForkContext Already Exists : %s ", hashFork.ToString().c_str());
-        return ERR_ALREADY_HAVE;
-    }
-
-    return OK;
+bool CBlockChain::InactivateFork(const uint256& hashFork)
+{
+    return cntrBlock.InactivateFork(hashFork);
 }
 
 Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr)
@@ -495,14 +445,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPool->Exists(txid))
+        err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
+        if (err != OK)
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
-            if (err != OK)
-            {
-                Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
-                return err;
-            }
+            Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+            return err;
         }
         if (tx.nTimeStamp > block.nTimeStamp)
         {
@@ -554,7 +501,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         return OK;
     }
 
-    if (!cntrBlock.CommitBlockView(view, pIndexNew))
+    if (!cntrBlock.CommitBlockView(view, pIndexNew, forkSetMgr))
     {
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -1091,14 +1038,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const C
             Log("VerifyPowBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPool->Exists(txid))
+        err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
+        if (err != OK)
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
-            if (err != OK)
-            {
-                Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
-                return err;
-            }
+            Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+            return err;
         }
 
         vTxContxt.push_back(txContxt);

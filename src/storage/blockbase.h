@@ -28,8 +28,8 @@ class CBlockBase;
 class CBlockFork
 {
 public:
-    CBlockFork(const CProfile& profileIn, CBlockIndex* pIndexLastIn)
-      : forkProfile(profileIn), pIndexLast(pIndexLastIn), pIndexOrigin(pIndexLast->pOrigin)
+    CBlockFork(const CProfile& profileIn, CBlockIndex* pIndexLastIn, const bool fActiveIn = true)
+      : forkProfile(profileIn), pIndexLast(pIndexLastIn), pIndexOrigin(pIndexLastIn->pOrigin), fActive(fActiveIn)
     {
     }
     void ReadLock()
@@ -104,12 +104,25 @@ public:
             }
         }
     }
+    bool IsActive() const
+    {
+        return fActive;
+    }
+    bool SetActive() const
+    {
+        return fActive == true;
+    }
+    bool SetInactive() const
+    {
+        return fActive == false;
+    }
 
 protected:
     mutable xengine::CRWAccess rwAccess;
     CProfile forkProfile;
     CBlockIndex* pIndexLast;
     CBlockIndex* pIndexOrigin;
+    bool fActive;
 };
 
 class CBlockView
@@ -223,7 +236,7 @@ class CBlockBase
 public:
     CBlockBase();
     ~CBlockBase();
-    bool Initialize(const boost::filesystem::path& pathDataLocation, bool fDebug, bool fRenewDB = false);
+    bool Initialize(const uint256& hashGenesis, const boost::filesystem::path& pathDataLocation, bool fDebug, bool fRenewDB = false);
     void Deinitialize();
     void Clear();
     bool IsEmpty() const;
@@ -232,6 +245,7 @@ public:
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
     bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nMinEnrollAmount);
     bool AddNewForkContext(const CForkContext& ctxt);
+    bool InactivateFork(const uint256& hashFork);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
     bool Retrieve(const uint256& hash, CBlockEx& block);
@@ -256,12 +270,12 @@ public:
     bool GetBlockView(CBlockView& view);
     bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false);
     bool GetForkBlockView(const uint256& hashFork, CBlockView& view);
-    bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew);
+    bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew, const CForkSetManager& forkSetMgr = CForkSetManager());
     bool LoadIndex(CBlockOutline& diskIndex);
     bool LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint256& hashFork);
     bool FilterTx(const uint256& hashFork, CTxFilter& filter);
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter);
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
+    bool ListForkContext(std::vector<std::pair<CForkContext, bool>>& vForkCtxt);
     bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
@@ -287,7 +301,7 @@ protected:
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
-    boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast);
+    boost::shared_ptr<CBlockFork> AddNewFork(const CProfile& profileIn, CBlockIndex* pIndexLast, const bool fActive = true);
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
     bool VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 nMinEnrollAmount, CDelegateContext& ctxtDelegate);
     bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate);
@@ -331,6 +345,7 @@ protected:
 protected:
     mutable xengine::CRWAccess rwAccess;
     xengine::CLog log;
+    uint256 hashGenesisBlock;
     bool fDebugLog;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;

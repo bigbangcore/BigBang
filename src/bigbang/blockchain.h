@@ -42,8 +42,9 @@ public:
                       std::vector<CTxOut>& vOutput) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) override;
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt) override;
-    Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
+    bool ListForkContext(std::vector<std::pair<CForkContext, bool>>& vForkCtxt) override;
+    bool AddNewForkContext(const CForkContext& ctxt) override;
+    bool InactivateFork(const uint256& hashFork) override;
     Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update, const CForkSetManager& forkSetMgr) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
@@ -95,7 +96,6 @@ protected:
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
-    ITxPool* pTxPool;
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
