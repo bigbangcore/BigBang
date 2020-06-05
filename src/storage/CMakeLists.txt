@@ -20,7 +20,7 @@ set(sources
     leveldbeng.cpp      leveldbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
-    mqdb.cpp            mqdb.h)
+    mqdb.cpp            mqdb.h
     delegatevotesave.cpp delegatevotesave.h
 )
 
