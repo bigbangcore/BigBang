@@ -177,7 +177,7 @@ public:
         for (auto& vd : vSynTxId)
         {
             CSynTxIndexSetByTxId& index = setPeerSynTxIndex.get<0>();
-            if (vd.first == 1)
+            if (vd.first == STI_SYN_TX_ADD)
             {
                 if (index.find(vd.second.first) != index.end())
                 {
@@ -319,7 +319,7 @@ public:
     void SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn);
     void AddSynTxData(std::vector<std::pair<int, CSynTx>>& vSynTxData);
     void UpdateTxIndexToPeer(uint64 nNonce);
-    bool GetSynTxInv(uint64 nNonce, std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv);
+    void GetSynTxInv(uint64 nNonce, std::size_t nMaxInvCount, std::vector<network::CInv>& vSynTxInv);
 
 protected:
     void RemoveOrphan(const network::CInv& inv);

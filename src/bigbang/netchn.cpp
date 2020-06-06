@@ -74,7 +74,7 @@ int CNetChannelPeerFork::CheckTxInvSynStatus()
     switch (nSynTxInvStatus)
     {
     case SYNTXINV_STATUS_INIT:
-        break;
+        return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN;
     case SYNTXINV_STATUS_WAIT_PEER_RECEIVED:
         if (nCurTime - nSynTxInvSendTime >= SYNTXINV_RECEIVE_TIMEOUT)
         {
@@ -86,14 +86,11 @@ int CNetChannelPeerFork::CheckTxInvSynStatus()
         {
             InitTxInvSynData();
             nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
+            return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN;
         }
         break;
     default:
         InitTxInvSynData();
-        break;
-    }
-    if (nSynTxInvStatus == SYNTXINV_STATUS_INIT)
-    {
         return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_ALLOW_SYN;
     }
     return CNetChannelPeer::CHECK_SYNTXINV_STATUS_RESULT_WAIT_SYN;
@@ -613,7 +610,7 @@ bool CNetChannel::HandleEvent(network::CEventLocalBroadcastInv& evenBroadcastInv
                 vFork.push_back(it->first);
             }
         }
-        for (uint256& hash : vFork)
+        for (const uint256& hash : vFork)
         {
             PushTxInv(hash);
         }
@@ -2009,17 +2006,15 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
     for (auto& vd : vPeer)
     {
         network::CEventPeerInv eventInv(vd.first, hashFork);
+        try
         {
-            try
-            {
-                boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-                GetSchedule(hashFork).GetSynTxInv(vd.first, vd.second, eventInv.data);
-            }
-            catch (exception& e)
-            {
-                StdError("NetChannel", "PushTxInv: Find schedule fail, fork: %s, err: %s", hashFork.GetHex().c_str(), e.what());
-                return false;
-            }
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            GetSchedule(hashFork).GetSynTxInv(vd.first, vd.second, eventInv.data);
+        }
+        catch (exception& e)
+        {
+            StdError("NetChannel", "PushTxInv: Find schedule fail, fork: %s, err: %s", hashFork.GetHex().c_str(), e.what());
+            continue;
         }
         if (!eventInv.data.empty())
         {

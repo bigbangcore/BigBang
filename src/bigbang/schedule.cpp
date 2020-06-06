@@ -697,7 +697,7 @@ void CSchedule::AddSynTxData(vector<pair<int, CSynTx>>& vSynTxData)
     vector<pair<int, pair<uint256, uint64>>> vTempSynTxId;
     for (auto& vd : vSynTxData)
     {
-        if (vd.first == 1)
+        if (vd.first == STI_SYN_TX_ADD)
         {
             CTransaction& tx = boost::get<CTransaction>(vd.second);
             uint256 txid = tx.GetHash();
@@ -737,15 +737,19 @@ void CSchedule::UpdateTxIndexToPeer(uint64 nNonce)
     mapPeer[nNonce].ReSetTxIndex(setSynTxIndex);
 }
 
-bool CSchedule::GetSynTxInv(uint64 nNonce, size_t nMaxInvCount, vector<network::CInv>& vSynTxInv)
+void CSchedule::GetSynTxInv(uint64 nNonce, size_t nMaxInvCount, vector<network::CInv>& vSynTxInv)
 {
-    map<uint64, CInvPeer>::iterator mt = mapPeer.find(nNonce);
-    if (mt != mapPeer.end())
+    map<uint64, CInvPeer>::iterator it = mapPeer.find(nNonce);
+    if (it == mapPeer.end())
     {
-        mt->second.GetSynTxInv(nMaxInvCount, vSynTxInv);
-        return true;
+        it = mapPeer.insert(make_pair(nNonce, CInvPeer())).first;
+        if (it == mapPeer.end())
+        {
+            return;
+        }
+        it->second.ReSetTxIndex(setSynTxIndex);
     }
-    return false;
+    it->second.GetSynTxInv(nMaxInvCount, vSynTxInv);
 }
 
 void CSchedule::RemoveOrphan(const network::CInv& inv)

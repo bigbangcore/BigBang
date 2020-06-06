@@ -1262,7 +1262,7 @@ CPooledTx* CTxPool::AddTxData(const uint256& hashFork, const uint256& txid, cons
     {
         vSynFork.clear();
     }
-    vSynFork.push_back(make_pair(1, tx));
+    vSynFork.push_back(make_pair(STI_SYN_TX_ADD, tx));
     return &(mi->second);
 }
 
@@ -1274,7 +1274,7 @@ void CTxPool::RemoveTxData(const uint256& hashFork, const uint256& txid)
     {
         vSynFork.clear();
     }
-    vSynFork.push_back(make_pair(0, txid));
+    vSynFork.push_back(make_pair(STI_SYN_TX_REMOVE, txid));
 }
 
 } // namespace bigbang

@@ -346,6 +346,9 @@ typedef boost::multi_index_container<
 typedef CSynTxIndexSet::nth_index<0>::type CSynTxIndexSetByTxId;
 typedef CSynTxIndexSet::nth_index<1>::type CSynTxIndexSetBySeq;
 
+#define STI_SYN_TX_ADD 1
+#define STI_SYN_TX_REMOVE 2
+
 /* CStatItemBlockMaker & CStatItemP2pSyn */
 class CStatItemBlockMaker
 {
