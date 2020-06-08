@@ -13,6 +13,8 @@
 #include "timeseries.h"
 #include "xengine.h"
 
+#define FLUSH_THRESH (1000)
+
 namespace bigbang
 {
 namespace storage
@@ -200,55 +202,34 @@ public:
     }
     void Update(const int64 nTime, const K& key, const V& value)
     {
-        xengine::CWriteLock wlock(rwUpper);
+        xengine::CWriteLock wlock(rwMap);
 
         GetUpdateMap(nTime)[key] = value;
     }
     void Erase(const int64 nTime, const K& key)
     {
-        xengine::CWriteLock wlock(rwUpper);
+        xengine::CWriteLock wlock(rwMap);
 
         GetUpdateMap(nTime).erase(key);
     }
     bool Retrieve(const int64 nTime, const K& key, V& value)
     {
+        
+        xengine::CReadLock rlock(rwMap);
+        MapType& mapUpper = dblMeta.GetUpperMap();
+        typename MapType::iterator it = mapUpper.find(nTime);
+        if (it != mapUpper.end())
         {
-            xengine::CReadLock rlock(rwUpper);
-
-            MapType& mapUpper = dblMeta.GetUpperMap();
-
-            typename MapType::iterator it = mapUpper.find(nTime);
-            if (it != mapUpper.end())
+            std::map<K, V>& mapValue = (*it).second;
+            typename std::map<K, V>::iterator mi = mapValue.find(key);
+            if (mi != mapValue.end())
             {
-                std::map<K, V>& mapValue = (*it).second;
-                typename std::map<K, V>::iterator mi = mapValue.find(key);
-                if (mi != mapValue.end())
-                {
-                    value = (*mi).second;
-                    return true;
-                }
-                return false;
+                value = (*mi).second;
+                return true;
             }
+            return false;
         }
-
-        {
-            xengine::CReadLock rlock(rwLower);
-            MapType& mapLower = dblMeta.GetLowerMap();
-
-            typename MapType::iterator it = mapLower.find(nTime);
-            if (it != mapLower.end())
-            {
-                std::map<K, V>& mapValue = (*it).second;
-                typename std::map<K, V>::iterator mi = mapValue.find(key);
-                if (mi != mapValue.end())
-                {
-                    value = (*mi).second;
-                    return true;
-                }
-                return false;
-            }
-        }
-
+        
         C chunk;
         if (LoadFromFile(nTime, chunk))
         {
@@ -258,14 +239,19 @@ public:
         return false;
     }
 
-    bool Flush()
+    bool Flush(bool fAll = true)
     {
-        xengine::CUpgradeLock ulock(rwLower);
+        xengine::CUpgradeLock ulock(rwMap);
 
         std::vector<int64> vTime, vDel;
         std::vector<C> vChunk;
-        MapType& mapFlush = dblMeta.GetLowerMap();
-        for (typename MapType::iterator it = mapFlush.begin(); it != mapFlush.end(); ++it)
+        MapType& flushMap = dblMeta.GetUpperMap();
+        if (!fAll && flushMap.size() < FLUSH_THRESH)
+        {
+            return false;
+        }
+
+        for (typename MapType::iterator it = flushMap.begin(); it != flushMap.end(); ++it)
         {
             std::map<K, V>& mapValue = (*it).second;
             if (mapValue.empty())
@@ -287,6 +273,7 @@ public:
                 return false;
             }
         }
+
         if (!vPos.empty() || !vDel.empty())
         {
             if (!dbIndex.Update(vTime, vPos, vDel))
@@ -296,14 +283,11 @@ public:
         }
 
         ulock.Upgrade();
-
-        {
-            xengine::CWriteLock wlock(rwUpper);
-            dblMeta.Flip();
-        }
-
+        flushMap.clear();
+       
         return true;
     }
+
 
 protected:
     std::map<K, V>& GetUpdateMap(const int64 nTime)
@@ -316,19 +300,6 @@ protected:
             return (*it).second;
         }
 
-        if (rwLower.ReadTryLock())
-        {
-            MapType& mapLower = dblMeta.GetLowerMap();
-            typename MapType::iterator mi = mapLower.find(nTime);
-            if (mi != mapLower.end())
-            {
-                mapUpdate[nTime] = (*mi).second;
-                rwLower.ReadUnlock();
-                return mapUpdate[nTime];
-            }
-            rwLower.ReadUnlock();
-        }
-
         C chunk;
         if (LoadFromFile(nTime, chunk))
         {
@@ -336,6 +307,7 @@ protected:
         }
         return mapUpdate[nTime];
     }
+    
     bool LoadFromFile(const int64 nTime, C& chunk)
     {
         CDiskPos pos;
@@ -347,8 +319,7 @@ protected:
     }
 
 protected:
-    xengine::CRWAccess rwUpper;
-    xengine::CRWAccess rwLower;
+    xengine::CRWAccess rwMap;
     CCTSIndex dbIndex;
     CTimeSeriesChunk tsChunk;
     CDblMap dblMeta;

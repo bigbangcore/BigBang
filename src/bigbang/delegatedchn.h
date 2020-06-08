@@ -110,8 +110,7 @@ public:
 class CDelegatedChannelChainData
 {
 public:
-    CDelegatedChannelChainData()
-      : nPublishTime(0) {}
+    CDelegatedChannelChainData() {}
 
     uint64 GetBitmap(const std::map<CDestination, std::vector<unsigned char>>& mapData) const
     {
@@ -136,7 +135,6 @@ public:
 public:
     std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
-    int64 nPublishTime;
     std::vector<CDestination> vEnrolled;
 };
 
@@ -156,7 +154,7 @@ public:
                 const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                 const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                 const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
-                const uint256& hashDistributeOfPublish, int64 nPublishTime);
+                const uint256& hashDistributeOfPublish);
     uint64 GetDistributeBitmap(const uint256& hashAnchor);
     uint64 GetPublishBitmap(const uint256& hashAnchor);
     void GetDistribute(const uint256& hashAnchor, uint64 bmDistribute, std::set<CDestination>& setDestination);
@@ -185,7 +183,7 @@ public:
                        const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
                        const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
                        const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
-                       const uint256& hashDistributeOfPublish, int64 nPublishTime) override;
+                       const uint256& hashDistributeOfPublish) override;
 
 protected:
     bool HandleInitialize() override;

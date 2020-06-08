@@ -277,7 +277,6 @@ void CBlockView::InsertBlockList(const uint256& hash, const CBlockEx& block, lis
     }
 }
 
-
 //////////////////////////////
 // CForkHeightIndex
 
@@ -758,6 +757,24 @@ bool CBlockBase::RetrieveTx(const uint256& txid, CTransaction& tx)
         StdTrace("BlockBase", "RetrieveTx::Read %s tx failed", txid.ToString().c_str());
         return false;
     }
+    return true;
+}
+
+bool CBlockBase::RetrieveTx(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight)
+{
+    tx.SetNull();
+    CTxIndex txIndex;
+    if (!dbBlock.RetrieveTxIndex(txid, txIndex, hashFork))
+    {
+        StdTrace("BlockBase", "RetrieveTx::RetrieveTxIndex %s tx failed", txid.ToString().c_str());
+        return false;
+    }
+    if (!tsBlock.Read(tx, txIndex.nFile, txIndex.nOffset))
+    {
+        StdTrace("BlockBase", "RetrieveTx::Read %s tx failed", txid.ToString().c_str());
+        return false;
+    }
+    nHeight = txIndex.nBlockHeight;
     return true;
 }
 

@@ -27,6 +27,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "recovery.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -196,12 +197,12 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetConfig()->fTestNet)
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET; 
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
     }
     else
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET; 
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
     }
 
     // modules
@@ -393,6 +394,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::DATASTAT:
         {
             if (!AttachModule(new CDataStat()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::RECOVERY:
+        {
+            if (!AttachModule(new CRecovery()))
             {
                 return false;
             }

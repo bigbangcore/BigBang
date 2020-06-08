@@ -164,16 +164,15 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
 }
 
 bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 nTime,
-                                     const uint256& hashAnchor, int64 nTxFee, const vector<unsigned char>& vchData)
+                                     const uint256& hashAnchor, const vector<unsigned char>& vchData)
 {
     tx.SetNull();
     tx.nType = CTransaction::TX_CERT;
     tx.nTimeStamp = nTime;
     tx.hashAnchor = hashAnchor;
     tx.sendTo = destDelegate;
-    tx.nAmount = 0;
-    tx.nTxFee = nTxFee;
-    //tx.vchData = vchData;
+    tx.nAmount = 1;
+    tx.nTxFee = 0;
     {
         CODataStream os(tx.vchData, sizeof(int) + vchData.size());
         os << nBlockHeight;
@@ -187,34 +186,59 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 n
         CDelegateTx* pTx = (*it).second;
         if (pTx->IsLocked(txout.n, nBlockHeight))
         {
-            StdTrace("CDelegateContext", "BuildEnrollTx: IsLocked, nBlockHeight: %d", nBlockHeight);
+            StdTrace("CDelegateContext", "BuildEnrollTx 1: IsLocked, nBlockHeight: %d", nBlockHeight);
             continue;
         }
         if (pTx->GetTxTime() > tx.GetTxTime())
         {
-            StdTrace("CDelegateContext", "BuildEnrollTx: pTx->GetTxTime: %ld > tx.GetTxTime: %ld", pTx->GetTxTime(), tx.GetTxTime());
+            StdTrace("CDelegateContext", "BuildEnrollTx 1: pTx->GetTxTime: %ld > tx.GetTxTime: %ld", pTx->GetTxTime(), tx.GetTxTime());
             continue;
         }
-        tx.vInput.push_back(CTxIn(txout));
-        nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
-        /*if (nValueIn > nTxFee)
+        if (pTx->nType == CTransaction::TX_CERT && txout.n == 0)
         {
-            break;
-        }*/
-        StdTrace("CDelegateContext", "BuildEnrollTx: add unspent: [%d] %s", txout.n, txout.hash.GetHex().c_str());
-        if (tx.vInput.size() >= MAX_TX_INPUT_COUNT)
-        {
-            break;
+            tx.vInput.push_back(CTxIn(txout));
+            nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
+            StdTrace("CDelegateContext", "BuildEnrollTx 1: add unspent: [%d] %s", txout.n, txout.hash.GetHex().c_str());
+            if (tx.vInput.size() >= MAX_TX_INPUT_COUNT)
+            {
+                break;
+            }
         }
     }
-    if (nValueIn <= nTxFee)
+    if (nValueIn < tx.nAmount)
     {
-        StdLog("CDelegateContext", "BuildEnrollTx: nValueIn <= nTxFee, nValueIn: %.6f, unspent: %ld", ValueFromToken(nValueIn), mapUnspent.size());
-        return false;
+        for (map<CTxOutPoint, CDelegateTx*>::iterator it = mapUnspent.begin(); it != mapUnspent.end(); ++it)
+        {
+            const CTxOutPoint& txout = (*it).first;
+            CDelegateTx* pTx = (*it).second;
+            if (pTx->IsLocked(txout.n, nBlockHeight))
+            {
+                StdTrace("CDelegateContext", "BuildEnrollTx 2: IsLocked, nBlockHeight: %d", nBlockHeight);
+                continue;
+            }
+            if (pTx->GetTxTime() > tx.GetTxTime())
+            {
+                StdTrace("CDelegateContext", "BuildEnrollTx 2: pTx->GetTxTime: %ld > tx.GetTxTime: %ld", pTx->GetTxTime(), tx.GetTxTime());
+                continue;
+            }
+            if (!(pTx->nType == CTransaction::TX_CERT && txout.n == 0))
+            {
+                tx.vInput.push_back(CTxIn(txout));
+                nValueIn += (txout.n == 0 ? pTx->nAmount : pTx->nChange);
+                StdTrace("CDelegateContext", "BuildEnrollTx 2: add unspent: [%d] %s", txout.n, txout.hash.GetHex().c_str());
+                if (nValueIn >= tx.nAmount || tx.vInput.size() >= MAX_TX_INPUT_COUNT)
+                {
+                    break;
+                }
+            }
+        }
+        if (nValueIn < tx.nAmount)
+        {
+            StdLog("CDelegateContext", "BuildEnrollTx: nValueIn < 0.000001, nValueIn: %.6f, unspent: %ld", ValueFromToken(nValueIn), mapUnspent.size());
+            return false;
+        }
     }
     StdTrace("CDelegateContext", "BuildEnrollTx: arrange inputs success, nValueIn: %.6f, unspent.size: %ld, tx.vInput.size: %ld", ValueFromToken(nValueIn), mapUnspent.size(), tx.vInput.size());
-
-    tx.nAmount = nValueIn - nTxFee;
 
     uint256 hash = tx.GetSignatureHash();
     vector<unsigned char> vchDelegateSig;
@@ -304,9 +328,15 @@ bool CConsensus::HandleInvoke()
         return false;
     }
 
-    if (!LoadChain())
+    if (!datVoteSave.Initialize(Config()->pathData))
     {
-        Error("Failed to load chain");
+        Error("Failed to initialize vote data");
+        return false;
+    }
+
+    if (!datVoteSave.Load(delegate))
+    {
+        Error("Failed to load vote data");
         return false;
     }
 
@@ -316,6 +346,8 @@ bool CConsensus::HandleInvoke()
 void CConsensus::HandleHalt()
 {
     boost::unique_lock<boost::mutex> lock(mutex);
+
+    datVoteSave.Save(delegate);
 
     delegate.Deinitialize();
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
@@ -328,35 +360,11 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
 {
     boost::unique_lock<boost::mutex> lock(mutex);
 
-    int nStartHeight = update.nLastBlockHeight - update.vBlockAddNew.size();
-    if (!update.vBlockRemove.empty())
-    {
-        int nPrevBlockHeight = nStartHeight + update.vBlockRemove.size();
-        delegate.Rollback(nPrevBlockHeight, nStartHeight);
-    }
-
     for (map<CDestination, CDelegateContext>::iterator it = mapContext.begin(); it != mapContext.end(); ++it)
     {
         (*it).second.ChangeTxSet(change);
     }
 
-    /*for (int i = update.vBlockAddNew.size() - 1; i > 0; i--)
-    {
-        uint256 hash = update.vBlockAddNew[i].GetHash();
-        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
-
-        CDelegateEnrolled enrolled;
-
-        if (pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
-        {
-            delegate::CDelegateEvolveResult result;
-            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
-        }
-
-        routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
-    }*/
-
-    //if (!update.vBlockAddNew.empty())
     for (int i = update.vBlockAddNew.size() - 1; i >= 0; i--)
     {
         uint256 hash = update.vBlockAddNew[i].GetHash();
@@ -412,7 +420,7 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
                         continue;
                     }
                     CTransaction tx;
-                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), 0, (*it).second))
+                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), (*it).second))
                     {
                         StdTrace("CConsensus", "PrimaryUpdate: BuildEnrollTx success, vote token: %.6f, weight ratio: %.6f, destDelegate: %s",
                                  ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
@@ -486,24 +494,28 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
             Error("GetAgreement CBlockChain::GetBlockHash error, distribution height: %d", nTargetHeight - CONSENSUS_DISTRIBUTE_INTERVAL - 1);
             return;
         }
-        CDelegateEnrolled enrolled;
-        if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-        {
-            Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
-            return;
-        }
-        int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
-        if (nMoneySupply < 0)
-        {
-            Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
-            return;
-        }
 
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        size_t nEnrollTrust = 0;
-        pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
+        if (nAgreement != 0 && mapBallot.size() > 0)
+        {
+            CDelegateEnrolled enrolled;
+            if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+            {
+                Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+                return;
+            }
+            int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+            if (nMoneySupply < 0)
+            {
+                Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+                return;
+            }
+
+            size_t nEnrollTrust = 0;
+            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
+        }
     }
 }
 
@@ -599,6 +611,47 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     return true;
 }
 
+bool CConsensus::LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine)
+{
+    int nLashBlockHeight = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
+    nStartHeight = nLashBlockHeight - CONSENSUS_DISTRIBUTE_INTERVAL;
+    if (nStartHeight < 1)
+    {
+        nStartHeight = 1;
+    }
+
+    for (int i = nStartHeight; i <= nLashBlockHeight; i++)
+    {
+        uint256 hashBlock;
+        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
+        {
+            StdError("CConsensus", "LoadConsensusData: GetBlockHash fail, height: %d", i);
+            return false;
+        }
+
+        CDelegateEnrolled enrolled;
+        if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        {
+            StdError("CConsensus", "LoadConsensusData: GetBlockDelegateEnrolled fail, height: %d, block: %s", i, hashBlock.GetHex().c_str());
+            return false;
+        }
+
+        delegate::CDelegateEvolveResult result;
+        delegate.GetEvolveData(i, result, hashBlock);
+
+        routine.vDistributeData.push_back(make_pair(hashBlock, result.mapDistributeData));
+        if (i == nLashBlockHeight && result.mapPublishData.size() > 0)
+        {
+            routine.mapPublishData = result.mapPublishData;
+            routine.hashDistributeOfPublish = result.hashDistributeOfPublish;
+        }
+
+        routine.vEnrolledWeight.push_back(make_pair(hashBlock, enrolled.mapWeight));
+    }
+
+    return true;
+}
+
 bool CConsensus::LoadDelegateTx()
 {
     const uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
@@ -613,39 +666,8 @@ bool CConsensus::LoadDelegateTx()
     return true;
 }
 
-bool CConsensus::LoadChain()
-{
-    /*int nLashBlockHeight = pBlockChain->GetBlockCount(pCoreProtocol->GetGenesisBlockHash()) - 1;
-    int nStartHeight = nLashBlockHeight - CONSENSUS_ENROLL_INTERVAL + 1;
-    if (nStartHeight < 0)
-    {
-        nStartHeight = 0;
-    }
-    for (int i = nStartHeight; i <= nLashBlockHeight; i++)
-    {
-        uint256 hashBlock;
-        if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), i, hashBlock))
-        {
-            return false;
-        }
-        CDelegateEnrolled enrolled;
-
-        if (pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-        {
-            delegate::CDelegateEvolveResult result;
-            delegate.Evolve(i, enrolled.mapWeight, enrolled.mapEnrollData, result, hashBlock);
-        }
-    }*/
-    return true;
-}
-
 bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted)
 {
-    if (mapContext.empty())
-    {
-        fCompleted = true;
-        return true;
-    }
     if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
         uint256 hashBlock;
@@ -687,10 +709,6 @@ bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_
 
 int64 CConsensus::GetAgreementWaitTime(int nTargetHeight)
 {
-    if (mapContext.empty())
-    {
-        return 0;
-    }
     if (nTargetHeight >= CONSENSUS_INTERVAL && pCoreProtocol->IsDposHeight(nTargetHeight))
     {
         int64 nPublishedTime = delegate.GetPublishedTime(nTargetHeight);

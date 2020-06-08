@@ -47,6 +47,7 @@ set(src
     blockchain.cpp      blockchain.h
     forkmanager.cpp     forkmanager.h
     datastat.cpp        datastat.h
+    recovery.cpp        recovery.h
     checkrepair.cpp     checkrepair.h
     event.h
     base.h

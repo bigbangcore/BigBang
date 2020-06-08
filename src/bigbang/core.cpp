@@ -18,13 +18,11 @@ using namespace xengine;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
-#define BBCP_SET_TOKEN_DISTRIBUTION
-
 static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
 #else
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
@@ -37,15 +35,23 @@ static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
 static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
+#ifdef BIGBANG_TESTNET
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
+#else
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000 * COIN;
+#endif
 static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
+#ifdef BIGBANG_TESTNET
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
+#else
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
+#endif
 
-#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
@@ -452,7 +458,8 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (hash > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error: proof[%s] vs. target[%s] with bits[%d]",
+                     hash.ToString().c_str(), hashTarget.ToString().c_str(), nBits);
     }
 
     return OK;
@@ -919,7 +926,9 @@ bool CCoreProtocol::IsDposHeight(int height)
 
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
+    return BBCP_BASE_REWARD_TOKEN * COIN;
+#else
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
     for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
     {
@@ -929,8 +938,6 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
         }
     }
     return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-#else
-    return BBCP_BASE_REWARD_TOKEN * COIN;
 #endif
 }
 
@@ -940,12 +947,12 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     vBallot.clear();
     if (nAgreement == 0 || mapBallot.size() == 0)
     {
-        StdTrace("Core", "GetDelegatedBallot: nAgreement: %s, mapBallot.size: %ld", nAgreement.GetHex().c_str(), mapBallot.size());
+        StdTrace("Core", "Get delegated ballot: height: %d, nAgreement: %s, mapBallot.size: %ld", nBlockHeight, nAgreement.GetHex().c_str(), mapBallot.size());
         return;
     }
     if (nMoneySupply < 0)
     {
-        StdTrace("Core", "GetDelegatedBallot: nMoneySupply < 0");
+        StdTrace("Core", "Get delegated ballot: nMoneySupply < 0");
         return;
     }
     if (vecAmount.size() != mapBallot.size())
@@ -965,54 +972,42 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight
     nEnrollTrust = 0;
     for (auto& amount : vecAmount)
     {
-        StdTrace("Core", "Get delegated ballot: vote dest: %s, amount: %lld",
-                 CAddress(amount.first).ToString().c_str(), amount.second);
+        StdTrace("Core", "Get delegated ballot: height: %d, vote dest: %s, amount: %lld",
+                 nBlockHeight, CAddress(amount.first).ToString().c_str(), amount.second);
         if (mapBallot.find(amount.first) != mapBallot.end())
         {
             size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
             mapSelectBallot[amount.first] = nDestWeight;
             nEnrollWeight += nDestWeight;
             nEnrollTrust += (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT));
-            StdTrace("Core", "Get delegated ballot: ballot dest: %s, weight: %lld",
-                     CAddress(amount.first).ToString().c_str(), nDestWeight);
+            StdTrace("Core", "Get delegated ballot: height: %d, ballot dest: %s, weight: %lld",
+                     nBlockHeight, CAddress(amount.first).ToString().c_str(), nDestWeight);
         }
     }
     nEnrollTrust /= DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
-    StdTrace("Core", "Get delegated ballot: ballot dest count is %llu, enroll trust: %llu", mapSelectBallot.size(), nEnrollTrust);
+    StdTrace("Core", "Get delegated ballot: trust height: %d, ballot dest count is %llu, enroll trust: %llu", nBlockHeight, mapSelectBallot.size(), nEnrollTrust);
 
     size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
                          / (nMaxWeight * nMaxWeight);
-    StdTrace("Core", "Get delegated ballot: nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
-             nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
+    StdTrace("Core", "Get delegated ballot: weight height: %d, nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
+             nBlockHeight, nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
     if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
     {
-        // size_t nTrust = mapSelectBallot.size();
         size_t total = nEnrollWeight;
-        // set<CDestination> setMaker;
-        // for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end() && nTrust != 0; ++p)
-        // {
-        //     nSelected += *p;
         size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
         for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
         {
             if (n < it->second)
             {
                 vBallot.push_back(it->first);
-                // total -= it->second;
-                // mapSelectBallot.erase(it);
                 break;
             }
             n -= (*it).second;
         }
-        //     --nTrust;
-        // }
     }
 
-    StdTrace("Core", "vBallot size: %lu", vBallot.size());
-    for (auto& ballot : vBallot)
-    {
-        StdTrace("Core", "Get delegated ballot: sequence dest: %s", CAddress(ballot).ToString().c_str());
-    }
+    StdTrace("Core", "Get delegated ballot: height: %d, consensus: %s, ballot dest: %s",
+             nBlockHeight, (vBallot.size() > 0 ? "dpos" : "pow"), (vBallot.size() > 0 ? CAddress(vBallot[0]).ToString().c_str() : ""));
 }
 
 int64 CCoreProtocol::MinEnrollAmount()

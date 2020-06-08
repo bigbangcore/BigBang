@@ -244,6 +244,7 @@ public:
     bool RetrieveAncestry(const uint256& hash, std::vector<std::pair<uint256, uint256>> vAncestry);
     bool RetrieveOrigin(const uint256& hash, CBlock& block);
     bool RetrieveTx(const uint256& txid, CTransaction& tx);
+    bool RetrieveTx(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight);
     bool RetrieveTx(const uint256& hashFork, const uint256& txid, CTransaction& tx);
     bool RetrieveTxLocation(const uint256& txid, uint256& hashFork, int& nHeight);
     bool RetrieveAvailDelegate(const uint256& hash, int height, const std::vector<uint256>& vBlockRange,

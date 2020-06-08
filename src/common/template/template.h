@@ -147,7 +147,7 @@ public:
     // Return template data.
     const std::vector<uint8>& GetTemplateData() const;
 
-    // Return template id.
+    // Return template name.
     std::string GetName() const;
 
     // Export template type and template data.

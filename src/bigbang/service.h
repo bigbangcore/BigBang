@@ -43,7 +43,7 @@ public:
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) override;
     bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) override;
     void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
-    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
+    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight, uint256& hashBlock, CDestination& destIn) override;
     Errno SendTransaction(CTransaction& tx) override;
     bool RemovePendingTx(const uint256& txid) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
@@ -63,7 +63,7 @@ public:
     bool Lock(const crypto::CPubKey& pubkey) override;
     bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) override;
     bool SignSignature(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<unsigned char>& vchSig) override;
-    bool SignTransaction(CTransaction& tx, bool& fCompleted) override;
+    bool SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToData, bool& fCompleted) override;
     bool HaveTemplate(const CTemplateId& tid) override;
     void GetTemplateIds(std::set<CTemplateId>& setTid) override;
     bool AddTemplate(CTemplatePtr& ptr) override;
@@ -75,25 +75,20 @@ public:
                                                    const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;
-    bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
-    Errno SendRawTransaction(CTransaction& tx) override;
+    bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
+    Errno SendOfflineSignedTransaction(CTransaction& tx) override;
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                  uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
                  const CTemplateMintPtr& templMint) override;
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                      crypto::CKey& keyMint, uint256& hashBlock) override;
-    /* Util */
-    bool GetTxSender(const CTransaction& tx, CAddress& sender) override;
 
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
-
-private:
-    CAddress GetBackSender(const CTransaction& tx);
 
 protected:
     ICoreProtocol* pCoreProtocol;

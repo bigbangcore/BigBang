@@ -112,6 +112,7 @@ public:
     virtual bool GetOrigin(const uint256& hashFork, CBlock& block) = 0;
     virtual bool Exists(const uint256& hashBlock) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx) = 0;
+    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,
                               std::vector<CTxOut>& vOutput)
@@ -171,8 +172,11 @@ public:
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
+    virtual bool Get(const uint256& txid, CAssembledTx& tx) const = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnpsentOnChain, std::vector<CTxUnspent>& vUnspent) = 0;
+    virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const std::map<CDestination, std::vector<CTxUnspent>>& mapUnspentOnChain, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)
@@ -220,6 +224,7 @@ public:
     virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
     virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
     virtual bool GetNextConsensus(CAgreementBlock& consParam) = 0;
+    virtual bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc
@@ -261,7 +266,7 @@ public:
     virtual std::size_t GetTxCount() = 0;
     virtual bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
-    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) = 0;
+    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted) = 0;
     virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Update */
@@ -330,7 +335,7 @@ public:
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) = 0;
     virtual void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
-    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight, uint256& hashBlock, CDestination& destIn) = 0;
     virtual Errno SendTransaction(CTransaction& tx) = 0;
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
@@ -352,7 +357,7 @@ public:
     virtual bool Lock(const crypto::CPubKey& pubkey) = 0;
     virtual bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) = 0;
     virtual bool SignSignature(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<unsigned char>& vchSig) = 0;
-    virtual bool SignTransaction(CTransaction& tx, bool& fCompleted) = 0;
+    virtual bool SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToData, bool& fCompleted) = 0;
     virtual bool HaveTemplate(const CTemplateId& tid) = 0;
     virtual void GetTemplateIds(std::set<CTemplateId>& setTid) = 0;
     virtual bool AddTemplate(CTemplatePtr& ptr) = 0;
@@ -365,8 +370,8 @@ public:
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;
     virtual bool ResynchronizeWalletTx() = 0;
-    virtual bool SignRawTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
-    virtual Errno SendRawTransaction(CTransaction& tx) = 0;
+    virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
+    virtual Errno SendOfflineSignedTransaction(CTransaction& tx) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
@@ -375,8 +380,6 @@ public:
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                              crypto::CKey& keyMint, uint256& hashBlock)
         = 0;
-    /* Util */
-    virtual bool GetTxSender(const CTransaction& tx, CAddress& sender) = 0;
 };
 
 class IDataStat : public xengine::IIOModule
@@ -390,6 +393,17 @@ public:
     virtual bool AddP2pSynTxSynStatData(const uint256& hashFork, bool fRecv) = 0;
     virtual bool GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemBlockMaker>& vStatData) = 0;
     virtual bool GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemP2pSyn>& vStatData) = 0;
+};
+
+class IRecovery : public xengine::IBase
+{
+public:
+    IRecovery()
+      : IBase("recovery") {}
+    const CStorageConfig* StorageConfig()
+    {
+        return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
+    }
 };
 
 } // namespace bigbang
