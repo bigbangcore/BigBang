@@ -1,8 +1,17 @@
-# Version 2.0.2 
+# Version 2.0.2 (2020-06-08)
 
 ### Features
 * Add synctx parameter for addnewtemplate importtemplate importkey importpribkey RPCs
 * Continuely start consensus result when dpos node restarted
+* Update CheckPoints
+* Improve RPC ListUnspent feature
+* Recovery from the path of block.dat function
+* Sign transaction for delegate address owned by multi-signature address without online
+
+### Fixs
+* Improve RPCs gettransaction and getblockdetail performance
+* BugFix of gettransaction
+* Reduce upper and lower cache to only one cache to flush tx index
 
 # Version 2.0.1 (2020-05-09)
 
