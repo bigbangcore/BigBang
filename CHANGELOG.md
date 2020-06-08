@@ -7,6 +7,7 @@
 * Improve RPC ListUnspent feature
 * Recovery from the path of block.dat function
 * Sign transaction for delegate address owned by multi-signature address without online
+* Add testnet build flag for swicthing network between main net and test net 
 
 ### Fixs
 * Improve RPCs gettransaction and getblockdetail performance
