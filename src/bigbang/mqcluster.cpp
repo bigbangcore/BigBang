@@ -1259,6 +1259,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         }
         case MQ_CLI_ACTION::PUB:
         {
+            if (!client.is_connected())
+            {
+                Error("CMQCluster::ClientAgent(): there is no connection to broker yet");
+                return false;
+            }
+
             pair<string, CBufferPtr> buf;
 
             {
@@ -1415,9 +1421,15 @@ void CMQCluster::MqttThreadFunc()
             break;
         }
 
-        ClientAgent(MQ_CLI_ACTION::PUB);
-
-        Log("thread function of MQTT: go through an iteration");
+        if (ClientAgent(MQ_CLI_ACTION::PUB))
+        {
+            Log("thread function of MQTT: go through an iteration of publishing");
+        }
+        else
+        {
+            Error("thread function of MQTT: publish operation is ignormal, leaving MQTT thread");
+            return;
+        }
     }
 
     //disconnect to broker
