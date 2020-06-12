@@ -153,6 +153,7 @@ CWallet::CWallet()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 CWallet::~CWallet()
@@ -179,6 +180,12 @@ bool CWallet::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
+        return false;
+    }
+
     return true;
 }
 
@@ -187,6 +194,7 @@ void CWallet::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CWallet::HandleInvoke()
@@ -546,22 +554,23 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
     // locked coin template
     if ((dest.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == pCoreProtocol->GetGenesisBlockHash()))
     {
-        // TODO: No redemption temporarily
-        // CTemplatePtr ptr = GetTemplate(dest.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     return false;
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(CDestination(), nForkHeight);
-        // if (balance.nLocked < nLockedCoin)
-        // {
-        //     balance.nLocked = nLockedCoin;
-        // }
-        // if (balance.nLocked > coins.nTotalValue)
-        // {
-        //     balance.nLocked = coins.nTotalValue;
-        // }
-        balance.nLocked = coins.nTotalValue;
+        boost::shared_ptr<CTemplateFork> ptr = boost::dynamic_pointer_cast<CTemplateFork>(GetTemplate(dest.GetTemplateId()));
+        if (!ptr)
+        {
+            return false;
+        }
+
+        int32 nCreatedHeight = -1;
+        pForkManager->GetCreatedHeight(ptr->GetHashFork(), nCreatedHeight);
+        int64 nLockedCoin = ptr->LockedCoin(CDestination(), nForkHeight, nCreatedHeight);
+        if (balance.nLocked < nLockedCoin)
+        {
+            balance.nLocked = nLockedCoin;
+        }
+        if (balance.nLocked > coins.nTotalValue)
+        {
+            balance.nLocked = coins.nTotalValue;
+        }
     }
     balance.nAvailable = coins.nTotalValue - balance.nLocked;
     return true;
@@ -685,15 +694,17 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     // locked coin template
     if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == pCoreProtocol->GetGenesisBlockHash()))
     {
-        // TODO: No redemption temporarily
-        return false;
-        // CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
-        //     return false;
-        // }
-        // nTargetValue += boost::dynamic_pointer_cast<CTemplateFork>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
+        boost::shared_ptr<CTemplateFork> ptr = boost::dynamic_pointer_cast<CTemplateFork>(GetTemplate(destIn.GetTemplateId()));
+        if (!ptr)
+        {
+            StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
+            return false;
+        }
+
+        int32 nCreatedHeight = -1;
+        pForkManager->GetCreatedHeight(ptr->GetHashFork(), nCreatedHeight);
+        int64 nLockedCoin = ptr->LockedCoin(CDestination(), nForkHeight, nCreatedHeight);
+        nTargetValue += nLockedCoin;
     }
 
     vector<CTxOutPoint> vCoins;

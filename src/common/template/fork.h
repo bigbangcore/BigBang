@@ -19,7 +19,7 @@ public:
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
     virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight, const int32 nCreatedHeight) const;
-    virtual const uint256& GetHashFork() const; 
+    virtual const uint256& GetHashFork() const;
 
 protected:
     virtual bool ValidateParam() const;

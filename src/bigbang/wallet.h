@@ -230,6 +230,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    IForkManager* pForkManager;
     mutable boost::shared_mutex rwKeyStore;
     mutable boost::shared_mutex rwWalletTx;
     std::map<crypto::CPubKey, CWalletKeyStore> mapKeyStore;

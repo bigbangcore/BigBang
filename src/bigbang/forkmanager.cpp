@@ -298,12 +298,23 @@ bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int32, uint25
     return false;
 }
 
-bool CForkManager::GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const
+bool CForkManager::GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const
 {
     CForkContextEx ctxt;
     if (forkSetMgr.RetrieveByFork(hashFork, ctxt))
     {
         nCreatedHeight = ctxt.nCreatedHeight;
+        return true;
+    }
+
+    nCreatedHeight = -1;
+    return false;
+}
+
+bool CForkManager::GetForkContextEx(const uint256& hashFork, CForkContextEx& ctxt) const
+{
+    if (forkSetMgr.RetrieveByFork(hashFork, ctxt))
+    {
         return true;
     }
     return false;

@@ -5,10 +5,10 @@
 #ifndef COMMON_FORKCONTEXT_H
 #define COMMON_FORKCONTEXT_H
 
+#include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/mem_fun.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <map>
@@ -162,11 +162,16 @@ class CForkContextEx : public CForkContext
 
 public:
     CForkContextEx()
-        : nCreatedHeight(-1), fActive(false)
+      : nCreatedHeight(-1), fActive(false)
     {
     }
     CForkContextEx(const CForkContext& ctxtIn, const int nCreatedHeightIn = -1, const bool fActiveIn = true)
       : CForkContext(ctxtIn), nCreatedHeight(nCreatedHeightIn), fActive(fActiveIn)
+    {
+    }
+    CForkContextEx(const uint256& hashForkIn, const uint256& hashJointIn, const uint256& txidEmbeddedIn,
+                   const CProfile& profile, const int nCreatedHeightIn = -1, const bool fActiveIn = true)
+      : CForkContext(hashForkIn, hashJointIn, txidEmbeddedIn, profile), nCreatedHeight(nCreatedHeightIn), fActive(fActiveIn)
     {
     }
 
@@ -252,7 +257,7 @@ public:
         boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
         forkSet.clear();
     }
-    
+
     void Insert(const CForkContextEx& ctxt)
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
@@ -416,7 +421,7 @@ public:
         }
         return false;
     }
-    
+
     // fork hash list of all fork, compared by hash(also by origin height)
     void GetForkList(std::vector<uint256>& vFork) const
     {

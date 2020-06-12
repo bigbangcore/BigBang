@@ -208,6 +208,7 @@ public:
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const = 0;
     virtual bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const = 0;
+    virtual bool GetForkContextEx(const uint256& hashFork, CForkContextEx& ctxt) const = 0;
     virtual const CForkSetManager& GetForkSetManager() const = 0;
     const CForkConfig* ForkConfig()
     {

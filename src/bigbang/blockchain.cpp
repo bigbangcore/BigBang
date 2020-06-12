@@ -643,7 +643,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     if (cntrBlock.RetrieveFork(profile.strName, &pIndexDuplicated))
     {
         Warn("AddNewOrigin Validate Origin Error(duplated fork name), name: %s, new fork: %s, existed fork: %s",
-            profile.strName.c_str(), hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
+             profile.strName.c_str(), hash.ToString().c_str(), pIndexDuplicated->GetOriginHash().GetHex().c_str());
         return ERR_ALREADY_HAVE;
     }
 

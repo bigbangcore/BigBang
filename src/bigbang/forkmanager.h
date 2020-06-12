@@ -78,6 +78,7 @@ public:
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int32, uint256>>& vSubline) const override;
     bool GetCreatedHeight(const uint256& hashFork, int32& nCreatedHeight) const override;
+    bool GetForkContextEx(const uint256& hashFork, CForkContextEx& ctxt) const override;
     const CForkSetManager& GetForkSetManager() const override;
 
 protected:

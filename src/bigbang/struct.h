@@ -15,10 +15,10 @@
 #include <vector>
 
 #include "block.h"
+#include "forkcontext.h"
 #include "proto.h"
 #include "transaction.h"
 #include "uint256.h"
-#include "forkcontext.h"
 
 namespace bigbang
 {

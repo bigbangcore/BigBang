@@ -13,6 +13,7 @@
 #include "exchange.h"
 #include "fork.h"
 #include "multisig.h"
+#include "payment.h"
 #include "proof.h"
 #include "rpc/auto_protocol.h"
 #include "stream/datastream.h"
@@ -20,7 +21,6 @@
 #include "templateid.h"
 #include "transaction.h"
 #include "vote.h"
-#include "payment.h"
 #include "weighted.h"
 
 using namespace std;

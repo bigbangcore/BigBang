@@ -48,7 +48,7 @@ protected:
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
     bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
-    Errno VerifyForkTx(const CTransaction& txFork, const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
+    Errno VerifyForkTx(const CTransaction& txFork, const uint256& hashFork, const int nBlockHeight, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
     Errno VerifyRedeemTx(const CTransaction& txFork, const int64 nValueIn, const uint256& hashFork, const int nForkHeight, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
 
 protected:

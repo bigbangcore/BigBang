@@ -294,7 +294,7 @@ void CBlockView::GetForkChanges(CForkSetManager& forkSetMgr)
                 continue;
             }
 
-            CForkContextEx ctxt(CForkContext(block.GetHash(), block.hashPrev, txid, profile), CBlock::GetBlockHeightByHash(viewTx.hashBlock),viewTx.fAdd);
+            CForkContextEx ctxt(CForkContext(block.GetHash(), block.hashPrev, txid, profile), CBlock::GetBlockHeightByHash(viewTx.hashBlock), viewTx.fAdd);
             if (viewTx.fAdd)
             {
                 vAddFork.push_back(std::move(ctxt));
@@ -2212,10 +2212,10 @@ boost::shared_ptr<CBlockFork> CBlockBase::GetFork(const std::string& strName)
 {
     for (map<uint256, boost::shared_ptr<CBlockFork>>::iterator mi = mapFork.begin(); mi != mapFork.end(); ++mi)
     {
-        const CProfile& profile = (*mi).second->GetProfile();
-        if (profile.strName == strName)
+        const CProfile& profile = mi->second->GetProfile();
+        if (profile.strName == strName && mi->second->IsActive())
         {
-            return ((*mi).second);
+            return mi->second;
         }
     }
     return nullptr;

@@ -131,7 +131,7 @@ class CBlockView
     {
         CViewTransaction() {}
         CViewTransaction(const bool fAddIn, const uint256& hashBlockIn, const CTransaction& txIn)
-            : fAdd(fAddIn), hashBlock(hashBlockIn), tx(txIn) {}
+          : fAdd(fAddIn), hashBlock(hashBlockIn), tx(txIn) {}
         bool fAdd;
         uint256 hashBlock;
         CTransaction tx;
