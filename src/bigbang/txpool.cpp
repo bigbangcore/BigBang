@@ -1006,20 +1006,20 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         // double spent
         for (auto it = viewInvolvedTx.setTxLinkIndex.begin(); it != viewInvolvedTx.setTxLinkIndex.end(); it++)
         {
-            if (forkSetMgr.RetrieveByTx(it->hashTX, ctxt))
+            if (unconfirmedForkSetMgr.RetrieveByTx(it->hashTX, ctxt))
             {
                 setInvalidForkContext.insert(ctxt);
             }
         }
 
-        // duplicated name
-        set<uint256> setDuplicatedFork, setDuplicatedName;
-        unconfirmedForkSetMgr.GetRepeatedForkList(update.forkSetMgr, setDuplicatedFork, setDuplicatedName);
-        for (const uint256& hash : setDuplicatedName)
+        // duplicated name & fork
+        vector<CForkContextEx> vFork;
+        update.forkSetMgr.GetForkContextExList(vFork);
+        for (CForkContextEx& ctxt : vFork)
         {
-            if (forkSetMgr.RetrieveByFork(hash, ctxt))
+            if (ctxt.IsActive())
             {
-                setInvalidForkContext.insert(ctxt);
+                unconfirmedForkSetMgr.RetrieveByName(ctxt.strName, setInvalidForkContext);
             }
         }
 
@@ -1036,7 +1036,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 {
                     viewInvolvedTx.AddNew(ctxt.txidEmbedded, *pTx);
                 }
-                unconfirmedForkSetMgr.ChangeActived(d.first, false);
+                unconfirmedForkSetMgr.EraseByFork(d.first);
             }
         }
     }
@@ -1079,11 +1079,6 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 void CTxPool::AddDestDelegate(const CDestination& destDeleage)
 {
     certTxDest.AddDelegate(destDeleage);
-}
-
-void CTxPool::ClearInactiveFork()
-{
-    unconfirmedForkSetMgr.ClearInactive();
 }
 
 bool CTxPool::LoadData()

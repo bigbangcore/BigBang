@@ -103,21 +103,21 @@ void CBlockView::Deinitialize()
 
 bool CBlockView::ExistsTx(const uint256& txid) const
 {
-    map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
+    auto it = mapTx.find(txid);
     if (it != mapTx.end())
     {
-        return (!(*it).second.IsNull());
+        return it->second.fAdd;
     }
     return (!!(pBlockBase->ExistsTx(txid)));
 }
 
 bool CBlockView::RetrieveTx(const uint256& txid, CTransaction& tx)
 {
-    map<uint256, CTransaction>::const_iterator it = mapTx.find(txid);
+    auto it = mapTx.find(txid);
     if (it != mapTx.end())
     {
-        tx = (*it).second;
-        return (!tx.IsNull());
+        tx = it->second.tx;
+        return it->second.fAdd;
     }
     return pBlockBase->RetrieveTx(txid, tx);
 }
@@ -146,9 +146,9 @@ bool CBlockView::RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent)
     return true;
 }
 
-void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn, int64 nValueIn)
+void CBlockView::AddTx(const uint256& hashBlock, const uint256& txid, const CTransaction& tx, const CDestination& destIn, int64 nValueIn)
 {
-    mapTx[txid] = tx;
+    mapTx[txid] = CViewTransaction(true, hashBlock, tx);
     vTxAddNew.push_back(txid);
 
     for (int i = 0; i < tx.vInput.size(); i++)
@@ -167,9 +167,9 @@ void CBlockView::AddTx(const uint256& txid, const CTransaction& tx, const CDesti
     }
 }
 
-void CBlockView::RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt)
+void CBlockView::RemoveTx(const uint256& hashBlock, const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt)
 {
-    mapTx[txid].SetNull();
+    mapTx[txid] = CViewTransaction(false, hashBlock, tx);
     vTxRemove.push_back(txid);
     for (int i = 0; i < tx.vInput.size(); i++)
     {
@@ -218,7 +218,7 @@ void CBlockView::GetTxUpdated(set<uint256>& setUpdate)
     for (int i = 0; i < vTxRemove.size(); i++)
     {
         const uint256& txid = vTxRemove[i];
-        if (!mapTx[txid].IsNull())
+        if (mapTx[txid].fAdd)
         {
             setUpdate.insert(txid);
         }
@@ -231,7 +231,7 @@ void CBlockView::GetTxRemoved(vector<uint256>& vRemove)
     for (int i = 0; i < vTxRemove.size(); i++)
     {
         const uint256& txid = vTxRemove[i];
-        if (mapTx[txid].IsNull())
+        if (!mapTx[txid].fAdd)
         {
             vRemove.push_back(txid);
         }
@@ -252,6 +252,67 @@ void CBlockView::GetBlockChanges(vector<CBlockEx>& vAdd, vector<CBlockEx>& vRemo
     for (auto& pair : vBlockRemove)
     {
         vRemove.push_back(pair.second);
+    }
+}
+
+void CBlockView::GetForkChanges(CForkSetManager& forkSetMgr)
+{
+    if (hashFork != pBlockBase->hashGenesisBlock)
+    {
+        return;
+    }
+
+    list<CForkContextEx> vRemoveFork;
+    list<CForkContextEx> vAddFork;
+    for (const auto& p : mapTx)
+    {
+        const uint256& txid = p.first;
+        const CViewTransaction& viewTx = p.second;
+        const CTransaction& tx = viewTx.tx;
+
+        if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
+        {
+            CBlock block;
+            CProfile profile;
+            try
+            {
+                CBufStream ss;
+                ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+                ss >> block;
+                if (!block.IsOrigin() || block.IsPrimary() || !block.vtx.empty())
+                {
+                    throw std::runtime_error("invalid block");
+                }
+                if (!profile.Load(block.vchProof))
+                {
+                    throw std::runtime_error("invalid profile");
+                }
+            }
+            catch (...)
+            {
+                StdError("blockview", "GetForkChanges Invalid orign block found in tx (%s)", txid.GetHex().c_str());
+                continue;
+            }
+
+            CForkContextEx ctxt(CForkContext(block.GetHash(), block.hashPrev, txid, profile), CBlock::GetBlockHeightByHash(viewTx.hashBlock),viewTx.fAdd);
+            if (viewTx.fAdd)
+            {
+                vAddFork.push_back(std::move(ctxt));
+            }
+            else
+            {
+                vRemoveFork.push_back(std::move(ctxt));
+            }
+        }
+    }
+
+    for (auto& ctxt : vRemoveFork)
+    {
+        forkSetMgr.Insert(ctxt);
+    }
+    for (auto& ctxt : vAddFork)
+    {
+        forkSetMgr.Insert(ctxt);
     }
 }
 
@@ -552,11 +613,6 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
         Error("F", "Failed to addnew forkcontext in %s", ctxt.hashFork.GetHex().c_str());
         return false;
     }
-    if (!dbBlock.ActivateFork(ctxt.hashFork))
-    {
-        Error("F", "Failed to activate fork in %s", ctxt.hashFork.GetHex().c_str());
-        return false;
-    }
     Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
     return true;
 }
@@ -574,6 +630,22 @@ bool CBlockBase::InactivateFork(const uint256& hashFork)
         return false;
     }
     Log("F", "Inactivate fork, hash=%s", hashFork.GetHex().c_str());
+    return true;
+}
+
+bool CBlockBase::ActivateFork(const uint256& hashFork)
+{
+    boost::shared_ptr<CBlockFork> spAddedFork = GetFork(hashFork);
+    if (spAddedFork != nullptr)
+    {
+        spAddedFork->SetActive();
+    }
+    if (!dbBlock.ActivateFork(hashFork))
+    {
+        Error("F", "Failed to activate fork in %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    Log("F", "Activate fork, hash=%s", hashFork.GetHex().c_str());
     return true;
 }
 
@@ -654,6 +726,13 @@ bool CBlockBase::RetrieveIndex(const uint256& hash, CBlockIndex** ppIndex)
 
     *ppIndex = GetIndex(hash);
     return (*ppIndex != nullptr);
+}
+
+bool CBlockBase::IsForkActive(const uint256& hash)
+{
+    CReadLock rlock(rwAccess);
+    boost::shared_ptr<CBlockFork> spFork = GetFork(hash);
+    return spFork != nullptr && spFork->IsActive();
 }
 
 bool CBlockBase::RetrieveFork(const uint256& hash, CBlockIndex** ppIndex)
@@ -925,10 +1004,13 @@ void CBlockBase::ListForkIndex(multimap<int, CBlockIndex*>& mapForkIndex)
     mapForkIndex.clear();
     for (map<uint256, boost::shared_ptr<CBlockFork>>::iterator it = mapFork.begin(); it != mapFork.end(); ++it)
     {
-        CReadLock rForkLock((*it).second->GetRWAccess());
+        if (it->second->IsActive())
+        {
+            CReadLock rForkLock((*it).second->GetRWAccess());
 
-        CBlockIndex* pIndex = (*it).second->GetLast();
-        mapForkIndex.insert(make_pair(pIndex->pOrigin->GetBlockHeight() - 1, pIndex));
+            CBlockIndex* pIndex = (*it).second->GetLast();
+            mapForkIndex.insert(make_pair(pIndex->pOrigin->GetBlockHeight() - 1, pIndex));
+        }
     }
 }
 
@@ -956,7 +1038,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
         hashOrigin = pIndex->GetOriginHash();
         spFork = GetFork(hashOrigin);
-        if (spFork == nullptr)
+        if (spFork == nullptr || !spFork->IsActive())
         {
             StdTrace("BlockBase", "GetBlockView::GetFork %s  failed", hashOrigin.ToString().c_str());
             return false;
@@ -990,12 +1072,13 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          p->GetBlockHash().ToString().c_str());
                 return false;
             }
+            uint256 hashBlock = block.GetHash();
             for (int j = block.vtx.size() - 1; j >= 0; j--)
             {
                 StdTrace("BlockBase",
                          "Chain rollback attempt[removed tx]: %s",
                          block.vtx[j].GetHash().ToString().c_str());
-                view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
+                view.RemoveTx(hashBlock, block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
                 ++nTxRemoved;
             }
             if (!block.txMint.IsNull())
@@ -1003,7 +1086,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 StdTrace("BlockBase",
                          "Chain rollback attempt[removed mint tx]: %s",
                          block.txMint.GetHash().ToString().c_str());
-                view.RemoveTx(block.txMint.GetHash(), block.txMint);
+                view.RemoveTx(hashBlock, block.txMint.GetHash(), block.txMint);
                 ++nTxRemoved;
             }
             view.RemoveBlock(p->GetBlockHash(), block);
@@ -1034,7 +1117,8 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          vPath[i]->GetBlockHash().ToString().c_str());
                 return false;
             }
-            view.AddTx(block.txMint.GetHash(), block.txMint);
+            uint256 hashBlock = block.GetHash();
+            view.AddTx(hashBlock, block.txMint.GetHash(), block.txMint);
             ++nTxAdded;
             for (int j = 0; j < block.vtx.size(); j++)
             {
@@ -1042,7 +1126,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          "Chain rollback attempt[added tx]: %s",
                          block.vtx[j].GetHash().ToString().c_str());
                 const CTxContxt& txContxt = block.vTxContxt[j];
-                view.AddTx(block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
+                view.AddTx(hashBlock, block.vtx[j].GetHash(), block.vtx[j], txContxt.destIn, txContxt.GetValueIn());
                 ++nTxAdded;
             }
             view.AddBlock(vPath[i]->GetBlockHash(), block);
@@ -1063,7 +1147,7 @@ bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
     {
         CReadLock rlock(rwAccess);
         spFork = GetFork(hashFork);
-        if (spFork == nullptr)
+        if (spFork == nullptr || !spFork->IsActive())
         {
             return false;
         }
@@ -1101,7 +1185,14 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew, const
             StdTrace("BlockBase", "CommitBlockView::AddNewFork %s  failed", hashFork.ToString().c_str());
             return false;
         }
-        spFork = AddNewFork(profile, pIndexNew);
+        if ((spFork = GetFork(pIndexNew->pOrigin->GetBlockHash())) == nullptr)
+        {
+            spFork = AddNewFork(profile, pIndexNew);
+        }
+        else
+        {
+            spFork->SetActive();
+        }
     }
 
     vector<pair<uint256, CTxIndex>> vTxNew;
@@ -1382,7 +1473,7 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
     CReadLock rlock(rwAccess);
 
     boost::shared_ptr<CBlockFork> spFork = GetFork(hashFork);
-    if (spFork == nullptr)
+    if (spFork == nullptr || !spFork->IsActive())
     {
         StdTrace("BlockBase", "GetForkBlockInv::GetFork %s failed", hashFork.ToString().c_str());
         return false;
@@ -1467,7 +1558,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         }
 
         boost::shared_ptr<CBlockFork> spFork = GetFork(get<0>(fork));
-        if (nullptr == spFork)
+        if (nullptr == spFork || (spFork->IsActive() == get<2>(fork)))
         {
             Error("B", "Get fork failed.");
             return false;
@@ -2294,9 +2385,10 @@ bool CBlockBase::GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut
 bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<pair<uint256, CTxIndex>>& vTxNew)
 {
     vector<CBlockIndex*> vPath;
-    if (view.GetFork() != nullptr && view.GetFork()->GetLast() != nullptr)
+    boost::shared_ptr<CBlockFork> spFork = view.GetFork();
+    if (spFork != nullptr && spFork->IsActive() && spFork->GetLast() != nullptr)
     {
-        GetBranch(view.GetFork()->GetLast(), pIndexNew, vPath);
+        GetBranch(spFork->GetLast(), pIndexNew, vPath);
     }
     else
     {

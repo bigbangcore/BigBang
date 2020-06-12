@@ -161,63 +161,60 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
 
     if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        // delete fork
-        for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
+        vector<CForkContextEx> vFork;
+        update.forkSetMgr.GetForkContextExList(vFork);
+        CForkContextEx curCtxt;
+        for (CForkContextEx& ctxt : vFork)
         {
-            for (const CTransaction& tx : block.vtx)
+            if (!ctxt.IsActive())
             {
-                uint256 txid = tx.GetHash();
-                if (!update.setTxUpdate.count(txid) && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
+                // delete fork
+                if (forkSetMgr.RetrieveByFork(ctxt.hashFork, curCtxt))
                 {
-                    CForkContextEx ctxt;
-                    if (forkSetMgr.RetrieveByTx(txid, ctxt))
+                    if (curCtxt.IsActive())
                     {
-                        if (ctxt.fActived)
+                        if (pBlockChain->InactivateFork(ctxt.hashFork))
                         {
-                            if (pBlockChain->InactivateFork(ctxt.hashFork))
+                            forkSetMgr.ChangeActive(ctxt.hashFork, false);
+                            if (mapForkSched.find(ctxt.hashFork) != mapForkSched.end())
                             {
-                                forkSetMgr.ChangeActived(ctxt.hashFork, false);
-                                if (mapForkSched.find(ctxt.hashFork) != mapForkSched.end())
-                                {
-                                    mapForkSched.erase(ctxt.hashFork);
-                                    vDeactive.push_back(ctxt.hashFork);
-                                }
+                                mapForkSched.erase(ctxt.hashFork);
+                                vDeactive.push_back(ctxt.hashFork);
                             }
-                            else
-                            {
-                                Error("fork manager inactivate fork fail, fork: %s, tx: %s", 
-                                    ctxt.hashFork.ToString().c_str(), txid.ToString().c_str());
-                            }
+                        }
+                        else
+                        {
+                            Error("fork manager inactivate fork fail, fork: %s", ctxt.hashFork.ToString().c_str());
                         }
                     }
                     else
                     {
-                        Error("fork manager delete fork fail, no fork tx: %s", txid.ToString().c_str());
+                        Error("fork manager inactivate fork fail, fork is already inactived, fork: %s", ctxt.hashFork.ToString().c_str());
                     }
-                }
-            }
-        }
-
-        // add fork
-        vector<CForkContextEx> vCtxt;
-        update.forkSetMgr.GetForkContextExList(vCtxt);
-        for (CForkContextEx& ctxt : vCtxt)
-        {
-            CForkContextEx tmpCtxt;
-            if (!forkSetMgr.RetrieveByFork(ctxt.hashFork, tmpCtxt) || !tmpCtxt.fActived)
-            {
-                if (pBlockChain->AddNewForkContext(ctxt))
-                {
-                    AddNewForkContext(ctxt, vActive);
                 }
                 else
                 {
-                    Error("fork manager add fork fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
+                    Error("fork manager delete fork fail, no fork: %s", ctxt.hashFork.ToString().c_str());
                 }
             }
-            else if (tmpCtxt.nCreatedHeight != ctxt.nCreatedHeight)
+            else
             {
-                forkSetMgr.ChangeCreatedHeight(ctxt.hashFork, ctxt.nCreatedHeight);
+                // add fork
+                if (!forkSetMgr.RetrieveByFork(ctxt.hashFork, curCtxt) || (curCtxt.txidEmbedded != ctxt.txidEmbedded) || !curCtxt.IsActive())
+                {
+                    if (pBlockChain->AddNewForkContext(ctxt))
+                    {
+                        AddNewForkContext(ctxt, vActive);
+                    }
+                    else
+                    {
+                        Error("fork manager add fork fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
+                    }
+                }
+                else if (curCtxt.nCreatedHeight != ctxt.nCreatedHeight)
+                {
+                    forkSetMgr.ChangeCreatedHeight(ctxt.hashFork, ctxt.nCreatedHeight);
+                }
             }
         }
     }
@@ -225,7 +222,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
 
 bool CForkManager::AddNewForkContext(CForkContextEx& ctxt, vector<uint256>& vActive)
 {
-    if (IsAllowedFork(ctxt.hashFork, ctxt.hashParent) && ctxt.fActived)
+    if (IsAllowedFork(ctxt.hashFork, ctxt.hashParent) && ctxt.fActive && !mapForkSched.count(ctxt.hashFork))
     {
         mapForkSched[ctxt.hashFork] = CForkSchedule(true);
 
@@ -254,8 +251,8 @@ bool CForkManager::AddNewForkContext(CForkContextEx& ctxt, vector<uint256>& vAct
                 break;
             }
 
-            CForkContext ctxtParent;
-            if (!pBlockChain->GetForkContext(hashParent, ctxtParent))
+            CForkContextEx ctxtParent;
+            if (!forkSetMgr.RetrieveByFork(hashParent, ctxtParent))
             {
                 return false;
             }
@@ -274,8 +271,8 @@ bool CForkManager::AddNewForkContext(CForkContextEx& ctxt, vector<uint256>& vAct
         {
             return false;
         }
-        forkSetMgr.Insert(ctxt);
     }
+    forkSetMgr.Insert(ctxt);
 
     return true;
 }
@@ -330,8 +327,8 @@ bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashPar
             return true;
         }
         uint256 hash = hashParent;
-        CForkContext ctxtParent;
-        while (hash != 0 && pBlockChain->GetForkContext(hash, ctxtParent))
+        CForkContextEx ctxtParent;
+        while (hash != 0 && forkSetMgr.RetrieveByFork(hash, ctxtParent))
         {
             if (setGroupAllowed.count(ctxtParent.hashParent))
             {

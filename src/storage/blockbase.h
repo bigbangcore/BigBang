@@ -127,6 +127,16 @@ protected:
 
 class CBlockView
 {
+    struct CViewTransaction
+    {
+        CViewTransaction() {}
+        CViewTransaction(const bool fAddIn, const uint256& hashBlockIn, const CTransaction& txIn)
+            : fAdd(fAddIn), hashBlock(hashBlockIn), tx(txIn) {}
+        bool fAdd;
+        uint256 hashBlock;
+        CTransaction tx;
+    };
+
 public:
     class CUnspent : public CTxOut
     {
@@ -174,18 +184,19 @@ public:
     bool ExistsTx(const uint256& txid) const;
     bool RetrieveTx(const uint256& txid, CTransaction& tx);
     bool RetrieveUnspent(const CTxOutPoint& out, CTxOut& unspent);
-    void AddTx(const uint256& txid, const CTransaction& tx, const CDestination& destIn = CDestination(), int64 nValueIn = 0);
-    void AddTx(const uint256& txid, const CAssembledTx& tx)
-    {
-        AddTx(txid, tx, tx.destIn, tx.nValueIn);
-    }
-    void RemoveTx(const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt = CTxContxt());
+    void AddTx(const uint256& hashBlock, const uint256& txid, const CTransaction& tx, const CDestination& destIn = CDestination(), int64 nValueIn = 0);
+    // void AddTx(const uint256& txid, const CAssembledTx& tx)
+    // {
+    //     AddTx(txid, tx, tx.destIn, tx.nValueIn);
+    // }
+    void RemoveTx(const uint256& hashBlock, const uint256& txid, const CTransaction& tx, const CTxContxt& txContxt = CTxContxt());
     void AddBlock(const uint256& hash, const CBlockEx& block);
     void RemoveBlock(const uint256& hash, const CBlockEx& block);
     void GetUnspentChanges(std::vector<CTxUnspent>& vAddNew, std::vector<CTxOutPoint>& vRemove);
     void GetTxUpdated(std::set<uint256>& setUpdate);
     void GetTxRemoved(std::vector<uint256>& vRemove);
     void GetBlockChanges(std::vector<CBlockEx>& vAdd, std::vector<CBlockEx>& vRemove) const;
+    void GetForkChanges(CForkSetManager& forkSetMgr);
 
 protected:
     void InsertBlockList(const uint256& hash, const CBlockEx& block, std::list<std::pair<uint256, CBlockEx>>& blockList);
@@ -195,7 +206,7 @@ protected:
     boost::shared_ptr<CBlockFork> spFork;
     uint256 hashFork;
     bool fCommittable;
-    std::map<uint256, CTransaction> mapTx;
+    std::map<uint256, CViewTransaction> mapTx;
     std::map<CTxOutPoint, CUnspent> mapUnspent;
     std::vector<uint256> vTxRemove;
     std::vector<uint256> vTxAddNew;
@@ -246,11 +257,13 @@ public:
     bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nMinEnrollAmount);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool InactivateFork(const uint256& hashFork);
+    bool ActivateFork(const uint256& hashFork);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
     bool Retrieve(const uint256& hash, CBlockEx& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlockEx& block);
     bool RetrieveIndex(const uint256& hash, CBlockIndex** ppIndex);
+    bool IsForkActive(const uint256& hash);
     bool RetrieveFork(const uint256& hash, CBlockIndex** ppIndex);
     bool RetrieveFork(const std::string& strName, CBlockIndex** ppIndex);
     bool RetrieveProfile(const uint256& hash, CProfile& profile);

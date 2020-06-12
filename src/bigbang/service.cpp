@@ -130,6 +130,20 @@ void CService::NotifyBlockChainUpdate(const CBlockChainUpdate& update)
         status.nLastBlockHeight = update.nLastBlockHeight;
         status.nMoneySupply = update.nMoneySupply;
         status.nMintType = update.nLastMintType;
+
+        // delete fork
+        if (update.hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            vector<CForkContextEx> vFork;
+            update.forkSetMgr.GetForkContextExList(vFork);
+            for (const CForkContextEx& ctxt : vFork)
+            {
+                if (!ctxt.IsActive())
+                {
+                    mapForkStatus.erase(ctxt.hashFork);
+                }
+            }
+        }
     }
 }
 
@@ -402,6 +416,10 @@ bool CService::RemovePendingTx(const uint256& txid)
 
 bool CService::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent)
 {
+    if (!HaveFork(hashFork))
+    {
+        return false;
+    }
     std::vector<CTxUnspent> vUnspentOnChain;
     if (pBlockChain->ListForkUnspent(hashFork, dest, nMax, vUnspentOnChain) && pTxPool->ListForkUnspent(hashFork, dest, nMax, vUnspentOnChain, vUnspent))
     {
@@ -548,6 +566,12 @@ bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToD
         StdError("CService", "SignTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return false;
     }
+
+    if (!HaveFork(hashFork))
+    {
+        return false;
+    }
+
     vector<CTxOut> vUnspent;
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
@@ -606,6 +630,11 @@ bool CService::GetBalance(const CDestination& dest, const uint256& hashFork, CWa
 
 bool CService::ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, vector<CWalletTx>& vWalletTx)
 {
+    if (!HaveFork(hashFork))
+    {
+        return false;
+    }
+
     if (nOffset < 0)
     {
         nOffset = pWallet->GetTxCount() - nCount;

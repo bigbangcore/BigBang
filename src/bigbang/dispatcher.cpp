@@ -188,6 +188,13 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return err;
     }
 
+    // update fork manager
+    vector<uint256> vForkActive, vForkDeactive;
+    if (!block.IsVacant())
+    {
+        pForkManager->ForkUpdate(updateBlockChain, vForkActive, vForkDeactive);
+    }
+
     CTxSetChange changeTxSet;
     if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet, pForkManager->GetForkSetManager()))
     {
@@ -218,26 +225,18 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     pService->NotifyBlockChainUpdate(updateBlockChain);
 
-    if (!block.IsVacant())
+    // deal fork change
+    for (const uint256 hashFork : vForkActive)
     {
-        vector<uint256> vActive, vDeactive;
-        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
-
-        for (const uint256 hashFork : vActive)
-        {
-            ActivateFork(hashFork, nNonce);
-        }
-
-        for (const uint256 hashFork : vDeactive)
-        {
-            pNetChannel->UnsubscribeFork(hashFork);
-        }
+        ActivateFork(hashFork, nNonce);
+    }
+    for (const uint256 hashFork : vForkDeactive)
+    {
+        pNetChannel->UnsubscribeFork(hashFork);
     }
 
     if (block.IsPrimary())
     {
-        // delay to clear txpool inactive fork for waiting to update forkmanager first
-        pTxPool->ClearInactiveFork();
         UpdatePrimaryBlock(block, updateBlockChain, changeTxSet, nNonce);
     }
 

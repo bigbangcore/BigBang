@@ -102,8 +102,7 @@ public:
     {
         SetNull();
     }
-    CBlockChainUpdate(CBlockIndex* pIndex, const CForkSetManager& forkSetMgrIn = CForkSetManager())
-        : forkSetMgr(forkSetMgrIn)
+    CBlockChainUpdate(CBlockIndex* pIndex)
     {
         hashFork = pIndex->GetOriginHash();
         hashParent = pIndex->GetParentHash();

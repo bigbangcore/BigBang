@@ -99,6 +99,11 @@ void CBlockChain::HandleHalt()
     cacheAgreement.Clear();
 }
 
+bool CBlockChain::IsForkActive(const uint256& hashFork)
+{
+    return cntrBlock.IsForkActive(hashFork);
+}
+
 void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 {
     mapForkStatus.clear();
@@ -361,7 +366,12 @@ bool CBlockChain::ListForkContext(vector<pair<CForkContext, bool>>& vForkCtxt)
 
 bool CBlockChain::AddNewForkContext(const CForkContext& ctxt)
 {
-    return cntrBlock.AddNewForkContext(ctxt);
+    if (!cntrBlock.AddNewForkContext(ctxt))
+    {
+        return false;
+    }
+
+    return cntrBlock.ActivateFork(ctxt.hashFork);
 }
 
 bool CBlockChain::InactivateFork(const uint256& hashFork)
@@ -380,18 +390,24 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         return ERR_ALREADY_HAVE;
     }
 
-    err = pCoreProtocol->ValidateBlock(block);
-    if (err != OK)
-    {
-        Log("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
-        return err;
-    }
-
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
         Log("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
+    }
+
+    if (!IsForkActive(pIndexPrev->GetOriginHash()))
+    {
+        Log("AddNewBlock fork is not active, fork : %s ", pIndexPrev->GetOriginHash().ToString().c_str());
+        return ERR_BLOCK_INVALID_FORK;
+    }
+
+    err = pCoreProtocol->ValidateBlock(block);
+    if (err != OK)
+    {
+        Log("AddNewBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
+        return err;
     }
 
     int64 nReward;
@@ -414,7 +430,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
 
     if (!block.IsVacant())
     {
-        view.AddTx(block.txMint.GetHash(), block.txMint);
+        view.AddTx(hash, block.txMint.GetHash(), block.txMint);
     }
 
     CBlockEx blockex(block);
@@ -435,6 +451,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
     }
 
     CForkSetManager unconfirmedForkSetMgr;
+    view.GetForkChanges(unconfirmedForkSetMgr);
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -459,7 +476,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         }
 
         vTxContxt.push_back(txContxt);
-        view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
+        view.AddTx(hash, txid, tx, txContxt.destIn, txContxt.GetValueIn());
 
         StdTrace("BlockChain", "AddNewBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
 
@@ -507,9 +524,10 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    update = CBlockChainUpdate(pIndexNew, move(unconfirmedForkSetMgr));
+    update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
+    update.forkSetMgr = move(unconfirmedForkSetMgr);
 
     StdLog("BlockChain", "AddNewBlock: Commit blockchain success, height: %d, block type: %s, add block: %ld, remove block: %ld, block tx count: %ld, block: %s, fork: %s",
            block.GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(),
@@ -558,10 +576,20 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     uint256 hash = block.GetHash();
     Errno err = OK;
 
-    if (cntrBlock.Exists(hash))
+    CBlockIndex* pIndexFork;
+    if (cntrBlock.RetrieveFork(hash, &pIndexFork))
     {
-        Log("AddNewOrigin Already Exists : %s ", hash.ToString().c_str());
-        return ERR_ALREADY_HAVE;
+        if (IsForkActive(hash))
+        {
+            Log("AddNewOrigin Already Exists : %s ", hash.ToString().c_str());
+            return ERR_ALREADY_HAVE;
+        }
+        else
+        {
+            // active fork
+            cntrBlock.ActivateFork(hash);
+            return OK;
+        }
     }
 
     err = pCoreProtocol->ValidateBlock(block);
@@ -640,7 +668,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 
     if (block.txMint.nAmount != 0)
     {
-        view.AddTx(block.txMint.GetHash(), block.txMint);
+        view.AddTx(hash, block.txMint.GetHash(), block.txMint);
     }
 
     // Get block trust
@@ -973,18 +1001,24 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const C
         return ERR_ALREADY_HAVE;
     }
 
-    err = pCoreProtocol->ValidateBlock(block);
-    if (err != OK)
-    {
-        Log("VerifyPowBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
-        return err;
-    }
-
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(block.hashPrev, &pIndexPrev))
     {
         Log("VerifyPowBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
+    }
+
+    if (!IsForkActive(pIndexPrev->GetOriginHash()))
+    {
+        Log("VerifyPowBlock fork is not active, fork : %s ", pIndexPrev->GetOriginHash().ToString().c_str());
+        return ERR_BLOCK_INVALID_FORK;
+    }
+
+    err = pCoreProtocol->ValidateBlock(block);
+    if (err != OK)
+    {
+        Log("VerifyPowBlock Validate Block Error(%s) : %s ", ErrorString(err), hash.ToString().c_str());
+        return err;
     }
 
     int64 nReward;
@@ -1007,7 +1041,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const C
 
     if (!block.IsVacant())
     {
-        view.AddTx(block.txMint.GetHash(), block.txMint);
+        view.AddTx(hash, block.txMint.GetHash(), block.txMint);
     }
 
     CBlockEx blockex(block);
@@ -1046,7 +1080,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const C
         }
 
         vTxContxt.push_back(txContxt);
-        view.AddTx(txid, tx, txContxt.destIn, txContxt.GetValueIn());
+        view.AddTx(hash, txid, tx, txContxt.destIn, txContxt.GetValueIn());
 
         StdTrace("BlockChain", "VerifyPowBlock: verify tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
 

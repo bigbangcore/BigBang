@@ -1068,7 +1068,7 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     return true;
 }
 
-Errno CCoreProtocol::VerifyForkTx(const CTransaction& stx, const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
 {
     if (hashFork != GetGenesisBlockHash())
     {
@@ -1076,20 +1076,20 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& stx, const uint256& hashFo
         return ERR_TRANSACTION_INVALID_FORK;
     }
 
-    if (stx.nAmount < CTemplateFork::CreatedCoin())
+    if (tx.nAmount < CTemplateFork::CreatedCoin())
     {
-        Log("VerifyForkTx creating fork nAmount must be at least %ld, tx amount: %ld ", CTemplateFork::CreatedCoin(), stx.nAmount);
+        Log("VerifyForkTx creating fork nAmount must be at least %ld, tx amount: %ld ", CTemplateFork::CreatedCoin(), tx.nAmount);
         return ERR_TRANSACTION_INVALID_FORK;
     }
 
-    uint256 txid = stx.GetHash();
+    uint256 txid = tx.GetHash();
 
     CBlock block;
     CProfile profile;
     try
     {
         CBufStream ss;
-        ss.Write((const char*)&stx.vchData[0], stx.vchData.size());
+        ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
         ss >> block;
         if (!block.IsOrigin() || block.IsPrimary() || !block.vtx.empty())
         {
@@ -1107,7 +1107,8 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& stx, const uint256& hashFo
     }
 
     CForkContextEx ctxtParent;
-    if (!forkSetMgr.RetrieveByName(profile.strName, ctxtParent) && !unconfirmedForkSetMgr.RetrieveByName(profile.strName, ctxtParent))
+    if ((!forkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent) && !unconfirmedForkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent))
+        || !ctxtParent.IsActive())
     {
         Log("VerifyForkTx Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
         return ERR_MISSING_PREV;

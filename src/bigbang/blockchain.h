@@ -18,6 +18,7 @@ class CBlockChain : public IBlockChain
 public:
     CBlockChain();
     ~CBlockChain();
+    bool IsForkActive(const uint256& hashFork) override;
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
     bool GetForkProfile(const uint256& hashFork, CProfile& profile) override;
     bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) override;

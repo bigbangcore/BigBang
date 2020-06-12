@@ -55,7 +55,7 @@ static const char* _ErrorString[] = {
     //ERR_BLOCK_SIGNATURE_INVALID,
     "block signature is invalid",
     //ERR_BLOCK_INVALID_FORK,
-    "block found invalid fork",
+    "fork of block is not exist or inactive",
     //ERR_BLOCK_CERTTX_OUT_OF_BOUND
     "cert transaction quantity out of bounds",
     /* transaction */
@@ -79,6 +79,8 @@ static const char* _ErrorString[] = {
     "transaction inputs are conflicting",
     //ERR_TRANSACTION_TOO_MANY_CERTTX,
     "transaction too many cert",
+    //ERR_TRANSACTION_INVALID_FORK,
+    "fork of transaction is not exist or inactive",
     /* wallet */
     //ERR_WALLET_INVALID_AMOUNT,
     "wallet amount is invalid",
