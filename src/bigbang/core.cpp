@@ -585,7 +585,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     // check creating fork tx
     if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        if (VerifyForkTx(tx, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        if (VerifyForkTx(tx, hashFork, nForkHeight, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
             return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
         }
@@ -686,7 +686,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     // check creating fork tx
     if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        if (VerifyForkTx(tx, hashFork, -1, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        if (VerifyForkTx(tx, hashFork, nForkHeight, -1, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
             return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
         }
@@ -1068,7 +1068,7 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     return true;
 }
 
-Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nBlockHeight,
+Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nForkHeight, const int nBlockHeight,
                                   const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
 {
     if (hashFork != GetGenesisBlockHash())
@@ -1152,11 +1152,19 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
         return err;
     }
 
+    // avoid joint block rollback
+    if (nForkHeight - profile.nJointHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT)
+    {
+        Log("The minimum confirmed height of the previous block is %d", MIN_CREATE_FORK_INTERVAL_HEIGHT);
+        return ERR_TRANSACTION_INVALID_FORK;
+    }
+
     unconfirmedForkSetMgr.Insert(CForkContextEx(block.GetHash(), block.hashPrev, txid, profile, nBlockHeight, true));
     return OK;
 }
 
-Errno CCoreProtocol::VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn, const uint256& hashFork, const int nForkHeight, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+Errno CCoreProtocol::VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn, const uint256& hashFork, const int nForkHeight,
+                                    const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
 {
     if (hashFork != GetGenesisBlockHash())
     {

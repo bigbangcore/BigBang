@@ -14,7 +14,7 @@ using namespace xengine;
 
 static const int64 COIN = 1000000;
 const int64 MORTGAGE_BASE = 100000 * COIN;  // initial mortgage
-const int32 MORTGAGE_DECAY_CYCLE = 525600;  // decay cycle
+const int32 MORTGAGE_DECAY_CYCLE = 60 * 24 * 90;  // decay cycle
 const double MORTGAGE_DECAY_QUANTITY = 0.5; // decay quantity
 
 //////////////////////////////

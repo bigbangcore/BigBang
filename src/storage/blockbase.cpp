@@ -1558,7 +1558,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
         }
 
         boost::shared_ptr<CBlockFork> spFork = GetFork(get<0>(fork));
-        if (nullptr == spFork || (spFork->IsActive() == get<2>(fork)))
+        if (nullptr == spFork || (spFork->IsActive() != get<2>(fork)))
         {
             Error("B", "Get fork failed.");
             return false;

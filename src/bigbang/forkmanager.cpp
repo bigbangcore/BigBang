@@ -181,6 +181,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
                                 mapForkSched.erase(ctxt.hashFork);
                                 vDeactive.push_back(ctxt.hashFork);
                             }
+                            Log("fork manager inactivate fork: %s", ctxt.hashFork.ToString().c_str());
                         }
                         else
                         {
@@ -205,6 +206,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
                     if (pBlockChain->AddNewForkContext(ctxt))
                     {
                         AddNewForkContext(ctxt, vActive);
+                        Log("fork manager add fork: %s, height: %d", ctxt.hashFork.ToString().c_str(), ctxt.nCreatedHeight);
                     }
                     else
                     {
@@ -214,6 +216,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
                 else if (curCtxt.nCreatedHeight != ctxt.nCreatedHeight)
                 {
                     forkSetMgr.ChangeCreatedHeight(ctxt.hashFork, ctxt.nCreatedHeight);
+                    Log("fork manager change fork created height, fork: %s, height: %d", ctxt.hashFork.ToString().c_str(), ctxt.nCreatedHeight);
                 }
             }
         }

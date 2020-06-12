@@ -228,10 +228,12 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     // deal fork change
     for (const uint256 hashFork : vForkActive)
     {
+        Log("Activing fork: %s", hashFork.ToString().c_str());
         ActivateFork(hashFork, nNonce);
     }
     for (const uint256 hashFork : vForkDeactive)
     {
+        Log("Deactiving fork: %s", hashFork.ToString().c_str());
         pNetChannel->UnsubscribeFork(hashFork);
     }
 
