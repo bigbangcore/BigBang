@@ -105,7 +105,8 @@ protected:
         GET_BLOCKS_INTERVAL_DEF_TIME = 120,
         GET_BLOCKS_INTERVAL_EQUAL_TIME = 600,
         PUSHTX_TIMEOUT = 1000,
-        SYNTXINV_TIMEOUT = 1000 * 60
+        SYNTXINV_TIMEOUT = 1000 * 60,
+        MAX_TXINV_INTERVAL_TIME = 180
     };
     enum
     {
