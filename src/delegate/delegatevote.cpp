@@ -84,7 +84,7 @@ void CDelegateVote::CreateDelegate(const set<CDestination>& setDelegate)
     }
 }
 
-void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned char>>& mapEnrollData, const uint256& block_hash)
+void CDelegateVote::Setup(size_t nMaxThresh)
 {
     for (map<CDestination, CSecretShare>::iterator it = mapDelegate.begin(); it != mapDelegate.end(); ++it)
     {
@@ -92,10 +92,14 @@ void CDelegateVote::Setup(size_t nMaxThresh, map<CDestination, vector<unsigned c
         CMPSealedBox sealed;
         delegate.Setup(nMaxThresh, sealed);
 
-        CODataStream os(mapEnrollData[(*it).first]);
+        CODataStream os(mapSetupEnrollData[(*it).first]);
         os << sealed.nPubKey << sealed.vEncryptedCoeff << sealed.nR << sealed.nS;
     }
-    blockHash = block_hash;
+}
+
+void CDelegateVote::GetSetupData(map<CDestination, vector<unsigned char>>& mapEnrollData)
+{
+    mapEnrollData = mapSetupEnrollData;
 }
 
 void CDelegateVote::Distribute(map<CDestination, std::vector<unsigned char>>& mapDistributeData)

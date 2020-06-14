@@ -10,9 +10,9 @@
 using namespace std;
 using namespace xengine;
 
-#define ENROLLED_CACHE_COUNT (120)
-#define AGREEMENT_CACHE_COUNT (16)
-#define WITNESS_CACHE_COUNT (120)
+#define ENROLLED_CACHE_COUNT (2048)
+#define AGREEMENT_CACHE_COUNT (1024)
+#define WITNESS_CACHE_COUNT (1024)
 #define POWHASH_CACHE_COUNT (4096)
 
 namespace bigbang
@@ -1249,10 +1249,10 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 {
     agreement.Clear();
 
-    if (cacheAgreement.Retrieve(hashBlock, agreement))
+    /*if (cacheAgreement.Retrieve(hashBlock, agreement))
     {
         return true;
-    }
+    }*/
 
     if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
     {

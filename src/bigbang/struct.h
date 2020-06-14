@@ -382,17 +382,33 @@ public:
 };
 
 /* Verify data */
+class CDposVerify
+{
+public:
+    CDposVerify() {}
+    CDposVerify(const CBlockChainUpdate& updateBlockChainIn, const CTxSetChange& changeTxSetIn)
+      : updateBlockChain(updateBlockChainIn), changeTxSet(changeTxSetIn) {}
+
+public:
+    CBlockChainUpdate updateBlockChain;
+    CTxSetChange changeTxSet;
+};
+
 class CVerifyData
 {
 public:
     CVerifyData()
-      : nNonce(0), nType(VERIFY_TYPE_NON), pData(nullptr) {}
-    CVerifyData(const uint64& nNonceIn, const uint256& hashForkIn, uint32 nTypeIn, CBlock* pBlock)
-      : nNonce(nNonceIn), hashFork(hashForkIn), nType(nTypeIn), pData((void*)pBlock)
+      : nNonce(0), nIndex(0), nType(VERIFY_TYPE_NON), pData(nullptr) {}
+    CVerifyData(const uint64& nNonceIn, const uint256& hashForkIn, CBlock* pBlock)
+      : nNonce(nNonceIn), hashFork(hashForkIn), nIndex(0), nType(VERIFY_TYPE_BLOCK_POW), pData((void*)pBlock)
+    {
+    }
+    CVerifyData(const uint64& nNonceIn, const uint64& nIndexIn, const CDposVerify* pDpos)
+      : nNonce(nNonceIn), nIndex(nIndexIn), nType(VERIFY_TYPE_BLOCK_DPOS), pData((void*)pDpos)
     {
     }
     CVerifyData(const uint64& nNonceIn, const uint256& hashForkIn, CTransaction* pTx)
-      : nNonce(nNonceIn), hashFork(hashForkIn), nType(VERIFY_TYPE_TX), pData((void*)pTx)
+      : nNonce(nNonceIn), hashFork(hashForkIn), nIndex(0), nType(VERIFY_TYPE_TX), pData((void*)pTx)
     {
     }
     ~CVerifyData()
@@ -410,6 +426,7 @@ public:
 public:
     uint64 nNonce;
     uint256 hashFork;
+    uint64 nIndex;
     uint32 nType;
     void* pData;
 };

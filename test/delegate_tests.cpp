@@ -36,7 +36,8 @@ BOOST_AUTO_TEST_CASE(delegate)
     // init
     {
         vote.CreateDelegate(setDelegate);
-        vote.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
+        vote.Setup(MAX_DELEGATE_THRESH);
+        vote.GetSetupData(result.mapEnrollData);
         std::cout << "Setup complete\n";
     }
 
@@ -104,7 +105,8 @@ BOOST_AUTO_TEST_CASE(delegate_success)
     // init
     {
         vote1.CreateDelegate(setDelegate);
-        vote1.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
+        vote1.Setup(MAX_DELEGATE_THRESH);
+        vote1.GetSetupData(result.mapEnrollData);
         std::cout << "Setup complete\n";
     }
 
@@ -174,7 +176,8 @@ BOOST_AUTO_TEST_CASE(delegate_fail)
     // init
     {
         vote1.CreateDelegate(setDelegate);
-        vote1.Setup(MAX_DELEGATE_THRESH, result.mapEnrollData, uint256(1));
+        vote1.Setup(MAX_DELEGATE_THRESH);
+        vote1.GetSetupData(result.mapEnrollData);
         std::cout << "Setup complete\n";
     }
 
@@ -182,7 +185,8 @@ BOOST_AUTO_TEST_CASE(delegate_fail)
     {
         vote.CreateDelegate(setDelegate);
         std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
-        vote.Setup(MAX_DELEGATE_THRESH, mapEnrollData, uint256(1));
+        vote.Setup(MAX_DELEGATE_THRESH);
+        vote.GetSetupData(mapEnrollData);
 
         vote.Enroll(mapWeight, result.mapEnrollData);
         std::cout << "Enroll complete\n";
@@ -255,7 +259,8 @@ BOOST_AUTO_TEST_CASE(delegate_more)
         for (int i = 0; i < vDestDelegate.size(); i++)
         {
             mapVote[i].CreateDelegate(mapDelegate[i]);
-            mapVote[i].Setup(MAX_DELEGATE_THRESH, mapResult[i].mapEnrollData, uint256(i + 1));
+            mapVote[i].Setup(MAX_DELEGATE_THRESH);
+            mapVote[i].GetSetupData(mapResult[i].mapEnrollData);
             std::cout << "[" << i << "] Setup complete, enroll data size: " << mapResult[i].mapEnrollData[vDestDelegate[i]].size() << endl;
         }
     }

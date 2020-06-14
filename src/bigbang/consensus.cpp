@@ -356,6 +356,52 @@ void CConsensus::HandleHalt()
     }
 }
 
+void CConsensus::BlockEnroll(const uint256& hashBlock)
+{
+    if (!pCoreProtocol->IsDposHeight(CBlock::GetBlockHeightByHash(hashBlock)))
+    {
+        return;
+    }
+
+    delegate::CDelegateVote vote;
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        if (!delegate.SetupDistribute(hashBlock, vote))
+        {
+            return;
+        }
+    }
+
+    CDelegateEnrolled enrolled;
+    if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+    {
+        StdError("CConsensus", "BlockEnroll: GetBlockDelegateEnrolled fail, hash: %s", hashBlock.GetHex().c_str());
+        {
+            boost::unique_lock<boost::mutex> lock(mutex);
+            delegate.RemoveDistribute(hashBlock);
+        }
+        return;
+    }
+    delegate::CSecretShare witness = vote.Enroll(enrolled.mapWeight, enrolled.mapEnrollData);
+    if (witness.IsWitnessEnrolled())
+    {
+        vote.is_enroll = true;
+        pBlockChain->AddNewWitness(hashBlock, witness);
+    }
+
+    {
+        boost::unique_lock<boost::mutex> lock(mutex);
+        if (vote.is_enroll)
+        {
+            delegate.SetEnroll(hashBlock, vote);
+        }
+        else
+        {
+            delegate.RemoveDistribute(hashBlock);
+        }
+    }
+}
+
 void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine)
 {
     boost::unique_lock<boost::mutex> lock(mutex);

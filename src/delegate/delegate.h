@@ -45,6 +45,10 @@ public:
     void AddNewDelegate(const CDestination& destDelegate);
     void RemoveDelegate(const CDestination& destDelegate);
 
+    bool SetupDistribute(const uint256& hashBlock, CDelegateVote& vote);
+    void SetEnroll(const uint256& hashBlock, const CDelegateVote& vote);
+    void RemoveDistribute(const uint256& hashBlock);
+
     void Evolve(int nBlockHeight, const std::map<CDestination, std::size_t>& mapWeight,
                 const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData,
                 CDelegateEvolveResult& result, const uint256& hashBlock);

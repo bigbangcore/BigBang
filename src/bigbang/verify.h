@@ -27,20 +27,29 @@ protected:
 
 public:
     bool AddPowBlockVerify(const uint64& nNonce, const uint256& hashFork, const CBlock& block) override;
+    bool AddDposBlockVerify(const uint64& nNonce, const CDposVerify* pDpos) override;
 
 protected:
     void VerifyThreadFunc();
     void VerifyData(CVerifyData& verifyData);
+    void CommitDposVerify(CVerifyData& verifyData);
+    void Release();
 
 protected:
+    IDispatcher* pDispatcher;
     IBlockChain* pBlockChain;
     network::INetChannel* pNetChannel;
+    IConsensus* pConsensus;
 
     uint32 nVerifyThreadCount;
     std::vector<xengine::CThread> vVerifyThread;
     bool fExit;
 
     xengine::CMthQueue<CVerifyData> qVerifyData;
+
+    boost::mutex mtxDposIndex;
+    std::map<uint64, CDposVerify*> mapDposIndex;
+    uint64 nDposIndexCreate;
 };
 
 } // namespace bigbang

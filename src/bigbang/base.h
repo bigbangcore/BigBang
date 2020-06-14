@@ -221,6 +221,7 @@ public:
     {
         return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
     }
+    virtual void BlockEnroll(const uint256& hashBlock) = 0;
     virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
     virtual void AddNewTx(const CAssembledTx& tx) = 0;
     virtual bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
@@ -305,6 +306,7 @@ public:
                                const std::vector<unsigned char>& vchPublish)
         = 0;
     virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
+    virtual void ConsensusUpdate(const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce) = 0;
 };
 
 class IService : public xengine::IBase
@@ -416,6 +418,7 @@ public:
     IVerify()
       : IBase("verify") {}
     virtual bool AddPowBlockVerify(const uint64& nNonce, const uint256& hashFork, const CBlock& block) = 0;
+    virtual bool AddDposBlockVerify(const uint64& nNonce, const CDposVerify* pDpos) = 0;
 };
 
 } // namespace bigbang

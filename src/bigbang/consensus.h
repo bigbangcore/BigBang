@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "delegate.h"
+#include "delegatevote.h"
 #include "delegatevotesave.h"
 
 namespace bigbang
@@ -95,6 +96,7 @@ class CConsensus : public IConsensus
 public:
     CConsensus();
     ~CConsensus();
+    void BlockEnroll(const uint256& hashBlock) override;
     void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) override;
     void AddNewTx(const CAssembledTx& tx) override;
     bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;

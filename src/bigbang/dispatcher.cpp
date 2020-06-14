@@ -32,6 +32,7 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pVerify = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -105,6 +106,12 @@ bool CDispatcher::HandleInitialize()
         Error("Failed to request datastat");
         return false;
     }
+
+    if (!GetObject("verify", pVerify))
+    {
+        Error("Failed to request verify");
+        return false;
+    }
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
     return true;
 }
@@ -122,6 +129,7 @@ void CDispatcher::HandleDeinitialize()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pVerify = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -323,21 +331,8 @@ void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
     pNetChannel->SubmitCachePowBlock(consParam);
 }
 
-void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
+void CDispatcher::ConsensusUpdate(const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
-    if (!strCmd.empty())
-    {
-        std::string cmd = strCmd;
-        std::string block_hash = " " + updateBlockChain.hashFork.GetHex();
-        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
-        {
-            block_hash += " " + ite->GetHash().GetHex();
-        }
-        cmd += block_hash;
-        static std::future<int> fut;
-        fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
-    }
-
     CDelegateRoutine routineDelegate;
     pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
@@ -366,6 +361,62 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
                 tx.vInput[0].prevout.hash.GetHex().c_str());
         }
     }
+}
+
+void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
+{
+    if (!strCmd.empty())
+    {
+        std::string cmd = strCmd;
+        std::string block_hash = " " + updateBlockChain.hashFork.GetHex();
+        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
+        {
+            block_hash += " " + ite->GetHash().GetHex();
+        }
+        cmd += block_hash;
+        static std::future<int> fut;
+        fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
+    }
+
+    CDposVerify* pDpos = new CDposVerify(updateBlockChain, changeTxSet);
+    if (pDpos != nullptr)
+    {
+        if (!pVerify->AddDposBlockVerify(nNonce, pDpos))
+        {
+            delete pDpos;
+            pDpos = nullptr;
+        }
+    }
+
+    /*
+    CDelegateRoutine routineDelegate;
+    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+
+    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
+                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
+
+    for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    {
+        if (tx.vInput.size() == 0)
+        {
+            Error("Send DelegateTx: tx.vInput.size() == 0.");
+            continue;
+        }
+        Errno err = AddNewTx(tx, nNonce);
+        if (err == OK)
+        {
+            Log("Send DelegateTx success, txid: %s, previd: %s.",
+                tx.GetHash().GetHex().c_str(),
+                tx.vInput[0].prevout.hash.GetHex().c_str());
+        }
+        else
+        {
+            Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
+                err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+                tx.vInput[0].prevout.hash.GetHex().c_str());
+        }
+    }*/
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
     if (pBlockMakerUpdate != nullptr)

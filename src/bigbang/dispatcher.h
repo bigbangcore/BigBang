@@ -23,6 +23,7 @@ public:
     bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
     void SetConsensus(const CAgreementBlock& agreeBlock) override;
+    void ConsensusUpdate(const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce) override;
 
 protected:
     bool HandleInitialize() override;
@@ -46,6 +47,7 @@ protected:
     network::INetChannel* pNetChannel;
     network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
+    IVerify* pVerify;
     std::string strCmd;
 };
 

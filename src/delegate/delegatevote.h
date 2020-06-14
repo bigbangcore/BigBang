@@ -95,12 +95,13 @@ public:
     ~CDelegateVote();
     void CreateDelegate(const std::set<CDestination>& setDelegate);
 
-    void Setup(std::size_t nMaxThresh, std::map<CDestination, std::vector<unsigned char>>& mapEnrollData, const uint256& block_hash);
+    void Setup(std::size_t nMaxThresh);
+    void GetSetupData(std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
     void Distribute(std::map<CDestination, std::vector<unsigned char>>& mapDistributeData);
     void Publish(std::map<CDestination, std::vector<unsigned char>>& mapPublishData);
 
     CSecretShare Enroll(const std::map<CDestination, size_t>& mapWeight,
-                const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
+                        const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
     bool Accept(const CDestination& destFrom, const std::vector<unsigned char>& vchDistributeData);
     bool Collect(const CDestination& destFrom, const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
     void GetAgreement(uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
@@ -116,6 +117,7 @@ protected:
         s.Serialize(mapDelegate, opt);
         s.Serialize(witness, opt);
         s.Serialize(vCollected, opt);
+        s.Serialize(mapSetupEnrollData, opt);
 
         s.Serialize(blockHash, opt);
         s.Serialize(is_enroll, opt);
@@ -130,6 +132,7 @@ protected:
     CSecretShare witness;
 
     std::vector<CDelegateData> vCollected;
+    std::map<CDestination, std::vector<unsigned char>> mapSetupEnrollData;
 
 public:
     uint256 blockHash;
