@@ -41,7 +41,7 @@ public:
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
-    virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
+    virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev, const uint256& hashPow) = 0;
     virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
                                               const CDelegateAgreement& agreement)
         = 0;
@@ -152,6 +152,7 @@ public:
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual uint256 GetPowHash(const CBlock& block) = 0;
 
     const CBasicConfig* Config()
     {
@@ -407,6 +408,14 @@ public:
     {
         return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
     }
+};
+
+class IVerify : public xengine::IBase
+{
+public:
+    IVerify()
+      : IBase("verify") {}
+    virtual bool AddPowBlockVerify(const uint64& nNonce, const uint256& hashFork, const CBlock& block) = 0;
 };
 
 } // namespace bigbang

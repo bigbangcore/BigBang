@@ -381,6 +381,39 @@ public:
     uint64 nSynSendTxTPS;
 };
 
+/* Verify data */
+class CVerifyData
+{
+public:
+    CVerifyData()
+      : nNonce(0), nType(VERIFY_TYPE_NON), pData(nullptr) {}
+    CVerifyData(const uint64& nNonceIn, const uint256& hashForkIn, uint32 nTypeIn, CBlock* pBlock)
+      : nNonce(nNonceIn), hashFork(hashForkIn), nType(nTypeIn), pData((void*)pBlock)
+    {
+    }
+    CVerifyData(const uint64& nNonceIn, const uint256& hashForkIn, CTransaction* pTx)
+      : nNonce(nNonceIn), hashFork(hashForkIn), nType(VERIFY_TYPE_TX), pData((void*)pTx)
+    {
+    }
+    ~CVerifyData()
+    {
+    }
+
+    enum
+    {
+        VERIFY_TYPE_NON = 0,
+        VERIFY_TYPE_BLOCK_POW = 1,
+        VERIFY_TYPE_BLOCK_DPOS = 2,
+        VERIFY_TYPE_TX = 3,
+    };
+
+public:
+    uint64 nNonce;
+    uint256 hashFork;
+    uint32 nType;
+    void* pData;
+};
+
 } // namespace bigbang
 
 #endif // BIGBANG_STRUCT_H

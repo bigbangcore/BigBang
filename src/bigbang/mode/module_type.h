@@ -30,6 +30,7 @@ enum class EModuleType
     FORKMANAGER,      // CForkManager
     DATASTAT,         // CDataStat
     RECOVERY,         // CRecovery
+    VERIFY,           // CVerify
 };
 
 } // namespace bigbang

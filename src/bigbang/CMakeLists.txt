@@ -49,6 +49,7 @@ set(src
     datastat.cpp        datastat.h
     recovery.cpp        recovery.h
     checkrepair.cpp     checkrepair.h
+    verify.cpp          verify.h
     event.h
     base.h
     struct.h

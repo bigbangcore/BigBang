@@ -96,6 +96,7 @@ public:
     bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
     bool IsLocalCachePowBlock(int nHeight) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
+    bool AddVerifyPowBlock(const uint64& nNonce, const uint256& hashFork, const CBlock& block) override;
 
 protected:
     enum
@@ -179,6 +180,7 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     IConsensus* pConsensus;
+    IVerify* pVerify;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;

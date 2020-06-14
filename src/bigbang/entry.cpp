@@ -21,13 +21,14 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
+#include "verify.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -402,6 +403,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::RECOVERY:
         {
             if (!AttachModule(new CRecovery()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::VERIFY:
+        {
+            if (!AttachModule(new CVerify()))
             {
                 return false;
             }

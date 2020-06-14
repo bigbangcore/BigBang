@@ -232,6 +232,7 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pVerify = nullptr;
     nTimerPushTx = 0;
 }
 
@@ -278,6 +279,12 @@ bool CNetChannel::HandleInitialize()
     }
 
     if (!GetObject("consensus", pConsensus))
+    {
+        Error("Failed to request consensus\n");
+        return false;
+    }
+
+    if (!GetObject("verify", pVerify))
     {
         Error("Failed to request consensus\n");
         return false;
@@ -590,6 +597,11 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
         InnerSubmitCachePowBlock();
     }
     return ret;
+}
+
+bool CNetChannel::AddVerifyPowBlock(const uint64& nNonce, const uint256& hashFork, const CBlock& block)
+{
+    return pVerify->AddPowBlockVerify(nNonce, hashFork, block);
 }
 
 bool CNetChannel::HandleEvent(network::CEventLocalBroadcastInv& evenBroadcastInv)

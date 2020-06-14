@@ -404,7 +404,7 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     return OK;
 }
 
-Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev)
+Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev, const uint256& hashPow)
 {
     if (block.vchProof.size() < CProofOfHashWorkCompact::PROOFHASHWORK_SIZE)
     {
@@ -452,14 +452,14 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
 
-    vector<unsigned char> vchProofOfWork;
+    /*vector<unsigned char> vchProofOfWork;
     block.GetSerializedProofOfWorkData(vchProofOfWork);
-    uint256 hash = crypto::CryptoPowHash(&vchProofOfWork[0], vchProofOfWork.size());
+    uint256 hash = crypto::CryptoPowHash(&vchProofOfWork[0], vchProofOfWork.size());*/
 
-    if (hash > hashTarget)
+    if (hashPow > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error: proof[%s] vs. target[%s] with bits[%d]",
-                     hash.ToString().c_str(), hashTarget.ToString().c_str(), nBits);
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hashPow error: proof[%s] vs. target[%s] with bits[%d]",
+                     hashPow.ToString().c_str(), hashTarget.ToString().c_str(), nBits);
     }
 
     return OK;

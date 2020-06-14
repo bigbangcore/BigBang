@@ -582,13 +582,34 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         case PROTO_CMD_BLOCK:
         {
-            CEventPeerBlock* pEvent = new CEventPeerBlock(pBbPeer->GetNonce(), hashFork);
+            /*CEventPeerBlock* pEvent = new CEventPeerBlock(pBbPeer->GetNonce(), hashFork);
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
                 CInv inv(CInv::MSG_BLOCK, pEvent->data.GetHash());
                 CancelTimer(pBbPeer->Responded(inv));
                 pNetChannel->PostEvent(pEvent);
+                return true;
+            }*/
+            CEventPeerBlock* pEvent = new CEventPeerBlock(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                CInv inv(CInv::MSG_BLOCK, pEvent->data.GetHash());
+                CancelTimer(pBbPeer->Responded(inv));
+                if (pEvent->data.IsPrimary() && pEvent->data.IsProofOfWork())
+                {
+                    if (!pNetChannel->AddVerifyPowBlock(pBbPeer->GetNonce(), hashFork, pEvent->data))
+                    {
+                        delete pEvent;
+                        return false;
+                    }
+                    delete pEvent;
+                }
+                else
+                {
+                    pNetChannel->PostEvent(pEvent);
+                }
                 return true;
             }
         }

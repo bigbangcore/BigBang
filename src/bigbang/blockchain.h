@@ -64,6 +64,7 @@ public:
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     void AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    uint256 GetPowHash(const CBlock& block) override;
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const override;
@@ -72,6 +73,7 @@ public:
     CCheckPoint LatestCheckPoint() const override;
     bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(CBlock& block) override;
+
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -100,6 +102,7 @@ protected:
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
     xengine::CCache<uint256, delegate::CSecretShare> cacheWitness;
+    xengine::CCache<uint256, uint256> cachePowHash;
     std::map<int, CCheckPoint> mapCheckPoints;
     std::vector<CCheckPoint> vecCheckPoints;
 };

@@ -13,6 +13,7 @@ using namespace xengine;
 #define ENROLLED_CACHE_COUNT (120)
 #define AGREEMENT_CACHE_COUNT (16)
 #define WITNESS_CACHE_COUNT (120)
+#define POWHASH_CACHE_COUNT (4096)
 
 namespace bigbang
 {
@@ -21,7 +22,8 @@ namespace bigbang
 // CBlockChain
 
 CBlockChain::CBlockChain()
-  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT), cacheWitness(WITNESS_CACHE_COUNT)
+  : cacheEnrolled(ENROLLED_CACHE_COUNT), cacheAgreement(AGREEMENT_CACHE_COUNT),
+    cacheWitness(WITNESS_CACHE_COUNT), cachePowHash(POWHASH_CACHE_COUNT)
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
@@ -1139,6 +1141,20 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     return OK;
 }
 
+uint256 CBlockChain::GetPowHash(const CBlock& block)
+{
+    uint256 hashPow;
+    uint256 hashBlock = block.GetHash();
+    if (!cachePowHash.Retrieve(hashBlock, hashPow))
+    {
+        vector<unsigned char> vchProofOfWork;
+        block.GetSerializedProofOfWorkData(vchProofOfWork);
+        hashPow = crypto::CryptoPowHash(&vchProofOfWork[0], vchProofOfWork.size());
+        cachePowHash.AddNew(hashBlock, hashPow);
+    }
+    return hashPow;
+}
+
 void CBlockChain::AddNewWitness(const uint256& hashBlock, const delegate::CSecretShare& witness)
 {
     cacheWitness.AddNew(hashBlock, witness);
@@ -1233,6 +1249,11 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 {
     agreement.Clear();
 
+    if (cacheAgreement.Retrieve(hashBlock, agreement))
+    {
+        return true;
+    }
+
     if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
     {
         return true;
@@ -1251,7 +1272,17 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
         return false;
     }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    delegate::CSecretShare witness;
+    delegate::CDelegateVerify verifier;
+    if (cacheWitness.Retrieve(pIndex->GetBlockHash(), witness))
+    {
+        verifier.Enroll(witness);
+    }
+    else
+    {
+        verifier.Enroll(enrolled.mapWeight, enrolled.mapEnrollData);
+    }
+
     map<CDestination, size_t> mapBallot;
     if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
     {
@@ -1355,9 +1386,16 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
-        if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollTrust))
+        if (block.IsProofOfWork())
         {
-            return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            agreement.Clear();
+        }
+        else
+        {
+            if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollTrust))
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
         }
 
         if (!GetBlockMintReward(block.hashPrev, nReward))
@@ -1371,13 +1409,13 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             {
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
-            return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+            return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev, GetPowHash(block));
         }
         else
         {
             if (agreement.IsProofOfWork())
             {
-                return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+                return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev, GetPowHash(block));
             }
             else
             {

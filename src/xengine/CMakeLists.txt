@@ -36,6 +36,7 @@ set(sources
     http/httputil.cpp       http/httputil.h
     http/httpserver.cpp     http/httpserver.h
     http/httpget.cpp        http/httpget.h
+    nbase/mthbase.cpp       nbase/mthbase.h
     db/kvdb.h
     stream/datastream.h
     docker/log.h  
