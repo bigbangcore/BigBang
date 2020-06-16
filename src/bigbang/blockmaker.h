@@ -106,6 +106,7 @@ protected:
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
+    int nNodeCat;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IForkManager* pForkManager;

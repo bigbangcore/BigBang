@@ -645,7 +645,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //if (topicReqBlk != clientID)
 
             //notify to add new block
-            err = pDispatcher->AddNewBlock(resp.block);
+            Errno err = pDispatcher->AddNewBlock(resp.block);
             if (err != OK)
             {
                 Error("CMQCluster::OnReceiveMessage(): failed to add new block (%d) : %s height[%d]\n",

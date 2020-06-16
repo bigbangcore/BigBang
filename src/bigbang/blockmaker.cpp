@@ -137,7 +137,7 @@ bool CBlockMaker::HandleInitialize()
         }
     }
 
-    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
     if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && NODE_CAT_FORKNODE != nNodeCat)
     {
         CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
@@ -379,31 +379,44 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
     {
         CBlockMakerProfile& profile = (*it).second;
 
-        CBlock block;
-        PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.agreement);
-
-        // get block time
-        block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
-        if (block.nTimeStamp == 0)
+        if (NODE_CAT_DPOSNODE == nNodeCat)
         {
-            Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
+            Log("before generating primary-dpos...");
+            CBlock block;
+            PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.agreement);
+
+            // get block time
+            block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
+            if (block.nTimeStamp == 0)
+            {
+                Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
+                return;
+            }
+
+            // create DPoS primary block
+            if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
+            {
+                Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
+                return;
+            }
+
+            // dispatch DPoS primary block
+            if (DispatchBlock(block))
+            {
+                pDispatcher->SetConsensus(consParam);
+            }
+            Log("...after generated primary-dpos");
         }
 
-        // create DPoS primary block
-        if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
+        if (NODE_CAT_FORKNODE == nNodeCat)
         {
-            Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
-        }
-
-        // dispatch DPoS primary block
-        if (DispatchBlock(block))
-        {
-            pDispatcher->SetConsensus(consParam);
+            Log("before generating subsidiary-dpos and extended...");
+            //todo: need something else to prepare?
 
             // create sub fork blocks
-            ProcessSubFork(profile, consParam.agreement, block.GetHash(), block.GetBlockTime(), consParam.nPrevHeight, consParam.nPrevMintType);
+            ProcessSubFork(profile, consParam.agreement, consParam.hashPrev, consParam.nPrevTime,
+                           consParam.nPrevHeight, consParam.nPrevMintType);
+            Log("...after generated subsidiary-dpos and extended");
         }
     }
 }
@@ -674,6 +687,7 @@ bool CBlockMaker::CreateProofOfWork()
 
 void CBlockMaker::BlockMakerThreadFunc()
 {
+    Log("Entering DPOS block maker thread...")
     uint256 hashCachePrev;
     bool fCachePow = false;
     int64 nWaitTime = 1;
@@ -727,21 +741,22 @@ void CBlockMaker::BlockMakerThreadFunc()
             break;
         }
     }
-    Log("Block maker exited");
+    Log("...DPOS block maker thread exited normally");
 }
 
 void CBlockMaker::PowThreadFunc()
 {
+    Log("Entering POW block maker thread...")
     if (!WaitExit(5))
     {
-        Log("Pow exited non");
+        Log("...POW block maker thread exited without anything");
         return;
     }
     while (WaitExit(1))
     {
         CreateProofOfWork();
     }
-    Log("Pow exited");
+    Log("...POW block maker thread exited normally");
 }
 
 } // namespace bigbang
