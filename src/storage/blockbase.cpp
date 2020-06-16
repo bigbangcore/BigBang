@@ -372,6 +372,8 @@ CBlockBase::~CBlockBase()
 
 bool CBlockBase::Initialize(const uint256& hashGenesis, const path& pathDataLocation, bool fDebug, bool fRenewDB)
 {
+    hashGenesisBlock = hashGenesis;
+
     if (!SetupLog(pathDataLocation, fDebug))
     {
         return false;
@@ -1156,7 +1158,7 @@ bool CBlockBase::GetForkBlockView(const uint256& hashFork, CBlockView& view)
     return true;
 }
 
-bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew, const CForkSetManager& forkSetMgr)
+bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
 {
     const uint256 hashFork = pIndexNew->GetOriginHash();
     const uint256 hashBlock = pIndexNew->GetBlockHash();

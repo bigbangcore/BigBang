@@ -518,7 +518,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
         return OK;
     }
 
-    if (!cntrBlock.CommitBlockView(view, pIndexNew, forkSetMgr))
+    if (!cntrBlock.CommitBlockView(view, pIndexNew))
     {
         Log("AddNewBlock Storage Commit BlockView Error : %s ", hash.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;

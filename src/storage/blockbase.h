@@ -108,13 +108,13 @@ public:
     {
         return fActive;
     }
-    bool SetActive() const
+    void SetActive()
     {
-        return fActive == true;
+        fActive = true;
     }
-    bool SetInactive() const
+    void SetInactive()
     {
-        return fActive == false;
+        fActive = false;
     }
 
 protected:
@@ -283,7 +283,7 @@ public:
     bool GetBlockView(CBlockView& view);
     bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false);
     bool GetForkBlockView(const uint256& hashFork, CBlockView& view);
-    bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew, const CForkSetManager& forkSetMgr = CForkSetManager());
+    bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew);
     bool LoadIndex(CBlockOutline& diskIndex);
     bool LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint256& hashFork);
     bool FilterTx(const uint256& hashFork, CTxFilter& filter);
