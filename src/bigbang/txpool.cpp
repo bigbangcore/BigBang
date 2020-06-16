@@ -381,6 +381,10 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
             if (nPrevLinksSpaceSize == 0)
             {
                 nPrevLinksSpaceSize = setTxLinkIndex.size();
+                if (nPrevLinksSpaceSize > 1024)
+                {
+                    nPrevLinksSpaceSize = 1024;
+                }
                 prevLinks.reserve(nPrevLinksSpaceSize);
             }
             GetAllPrevTxLink(*iter, prevLinks, nPrevLinksSpaceSize, setCertRelativesIndex);
