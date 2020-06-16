@@ -644,14 +644,6 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             //check if this msg is just for me
             //if (topicReqBlk != clientID)
 
-            //validate this coming block
-            Errno err = pCoreProtocol->ValidateBlock(resp.block);
-            if (OK != err)
-            {
-                Error("CMQCluster::OnReceiveMessage(): failed to validate block");
-                return;
-            }
-
             //notify to add new block
             err = pDispatcher->AddNewBlock(resp.block);
             if (err != OK)
