@@ -1215,7 +1215,7 @@ public:
     }
 };
 
-bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
+int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
 {
     try
     {
@@ -1262,7 +1262,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
             if (!client.is_connected())
             {
                 Error("CMQCluster::ClientAgent(): there is no connection to broker yet");
-                return false;
+                return -1;
             }
 
             pair<string, CBufferPtr> buf;
@@ -1272,7 +1272,7 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 if (deqSendBuff.empty())
                 {
                     Log("CMQCluster::ClientAgent(): there is no message to send");
-                    return true;
+                    return 0;
                 }
                 Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
                 buf = deqSendBuff.front();
@@ -1322,12 +1322,12 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 {
                     Log("CMQCluster::ClientAgent(): pop front of sending deque");
                     deqSendBuff.pop_front();
-                    return true;
+                    return 0;
                 }
                 else
                 {
                     Error("CMQCluster::ClientAgent(): it should not be empty here");
-                    return false;
+                    return -2;
                 }
             }
 
@@ -1368,10 +1368,10 @@ bool CMQCluster::ClientAgent(MQ_CLI_ACTION action)
     catch (const mqtt::exception& exc)
     {
         cerr << exc.what() << endl;
-        return false;
+        return -2;
     }
 
-    return true;
+    return 0;
 }
 
 void CMQCluster::MqttThreadFunc()
@@ -1421,14 +1421,21 @@ void CMQCluster::MqttThreadFunc()
             break;
         }
 
-        if (ClientAgent(MQ_CLI_ACTION::PUB))
+        int ret = ClientAgent(MQ_CLI_ACTION::PUB);
+        if (0 == ret)
         {
             Log("thread function of MQTT: go through an iteration of publishing");
+        }
+        else if (-1 == ret)
+        {
+            Log("thread function of MQTT: waiting for reconnecting...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         else
         {
             Error("thread function of MQTT: publish operation is ignormal, leaving MQTT thread");
             return;
+
         }
     }
 

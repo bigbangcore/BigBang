@@ -174,7 +174,7 @@ private:
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
     void RequestBlockTimerFunc(uint32 nTimer);
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
-    bool ClientAgent(MQ_CLI_ACTION action);
+    int ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
     bool PoolAddBizForkNode(const std::vector<storage::CSuperNode>& outers = std::vector<storage::CSuperNode>());
 
