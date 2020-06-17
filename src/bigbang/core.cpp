@@ -1153,7 +1153,7 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
     }
 
     // avoid joint block rollback
-    if (nForkHeight - profile.nJointHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT)
+    if (nForkHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT + profile.nJointHeight)
     {
         Log("The minimum confirmed height of the previous block is %d", MIN_CREATE_FORK_INTERVAL_HEIGHT);
         return ERR_TRANSACTION_INVALID_FORK;
