@@ -244,13 +244,22 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLink>& prevLinks, size_t& nLinksSpaceSize, CPooledCertTxLinkSet& setCertTxLink)
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink)
 {
     CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
     CPooledCertTxLinkSetByTxHash& idxCertTx = setCertTxLink.get<0>();
-    size_t nPrevLinkCount = 1;
-    prevLinks[0] = link;
-    for (int n = 0; n < nPrevLinkCount; ++n)
+    if (prevLinks.capacity() == 0)
+    {
+        size_t nSize = setTxLinkIndex.size();
+        if (nSize > 1024)
+        {
+            nSize = 1024;
+        }
+        prevLinks.reserve(nSize);
+    }
+    prevLinks.clear();
+    prevLinks.push_back(link);
+    for (int n = 0; n < prevLinks.size(); ++n)
     {
         const CPooledTxLink& curLink = prevLinks[n];
         if (curLink.ptx != nullptr)
@@ -263,12 +272,7 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLi
                     auto iter = idxTx.find(prevTxid);
                     if (iter != idxTx.end())
                     {
-                        if (nPrevLinkCount >= nLinksSpaceSize)
-                        {
-                            nLinksSpaceSize *= 2;
-                            prevLinks.reserve(nLinksSpaceSize);
-                        }
-                        prevLinks[nPrevLinkCount++] = *iter;
+                        prevLinks.push_back(*iter);
                         setCertTxLink.insert(*iter);
                     }
                 }
@@ -367,7 +371,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     set<uint256> setUnTx;
     CPooledCertTxLinkSet setCertRelativesIndex;
     std::vector<CPooledTxLink> prevLinks;
-    size_t nPrevLinksSpaceSize = 0;
     nTotalTxFee = 0;
 
     // Collect all cert related tx
@@ -378,16 +381,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (iter->ptx && iter->nType == CTransaction::TX_CERT)
         {
-            if (nPrevLinksSpaceSize == 0)
-            {
-                nPrevLinksSpaceSize = setTxLinkIndex.size();
-                if (nPrevLinksSpaceSize > 1024)
-                {
-                    nPrevLinksSpaceSize = 1024;
-                }
-                prevLinks.reserve(nPrevLinksSpaceSize);
-            }
-            GetAllPrevTxLink(*iter, prevLinks, nPrevLinksSpaceSize, setCertRelativesIndex);
+            GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
             setCertRelativesIndex.insert(*iter);
         }
     }

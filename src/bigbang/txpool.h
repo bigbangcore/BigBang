@@ -277,7 +277,7 @@ public:
                         std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
 private:
-    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks, std::size_t& nLinksSpaceSize, CPooledCertTxLinkSet& setCertTxLink);
+    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink);
     bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
                            std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
