@@ -348,35 +348,9 @@ class CCheckForkTxPool
 public:
     CCheckForkTxPool() {}
 
-    void AddBlockUnspentList(const map<CTxOutPoint, CCheckTxOut>& mapBlockUnspent)
-    {
-        mapTxPoolUnspent = mapBlockUnspent;
-    }
     bool AddTx(const uint256& txid, const CAssembledTx& tx);
-    bool CheckTxExist(const uint256& txid)
-    {
-        return (mapTxPoolTx.find(txid) != mapTxPoolTx.end());
-    }
-    bool CheckTxPoolUnspent(const CTxOutPoint& point, const CCheckTxOut& out)
-    {
-        map<CTxOutPoint, CCheckTxOut>::iterator it = mapTxPoolUnspent.find(point);
-        if (it == mapTxPoolUnspent.end())
-        {
-            StdLog("check", "TxPool CheckTxPoolUnspent: find fail, utxo: [%d] %s", point.n, point.hash.GetHex().c_str());
-            return false;
-        }
-        if (it->second.IsSpent())
-        {
-            StdLog("check", "TxPool CheckTxPoolUnspent: spented, utxo: [%d] %s", point.n, point.hash.GetHex().c_str());
-            return false;
-        }
-        if (it->second != out)
-        {
-            StdLog("check", "TxPool CheckTxPoolUnspent: out error, utxo: [%d] %s", point.n, point.hash.GetHex().c_str());
-            return false;
-        }
-        return true;
-    }
+    bool CheckTxExist(const uint256& txid);
+    bool CheckTxPoolUnspent(const CTxOutPoint& point, const CCheckTxOut& out);
     bool GetWalletTx(const uint256& hashFork, const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
 
 protected:
@@ -395,7 +369,7 @@ class CCheckTxPoolData
 public:
     CCheckTxPoolData() {}
 
-    bool AddForkUnspent(const uint256& hashFork, const map<CTxOutPoint, CCheckTxOut>& mapUnspent);
+    void AddForkUnspent(const uint256& hashFork, const map<CTxOutPoint, CCheckTxOut>& mapUnspent);
     bool FetchTxPool(const string& strPath);
     bool CheckTxExist(const uint256& hashFork, const uint256& txid);
     bool CheckTxPoolUnspent(const uint256& hashFork, const CTxOutPoint& point, const CCheckTxOut& out);
@@ -412,7 +386,7 @@ class CCheckBlockFork
 {
 public:
     CCheckBlockFork()
-      : nMaxTrustHeight(0), nMaxTrustTimeStamp(0), pOrigin(nullptr), pLast(nullptr) {}
+      : pOrigin(nullptr), pLast(nullptr) {}
 
     void UpdateMaxTrust(CBlockIndex* pBlockIndex);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn);
@@ -421,10 +395,6 @@ public:
     bool CheckTxExist(const uint256& txid, int& nHeight);
 
 public:
-    uint32 nMaxTrustHeight;
-    uint32 nMaxTrustTimeStamp;
-    uint256 hashMaxTrustBlock;
-    uint256 nMaxChainTrust;
     CBlockIndex* pOrigin;
     CBlockIndex* pLast;
     map<uint256, CCheckBlockTx> mapBlockTx;
@@ -500,6 +470,7 @@ protected:
     bool CheckBlockIndex();
     bool CheckTxIndex();
 
+    bool RemoveTxPoolFile();
     bool RepairUnspent();
     bool RepairWalletTx(const vector<CWalletTx>& vAddTx, const vector<uint256>& vRemoveTx);
     bool RestructureWalletTx();

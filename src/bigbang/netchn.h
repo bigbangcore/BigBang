@@ -260,7 +260,8 @@ protected:
     {
         MAX_GETBLOCKS_COUNT = 128,
         GET_BLOCKS_INTERVAL_DEF_TIME = 120,
-        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600
+        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600,
+        MAX_TXINV_INTERVAL_TIME = 180
     };
     enum
     {
