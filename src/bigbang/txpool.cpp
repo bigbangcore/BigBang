@@ -244,26 +244,40 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink)
 {
-    std::deque<CPooledTxLink> queueBFS;
-    queueBFS.push_back(link);
-
-    while (!queueBFS.empty())
+    CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
+    CPooledCertTxLinkSetByTxHash& idxCertTx = setCertTxLink.get<0>();
+    if (prevLinks.capacity() == 0)
     {
-        const CPooledTxLink& tempLink = queueBFS.front();
-        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
+        size_t nSize = setTxLinkIndex.size();
+        if (nSize > 1024)
         {
-            const CTxIn& txin = tempLink.ptx->vInput[i];
-            const uint256& prevHash = txin.prevout.hash;
-            auto iter = setTxLinkIndex.find(prevHash);
-            if (iter != setTxLinkIndex.end())
+            nSize = 1024;
+        }
+        prevLinks.reserve(nSize);
+    }
+    prevLinks.clear();
+    prevLinks.push_back(link);
+    for (int n = 0; n < prevLinks.size(); ++n)
+    {
+        const CPooledTxLink& curLink = prevLinks[n];
+        if (curLink.ptx != nullptr)
+        {
+            for (int i = 0; i < curLink.ptx->vInput.size(); ++i)
             {
-                prevLinks.push_back(*iter);
-                queueBFS.push_back(*iter);
+                const uint256& prevTxid = curLink.ptx->vInput[i].prevout.hash;
+                if (idxCertTx.find(prevTxid) == idxCertTx.end())
+                {
+                    auto iter = idxTx.find(prevTxid);
+                    if (iter != idxTx.end())
+                    {
+                        prevLinks.push_back(*iter);
+                        setCertTxLink.insert(*iter);
+                    }
+                }
             }
         }
-        queueBFS.pop_front();
     }
 }
 
@@ -356,6 +370,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
     CPooledCertTxLinkSet setCertRelativesIndex;
+    std::vector<CPooledTxLink> prevLinks;
     nTotalTxFee = 0;
 
     // Collect all cert related tx
@@ -366,11 +381,8 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (iter->ptx && iter->nType == CTransaction::TX_CERT)
         {
+            GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
             setCertRelativesIndex.insert(*iter);
-
-            std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(*iter, prevLinks);
-            setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
         }
     }
 
@@ -380,7 +392,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            StdDebug("CTxPoolView", "Cert tx related tx, tx seqnum: %llu, type: %d, tx hash: %s", i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
             if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, fIsDposHeight))
             {
                 return;
