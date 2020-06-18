@@ -11,6 +11,7 @@
 #include "../common/template/payment.h"
 #include "../common/template/vote.h"
 #include "address.h"
+#include "defs.h"
 #include "wallet.h"
 
 using namespace std;
@@ -22,12 +23,11 @@ static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-#ifdef BIGBANG_TESTNET
-static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
-#else
+
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
-#endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
+#define PROOF_OF_WORK_BITS_INIT SWITCH_PARAM(PROOF_OF_WORK_BITS_INIT_MAINNET, PROOF_OF_WORK_BITS_INIT_TESTNET)
+
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
 static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
 static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
@@ -35,28 +35,24 @@ static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
 static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
-#ifdef BIGBANG_TESTNET
-static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
-#else
-static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000 * COIN;
-#endif
+
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET = 30000000 * COIN;
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_TESTNET = 300000000 * COIN;
+#define DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT SWITCH_PARAM(DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_TESTNET)
+
 static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
-#ifdef BIGBANG_TESTNET
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
-#else
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
-#endif
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT_MAINNET = 243800;
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT_TESTNET = 1;
+#define DELEGATE_PROOF_OF_STAKE_HEIGHT SWITCH_PARAM(DELEGATE_PROOF_OF_STAKE_HEIGHT_MAINNET, DELEGATE_PROOF_OF_STAKE_HEIGHT_TESTNET)
 
-#ifdef BIGBANG_TESTNET
-static const int64 BBCP_TOKEN_INIT = 300000000;
-static const int64 BBCP_BASE_REWARD_TOKEN = 20;
-static const int64 BBCP_INIT_REWARD_TOKEN = 20;
-#else
-static const int64 BBCP_TOKEN_INIT = 0;
+static const int64 BBCP_TOKEN_INIT_MAINNET = 0;
+static const int64 BBCP_TOKEN_INIT_TESTNET = 300000000;
+#define BBCP_TOKEN_INIT SWITCH_PARAM(BBCP_TOKEN_INIT_MAINNET, BBCP_TOKEN_INIT_TESTNET)
+
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
 
 #define BBCP_TOKEN_SET_COUNT 16
@@ -100,8 +96,11 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
     126,
     73
 };
-static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
-#endif
+static const int64 BBCP_INIT_REWARD_TOKEN_MAINNET = BBCP_REWARD_TOKEN[0];
+static const int64 BBCP_INIT_REWARD_TOKEN_TESTNET = 20;
+#define BBCP_INIT_REWARD_TOKEN SWITCH_PARAM(BBCP_INIT_REWARD_TOKEN_MAINNET, BBCP_INIT_REWARD_TOKEN_TESTNET)
+
+static const int64 BBCP_BASE_REWARD_TOKEN_TESTNET = 20;
 
 namespace bigbang
 {
@@ -112,7 +111,7 @@ CCoreProtocol::CCoreProtocol()
 {
     nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
     nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
-    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
+    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT;
     nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
@@ -926,19 +925,22 @@ bool CCoreProtocol::IsDposHeight(int height)
 
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-#ifdef BIGBANG_TESTNET
-    return BBCP_BASE_REWARD_TOKEN * COIN;
-#else
-    int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
-    for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
+    if (TESTNET)
     {
-        if (nBlockHeight <= BBCP_END_HEIGHT[i])
-        {
-            return BBCP_REWARD_TOKEN[i] * COIN;
-        }
+        return BBCP_BASE_REWARD_TOKEN_TESTNET * COIN;
     }
-    return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-#endif
+    else
+    {
+        int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
+        for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
+        {
+            if (nBlockHeight <= BBCP_END_HEIGHT[i])
+            {
+                return BBCP_REWARD_TOKEN[i] * COIN;
+            }
+        }
+        return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
+    }
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t>& mapBallot,
@@ -1111,7 +1113,6 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
 
 CTestNetCoreProtocol::CTestNetCoreProtocol()
 {
-    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
 }
 
 /*
@@ -1166,14 +1167,7 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
     nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
     nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
-    if (fTestnet)
-    {
-        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
-    }
-    else
-    {
-        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
-    }
+    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT;
     nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
     nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;

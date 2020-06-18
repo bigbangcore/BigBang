@@ -29,7 +29,7 @@ bool CNetworkConfig::PostLoad()
 
     if (nPortInt <= 0 || nPortInt > 0xFFFF)
     {
-        nPort = (fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);
+        nPort = (fTestNet ? DEFAULT_P2PPORT_TESTNET : DEFAULT_P2PPORT_MAINNET);
     }
     else
     {
