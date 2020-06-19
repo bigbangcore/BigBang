@@ -79,7 +79,7 @@ bool CBlockChain::HandleInvoke()
     }
 
     // Check local block compared to checkpoint
-    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+    if (!TESTNET)
     {
         CBlock block;
         if (!FindPreviousCheckPointBlock(block))
@@ -1463,12 +1463,12 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 
 void CBlockChain::InitCheckPoints()
 {
-
-    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+    if (TESTNET)
     {
-#ifdef BIGBANG_TESTNET
         vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
-#else
+    }
+    else
+    {
         vecCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
               { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
@@ -1492,7 +1492,6 @@ void CBlockChain::InitCheckPoints()
               { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
               { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
               { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") } });
-#endif
     }
 
     for (const auto& point : vecCheckPoints)

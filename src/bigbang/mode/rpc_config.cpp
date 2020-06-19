@@ -37,7 +37,7 @@ bool CRPCBasicConfig::PostLoad()
 
     if (nRPCPortInt <= 0 || nRPCPortInt > 0xFFFF)
     {
-        nRPCPort = (fTestNet ? DEFAULT_TESTNET_RPCPORT : DEFAULT_RPCPORT);
+        nRPCPort = (fTestNet ? DEFAULT_RPCPORT_TESTNET : DEFAULT_RPCPORT_MAINNET);
     }
     else
     {

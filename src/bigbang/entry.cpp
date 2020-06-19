@@ -21,13 +21,13 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -99,6 +99,9 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
 
+    // testnet
+    TESTNET = config.GetConfig()->fTestNet;
+
     // list config if in debug mode
     if (config.GetConfig()->fDebug)
     {
@@ -164,7 +167,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     if (config.GetModeType() == EModeType::SERVER
         && (config.GetConfig()->fCheckRepair || config.GetConfig()->fOnlyCheck))
     {
-        CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet, config.GetConfig()->fOnlyCheck);
+        CCheckRepairData check(pathData.string(), TESTNET, config.GetConfig()->fOnlyCheck);
         if (!check.CheckRepairData())
         {
             if (config.GetConfig()->fOnlyCheck)
@@ -192,18 +195,6 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
-
-    // hard fork version
-    if (config.GetConfig()->fTestNet)
-    {
-        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
-    }
-    else
-    {
-        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
-    }
 
     // modules
     return InitializeModules(config.GetModeType());
@@ -248,7 +239,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::COREPROTOCOL:
         {
-            if (!AttachModule(config.GetConfig()->fTestNet ? new CTestNetCoreProtocol : new CCoreProtocol()))
+            if (!AttachModule(TESTNET ? new CTestNetCoreProtocol : new CCoreProtocol()))
             {
                 return false;
             }

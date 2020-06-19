@@ -109,10 +109,6 @@ if(CYGWIN)
     add_definitions(-DBOOST_CYGWIN_FS_PATH)
 endif()
 
-if(TESTNET)
-    add_definitions(-DBIGBANG_TESTNET)
-endif()
-
 # sub directories
 add_subdirectory(src)
 add_subdirectory(test)

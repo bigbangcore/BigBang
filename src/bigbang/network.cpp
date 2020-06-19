@@ -69,7 +69,7 @@ bool CNetwork::HandleInitialize()
         }
     }
     config.nMaxOutBounds = NetworkConfig()->nMaxOutBounds;
-    config.nPortDefault = (NetworkConfig()->fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);
+    config.nPortDefault = DEFAULT_P2PPORT;
     for (const string& conn : NetworkConfig()->vConnectTo)
     {
         config.vecNode.push_back(CNetHost(conn, config.nPortDefault, "connect",

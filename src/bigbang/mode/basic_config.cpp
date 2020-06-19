@@ -32,7 +32,7 @@ bool CBasicConfig::PostLoad()
     {
         pathData /= "testnet";
     }
-    nMagicNum = fTestNet ? TESTNET_MAGICNUM : MAINNET_MAGICNUM;
+    nMagicNum = fTestNet ? MAGICNUM_TESTNET : MAGICNUM_MAINNET;
 
     return true;
 }
