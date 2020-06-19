@@ -568,7 +568,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted)
 {
-    vector<uint8> vchSig;
+    vector<uint8> vchSig = tx.vchSig;
     CDestination sendToDelegate;
     CDestination sendToOwner;
     bool fDestInRecorded = false;
@@ -644,10 +644,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         {
             return false;
         }
-    }
-    if (!tx.vchSig.empty())
-    {
-        vchSig = move(tx.vchSig);
     }
 
     set<crypto::CPubKey> setSignedKey;
