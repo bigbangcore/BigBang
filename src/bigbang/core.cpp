@@ -591,7 +591,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     }
 
     // check fork template redeem tx
-    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
         if (VerifyRedeemTx(tx, nValueIn, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
@@ -692,7 +692,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     }
 
     // check fork template redeem tx
-    if ((destIn.GetTemplateId().GetType() == TEMPLATE_FORK) && (hashFork == GetGenesisBlockHash()))
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
         if (VerifyRedeemTx(tx, nValueIn, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
@@ -1110,28 +1110,29 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
     }
 
     uint256 hashBlock = block.GetHash();
+
     // check duplicated name fork
-    set<CForkContextEx> setMainNameFork;
-    if (forkSetMgr.RetrieveByName(profile.strName, setMainNameFork))
+    set<CForkContextEx> setUncomfirmedNameFork;
+    unconfirmedForkSetMgr.RetrieveByName(profile.strName, setUncomfirmedNameFork);
+    for (const CForkContextEx& ctxt : setUncomfirmedNameFork)
     {
-        for (const CForkContextEx& ctxt : setMainNameFork)
+        if (ctxt.IsActive())
         {
-            if (ctxt.IsActive())
-            {
-                Log("VerifyForkTx fork context has been existed and active in main chain, name: %s, hash: %s, tx: %s",
-                    profile.strName.c_str(), hashBlock.ToString().c_str(), txid.ToString().c_str());
-                return ERR_ALREADY_HAVE;
-            }
+            Log("VerifyForkTx fork context has been existed and active in unconfirmed fork set, name: %s, hash: %s, tx: %s",
+                profile.strName.c_str(), hashBlock.ToString().c_str(), txid.ToString().c_str());
+            return ERR_ALREADY_HAVE;
         }
     }
-    set<CForkContextEx> setUncomfirmedNameFork;
-    if (unconfirmedForkSetMgr.RetrieveByName(profile.strName, setUncomfirmedNameFork))
+
+    set<CForkContextEx> setMainNameFork;
+    forkSetMgr.RetrieveByName(profile.strName, setMainNameFork);
+    for (const CForkContextEx& ctxt : setMainNameFork)
     {
-        for (const CForkContextEx& ctxt : setUncomfirmedNameFork)
+        if (ctxt.IsActive())
         {
-            if (ctxt.IsActive())
+            if (setUncomfirmedNameFork.find(ctxt) == setUncomfirmedNameFork.end())
             {
-                Log("VerifyForkTx fork context has been existed and active in unconfirmed fork set, name: %s, hash: %s, tx: %s",
+                Log("VerifyForkTx fork context has been existed and active in main chain, name: %s, hash: %s, tx: %s",
                     profile.strName.c_str(), hashBlock.ToString().c_str(), txid.ToString().c_str());
                 return ERR_ALREADY_HAVE;
             }
@@ -1140,9 +1141,25 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
 
     // check parent fork
     CForkContextEx ctxtParent;
-    if ((!forkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent) && !unconfirmedForkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent)) || !ctxtParent.IsActive())
+    if (unconfirmedForkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent))
     {
-        Log("VerifyForkTx Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
+        if (!ctxtParent.IsActive())
+        {
+            Log("VerifyForkTx Retrieve parent context Error, inactive in unconfirmed fork set, parent: %s ", profile.hashParent.ToString().c_str());
+            return ERR_MISSING_PREV;
+        }
+    }
+    else if (forkSetMgr.RetrieveByFork(profile.hashParent, ctxtParent))
+    {
+        if (!ctxtParent.IsActive())
+        {
+            Log("VerifyForkTx Retrieve parent context Error, inactive in main fork set, parent: %s ", profile.hashParent.ToString().c_str());
+            return ERR_MISSING_PREV;
+        }
+    }
+    else
+    {
+        Log("VerifyForkTx Retrieve parent context Error, no parent fork, parent: %s ", profile.hashParent.ToString().c_str());
         return ERR_MISSING_PREV;
     }
 
@@ -1183,9 +1200,19 @@ Errno CCoreProtocol::VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn
 
     int nCreatedHeight = -1;
     CForkContextEx ctxt;
-    if (forkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt) || unconfirmedForkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt))
+    if (unconfirmedForkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt))
     {
-        nCreatedHeight = ctxt.nCreatedHeight;
+        if (ctxt.IsActive())
+        {
+            nCreatedHeight = ctxt.nCreatedHeight;
+        }
+    }
+    else if (forkSetMgr.RetrieveByFork(forkPtr->GetHashFork(), ctxt))
+    {
+        if (ctxt.IsActive())
+        {
+            nCreatedHeight = ctxt.nCreatedHeight;
+        }
     }
 
     int64 nLockedCoin = forkPtr->LockedCoin(tx.sendTo, nForkHeight, nCreatedHeight);

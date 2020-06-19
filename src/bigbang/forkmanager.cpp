@@ -205,12 +205,18 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
                 {
                     if (pBlockChain->AddNewForkContext(ctxt))
                     {
-                        AddNewForkContext(ctxt, vActive);
-                        Log("fork manager add fork: %s, height: %d", ctxt.hashFork.ToString().c_str(), ctxt.nCreatedHeight);
+                        if (AddNewForkContext(ctxt, vActive))
+                        {
+                            Log("fork manager add fork: %s, height: %d", ctxt.hashFork.ToString().c_str(), ctxt.nCreatedHeight);
+                        }
+                        else
+                        {
+                            Error("fork manager add fork fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
+                        }
                     }
                     else
                     {
-                        Error("fork manager add fork fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
+                        Error("fork manager add fork to blockchain fail, fork: %s, tx: %s", ctxt.hashFork.ToString().c_str(), ctxt.txidEmbedded.ToString().c_str());
                     }
                 }
                 else if (curCtxt.nCreatedHeight != ctxt.nCreatedHeight)
