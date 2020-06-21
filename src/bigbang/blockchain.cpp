@@ -640,7 +640,8 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     }
     if (block.GetBlockTime() != nTimeRef)
     {
-        Log("Invalid origin block time");
+        Log("Invalid origin block time - block[%ld - %ld] vs. ref[%ld] at height[%d]",
+            block.GetBlockTime(), block.nTimeStamp, nTimeRef, block.GetBlockHeight());
         return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 

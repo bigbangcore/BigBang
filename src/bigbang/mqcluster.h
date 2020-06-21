@@ -172,6 +172,7 @@ private:
     bool PostBlockRequest(int syncHeight = -1);
     bool PostBizForkAssign(const std::string& topic, CAssignBizFork assign);
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
+    void FetchBlock(bool fObliged, int syncHeight);
     void RequestBlockTimerFunc(uint32 nTimer);
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     int ClientAgent(MQ_CLI_ACTION action);
@@ -208,9 +209,12 @@ private:
     uint32 ipAddr;
     std::set<uint256> setBizFork;
     std::atomic_bool isMainChainBlockBest;
+    std::atomic_bool fConnected;
 
     boost::mutex mtxCluster;
     std::map<string, storage::CSuperNode> mapActiveMQForkNode; //only for dpos node
+    boost::mutex mtxReply;
+    std::map<std::string, std::pair<int32, uint256>> mapReplied;
     boost::mutex mtxOuter;
     std::map<uint32, storage::CSuperNode> mapOuterNode;        //for dpos/fork node
     std::map<std::string, std::string> mapBizForkUpdateTopic;  //only for dpos node

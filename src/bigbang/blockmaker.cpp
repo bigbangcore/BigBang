@@ -687,7 +687,7 @@ bool CBlockMaker::CreateProofOfWork()
 
 void CBlockMaker::BlockMakerThreadFunc()
 {
-    Log("Entering DPOS block maker thread...")
+    Log("Entering DPOS block maker thread...");
     uint256 hashCachePrev;
     bool fCachePow = false;
     int64 nWaitTime = 1;
@@ -746,7 +746,7 @@ void CBlockMaker::BlockMakerThreadFunc()
 
 void CBlockMaker::PowThreadFunc()
 {
-    Log("Entering POW block maker thread...")
+    Log("Entering POW block maker thread...");
     if (!WaitExit(5))
     {
         Log("...POW block maker thread exited without anything");

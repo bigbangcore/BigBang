@@ -15,6 +15,8 @@
 
 #include "async_client.h"
 
+const int32 FETCH_TIMEOUT = 250;
+
 using namespace std;
 
 namespace bigbang
@@ -43,6 +45,7 @@ CMQCluster::CMQCluster(int catNodeIn)
         break;
     }
     std::atomic_init(&isMainChainBlockBest, false);
+    std::atomic_init(&fConnected, false);
     array<string, TOPIC_SUFFIX_MAX> v{};
     arrTopic = std::move(v);
 }
@@ -281,6 +284,11 @@ bool CMQCluster::HandleEvent(CEventMQSyncBlock& eventMqSyncBlock)
 bool CMQCluster::HandleEvent(CEventMQChainUpdate& eventMqUpdateChain)
 {
     Log("CMQCluster::HandleEvent(CEventMQChainUpdate): entering forking event handler");
+    if (!fConnected)
+    {
+        Log("CMQCluster::HandleEvent(CEventMQChainUpdate): connection to mq is lost, ignore forking");
+        return true;
+    }
     CMqRollbackUpdate& update = eventMqUpdateChain.data;
 
     if (catNode != NODE_CATEGORY::DPOSNODE)
@@ -349,12 +357,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 Error("CMQCluster::HandleEvent(CEventMQEnrollUpdate): failed to post requesting block");
                 return false;
             }*/
-            if (0 != nReqBlkTimerID)
-            {
-                CancelTimer(nReqBlkTimerID);
-                nReqBlkTimerID = 0;
-            }
-            nReqBlkTimerID = SetTimer(50, boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+            FetchBlock(true, -1);
 
             return true;
         }
@@ -491,6 +494,12 @@ bool CMQCluster::GetForkNodeFork(std::vector<uint256>& forks)
         return false;
     }
 
+    if (nodes.empty())
+    {
+        Log("CMQCluster::GetForkNodeFork(): fork nodes have not been enrolled yet");
+        return true;
+    }
+
     if (NODE_CATEGORY::FORKNODE == catNode && nodes.size() > 1)
     {
         Error("CMQCluster::GetForkNodeFork(): fork enrolled by fork node should not be greater than one");
@@ -586,6 +595,20 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
     return true;
 }
 
+void CMQCluster::FetchBlock(bool fObliged, int syncHeight)
+{
+    if (fObliged && nReqBlkTimerID != 0)
+    {
+        CancelTimer(nReqBlkTimerID);
+        nReqBlkTimerID = 0;
+    }
+    PostBlockRequest(syncHeight);
+    if (nReqBlkTimerID == 0)
+    {
+        nReqBlkTimerID = SetTimer(FETCH_TIMEOUT, boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+    }
+}
+
 void CMQCluster::RequestBlockTimerFunc(uint32 nTimer)
 {
     if (nReqBlkTimerID == nTimer)
@@ -594,7 +617,11 @@ void CMQCluster::RequestBlockTimerFunc(uint32 nTimer)
         {
             Error("CMQCluster::RequestBlockTimerFunc(): failed to post request");
         }
-        nReqBlkTimerID = SetTimer(1000 * 60,
+        else
+        {
+            Log("%s: fetching block succeed periodically", __PRETTY_FUNCTION__);
+        }
+        nReqBlkTimerID = SetTimer(FETCH_TIMEOUT,
                                   boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
     }
 }
@@ -631,13 +658,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (-1 == resp.height)
             { //has reached the best height for the first time communication,
               // then set timer to process the following business rather than req/resp model
-                if (0 != nReqBlkTimerID)
-                {
-                    CancelTimer(nReqBlkTimerID);
-                    nReqBlkTimerID = 0;
-                }
-                nReqBlkTimerID = SetTimer(1000 * 30,
-                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+                FetchBlock(false, -1);
                 return;
             }
 
@@ -697,28 +718,13 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             if (resp.isBest)
             { //when reach best height, send request by timer
                 std::atomic_store(&isMainChainBlockBest, true);
-                if (0 != nReqBlkTimerID)
-                {
-                    CancelTimer(nReqBlkTimerID);
-                    nReqBlkTimerID = 0;
-                }
-                nReqBlkTimerID = SetTimer(1000 * 60,
-                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
+                FetchBlock(false, -1);
                 return;
             }
             else
             {
                 std::atomic_store(&isMainChainBlockBest, false);
-                if (0 != nReqBlkTimerID)
-                {
-                    CancelTimer(nReqBlkTimerID);
-                    nReqBlkTimerID = 0;
-                }
-                if (!PostBlockRequest(lastHeightResp))
-                {
-                    Error("CMQCluster::OnReceiveMessage(): failed to post request on response");
-                    return;
-                }
+                FetchBlock(false, lastHeightResp);
             }
 
             return;
@@ -844,16 +850,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     }
                     nRollNum = rb.rbSize;
                 }
+
+                return;
             }
-            else
-            {
-                if (0 != nReqBlkTimerID)
-                {
-                    CancelTimer(nReqBlkTimerID);
-                    nReqBlkTimerID = 0;
-                }
-                nReqBlkTimerID = SetTimer(50, boost::bind(&CMQCluster::RequestBlockTimerFunc, this, _1));
-            }
+
+            FetchBlock(true, -1);
 
             return;
         } // end of dealing with rollback of main chain
@@ -984,6 +985,19 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         }
         else
         {
+            {
+                boost::unique_lock<boost::mutex> lock(mtxReply);
+                auto it = mapReplied.find(req.forkNodeId);
+                if (it != mapReplied.end())
+                {
+                    if (req.lastHeight < it->second.first)
+                    {
+                        Log("%s: has replied this height[%d]", __PRETTY_FUNCTION__, req.lastHeight);
+                        return;
+                    }
+                }
+            }
+
             //check height and hash are matched
             uint256 hash;
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
@@ -1032,6 +1046,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         *spSS.get() << resp;
         string topicRsp = prefixTopic + req.forkNodeId + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
         AppendSendQueue(topicRsp, spSS);
+
+        {
+            boost::unique_lock<boost::mutex> lock(mtxReply);
+            mapReplied[req.forkNodeId] = std::make_pair(resp.height, resp.hash);
+        }
 
         break;
     }
@@ -1118,6 +1137,7 @@ public:
 
     void connected(const string& cause) override
     {
+        mqCluster.fConnected = true;
         cout << "\nConnection success" << endl;
         if (!cause.empty())
         {
@@ -1141,14 +1161,7 @@ public:
                  << "\tfor client " << mqCluster.clientID
                  << " using QoS" << CMQCluster::QOS1 << endl;
 
-            if (0 != mqCluster.nReqBlkTimerID)
-            {
-                mqCluster.CancelTimer(mqCluster.nReqBlkTimerID);
-                mqCluster.nReqBlkTimerID = 0;
-            }
-            mqCluster.nReqBlkTimerID = mqCluster.SetTimer(500,
-                                                          boost::bind(&CMQCluster::RequestBlockTimerFunc, &mqCluster, _1));
-            cout << "Set timer[" << mqCluster.nReqBlkTimerID << "]" << endl;
+            mqCluster.FetchBlock(true, -1);
         }
         else if (CMQCluster::NODE_CATEGORY::DPOSNODE == mqCluster.catNode)
         {
@@ -1165,6 +1178,7 @@ public:
 
     void connection_lost(const string& cause) override
     {
+        mqCluster.fConnected = false;
         cout << "\nConnection lost" << endl;
         if (!cause.empty())
         {
@@ -1253,6 +1267,7 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
         {
             if (!client.is_connected())
             {
+                fConnected = false;
                 Error("CMQCluster::ClientAgent(): there is no connection to broker yet");
                 return -1;
             }
@@ -1425,7 +1440,7 @@ void CMQCluster::MqttThreadFunc()
         }
         else
         {
-            Error("thread function of MQTT: publish operation is ignormal, leaving MQTT thread");
+            Error("thread function of MQTT: publish operation is ignormal, leaving MQTT thread with errno[%d]", ret);
             return;
 
         }
