@@ -568,7 +568,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted)
 {
-    vector<uint8> vchSig = tx.vchSig;
+    vector<uint8> vchSig;
     CDestination sendToDelegate;
     CDestination sendToOwner;
     bool fDestInRecorded = false;
@@ -646,13 +646,28 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
     }
 
+    if (fDestInRecorded && !tx.vchSig.empty())
+    {
+        CDestination sendToDelegateTemplate;
+        CDestination sendToOwner;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSig))
+        {
+            Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
+
     set<crypto::CPubKey> setSignedKey;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
         if (!SignDestination(destIn, tx, tx.GetSignatureHash(), vchSig, nForkHeight, setSignedKey, fCompleted))
         {
-            StdError("CWallet", "SignTransaction: SignDestination fail, destIn: %s, txid: %s",
-                     destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
+            Error("SignTransaction: SignDestination fail, destIn: %s, txid: %s",
+                  destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
             return false;
         }
     }
@@ -662,7 +677,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     if (fDestInRecorded)
     {
         CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
-        //CSendToRecordedTemplate::RecordDestIn(destDelegate, destOwner, vchSig, tx.vchSig);
     }
     else
     {
