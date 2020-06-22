@@ -525,7 +525,7 @@ Errno CCoreProtocol::VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev)
 }
 
 Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, const int nForkHeight,
-                                   const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+                                   const uint256& hashFork, const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr)
 {
     const CDestination& destIn = txContxt.destIn;
     int64 nValueIn = 0;
@@ -584,7 +584,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     // check creating fork tx
     if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        if (VerifyForkTx(tx, hashFork, nForkHeight, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        if (VerifyForkTx(tx, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
             return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
         }
@@ -613,7 +613,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
 }
 
 Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxOut>& vPrevOutput, const int nForkHeight,
-                                       const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+                                       const uint256& hashFork, const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr)
 {
     CDestination destIn = vPrevOutput[0].destTo;
     int64 nValueIn = 0;
@@ -685,7 +685,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     // check creating fork tx
     if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        if (VerifyForkTx(tx, hashFork, nForkHeight, -1, forkSetMgr, unconfirmedForkSetMgr) != OK)
+        if (VerifyForkTx(tx, hashFork, nForkHeight, forkSetMgr, unconfirmedForkSetMgr) != OK)
         {
             return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork tx");
         }
@@ -1001,6 +1001,34 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
+Errno CCoreProtocol::GetForkContextFromForkTx(const CTransaction& tx, CForkContext& ctxt)
+{
+    CBlock block;
+    CProfile profile;
+    try
+    {
+        CBufStream ss;
+        ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+        ss >> block;
+        if (!block.IsOrigin() || block.IsPrimary() || !block.vtx.empty())
+        {
+            throw std::runtime_error("invalid block");
+        }
+        if (!profile.Load(block.vchProof))
+        {
+            throw std::runtime_error("invalid profile");
+        }
+    }
+    catch (...)
+    {
+        Error("VerifyForkTx Invalid orign block found in tx (%s)", tx.GetHash().GetHex().c_str());
+        return ERR_BLOCK_INVALID_FORK;
+    }
+
+    ctxt = CForkContext(block.GetHash(), block.hashPrev, tx.GetHash(), profile);
+    return OK;
+}
+
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
@@ -1070,8 +1098,8 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     return true;
 }
 
-Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nForkHeight, const int nBlockHeight,
-                                  const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nForkHeight,
+                                  const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr)
 {
     if (hashFork != GetGenesisBlockHash())
     {
@@ -1167,7 +1195,7 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
     Errno err = ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
     if (err != OK)
     {
-        Log("VerifyForkTx Validate Block Error(%s) : %s ", ErrorString(err), block.GetHash().ToString().c_str());
+        Log("VerifyForkTx Validate Block Error(%s) : %s ", ErrorString(err), hashBlock.ToString().c_str());
         return err;
     }
 
@@ -1178,12 +1206,11 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx, const uint256& hashFor
         return ERR_TRANSACTION_INVALID_FORK;
     }
 
-    unconfirmedForkSetMgr.Insert(CForkContextEx(block.GetHash(), block.hashPrev, txid, profile, nBlockHeight, true));
     return OK;
 }
 
 Errno CCoreProtocol::VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn, const uint256& hashFork, const int nForkHeight,
-                                    const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr)
+                                    const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr)
 {
     if (hashFork != GetGenesisBlockHash())
     {

@@ -462,17 +462,28 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update, c
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
+        if (tx.nTimeStamp > block.nTimeStamp)
+        {
+            Log("AddNewBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
+                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+        }
+
         err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
         if (err != OK)
         {
             Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (tx.nTimeStamp > block.nTimeStamp)
+        if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
         {
-            Log("AddNewBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
-                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
-            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+            CForkContext ctxt;
+            if (pCoreProtocol->GetForkContextFromForkTx(tx, ctxt) != OK)
+            {
+                Error("AddNewBlock GetForkContextFromForkTx fail, txid: %s", txid.GetHex().c_str());
+                return err;
+            }
+            unconfirmedForkSetMgr.Insert(CForkContextEx(ctxt, block.GetBlockHeight(), true));
         }
 
         vTxContxt.push_back(txContxt);
@@ -1072,11 +1083,28 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain, const C
             Log("VerifyPowBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
+        if (tx.nTimeStamp > block.nTimeStamp)
+        {
+            Log("VerifyPowBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
+                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+        }
+
         err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash(), forkSetMgr, unconfirmedForkSetMgr);
         if (err != OK)
         {
             Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
             return err;
+        }
+        if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
+        {
+            CForkContext ctxt;
+            if (pCoreProtocol->GetForkContextFromForkTx(tx, ctxt) != OK)
+            {
+                Error("VerifyPowBlock GetForkContextFromForkTx fail, txid: %s", txid.GetHex().c_str());
+                return err;
+            }
+            unconfirmedForkSetMgr.Insert(CForkContextEx(ctxt, block.GetBlockHeight(), true));
         }
 
         vTxContxt.push_back(txContxt);

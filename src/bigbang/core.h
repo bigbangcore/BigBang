@@ -23,9 +23,9 @@ public:
 
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
     virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, const int nForkHeight,
-                                const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr) override;
+                                const uint256& hashFork, const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr) override;
     virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, const int nForkHeight,
-                                    const uint256& hashFork, const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr) override;
+                                    const uint256& hashFork, const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr) override;
 
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) override;
     virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
@@ -41,6 +41,7 @@ public:
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual Errno GetForkContextFromForkTx(const CTransaction& tx, CForkContext& ctxt) override;
 
 protected:
     bool HandleInitialize() override;
@@ -48,10 +49,10 @@ protected:
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
     bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
-    Errno VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nForkHeight, const int nBlockHeight,
-                       const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
+    Errno VerifyForkTx(const CTransaction& tx, const uint256& hashFork, const int nForkHeight,
+                       const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr);
     Errno VerifyRedeemTx(const CTransaction& tx, const int64 nValueIn, const uint256& hashFork, const int nForkHeight,
-                         const CForkSetManager& forkSetMgr, CForkSetManager& unconfirmedForkSetMgr);
+                         const CForkSetManager& forkSetMgr, const CForkSetManager& unconfirmedForkSetMgr);
 
 protected:
     uint256 hashGenesisBlock;
