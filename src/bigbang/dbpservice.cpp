@@ -292,7 +292,7 @@ void CDbpService::HandleSendTransaction(CBbEventDbpMethod& event)
         eventResult.data.id = event.data.id;
 
         CBbDbpSendTransactionRet sendTxRet;
-        sendTxRet.hash = data;
+        sendTxRet.hash = rawTx.GetHash().GetHex();
         sendTxRet.result = "succeed";
         eventResult.data.anyResultObjs.push_back(sendTxRet);
 
