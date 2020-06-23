@@ -550,7 +550,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
         }
         height = syncHeight;
     }
-    Log("CMQCluster::PostBlockRequest(): posting request for block hash[%s]", hash.ToString().c_str());
+    Log("CMQCluster::PostBlockRequest(): posting request for block id[%d] hash[%s]", height, hash.ToString().c_str());
 
     CSyncBlockRequest req;
     req.ipAddr = ipAddr;
@@ -719,7 +719,6 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             { //when reach best height, send request by timer
                 std::atomic_store(&isMainChainBlockBest, true);
                 FetchBlock(false, -1);
-                return;
             }
             else
             {
@@ -746,9 +745,9 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
 
-            Log("CMQCluster::OnReceiveMessage(): rbheight[%d] from dpos node, "
+            Log("CMQCluster::OnReceiveMessage(): rbheight[%d] from dpos node with size[%d], "
                 "lastheight[%d] on this fork node",
-                rb.rbHeight, int(lastHeightResp));
+                rb.rbHeight, rb.rbSize, int(lastHeightResp));
 
             if (rb.rbHeight < lastHeightResp)
             {
@@ -772,7 +771,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 {
                     Error("CMQCluster::OnReceiveMessage(): failed to get hard fork block hash or dismatch"
                           "then re-synchronize block from genesis one");
-                    if (!PostBlockRequest(0)) //re-sync from genesis block
+                    if (!PostBlockRequest(0)) //re-sync from genesis block, todo: prefer checkpoint to this
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post request while re-sync");
                     }
@@ -783,7 +782,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 {
                     Error("CMQCluster::OnReceiveMessage(): hashes do not match - rbhash[%s], lasthash[%s]",
                           rb.rbHash.ToString().c_str(), hash.ToString().c_str());
-                    if (!PostBlockRequest(0)) //re-sync from genesis block
+                    if (!PostBlockRequest(0)) //re-sync from genesis block, todo: prefer checkpoint to this
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post request while re-sync");
                     }
@@ -791,8 +790,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 }
 
                 bool fMatch = false;
-                Log("CMQCluster::OnReceiveMessage(): rbhash[%s], lasthash[%s]",
-                    rb.rbHash.ToString().c_str(), hash.ToString().c_str());
+                Log("CMQCluster::OnReceiveMessage(): rbhash[%s] vs. hash[%s] on this fork node at height[%d]",
+                    rb.rbHash.ToString().c_str(), hash.ToString().c_str(), rb.rbHeight);
 
                 //check blocks in rollback
                 int nShort = 0;
@@ -845,10 +844,10 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                     if (!PostBlockRequest(lastHeightResp))
                     {
                         Error("CMQCluster::OnReceiveMessage(): failed to post request on rollback");
-                        nRollNum = rb.rbSize;
+                        nRollNum = std::min(nShort, rb.rbSize);
                         return;
                     }
-                    nRollNum = rb.rbSize;
+                    nRollNum = std::min(nShort, rb.rbSize);
                 }
 
                 return;
@@ -934,20 +933,20 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Error("CMQCluster::OnReceiveMessage(): failed to unpack request msg");
             return;
         }
-
+/*
         {
             boost::unique_lock<boost::mutex> lock(mtxReply);
             auto it = mapReplied.find(req.forkNodeId);
             if (it != mapReplied.end())
             {
-                if (req.lastHeight <= it->second.first)
+                if (req.lastHeight < it->second.first)
                 {
                     Log("%s: has replied this height[%d]", __PRETTY_FUNCTION__, req.lastHeight);
                     return;
                 }
             }
         }
-
+*/
         //check if requesting fork node has been enrolled
         {
             boost::unique_lock<boost::mutex> lock(mtxCluster);
@@ -1293,8 +1292,7 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
 //                buf.second->Dump();
 
-                mqtt::message_ptr pubmsg = mqtt::make_message(
-                    buf.first, buf.second->GetData(), buf.second->GetSize());
+                mqtt::message_ptr pubmsg = mqtt::make_message(buf.first, buf.second->GetData(), buf.second->GetSize());
                 pubmsg->set_qos(QOS1);
                 //                pubmsg->set_qos(QOS0);
                 if (string::npos != buf.first.find("AssignBizFork"))
