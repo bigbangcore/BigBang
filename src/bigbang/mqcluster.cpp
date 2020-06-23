@@ -935,6 +935,19 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             return;
         }
 
+        {
+            boost::unique_lock<boost::mutex> lock(mtxReply);
+            auto it = mapReplied.find(req.forkNodeId);
+            if (it != mapReplied.end())
+            {
+                if (req.lastHeight <= it->second.first)
+                {
+                    Log("%s: has replied this height[%d]", __PRETTY_FUNCTION__, req.lastHeight);
+                    return;
+                }
+            }
+        }
+
         //check if requesting fork node has been enrolled
         {
             boost::unique_lock<boost::mutex> lock(mtxCluster);
@@ -977,27 +990,15 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Log("CMQCluster::OnReceiveMessage(): block height[%d] owned by fork node[%s] "
                 "has reached the best one on dpos node, please wait...",
                 best, req.forkNodeId.c_str());
-            resp.height = -1;
-            resp.hash = uint256();
-            resp.isBest = 1;
-            resp.block = CBlock();
-            resp.blockSize = xengine::GetSerializeSize(resp.block);
+//            resp.height = -1;
+//            resp.hash = uint256();
+//            resp.isBest = 1;
+//            resp.block = CBlock();
+//            resp.blockSize = xengine::GetSerializeSize(resp.block);
+            return;
         }
         else
         {
-            {
-                boost::unique_lock<boost::mutex> lock(mtxReply);
-                auto it = mapReplied.find(req.forkNodeId);
-                if (it != mapReplied.end())
-                {
-                    if (req.lastHeight < it->second.first)
-                    {
-                        Log("%s: has replied this height[%d]", __PRETTY_FUNCTION__, req.lastHeight);
-                        return;
-                    }
-                }
-            }
-
             //check height and hash are matched
             uint256 hash;
             if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight, hash))
