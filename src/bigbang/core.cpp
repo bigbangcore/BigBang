@@ -547,6 +547,26 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        // CERT transaction must be on the main chain
+        if (fork != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "CERT tx is not on the main chain, fork: %s\n", fork.ToString().c_str());
+        }
+        // the `from` address must be equal to the `to` address of cert tx
+        if (destIn != tx.sendTo)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
+                         CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
+        }
+        // the `to` address must be delegate template address
+        if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+        }
+    }
+
     // v1.0 function
     /*if (!tx.vchData.empty())
     {
@@ -658,6 +678,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
+
     if (tx.nType == CTransaction::TX_CERT)
     {
         // CERT transaction must be on the main chain
