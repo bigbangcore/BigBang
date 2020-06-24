@@ -549,21 +549,17 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
 
     if (tx.nType == CTransaction::TX_CERT)
     {
-        // CERT transaction must be on the main chain
-        if (fork != GetGenesisBlockHash())
+        if (VerifyCertTx(tx, destIn, fork) != OK)
         {
-            return DEBUG(ERR_TRANSACTION_INVALID, "CERT tx is not on the main chain, fork: %s\n", fork.ToString().c_str());
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
         }
-        // the `from` address must be equal to the `to` address of cert tx
-        if (destIn != tx.sendTo)
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
         {
-            return DEBUG(ERR_TRANSACTION_INVALID, "the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
-                         CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
-        }
-        // the `to` address must be delegate template address
-        if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
         }
     }
 
@@ -681,21 +677,17 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
 
     if (tx.nType == CTransaction::TX_CERT)
     {
-        // CERT transaction must be on the main chain
-        if (fork != GetGenesisBlockHash())
+        if (VerifyCertTx(tx, destIn, fork) != OK)
         {
-            return DEBUG(ERR_TRANSACTION_INVALID, "CERT tx is not on the main chain, fork: %s\n", fork.ToString().c_str());
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
         }
-        // the `from` address must be equal to the `to` address of cert tx
-        if (destIn != tx.sendTo)
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
         {
-            return DEBUG(ERR_TRANSACTION_INVALID, "the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
-                         CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
-        }
-        // the `to` address must be delegate template address
-        if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
         }
     }
 
@@ -1144,6 +1136,43 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
         vchSigOut = move(tx.vchSig);
     }
     return true;
+}
+
+Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // CERT transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyCertTx CERT tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `from` address must be equal to the `to` address of cert tx
+    if (destIn != tx.sendTo)
+    {
+        Log("VerifyCertTx the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
+            CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `to` address must be delegate template address
+    if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
+    {
+        Log("VerifyCertTx the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
+}
+
+Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // VOTE transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyVoteTx from or to vote template address tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
 }
 
 ///////////////////////////////
