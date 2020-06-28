@@ -1196,11 +1196,11 @@ public:
         cout << "\tpayload: '................'\n"
              << endl;
         mqCluster.LogEvent("[message_arrived]");
-        /*
+
         xengine::CBufStream ss;
         ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
         mqCluster.OnReceiveMessage(msg->get_topic(), ss);
-*/
+/*
         mqCluster.LogEvent("[asyncing...]");
         std::async(std::launch::async,
                    [this, &msg]() {
@@ -1210,7 +1210,7 @@ public:
                        mqCluster.OnReceiveMessage(msg->get_topic(), ss);
                        mqCluster.LogEvent("[handled recv]");
                    });
-        mqCluster.LogEvent("[asynced]");
+        mqCluster.LogEvent("[asynced]");    */
     }
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override

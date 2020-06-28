@@ -1041,7 +1041,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         if (nBlockRemoved > 0)
         {
             StdTrace("BlockBase",
-                     "Chain rollback attempt[removed block amount]: %u",
+                     "Chain rollback attempt[removed tx amount]: %u",
                      nTxRemoved);
         }
 
