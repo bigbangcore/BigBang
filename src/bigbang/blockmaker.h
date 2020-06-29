@@ -94,10 +94,12 @@ protected:
 private:
     void BlockMakerThreadFunc();
     void PowThreadFunc();
+    void BizForkThreadFunc();
 
 protected:
     xengine::CThread thrMaker;
     xengine::CThread thrPow;
+    xengine::CThread thrBizFork;
     boost::mutex mutex;
     boost::condition_variable condExit;
     boost::condition_variable condBlock;

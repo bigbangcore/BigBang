@@ -73,6 +73,8 @@ public:
     int nLastBlockHeight;
     int64 nMoneySupply;
     uint16 nMintType;
+    unsigned char nWeight;
+    uint256 nAgreement;
     std::multimap<int, uint256> mapSubline;
 };
 

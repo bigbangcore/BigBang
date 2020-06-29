@@ -557,6 +557,8 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
 
     int64 nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_WORK, nLastHeight + 1);
     consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+    Log("timerelative 1: consParam.nWaitTime[%ld] = nNextBlockTime[%ld] - 2 - GetNetTime()[%ld]",
+        consParam.nWaitTime, nNextBlockTime, nNextBlockTime - consParam.nWaitTime - 2);
     if (consParam.nWaitTime >= -60)
     {
         int64 nAgreementWaitTime = GetAgreementWaitTime(nLastHeight + 1);
@@ -567,6 +569,7 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
     }
     if (consParam.nWaitTime > 0)
     {
+        Error("GetNextConsensus: nWaitTime > 0 [1]");
         return false;
     }
 
@@ -597,13 +600,18 @@ bool CConsensus::GetNextConsensus(CAgreementBlock& consParam)
         }
         consParam = cacheAgreementBlock;
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+        Log("timerelative 2: consParam.nWaitTime[%ld] = nNextBlockTime[%ld] - 2 - GetNetTime()[%ld]",
+            consParam.nWaitTime, nNextBlockTime, nNextBlockTime - consParam.nWaitTime - 2);
     }
     if (!cacheAgreementBlock.agreement.IsProofOfWork())
     {
         nNextBlockTime = pCoreProtocol->GetNextBlockTimeStamp(nLastMintType, nLastTime, CTransaction::TX_STAKE, nLastHeight + 1);
         consParam.nWaitTime = nNextBlockTime - 2 - GetNetTime();
+        Log("timerelative 3: consParam.nWaitTime[%ld] = nNextBlockTime[%ld] - 2 - GetNetTime()[%ld]",
+            consParam.nWaitTime, nNextBlockTime, nNextBlockTime - consParam.nWaitTime - 2);
         if (consParam.nWaitTime > 0)
         {
+            Error("GetNextConsensus: nWaitTime > 0 [2]");
             return false;
         }
     }

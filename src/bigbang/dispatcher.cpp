@@ -353,31 +353,37 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     CDelegateRoutine routineDelegate;
-    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
-
-    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
-
-    for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        if (tx.vInput.size() == 0)
+        pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+
+        pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+                                         routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
+                                         routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat && !routineDelegate.vEnrollTx.empty())
+    {
+        for (const CTransaction& tx : routineDelegate.vEnrollTx)
         {
-            Error("Send DelegateTx: tx.vInput.size() == 0.");
-            continue;
-        }
-        Errno err = AddNewTx(tx, nNonce);
-        if (err == OK)
-        {
-            Log("Send DelegateTx success, txid: %s, previd: %s.",
-                tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
-        }
-        else
-        {
-            Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
-                err, ErrorString(err), tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
+            if (tx.vInput.size() == 0)
+            {
+                Error("Send DelegateTx: tx.vInput.size() == 0.");
+                continue;
+            }
+            Errno err = AddNewTx(tx, nNonce);
+            if (err == OK)
+            {
+                Log("Send DelegateTx success, txid: %s, previd: %s.",
+                    tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
+            else
+            {
+                Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
+                    err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
         }
     }
 
