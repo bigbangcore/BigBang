@@ -42,8 +42,7 @@ public:
                       std::vector<CTxOut>& vOutput) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) override;
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt) override;
-    Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
+    bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId) override;
     Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
@@ -63,6 +62,7 @@ public:
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, std::vector<CForkContext>& vForkCtxt) override;
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const override;
@@ -91,11 +91,13 @@ protected:
     bool VerifyBlockCertTx(const CBlock& block);
 
     void InitCheckPoints();
+    bool AddBlockForkContext(const CBlockEx& blockex);
 
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
     ITxPool* pTxPool;
+    IForkManager* pForkManager;
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;

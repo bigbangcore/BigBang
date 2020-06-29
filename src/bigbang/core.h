@@ -19,6 +19,7 @@ public:
     virtual void GetGenesisBlock(CBlock& block) override;
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
+    virtual Errno VerifyForkTx(const CTransaction& tx) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
@@ -57,6 +58,7 @@ protected:
     int64 nProofOfWorkUpperTargetOfDpos;
     int64 nProofOfWorkLowerTargetOfDpos;
     IBlockChain* pBlockChain;
+    IForkManager* pForkManager;
 };
 
 class CTestNetCoreProtocol : public CCoreProtocol

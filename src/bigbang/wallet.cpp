@@ -5,6 +5,7 @@
 #include "wallet.h"
 
 #include "../common/template/exchange.h"
+#include "../common/template/fork.h"
 #include "address.h"
 #include "defs.h"
 #include "template/delegate.h"
@@ -152,6 +153,7 @@ CWallet::CWallet()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 CWallet::~CWallet()
@@ -178,6 +180,12 @@ bool CWallet::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
+        return false;
+    }
+
     return true;
 }
 
@@ -186,6 +194,7 @@ void CWallet::HandleDeinitialize()
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CWallet::HandleInvoke()
@@ -543,25 +552,48 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
     }
 
     // locked coin template
-    if (CTemplate::IsLockedCoin(dest))
+    if (dest.GetTemplateId().GetType() == TEMPLATE_FORK && hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        // TODO: No redemption temporarily
-        // CTemplatePtr ptr = GetTemplate(dest.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     return false;
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(CDestination(), nForkHeight);
-        // if (balance.nLocked < nLockedCoin)
-        // {
-        //     balance.nLocked = nLockedCoin;
-        // }
-        // if (balance.nLocked > coins.nTotalValue)
-        // {
-        //     balance.nLocked = coins.nTotalValue;
-        // }
-        balance.nLocked = coins.nTotalValue;
+        CTemplatePtr ptr = GetTemplate(dest.GetTemplateId());
+        if (!ptr)
+        {
+            StdError("CWallet", "GetBalance: GetTemplate fail, destIn: %s", dest.ToString().c_str());
+            return false;
+        }
+        CDestination destRedeemLocked;
+        uint256 hashForkLocked;
+        boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
+        int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, uint256());
+        if (nLockedCoin < 0)
+        {
+            bool fHasTxPool = false;
+            for (const CWalletTxOut& txout : coins.setCoins)
+            {
+                if (txout.spWalletTx->nBlockHeight < 0)
+                {
+                    fHasTxPool = true;
+                    break;
+                }
+            }
+            if (fHasTxPool)
+            {
+                nLockedCoin = CTemplateFork::CreatedCoin();
+            }
+            else
+            {
+                nLockedCoin = 0;
+            }
+        }
+        if (balance.nLocked < nLockedCoin)
+        {
+            balance.nLocked = nLockedCoin;
+        }
+        if (balance.nLocked > coins.nTotalValue)
+        {
+            balance.nLocked = coins.nTotalValue;
+        }
     }
+
     balance.nAvailable = coins.nTotalValue - balance.nLocked;
     return true;
 }
@@ -682,17 +714,32 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     int64 nTargetValue = tx.nAmount + tx.nTxFee;
 
     // locked coin template
-    if (CTemplate::IsLockedCoin(destIn))
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_FORK
+        && hashFork == pCoreProtocol->GetGenesisBlockHash()
+        && tx.sendTo != destIn)
     {
-        // TODO: No redemption temporarily
-        return false;
-        // CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
-        //     return false;
-        // }
-        // nTargetValue += boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
+        CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
+        if (!ptr)
+        {
+            StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
+            return false;
+        }
+        CDestination destRedeemLocked;
+        uint256 hashForkLocked;
+        boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
+        int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, uint256());
+        if (nLockedCoin < 0)
+        {
+            if (IsAtTxPool(destIn, hashFork))
+            {
+                nLockedCoin = CTemplateFork::CreatedCoin();
+            }
+            else
+            {
+                nLockedCoin = 0;
+            }
+        }
+        nTargetValue += nLockedCoin;
     }
 
     vector<CTxOutPoint> vCoins;
@@ -1480,6 +1527,23 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
         }
     }
     return nValueRet;
+}
+
+bool CWallet::IsAtTxPool(const CDestination& dest, const uint256& hashFork)
+{
+    auto it = mapWalletUnspent.find(dest);
+    if (it != mapWalletUnspent.end())
+    {
+        CWalletCoins& walletCoins = it->second.GetCoins(hashFork);
+        for (const CWalletTxOut& out : walletCoins.setCoins)
+        {
+            if (out.spWalletTx->nBlockHeight < 0)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool CWallet::SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey)

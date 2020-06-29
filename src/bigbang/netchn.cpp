@@ -307,6 +307,10 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        if (mapSched.count(hashFork) > 0)
+        {
+            return;
+        }
         if (!mapSched.insert(make_pair(hashFork, CSchedule())).second)
         {
             StdLog("NetChannel", "SubscribeFork: mapSched insert fail, hashFork: %s", hashFork.GetHex().c_str());
@@ -342,6 +346,10 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        if (mapSched.count(hashFork) == 0)
+        {
+            return;
+        }
         if (!mapSched.erase(hashFork))
         {
             StdLog("NetChannel", "UnsubscribeFork: mapSched erase fail, hashFork: %s", hashFork.GetHex().c_str());

@@ -451,6 +451,14 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
             return false;
         }
 
+        map<uint256, int> mapValidFork;
+        mapValidFork.insert(make_pair(hashGenesis, 0));
+        if (!dbBlock.AddValidForkHash(hashGenesis, uint256(), mapValidFork))
+        {
+            StdTrace("BlockBase", "Add valid genesis fork fail");
+            return false;
+        }
+
         if (!dbBlock.AddNewFork(hashGenesis))
         {
             StdTrace("BlockBase", "Add New Fork %s  failed", hashGenesis.ToString().c_str());
@@ -552,6 +560,11 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
     }
     Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
     return true;
+}
+
+bool CBlockBase::AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork)
+{
+    return dbBlock.AddValidForkHash(hashBlock, hashRefFdBlock, mapValidFork);
 }
 
 bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
@@ -1278,9 +1291,9 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     return true;
 }
 
-bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt)
+bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt, map<uint256, pair<uint256, map<uint256, int>>>& mapValidForkId)
 {
-    return dbBlock.ListForkContext(vForkCtxt);
+    return dbBlock.ListForkContext(vForkCtxt, mapValidForkId);
 }
 
 bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep)

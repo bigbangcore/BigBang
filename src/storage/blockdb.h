@@ -29,7 +29,8 @@ public:
     bool RemoveAll();
     bool AddNewForkContext(const CForkContext& ctxt);
     bool RetrieveForkContext(const uint256& hash, CForkContext& ctxt);
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
+    bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId);
+    bool AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const std::map<uint256, int>& mapValidFork);
     bool AddNewFork(const uint256& hash);
     bool RemoveFork(const uint256& hash);
     bool ListFork(std::vector<std::pair<uint256, uint256>>& vFork);

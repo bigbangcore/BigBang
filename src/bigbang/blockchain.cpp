@@ -4,6 +4,7 @@
 
 #include "blockchain.h"
 
+#include "../common/template/fork.h"
 #include "delegatecomm.h"
 #include "delegateverify.h"
 
@@ -24,6 +25,7 @@ CBlockChain::CBlockChain()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -44,6 +46,12 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager\n");
+        return false;
+    }
+
     InitCheckPoints();
 
     return true;
@@ -53,6 +61,7 @@ void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -362,61 +371,9 @@ bool CBlockChain::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filte
     return cntrBlock.FilterTx(hashFork, nDepth, filter);
 }
 
-bool CBlockChain::ListForkContext(vector<CForkContext>& vForkCtxt)
+bool CBlockChain::ListForkContext(vector<CForkContext>& vForkCtxt, map<uint256, pair<uint256, map<uint256, int>>>& mapValidForkId)
 {
-    return cntrBlock.ListForkContext(vForkCtxt);
-}
-
-Errno CBlockChain::AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt)
-{
-    uint256 txid = txFork.GetHash();
-
-    CBlock block;
-    CProfile profile;
-    try
-    {
-        CBufStream ss;
-        ss.Write((const char*)&txFork.vchData[0], txFork.vchData.size());
-        ss >> block;
-        if (!block.IsOrigin() || block.IsPrimary())
-        {
-            throw std::runtime_error("invalid block");
-        }
-        if (!profile.Load(block.vchProof))
-        {
-            throw std::runtime_error("invalid profile");
-        }
-    }
-    catch (...)
-    {
-        Error("Invalid orign block found in tx (%s)", txid.GetHex().c_str());
-        return ERR_BLOCK_INVALID_FORK;
-    }
-    uint256 hashFork = block.GetHash();
-
-    CForkContext ctxtParent;
-    if (!cntrBlock.RetrieveForkContext(profile.hashParent, ctxtParent))
-    {
-        Log("AddNewForkContext Retrieve parent context Error: %s ", profile.hashParent.ToString().c_str());
-        return ERR_MISSING_PREV;
-    }
-
-    CProfile forkProfile;
-    Errno err = pCoreProtocol->ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
-    if (err != OK)
-    {
-        Log("AddNewForkContext Validate Block Error(%s) : %s ", ErrorString(err), hashFork.ToString().c_str());
-        return err;
-    }
-
-    ctxt = CForkContext(block.GetHash(), block.hashPrev, txid, profile);
-    if (!cntrBlock.AddNewForkContext(ctxt))
-    {
-        Log("AddNewForkContext Already Exists : %s ", hashFork.ToString().c_str());
-        return ERR_ALREADY_HAVE;
-    }
-
-    return OK;
+    return cntrBlock.ListForkContext(vForkCtxt, mapValidForkId);
 }
 
 Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
@@ -494,14 +451,11 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPool->Exists(txid))
+        err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+        if (err != OK)
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
-            if (err != OK)
-            {
-                Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
-                return err;
-            }
+            Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+            return err;
         }
         if (tx.nTimeStamp > block.nTimeStamp)
         {
@@ -541,6 +495,15 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
+
+    if (pIndexNew->GetOriginHash() == pCoreProtocol->GetGenesisBlockHash())
+    {
+        if (!AddBlockForkContext(blockex))
+        {
+            Log("AddNewBlock add block fork fail, block: %s", hash.ToString().c_str());
+            return err;
+        }
+    }
 
     CBlockIndex* pIndexFork = nullptr;
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
@@ -1089,14 +1052,17 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
             Log("VerifyPowBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        if (!pTxPool->Exists(txid))
+        err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+        if (err != OK)
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
-            if (err != OK)
-            {
-                Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
-                return err;
-            }
+            Log("VerifyPowBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+            return err;
+        }
+        if (tx.nTimeStamp > block.nTimeStamp)
+        {
+            Log("VerifyPowBlock Verify BlockTx time fail: tx time: %d, block time: %d, tx: %s, block: %s",
+                tx.nTimeStamp, block.nTimeStamp, txid.ToString().c_str(), hash.GetHex().c_str());
+            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
         }
 
         vTxContxt.push_back(txContxt);
@@ -1136,6 +1102,95 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     }
 
     return OK;
+}
+
+bool CBlockChain::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, vector<CForkContext>& vForkCtxt)
+{
+    if (tx.vchData.empty())
+    {
+        Log("Verify block fork tx: invalid vchData, tx: %s", tx.GetHash().ToString().c_str());
+        return false;
+    }
+
+    CBlock block;
+    CProfile profile;
+    try
+    {
+        CBufStream ss;
+        ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+        ss >> block;
+        if (!block.IsOrigin() || block.IsPrimary())
+        {
+            Log("Verify block fork tx: invalid block, tx: %s", tx.GetHash().ToString().c_str());
+            return false;
+        }
+        if (!profile.Load(block.vchProof))
+        {
+            Log("Verify block fork tx: invalid profile, tx: %s", tx.GetHash().ToString().c_str());
+            return false;
+        }
+    }
+    catch (...)
+    {
+        Log("Verify block fork tx: invalid vchData, tx: %s", tx.GetHash().ToString().c_str());
+        return false;
+    }
+    uint256 hashNewFork = block.GetHash();
+
+    do
+    {
+        CForkContext ctxtParent;
+        if (!cntrBlock.RetrieveForkContext(profile.hashParent, ctxtParent))
+        {
+            bool fFindParent = false;
+            for (const auto& vd : vForkCtxt)
+            {
+                if (vd.hashFork == profile.hashParent)
+                {
+                    ctxtParent = vd;
+                    fFindParent = true;
+                    break;
+                }
+            }
+            if (!fFindParent)
+            {
+                Log("Verify block fork tx: Retrieve parent context, tx: %s", tx.GetHash().ToString().c_str());
+                break;
+            }
+        }
+
+        CProfile forkProfile;
+        Errno err = pCoreProtocol->ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile);
+        if (err != OK)
+        {
+            Log("Verify block fork tx: Validate origin Error(%s), tx: %s", ErrorString(err), tx.GetHash().ToString().c_str());
+            break;
+        }
+
+        if (!pForkManager->VerifyFork(hashPrev, hashNewFork, profile.strName))
+        {
+            Log("Verify block fork tx: verify fork fail, tx: %s", tx.GetHash().ToString().c_str());
+            break;
+        }
+        bool fCheckRet = true;
+        for (const auto& vd : vForkCtxt)
+        {
+            if (vd.hashFork == hashNewFork || vd.strName == profile.strName)
+            {
+                Log("Verify block fork tx: fork exist, tx: %s", tx.GetHash().ToString().c_str());
+                fCheckRet = false;
+                break;
+            }
+        }
+        if (!fCheckRet)
+        {
+            break;
+        }
+
+        vForkCtxt.push_back(CForkContext(block.GetHash(), block.hashPrev, tx.GetHash(), profile));
+    } while (0);
+
+    return true;
 }
 
 bool CBlockChain::CheckContainer()
@@ -1519,6 +1574,83 @@ void CBlockChain::InitCheckPoints()
     {
         mapCheckPoints.insert(std::make_pair(point.nHeight, point));
     }
+}
+
+bool CBlockChain::AddBlockForkContext(const CBlockEx& blockex)
+{
+    uint256 hashBlock = blockex.GetHash();
+    vector<CForkContext> vForkCtxt;
+    for (int i = 0; i < blockex.vtx.size(); i++)
+    {
+        const CTransaction& tx = blockex.vtx[i];
+        const CTxContxt& txContxt = blockex.vTxContxt[i];
+        if (tx.sendTo != txContxt.destIn)
+        {
+            if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
+            {
+                if (!VerifyBlockForkTx(blockex.hashPrev, tx, vForkCtxt))
+                {
+                    StdLog("CBlockChain", "AddBlockForkContext: VerifyBlockForkTx fail, block: %s", hashBlock.ToString().c_str());
+                    return false;
+                }
+            }
+            if (txContxt.destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
+            {
+                auto it = vForkCtxt.begin();
+                while (it != vForkCtxt.end())
+                {
+                    CTemplatePtr templFork = CTemplate::CreateTemplatePtr(new CTemplateFork(it->destOwner, it->hashFork));
+                    if (templFork == nullptr)
+                    {
+                        StdLog("CBlockChain", "AddBlockForkContext: CreateTemplatePtr fail, block: %s", hashBlock.ToString().c_str());
+                        return false;
+                    }
+                    if (templFork->GetTemplateId() == txContxt.destIn.GetTemplateId())
+                    {
+                        StdLog("CBlockChain", "AddBlockForkContext: cancel fork, block: %s, fork: %s, dest: %s",
+                               hashBlock.ToString().c_str(), it->hashFork.ToString().c_str(),
+                               CAddress(txContxt.destIn).ToString().c_str());
+                        vForkCtxt.erase(it++);
+                    }
+                    else
+                    {
+                        ++it;
+                    }
+                }
+            }
+        }
+    }
+
+    for (const CForkContext& ctxt : vForkCtxt)
+    {
+        if (!cntrBlock.AddNewForkContext(ctxt))
+        {
+            StdLog("CBlockChain", "AddBlockForkContext: AddNewForkContext fail, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+    }
+
+    bool fCheckPointBlock = false;
+    const auto it = mapCheckPoints.find(CBlock::GetBlockHeightByHash(hashBlock));
+    if (it != mapCheckPoints.end() && it->second.nBlockHash == hashBlock)
+    {
+        fCheckPointBlock = true;
+    }
+
+    uint256 hashRefFdBlock;
+    map<uint256, int> mapValidFork;
+    if (!pForkManager->AddForkContext(blockex.hashPrev, hashBlock, vForkCtxt, fCheckPointBlock, hashRefFdBlock, mapValidFork))
+    {
+        StdLog("CBlockChain", "AddBlockForkContext: AddForkContext fail, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+
+    if (!cntrBlock.AddValidForkHash(hashBlock, hashRefFdBlock, mapValidFork))
+    {
+        StdLog("CBlockChain", "AddBlockForkContext: AddValidForkHash fail, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool CBlockChain::HasCheckPoints() const

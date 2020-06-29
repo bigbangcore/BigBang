@@ -58,6 +58,7 @@ class CLockedCoinTemplate
 {
 public:
     virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const = 0;
+    virtual void GetForkParam(CDestination& destRedeemOut, uint256& hashForkOut) = 0;
 };
 
 enum TemplateType

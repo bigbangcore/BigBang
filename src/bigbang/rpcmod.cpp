@@ -1645,12 +1645,6 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         nAmount -= nTxFee;
     }
 
-    CTemplateId tid;
-    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
-    }
-
     CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)

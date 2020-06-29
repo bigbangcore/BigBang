@@ -25,16 +25,17 @@ public:
     bool AddNewForkContext(const CForkContext& ctxt);
     bool RemoveForkContext(const uint256& hashFork);
     bool RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt);
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
+    bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId);
     bool UpdateFork(const uint256& hashFork, const uint256& hashLastBlock = uint256());
     bool RemoveFork(const uint256& hashFork);
     bool RetrieveFork(const uint256& hashFork, uint256& hashLastBlock);
     bool ListFork(std::vector<std::pair<uint256, uint256>>& vFork);
+    bool AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const std::map<uint256, int>& mapValidFork);
     void Clear();
 
 protected:
     bool LoadCtxtWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
-                        std::multimap<int, CForkContext>& mapCtxt);
+                        std::multimap<int, CForkContext>& mapCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapBlockForkId);
     bool LoadForkWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
                         std::multimap<int, uint256>& mapJoint, std::map<uint256, uint256>& mapFork);
 };

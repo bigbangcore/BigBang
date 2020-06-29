@@ -39,6 +39,7 @@ public:
     virtual void GetGenesisBlock(CBlock& block) = 0;
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
+    virtual Errno VerifyForkTx(const CTransaction& tx) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
     virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
@@ -120,8 +121,7 @@ public:
     virtual bool ExistsTx(const uint256& txid) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) = 0;
-    virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
-    virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
+    virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
@@ -150,6 +150,7 @@ public:
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, std::vector<CForkContext>& vForkCtxt) = 0;
 
     const CBasicConfig* Config()
     {
@@ -198,10 +199,14 @@ public:
     virtual bool IsAllowed(const uint256& hashFork) const = 0;
     virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const = 0;
     virtual bool LoadForkContext(std::vector<uint256>& vActive) = 0;
+    virtual bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) = 0;
+    virtual bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                                bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork)
+        = 0;
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
-    virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
+    virtual void GetForkList(std::vector<uint256>& vFork) = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
-    virtual bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const = 0;
+    virtual int64 ForkLockedCoin(const uint256& hashFork, const uint256& hashBlock) = 0;
     const CForkConfig* ForkConfig()
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());
@@ -323,6 +328,7 @@ public:
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
     virtual int GetForkHeight(const uint256& hashFork) = 0;
+    virtual bool GetForkLastBlock(const uint256& hashFork, int& hLastHeight, uint256& hashLastBlock) = 0;
     virtual void ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool fAll = false) = 0;
     virtual bool GetForkGenealogy(const uint256& hashFork, std::vector<std::pair<uint256, int>>& vAncestry,
                                   std::vector<std::pair<int, uint256>>& vSubline)

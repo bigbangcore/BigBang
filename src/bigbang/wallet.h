@@ -205,6 +205,7 @@ protected:
     bool InsertKey(const crypto::CKey& key);
     int64 SelectCoins(const CDestination& dest, const uint256& hashFork, int nForkHeight, int64 nTxTime,
                       int64 nTargetValue, std::size_t nMaxInput, std::vector<CTxOutPoint>& vCoins);
+    bool IsAtTxPool(const CDestination& dest, const uint256& hashFork);
 
     std::shared_ptr<CWalletTx> LoadWalletTx(const uint256& txid);
     std::shared_ptr<CWalletTx> InsertWalletTx(const uint256& txid, const CAssembledTx& tx, const uint256& hashFork, bool fIsMine, bool fFromMe);
@@ -230,6 +231,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    IForkManager* pForkManager;
     mutable boost::shared_mutex rwKeyStore;
     mutable boost::shared_mutex rwWalletTx;
     std::map<crypto::CPubKey, CWalletKeyStore> mapKeyStore;
