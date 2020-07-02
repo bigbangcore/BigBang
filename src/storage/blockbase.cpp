@@ -2396,6 +2396,7 @@ bool CBlockBase::LoadDB()
         ClearCache();
         return false;
     }
+    Log(__FUNCTION__, "listfork[%d]", vFork.size());
     for (int i = 0; i < vFork.size(); i++)
     {
         CBlockIndex* pIndex = GetIndex(vFork[i].second);
@@ -2414,6 +2415,7 @@ bool CBlockBase::LoadDB()
         {
             return false;
         }
+        Log(__FUNCTION__, "listfork[%s]", vFork[i].first.ToString().c_str());
     }
 
     return true;

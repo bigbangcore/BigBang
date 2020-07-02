@@ -133,10 +133,13 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
         return false;
     }
 
+    Log("listfork[%d]", vForkCtxt.size());
     for (const CForkContext& ctxt : vForkCtxt)
     {
+        Log("listfork[%s][%s][%s]", ctxt.strName.c_str(), ctxt.strSymbol.c_str(), ctxt.hashFork.ToString().c_str());
         if (!AddNewForkContext(ctxt, vActive))
         {
+            Error("listfork - add failed[%s][%s][%s]", ctxt.strName.c_str(), ctxt.strSymbol.c_str(), ctxt.hashFork.ToString().c_str());
             return false;
         }
     }

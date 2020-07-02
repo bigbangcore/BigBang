@@ -459,6 +459,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         Log("subfork: mapBlocks time-fork[%ld][%s]", it.first, it.second.first.ToString().c_str());
     }
 
+    Log("subfork: before entering while (!mapBlocks.empty())");
     while (!mapBlocks.empty())
     {
         auto it = mapBlocks.begin();
@@ -466,7 +467,8 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         const uint256 hashFork = it->second.first;
         CBlock block = it->second.second;
         mapBlocks.erase(it);
-        Log("subfork: reftime-waittime[%ld][%ld] fork[%s]", it->first, nSeconds, hashFork.ToString().c_str());
+        Log("subfork: reftime-waittime[%ld]-[%ld] fork[%s] mapBlocks.size[%d]",
+            it->first, nSeconds, hashFork.ToString().c_str(), mapBlocks.size());
 
         if (!WaitExit(nSeconds))
         {
@@ -482,21 +484,27 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                 uint256 hashLastBlock;
                 int64 nLastTime;
 
-                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+//                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                int64 nettime = GetNetTime();
+                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (nettime - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                Log("subfork: nPrevMintType[%d], nettime[%ld] - nRefBlockTime[%ld] = [%d], fInWaitTime[%d]",
+                    nPrevMintType, nettime, nRefBlockTime, nettime - nRefBlockTime, fInWaitTime);
                 if (pBlockChain->GetLastBlockOfHeight(hashFork, nPrevHeight, hashLastBlock, nLastTime)
                     && (!fInWaitTime || (nLastTime + EXTENDED_BLOCK_SPACING == nRefBlockTime)))
                 {
                     // last is PoW or last extended or timeout
                     block.hashPrev = hashLastBlock;
+                    Log("subfork: get last block nLastTime[%ld], hashLastBlock[%s]", nLastTime, hashLastBlock.ToString().c_str());
                 }
                 else if (fInWaitTime)
                 {
-                    // wait the last exteded block for 1s
+                    // wait the last extended block for 1s
                     mapBlocks.insert(make_pair(GetNetTime() + 1, make_pair(hashFork, block)));
+                    Log("subfork: cache one subsidiary block successfully nLastTime[%ld], hashLastBlock[%s]", nLastTime, hashLastBlock.ToString().c_str());
                 }
                 else
                 {
-                    Error("ProcessSubFork get last block error, fork: %s", hashFork.ToString().c_str());
+                    Error("subfork: get last block error, fork[%s]  nLastTime[%ld], hashLastBlock[%s]", hashFork.ToString().c_str(), nLastTime, hashLastBlock.ToString().c_str());
                 }
             }
 
@@ -550,6 +558,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             }
         }
     }
+    Log("subfork: after leaving while (!mapBlocks.empty())");
 }
 
 bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
@@ -586,14 +595,19 @@ void CBlockMaker::PreparePiggyback(CBlock& block, const CDelegateAgreement& agre
     block.nType = CBlock::BLOCK_SUBSIDIARY;
     block.nTimeStamp = nRefBlockTime;
     proof.Save(block.vchProof);
+    Log("subfork: status.nLastBlockHeight vs. nPrevHeight [%d] - [%d], status.nLastBlockTime vs. nRefBlockTime [%ld] - [%ld]",
+        status.nLastBlockHeight, nPrevHeight, status.nLastBlockTime, nRefBlockTime);
     if (status.nLastBlockHeight == nPrevHeight && status.nLastBlockTime < nRefBlockTime)
     {
+        Log("subfork: nPrevMintType[%d], last extended one[%ld], timeout[%ld]",
+            nPrevMintType, nRefBlockTime - status.nLastBlockTime, GetNetTime() - nRefBlockTime);
         // last is PoW or last extended or timeouot
         if (nPrevMintType != CTransaction::TX_STAKE
             || status.nLastBlockTime + EXTENDED_BLOCK_SPACING == nRefBlockTime
             || GetNetTime() - nRefBlockTime >= WAIT_LAST_EXTENDED_TIME)
         {
             block.hashPrev = status.hashLastBlock;
+            Log("subfork: prepared piggyback with prev");
         }
     }
 }
