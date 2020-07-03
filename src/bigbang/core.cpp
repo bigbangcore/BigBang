@@ -1104,7 +1104,7 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     }
     else
     {
-        vchSigOut = move(tx.vchSig);
+        vchSigOut = tx.vchSig;
     }
     return true;
 }
