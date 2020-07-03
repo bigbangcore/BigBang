@@ -61,6 +61,7 @@ public:
     virtual int64 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) = 0;
+    virtual bool GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork) = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -97,6 +98,7 @@ public:
     IBlockChain()
       : IBase("blockchain") {}
     virtual void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
+    virtual void GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) = 0;
     virtual bool GetForkProfile(const uint256& hashFork, CProfile& profile) = 0;
     virtual bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) = 0;
     virtual bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) = 0;
@@ -198,13 +200,15 @@ public:
       : IBase("forkmanager") {}
     virtual bool IsAllowed(const uint256& hashFork) const = 0;
     virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const = 0;
-    virtual bool LoadForkContext(std::vector<uint256>& vActive) = 0;
+    virtual bool LoadForkContext(const uint256& hashPrimaryLastBlock, const std::vector<CForkContext>& vForkCtxt,
+                                 const std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId, std::vector<uint256>& vActive)
+        = 0;
     virtual bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) = 0;
     virtual bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
                                 bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork)
         = 0;
-    virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
-    virtual void GetForkList(std::vector<uint256>& vFork) = 0;
+    virtual void ForkUpdate(const CBlockChainUpdate& update, const uint256& hashPrimaryLastBlock, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
+    virtual void GetValidForkList(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork) = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
     virtual int64 ForkLockedCoin(const uint256& hashFork, const uint256& hashBlock) = 0;
     const CForkConfig* ForkConfig()
@@ -270,9 +274,9 @@ public:
     /* Wallet Tx */
     virtual std::size_t GetTxCount() = 0;
     virtual bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
-    virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) = 0;
+    virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, const uint256& hashLastBlock, CWalletBalance& balance) = 0;
     virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted) = 0;
-    virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) = 0;
+    virtual bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, const uint256& hashLastBlock, CTransaction& tx) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     /* Update */
     virtual bool SynchronizeTxSet(const CTxSetChange& change) = 0;
@@ -328,7 +332,7 @@ public:
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
     virtual int GetForkHeight(const uint256& hashFork) = 0;
-    virtual bool GetForkLastBlock(const uint256& hashFork, int& hLastHeight, uint256& hashLastBlock) = 0;
+    virtual bool GetForkLastBlock(const uint256& hashFork, int& nLastHeight, uint256& hashLastBlock) = 0;
     virtual void ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool fAll = false) = 0;
     virtual bool GetForkGenealogy(const uint256& hashFork, std::vector<std::pair<uint256, int>>& vAncestry,
                                   std::vector<std::pair<int, uint256>>& vSubline)

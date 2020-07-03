@@ -11,6 +11,7 @@
 #include "../common/template/payment.h"
 #include "../common/template/vote.h"
 #include "address.h"
+#include "param.h"
 #include "wallet.h"
 
 using namespace std;
@@ -430,13 +431,6 @@ Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx)
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid block");
     }
-
-    uint256 hashNewFork = block.GetHash();
-    CTemplatePtr templFork = CTemplate::CreateTemplatePtr(new CTemplateFork(profile.destOwner, hashNewFork));
-    if (templFork == nullptr || templFork->GetTemplateId() != tx.sendTo.GetTemplateId())
-    {
-        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid destOwner");
-    }
     return OK;
 }
 
@@ -680,6 +674,10 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
             uint256 hashForkLocked;
             boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
             int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, pIndexPrev->GetBlockHash());
+            if (nLockedCoin < 0)
+            {
+                nLockedCoin = 0;
+            }
             if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
             {
                 return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
@@ -813,6 +811,14 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         }
         if (tx.sendTo != destIn)
         {
+            uint256 hashPrimaryLastBlock;
+            int nTempHeight;
+            int64 nTempTime;
+            uint16 nTempMintType;
+            if (!pBlockChain->GetLastBlock(GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
+            {
+                return DEBUG(ERR_TRANSACTION_INVALID, "Failed to get last block");
+            }
             CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
             if (!ptr)
             {
@@ -821,27 +827,24 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
             CDestination destRedeemLocked;
             uint256 hashForkLocked;
             boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
-            int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, uint256());
+            int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, hashPrimaryLastBlock);
             if (nLockedCoin < 0)
             {
-                bool fTxAtBlock = true;
+                bool fTxAtTxPool = false;
                 for (int i = 0; i < tx.vInput.size(); i++)
                 {
                     uint256 hashFork;
                     int nHeight;
                     if (!pBlockChain->GetTxLocation(tx.vInput[i].prevout.hash, hashFork, nHeight))
                     {
-                        fTxAtBlock = false;
+                        fTxAtTxPool = true;
                         break;
                     }
                 }
-                if (fTxAtBlock)
+                nLockedCoin = CTemplateFork::CreatedCoin();
+                if (!fTxAtTxPool)
                 {
                     nLockedCoin = 0;
-                }
-                else
-                {
-                    nLockedCoin = CTemplateFork::CreatedCoin();
                 }
             }
             if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
@@ -1165,6 +1168,35 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
+bool CCoreProtocol::GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork)
+{
+    if (destIn.GetTemplateId().GetType() != TEMPLATE_FORK)
+    {
+        return false;
+    }
+    vector<uint8> vchSig;
+    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        CDestination sendToDelegateTemplate;
+        CDestination sendToOwner;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSig))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
+    auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_FORK, vchSig);
+    if (templatePtr == nullptr || templatePtr->GetTemplateId() != destIn.GetTemplateId())
+    {
+        return false;
+    }
+    boost::dynamic_pointer_cast<CTemplateFork>(templatePtr)->GetForkParam(destRedeem, hashFork);
+    return true;
+}
+
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
@@ -1306,6 +1338,21 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
     nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
     nDelegateProofOfStakeHeight = DELEGATE_PROOF_OF_STAKE_HEIGHT;
+
+    CBlock block;
+    if (fTestnet)
+    {
+        CTestNetCoreProtocol* pCore = new CTestNetCoreProtocol();
+        pCore->GetGenesisBlock(block);
+        delete pCore;
+    }
+    else
+    {
+        CCoreProtocol* pCore = new CCoreProtocol();
+        pCore->GetGenesisBlock(block);
+        delete pCore;
+    }
+    hashGenesisBlock = block.GetHash();
 }
 
 bool CProofOfWorkParam::IsDposHeight(int height)

@@ -19,6 +19,7 @@ public:
     CBlockChain();
     ~CBlockChain();
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
+    void GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
     bool GetForkProfile(const uint256& hashFork, CProfile& profile) override;
     bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) override;
     bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) override;

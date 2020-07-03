@@ -175,6 +175,7 @@ protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
+        s.Serialize(hashRefFdBlock, opt);
         s.Serialize(mapForkId, opt);
     }
 };

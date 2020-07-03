@@ -40,6 +40,7 @@ public:
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual bool GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork) override;
 
 protected:
     bool HandleInitialize() override;
@@ -85,6 +86,7 @@ public:
     int64 nDelegateProofOfStakeEnrollMinimumAmount;
     int64 nDelegateProofOfStakeEnrollMaximumAmount;
     uint32 nDelegateProofOfStakeHeight;
+    uint256 hashGenesisBlock;
 
 public:
     bool IsDposHeight(int height);

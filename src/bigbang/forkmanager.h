@@ -67,7 +67,8 @@ public:
     CValidFdForkId(const uint256& hashRefFdBlockIn, const std::map<uint256, int>& mapForkIdIn)
     {
         hashRefFdBlock = hashRefFdBlockIn;
-        mapForkId = mapForkIdIn;
+        mapForkId.clear();
+        mapForkId.insert(mapForkIdIn.begin(), mapForkIdIn.end());
     }
     int GetCreatedHeight(const uint256& hashFork)
     {
@@ -91,13 +92,13 @@ public:
     ~CForkManager();
     bool IsAllowed(const uint256& hashFork) const override;
     bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const override;
-    bool LoadForkContext(std::vector<uint256>& vActive) override;
+    bool LoadForkContext(const uint256& hashPrimaryLastBlock, const std::vector<CForkContext>& vForkCtxt,
+                         const std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId, std::vector<uint256>& vActive) override;
     bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) override;
     bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
                         bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork) override;
-    void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
-    bool AddDbForkContext(const uint256& hashPrimaryLastBlock, const CForkContext& ctxt, std::vector<uint256>& vActive);
-    void GetForkList(std::vector<uint256>& vFork) override;
+    void ForkUpdate(const CBlockChainUpdate& update, const uint256& hashPrimaryLastBlock, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
+    void GetValidForkList(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork) override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
     int64 ForkLockedCoin(const uint256& hashFork, const uint256& hashBlock) override;
 
@@ -107,8 +108,10 @@ protected:
     bool HandleInvoke() override;
     void HandleHalt() override;
     bool IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const;
+    bool AddDbForkContext(const uint256& hashPrimaryLastBlock, const CForkContext& ctxt, std::vector<uint256>& vActive);
     bool GetValidFdForkId(const uint256& hashBlock, std::map<uint256, int>& mapFdForkIdOut);
     int GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork);
+    void ListValidFork(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork);
 
 protected:
     mutable boost::shared_mutex rwAccess;
@@ -119,6 +122,7 @@ protected:
     std::set<uint256> setGroupAllowed;
     std::map<uint256, CForkSchedule> mapForkSched;
     std::map<uint256, CValidFdForkId> mapBlockValidFork;
+    std::set<uint256> setCurValidFork;
 };
 
 } // namespace bigbang

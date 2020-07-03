@@ -22,6 +22,8 @@ public:
     CForkDB() {}
     bool Initialize(const boost::filesystem::path& pathData);
     void Deinitialize();
+    bool WriteGenesisBlockHash(const uint256& hashGenesisBlockIn);
+    bool GetGenesisBlockHash(uint256& hashGenesisBlockOut);
     bool AddNewForkContext(const CForkContext& ctxt);
     bool RemoveForkContext(const uint256& hashFork);
     bool RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt);
@@ -31,6 +33,7 @@ public:
     bool RetrieveFork(const uint256& hashFork, uint256& hashLastBlock);
     bool ListFork(std::vector<std::pair<uint256, uint256>>& vFork);
     bool AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const std::map<uint256, int>& mapValidFork);
+    bool RetrieveValidForkHash(const uint256& hashBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork);
     void Clear();
 
 protected:

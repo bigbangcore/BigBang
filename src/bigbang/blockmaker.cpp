@@ -410,7 +410,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                                  const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType)
 {
     map<uint256, CForkStatus> mapForkStatus;
-    pBlockChain->GetForkStatus(mapForkStatus);
+    pBlockChain->GetValidForkStatus(mapForkStatus);
 
     // create subsidiary task
     multimap<int64, pair<uint256, CBlock>> mapBlocks;

@@ -309,8 +309,10 @@ CBlockBase::~CBlockBase()
     tsBlock.Deinitialize();
 }
 
-bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
+bool CBlockBase::Initialize(const path& pathDataLocation, const uint256& hashGenesisBlockIn, bool fDebug, bool fRenewDB)
 {
+    hashGenesisBlock = hashGenesisBlockIn;
+
     if (!SetupLog(pathDataLocation, fDebug))
     {
         return false;
@@ -329,6 +331,12 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         dbBlock.Deinitialize();
         Error("B", "Failed to initialize block tsfile");
         return false;
+    }
+
+    uint256 hashDbGenesisBlockHash;
+    if (!dbBlock.GetGenesisBlockHash(hashDbGenesisBlockHash) || hashDbGenesisBlockHash != hashGenesisBlockIn)
+    {
+        dbBlock.WriteGenesisBlockHash(hashGenesisBlockIn);
     }
 
     if (fRenewDB)
@@ -451,12 +459,37 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
             return false;
         }
 
+        bool fCheckValidForkResult = true;
+        uint256 hashRefFdBlock;
         map<uint256, int> mapValidFork;
-        mapValidFork.insert(make_pair(hashGenesis, 0));
-        if (!dbBlock.AddValidForkHash(hashGenesis, uint256(), mapValidFork))
+        if (!dbBlock.RetrieveValidForkHash(hashGenesisBlock, hashRefFdBlock, mapValidFork))
         {
-            StdTrace("BlockBase", "Add valid genesis fork fail");
-            return false;
+            fCheckValidForkResult = false;
+        }
+        else
+        {
+            if (hashRefFdBlock != 0)
+            {
+                fCheckValidForkResult = false;
+            }
+            else
+            {
+                const auto it = mapValidFork.find(hashGenesisBlock);
+                if (it == mapValidFork.end() || it->second != 0)
+                {
+                    fCheckValidForkResult = false;
+                }
+            }
+        }
+        if (!fCheckValidForkResult)
+        {
+            map<uint256, int> mapValidFork;
+            mapValidFork.insert(make_pair(hashGenesis, 0));
+            if (!dbBlock.AddValidForkHash(hashGenesis, uint256(), mapValidFork))
+            {
+                StdTrace("BlockBase", "Add valid genesis fork fail");
+                return false;
+            }
         }
 
         if (!dbBlock.AddNewFork(hashGenesis))
@@ -1213,7 +1246,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
-        if (filter.setDest.count(block.txMint.sendTo))
+        if (block.txMint.nAmount > 0 && filter.setDest.count(block.txMint.sendTo))
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
@@ -1263,12 +1296,12 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
-        if (filter.setDest.count(block.txMint.sendTo))
+        if (block.txMint.nAmount > 0 && filter.setDest.count(block.txMint.sendTo))
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
                 StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, height: %d, txid: %s, block: %s, fork: %s.",
-                       block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
+                       nBlockHeight, block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                 return false;
             }
         }

@@ -66,7 +66,10 @@ void CBlockChain::HandleDeinitialize()
 
 bool CBlockChain::HandleInvoke()
 {
-    if (!cntrBlock.Initialize(Config()->pathData, Config()->fDebug))
+    CBlock blockGenesis;
+    pCoreProtocol->GetGenesisBlock(blockGenesis);
+
+    if (!cntrBlock.Initialize(Config()->pathData, blockGenesis.GetHash(), Config()->fDebug))
     {
         Error("Failed to initialize container");
         return false;
@@ -86,9 +89,7 @@ bool CBlockChain::HandleInvoke()
 
     if (cntrBlock.IsEmpty())
     {
-        CBlock block;
-        pCoreProtocol->GetGenesisBlock(block);
-        if (!InsertGenesisBlock(block))
+        if (!InsertGenesisBlock(blockGenesis))
         {
             Error("Failed to create genesis block");
             return false;
@@ -122,6 +123,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 
     multimap<int, CBlockIndex*> mapForkIndex;
     cntrBlock.ListForkIndex(mapForkIndex);
+
     for (multimap<int, CBlockIndex*>::iterator it = mapForkIndex.begin(); it != mapForkIndex.end(); ++it)
     {
         CBlockIndex* pIndex = (*it).second;
@@ -134,13 +136,51 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
             mapForkStatus[hashParent].mapSubline.insert(make_pair(nForkHeight, hashFork));
         }
 
-        map<uint256, CForkStatus>::iterator mi = mapForkStatus.insert(make_pair(hashFork, CForkStatus(hashFork, hashParent, nForkHeight))).first;
+        map<uint256, CForkStatus>::iterator mi = mapForkStatus.find(hashFork);
+        if (mi == mapForkStatus.end())
+        {
+            mi = mapForkStatus.insert(make_pair(hashFork, CForkStatus(hashFork, hashParent, nForkHeight))).first;
+            if (mi == mapForkStatus.end())
+            {
+                continue;
+            }
+        }
         CForkStatus& status = (*mi).second;
         status.hashLastBlock = pIndex->GetBlockHash();
         status.nLastBlockTime = pIndex->GetBlockTime();
         status.nLastBlockHeight = pIndex->GetBlockHeight();
         status.nMoneySupply = pIndex->GetMoneySupply();
         status.nMintType = pIndex->nMintType;
+    }
+}
+
+void CBlockChain::GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)
+{
+    uint256 hashPrimaryLastBlock;
+    int nTempHeight;
+    int64 nTempTime;
+    uint16 nTempMintType;
+    if (!GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
+    {
+        StdError("BlockChain", "GetValidForkStatus GetLastBlock fail");
+        return;
+    }
+
+    map<uint256, bool> mapValidFork;
+    pForkManager->GetValidForkList(hashPrimaryLastBlock, mapValidFork);
+
+    GetForkStatus(mapForkStatus);
+
+    map<uint256, CForkStatus>::iterator it = mapForkStatus.begin();
+    while (it != mapForkStatus.end())
+    {
+        const auto nt = mapValidFork.find(it->first);
+        if (nt == mapValidFork.end() || !nt->second)
+        {
+            mapForkStatus.erase(it++);
+            continue;
+        }
+        ++it;
     }
 }
 
@@ -1538,35 +1578,15 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 
 void CBlockChain::InitCheckPoints()
 {
-
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
 #ifdef BIGBANG_TESTNET
         vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
 #else
-        vecCheckPoints.assign(
-            { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
-              { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
-              { 1000, uint256("000003e86cc97e8b16aaa92216a66c2797c977a239bbd1a12476bad68580be73") },
-              { 2000, uint256("000007d07acd442c737152d0cd9d8e99b6f0177781323ccbe20407664e01da8f") },
-              { 5000, uint256("00001388dbb69842b373352462b869126b9fe912b4d86becbb3ad2bf1d897840") },
-              { 10000, uint256("00002710c3f3cd6c931f568169c645e97744943e02b0135aae4fcb3139c0fa6f") },
-              { 16000, uint256("00003e807c1e13c95e8601d7e870a1e13bc708eddad137a49ba6c0628ce901df") },
-              { 23000, uint256("000059d889977b9d0cd3d3fa149aa4c6e9c9da08c05c016cb800d52b2ecb620c") },
-              { 31000, uint256("000079188913bbe13cb3ff76df2ba2f9d2180854750ab9a37dc8d197668d2215") },
-              { 40000, uint256("00009c40c22952179a522909e8bec05617817952f3b9aebd1d1e096413fead5b") },
-              { 50000, uint256("0000c3506e5e7fae59bee39965fb45e284f86c993958e5ce682566810832e7e8") },
-              { 70000, uint256("000111701e15e979b4633e45b762067c6369e6f0ca8284094f6ce476b10f50de") },
-              { 90000, uint256("00015f902819ebe9915f30f0faeeb08e7cd063b882d9066af898a1c67257927c") },
-              { 110000, uint256("0001adb06ed43e55b0f960a212590674c8b10575de7afa7dc0bb0e53e971f21b") },
-              { 130000, uint256("0001fbd054458ec9f75e94d6779def1ee6c6d009dbbe2f7759f5c6c75c4f9630") },
-              { 150000, uint256("000249f070fe5b5fcb1923080c5dcbd78a6f31182ae32717df84e708b225370b") },
-              { 170000, uint256("00029810ac925d321a415e2fb83d703dcb2ebb2d42b66584c3666eb5795d8ad6") },
-              { 190000, uint256("0002e6304834d0f859658c939b77f9077073f42e91bf3f512bee644bd48180e1") },
-              { 210000, uint256("000334508ed90eb9419392e1fce660467973d3dede5ca51f6e457517d03f2138") },
-              { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
-              { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
-              { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") } });
+        for (const auto& vd : vCheckPoints)
+        {
+            vecCheckPoints.push_back(CCheckPoint(vd.first, vd.second));
+        }
 #endif
     }
 
@@ -1596,16 +1616,18 @@ bool CBlockChain::AddBlockForkContext(const CBlockEx& blockex)
             }
             if (txContxt.destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
             {
+                CDestination destRedeem;
+                uint256 hashFork;
+                if (!pCoreProtocol->GetTxForkRedeemParam(tx, txContxt.destIn, destRedeem, hashFork))
+                {
+                    StdLog("CBlockChain", "AddBlockForkContext: Get redeem param fail, block: %s, dest: %s",
+                           hashBlock.ToString().c_str(), CAddress(txContxt.destIn).ToString().c_str());
+                    return false;
+                }
                 auto it = vForkCtxt.begin();
                 while (it != vForkCtxt.end())
                 {
-                    CTemplatePtr templFork = CTemplate::CreateTemplatePtr(new CTemplateFork(it->destOwner, it->hashFork));
-                    if (templFork == nullptr)
-                    {
-                        StdLog("CBlockChain", "AddBlockForkContext: CreateTemplatePtr fail, block: %s", hashBlock.ToString().c_str());
-                        return false;
-                    }
-                    if (templFork->GetTemplateId() == txContxt.destIn.GetTemplateId())
+                    if (it->hashFork == hashFork)
                     {
                         StdLog("CBlockChain", "AddBlockForkContext: cancel fork, block: %s, fork: %s, dest: %s",
                                hashBlock.ToString().c_str(), it->hashFork.ToString().c_str(),

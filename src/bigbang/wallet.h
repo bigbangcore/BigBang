@@ -31,18 +31,7 @@ public:
             {
                 nTotalValue += out.GetAmount();
                 out.AddRef();
-                StdTrace("CWalletCoins", "Push: insert success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
             }
-            else
-            {
-                StdTrace("CWalletCoins", "Push: insert fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
-            }
-        }
-        else
-        {
-            StdTrace("CWalletCoins", "Push: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
     void Pop(const CWalletTxOut& out)
@@ -53,18 +42,7 @@ public:
             {
                 nTotalValue -= out.GetAmount();
                 out.Release();
-                StdTrace("CWalletCoins", "Pop: erase success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
             }
-            else
-            {
-                StdTrace("CWalletCoins", "Pop: erase fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
-            }
-        }
-        else
-        {
-            StdTrace("CWalletCoins", "Pop: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
 
@@ -177,9 +155,9 @@ public:
     /* Wallet Tx */
     std::size_t GetTxCount() override;
     bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
-    bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) override;
+    bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, const uint256& hashLastBlock, CWalletBalance& balance) override;
     bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted) override;
-    bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) override;
+    bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, const uint256& hashLastBlock, CTransaction& tx) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     /* Update */
     bool SynchronizeTxSet(const CTxSetChange& change) override;
@@ -322,7 +300,7 @@ public:
         return true;
     }
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork,
-                            int nForkHeight, CWalletBalance& balance) override
+                            int nForkHeight, const uint256& hashLastBlock, CWalletBalance& balance) override
     {
         return false;
     }
@@ -333,7 +311,7 @@ public:
     }
     virtual bool ArrangeInputs(const CDestination& destIn,
                                const uint256& hashFork, int nForkHeight,
-                               CTransaction& tx) override
+                               const uint256& hashLastBlock, CTransaction& tx) override
     {
         return false;
     }

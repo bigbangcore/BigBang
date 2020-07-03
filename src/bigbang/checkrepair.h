@@ -5,6 +5,7 @@
 #ifndef STORAGE_CHECKREPAIR_H
 #define STORAGE_CHECKREPAIR_H
 
+#include "../common/template/fork.h"
 #include "address.h"
 #include "block.h"
 #include "blockindexdb.h"
@@ -122,6 +123,15 @@ public:
 
     void InsertSubline(int nHeight, const uint256& hashSubline)
     {
+        auto it = mapSubline.lower_bound(nHeight);
+        while (it != mapSubline.upper_bound(nHeight))
+        {
+            if (it->second == hashSubline)
+            {
+                return;
+            }
+            ++it;
+        }
         mapSubline.insert(std::make_pair(nHeight, hashSubline));
     }
 
@@ -131,18 +141,97 @@ public:
     std::multimap<int, uint256> mapSubline;
 };
 
+class CCheckForkSchedule
+{
+public:
+    CCheckForkSchedule(bool fAllowedIn = false)
+      : fAllowed(fAllowedIn)
+    {
+    }
+    void AddNewJoint(const uint256& hashJoint, const uint256& hashFork)
+    {
+        std::multimap<uint256, uint256>::iterator it = mapJoint.lower_bound(hashJoint);
+        while (it != mapJoint.upper_bound(hashJoint))
+        {
+            if (it->second == hashFork)
+            {
+                return;
+            }
+            ++it;
+        }
+        mapJoint.insert(std::make_pair(hashJoint, hashFork));
+    }
+
+public:
+    bool fAllowed;
+    CForkContext ctxtFork;
+    std::multimap<uint256, uint256> mapJoint;
+};
+
+class CCheckValidFdForkId
+{
+public:
+    CCheckValidFdForkId() {}
+    CCheckValidFdForkId(const uint256& hashRefFdBlockIn, const std::map<uint256, int>& mapForkIdIn)
+    {
+        hashRefFdBlock = hashRefFdBlockIn;
+        mapForkId.clear();
+        mapForkId.insert(mapForkIdIn.begin(), mapForkIdIn.end());
+    }
+    int GetCreatedHeight(const uint256& hashFork)
+    {
+        const auto it = mapForkId.find(hashFork);
+        if (it != mapForkId.end())
+        {
+            return it->second;
+        }
+        return -1;
+    }
+
+public:
+    uint256 hashRefFdBlock;
+    std::map<uint256, int> mapForkId; // When hashRefFdBlock == 0, it is the total quantity, otherwise it is the increment
+};
+
 class CCheckForkManager
 {
 public:
     CCheckForkManager() {}
+    ~CCheckForkManager();
 
-    bool FetchForkStatus(const string& strDataPath);
-    void GetForkList(const uint256& hashGenesis, vector<uint256>& vForkList);
+    bool SetParam(const string& strDataPathIn, bool fTestnetIn, bool fOnlyCheckIn, const uint256& hashGenesisBlockIn);
+    bool FetchForkStatus();
+    void GetForkList(vector<uint256>& vForkList);
     void GetTxFork(const uint256& hashFork, int nHeight, vector<uint256>& vFork);
-    bool UpdateForkLast(const string& strDataPath, const vector<pair<uint256, uint256>>& vForkLast);
+
+    bool AddBlockForkContext(const CBlockEx& blockex);
+    bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, vector<CForkContext>& vForkCtxt);
+    bool GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork);
+    bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                        bool fCheckPointBlock, uint256& hashRefFdBlock, map<uint256, int>& mapValidFork);
+    bool GetForkContext(const uint256& hashFork, CForkContext& ctxt);
+    bool ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile);
+    bool VerifyValidFork(const uint256& hashPrevBlock, const uint256& hashFork, const string& strForkName);
+    bool GetValidFdForkId(const uint256& hashBlock, map<uint256, int>& mapFdForkIdOut);
+    int GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork);
+
+    bool CheckDbValidFork(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork);
+    bool AddDbValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork);
+    bool AddDbForkContext(const CForkContext& ctxt);
+    bool UpdateDbForkLast(const uint256& hashFork, const uint256& hashLastBlock);
+
+    bool GetValidForkContext(const uint256& hashPrimaryLastBlock, const uint256& hashFork, CForkContext& ctxt);
 
 public:
+    string strDataPath;
+    bool fTestnet;
+    bool fOnlyCheck;
+    uint256 hashGenesisBlock;
+    CForkDB dbFork;
     map<uint256, CCheckForkStatus> mapForkStatus;
+    map<int, uint256> mapCheckPoints;
+    std::map<uint256, CCheckForkSchedule> mapForkSched;
+    std::map<uint256, CCheckValidFdForkId> mapBlockValidFork;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -220,11 +309,11 @@ class CCheckWalletTxWalker : public CWalletDBTxWalker
 {
 public:
     CCheckWalletTxWalker()
-      : nWalletTxCount(0), pForkManager(nullptr) {}
+      : nWalletTxCount(0), pCheckForkManager(nullptr) {}
 
     void SetForkManager(CCheckForkManager* pFork)
     {
-        pForkManager = pFork;
+        pCheckForkManager = pFork;
     }
 
     bool Walk(const CWalletTx& wtx) override;
@@ -238,7 +327,7 @@ public:
     bool CheckWalletUnspent(const uint256& hashFork, const CTxOutPoint& point, const CCheckTxOut& out);
 
 protected:
-    CCheckForkManager* pForkManager;
+    CCheckForkManager* pCheckForkManager;
 
 public:
     int64 nWalletTxCount;
@@ -407,10 +496,10 @@ class CCheckBlockWalker : public CTSWalker<CBlockEx>
 {
 public:
     CCheckBlockWalker(bool fTestnetIn, bool fOnlyCheckIn)
-      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn), fOnlyCheck(fOnlyCheckIn) {}
+      : nBlockCount(0), nMainChainHeight(0), nMainChainTxCount(0), objProofParam(fTestnetIn), fOnlyCheck(fOnlyCheckIn), pCheckForkManager(NULL) {}
     ~CCheckBlockWalker();
 
-    bool Initialize(const string& strPath);
+    bool Initialize(const string& strPath, CCheckForkManager* pForkMn);
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
@@ -423,7 +512,8 @@ public:
                                vector<pair<CDestination, int64>>& vecAmount);
 
     bool UpdateBlockNext();
-    bool UpdateBlockTx(CCheckForkManager& objForkMn);
+    bool CheckRepairFork();
+    bool UpdateBlockTx();
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlockOutline& objBlockOutline);
@@ -439,6 +529,7 @@ public:
     int64 nMainChainTxCount;
     uint256 hashGenesis;
     CProofOfWorkParam objProofParam;
+    CCheckForkManager* pCheckForkManager;
     map<uint256, CCheckBlockFork> mapCheckFork;
     map<uint256, CBlockEx> mapBlock;
     map<uint256, CBlockIndex*> mapBlockIndex;
@@ -455,7 +546,8 @@ class CCheckRepairData
 {
 public:
     CCheckRepairData(const string& strPath, bool fTestnetIn, bool fOnlyCheckIn)
-      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn, fOnlyCheckIn) {}
+      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn),
+        objBlockWalker(fTestnetIn, fOnlyCheckIn), objProofOfWorkParam(fTestnetIn) {}
 
 protected:
     bool FetchBlockData();
@@ -464,7 +556,6 @@ protected:
     bool FetchWalletAddress();
     bool FetchWalletTx();
 
-    bool CheckRepairFork();
     bool CheckBlockUnspent();
     bool CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>& vRemoveTx);
     bool CheckBlockIndex();
@@ -483,6 +574,7 @@ protected:
     bool fTestnet;
     bool fOnlyCheck;
 
+    CProofOfWorkParam objProofOfWorkParam;
     CCheckForkManager objForkManager;
     CCheckBlockWalker objBlockWalker;
     map<uint256, CCheckForkUnspentWalker> mapForkUnspentWalker;

@@ -43,6 +43,16 @@ void CForkDB::Deinitialize()
     Close();
 }
 
+bool CForkDB::WriteGenesisBlockHash(const uint256& hashGenesisBlockIn)
+{
+    return Write(make_pair(string("GenesisBlock"), uint256()), hashGenesisBlockIn);
+}
+
+bool CForkDB::GetGenesisBlockHash(uint256& hashGenesisBlockOut)
+{
+    return Read(make_pair(string("GenesisBlock"), uint256()), hashGenesisBlockOut);
+}
+
 bool CForkDB::AddNewForkContext(const CForkContext& ctxt)
 {
     return Write(make_pair(string("ctxt"), ctxt.hashFork), ctxt);
@@ -96,6 +106,44 @@ bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
     multimap<int, uint256> mapJoint;
     map<uint256, uint256> mapFork;
 
+    uint256 hashGenesisBlock;
+    if (!GetGenesisBlockHash(hashGenesisBlock))
+    {
+        return false;
+    }
+
+    uint256 hashLastBlock;
+    if (!RetrieveFork(hashGenesisBlock, hashLastBlock))
+    {
+        hashLastBlock = hashGenesisBlock;
+    }
+
+    map<uint256, int> mapValidFork;
+    if (hashLastBlock == hashGenesisBlock)
+    {
+        mapValidFork.insert(make_pair(hashGenesisBlock, 0));
+    }
+    else
+    {
+        uint256 hashRefFdBlock;
+        if (RetrieveValidForkHash(hashLastBlock, hashRefFdBlock, mapValidFork))
+        {
+            if (hashRefFdBlock != 0)
+            {
+                uint256 hashTempBlock;
+                map<uint256, int> mapTempValidFork;
+                if (RetrieveValidForkHash(hashRefFdBlock, hashTempBlock, mapTempValidFork) && !mapTempValidFork.empty())
+                {
+                    mapValidFork.insert(mapTempValidFork.begin(), mapTempValidFork.end());
+                }
+            }
+        }
+        if (mapValidFork.empty())
+        {
+            mapValidFork.insert(make_pair(hashGenesisBlock, 0));
+        }
+    }
+
     if (!WalkThrough(boost::bind(&CForkDB::LoadForkWalker, this, _1, _2, boost::ref(mapJoint), boost::ref(mapFork))))
     {
         return false;
@@ -105,7 +153,7 @@ bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
     for (multimap<int, uint256>::iterator it = mapJoint.begin(); it != mapJoint.end(); ++it)
     {
         map<uint256, uint256>::iterator mi = mapFork.find((*it).second);
-        if (mi != mapFork.end())
+        if (mi != mapFork.end() && mapValidFork.find(it->second) != mapValidFork.end())
         {
             vFork.push_back(*mi);
         }
@@ -116,6 +164,19 @@ bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
 bool CForkDB::AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork)
 {
     return Write(make_pair(string("valid"), hashBlock), CValidForkId(hashRefFdBlock, mapValidFork));
+}
+
+bool CForkDB::RetrieveValidForkHash(const uint256& hashBlock, uint256& hashRefFdBlock, map<uint256, int>& mapValidFork)
+{
+    CValidForkId validForkId;
+    if (!Read(make_pair(string("valid"), hashBlock), validForkId))
+    {
+        return false;
+    }
+    hashRefFdBlock = validForkId.hashRefFdBlock;
+    mapValidFork.clear();
+    mapValidFork.insert(validForkId.mapForkId.begin(), validForkId.mapForkId.end());
+    return true;
 }
 
 void CForkDB::Clear()

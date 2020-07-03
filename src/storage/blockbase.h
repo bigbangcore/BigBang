@@ -223,7 +223,7 @@ class CBlockBase
 public:
     CBlockBase();
     ~CBlockBase();
-    bool Initialize(const boost::filesystem::path& pathDataLocation, bool fDebug, bool fRenewDB = false);
+    bool Initialize(const boost::filesystem::path& pathDataLocation, const uint256& hashGenesisBlockIn, bool fDebug, bool fRenewDB = false);
     void Deinitialize();
     void Clear();
     bool IsEmpty() const;
@@ -332,6 +332,7 @@ protected:
 protected:
     mutable xengine::CRWAccess rwAccess;
     xengine::CLog log;
+    uint256 hashGenesisBlock;
     bool fDebugLog;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;
