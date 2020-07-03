@@ -46,6 +46,8 @@ protected:
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
     bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
+    Errno VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
+    Errno VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
 
 protected:
     uint256 hashGenesisBlock;
