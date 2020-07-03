@@ -144,10 +144,7 @@ public:
 class CCheckForkSchedule
 {
 public:
-    CCheckForkSchedule(bool fAllowedIn = false)
-      : fAllowed(fAllowedIn)
-    {
-    }
+    CCheckForkSchedule() {}
     void AddNewJoint(const uint256& hashJoint, const uint256& hashFork)
     {
         std::multimap<uint256, uint256>::iterator it = mapJoint.lower_bound(hashJoint);
@@ -163,7 +160,6 @@ public:
     }
 
 public:
-    bool fAllowed;
     CForkContext ctxtFork;
     std::multimap<uint256, uint256> mapJoint;
 };
@@ -196,7 +192,8 @@ public:
 class CCheckForkManager
 {
 public:
-    CCheckForkManager() {}
+    CCheckForkManager()
+      : fTestnet(false), fOnlyCheck(false) {}
     ~CCheckForkManager();
 
     bool SetParam(const string& strDataPathIn, bool fTestnetIn, bool fOnlyCheckIn, const uint256& hashGenesisBlockIn);
