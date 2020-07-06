@@ -595,8 +595,8 @@ void CBlockMaker::PreparePiggyback(CBlock& block, const CDelegateAgreement& agre
     block.nType = CBlock::BLOCK_SUBSIDIARY;
     block.nTimeStamp = nRefBlockTime;
     proof.Save(block.vchProof);
-    Log("subfork: status.nLastBlockHeight vs. nPrevHeight [%d] - [%d], status.nLastBlockTime vs. nRefBlockTime [%ld] - [%ld]",
-        status.nLastBlockHeight, nPrevHeight, status.nLastBlockTime, nRefBlockTime);
+    Log("subfork: status.nLastBlockHeight vs. nPrevHeight [%d] - [%d], RefHeight[%d], status.nLastBlockTime vs. nRefBlockTime [%ld] - [%ld]",
+        status.nLastBlockHeight, nPrevHeight, hashRefBlock.Get32(7), status.nLastBlockTime, nRefBlockTime);
     if (status.nLastBlockHeight == nPrevHeight && status.nLastBlockTime < nRefBlockTime)
     {
         Log("subfork: nPrevMintType[%d], last extended one[%ld], timeout[%ld]",
@@ -812,7 +812,7 @@ void CBlockMaker::BizForkThreadFunc()
         {
             Log("BizMaker: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
                      consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-            continue;
+//            continue;
         }
         Log("BizMaker: target height: %d, consensus[%s], wait time: %ld, last height: %d, prev block: %s",
                  consParam.nPrevHeight + 1, consParam.agreement.IsProofOfWork() ? "POW" : "DPOS",
@@ -862,11 +862,17 @@ void CBlockMaker::BizForkThreadFunc()
                     Log("BizMaker: hashLastBlock[%s], nLastHeight[%d], nLastTime[%ld], nLastMintType[%d]",
                         hashLastBlock.ToString().c_str(), nLastHeight, nLastTime, nLastMintType);
 
+                    int nPrevHeight = nLastHeight - 1;
+                    uint16 nPrevMintType;
+                    if (!pBlockChain->GetBlockMintType(block.hashPrev, nPrevMintType))
+                    {
+                        throw runtime_error("get previous block mint type failed");
+                    }
                     CBlockMakerProfile& profile = (*it).second;
                     CDelegateAgreement agreement;
                     agreement.nWeight = status.nWeight;
                     agreement.nAgreement = status.nAgreement;
-                    ProcessSubFork(profile, agreement, hashLastBlock, nLastTime, nLastHeight, nLastMintType);
+                    ProcessSubFork(profile, agreement, hashLastBlock, nLastTime, nPrevHeight, nPrevMintType);
                     Log("BizMaker: after dealing with subfork");
                 }
             }

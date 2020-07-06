@@ -33,6 +33,7 @@ public:
     bool GetBlock(const uint256& hashBlock, CBlock& block) override;
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) override;
     bool GetOrigin(const uint256& hashFork, CBlock& block) override;
+    bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) override;
     bool Exists(const uint256& hashBlock) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx) override;
     bool ExistsTx(const uint256& txid) override;

@@ -111,6 +111,7 @@ public:
     virtual bool GetBlock(const uint256& hashBlock, CBlock& block) = 0;
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) = 0;
     virtual bool GetOrigin(const uint256& hashFork, CBlock& block) = 0;
+    virtual bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) = 0;
     virtual bool Exists(const uint256& hashBlock) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx) = 0;
     virtual bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) = 0;

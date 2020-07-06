@@ -494,17 +494,25 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
 {
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
+    Log("subfork: there may be [%d] forks needed to update", mapForkStatus.size());
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
-        if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
+        if (!pForkManager->IsAllowed(hashFork))
         {
+            Log("fork[%s] is not allowed", hashFork.ToString().c_str());
             continue;
         }
 
+        if (!pNetChannel->IsForkSynchronized(hashFork))
+        {
+            Log("fork[%s] has not been synchronized yet", hashFork.ToString().c_str());
+            continue;
+        }
         vector<int64> vTimeStamp;
         int nDepth = nPrimaryHeight - status.nLastBlockHeight;
+        Log("subfork: biz[%s] has depth[%d]", hashFork.ToString().c_str(), nDepth);
 
         if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
             && pBlockChain->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
@@ -518,10 +526,15 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
                 block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
                 if (AddNewBlock(block) != OK)
                 {
+                    Log("subfork: add vacant failed fork[%s] on height[%d] lastheight[%d]",
+                        hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
                     break;
                 }
+                Log("subfork: add vacant succeeded fork[%s] on height[%d] with lastheight[%d]",
+                    hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
                 hashPrev = block.GetHash();
             }
+            Log("subfork: biz[%s] done [%d] depth", hashFork.ToString().c_str(), nDepth - 1);
         }
     }
 }

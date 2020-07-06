@@ -308,6 +308,17 @@ bool CBlockChain::GetOrigin(const uint256& hashFork, CBlock& block)
     return cntrBlock.RetrieveOrigin(hashFork, block);
 }
 
+bool CBlockChain::GetBlockMintType(const uint256& hashBlock, uint16& nMintType)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    {
+        return false;
+    }
+    nMintType = pIndex->nMintType;
+    return true;
+}
+
 bool CBlockChain::Exists(const uint256& hashBlock)
 {
     return cntrBlock.Exists(hashBlock);

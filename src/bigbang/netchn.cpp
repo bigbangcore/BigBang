@@ -875,6 +875,26 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     uint64 nNonce = eventSubscribe.nNonce;
     uint256& hashFork = eventSubscribe.hashFork;
     StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is subscribing a main chain "
+                     "from a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is subscribing a main chain "
+                     "from a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         vector<uint256> vDispatchHash;
@@ -924,6 +944,26 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
     uint64 nNonce = eventUnsubscribe.nNonce;
     uint256& hashFork = eventUnsubscribe.hashFork;
     StdLog("NetChannel", "CEventPeerUnsubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is unsubscribing a main chain "
+                     "from a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is unsubscribing a main chain "
+                     "from a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
@@ -949,6 +989,25 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
 {
     uint64 nNonce = eventInv.nNonce;
     uint256& hashFork = eventInv.hashFork;
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is feeding a main chain inv "
+                     "to a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is feeding a main chain inv "
+                     "to a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     try
     {
         if (eventInv.data.size() > network::CInv::MAX_INV_COUNT)
@@ -1091,7 +1150,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             }
             else
             {
-                StdError("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s", inv.nHash.GetHex().c_str());
+                StdError("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s",
+                         inv.nHash.GetHex().c_str());
                 eventGetFail.data.push_back(inv);
             }
         }
@@ -1236,8 +1296,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         if (hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
             StdTrace("NetChannel", "CEventPeerTx: peer[%s] is feeding a main chain tx "
-                                   "to a fork node, just ignore it",
-                     GetPeerAddressInfo(nNonce).c_str());
+                     "to a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
             return true;
         }
     }
@@ -1246,8 +1305,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         if (hashFork != pCoreProtocol->GetGenesisBlockHash())
         {
             StdTrace("NetChannel", "CEventPeerTx: peer[%s] is feeding a biz chain tx "
-                                   "to a dpos node, just ignore it",
-                     GetPeerAddressInfo(nNonce).c_str());
+                     "to a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
             return true;
         }
     }
@@ -1310,8 +1368,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         if (hashFork == pCoreProtocol->GetGenesisBlockHash())
         {
             StdTrace("NetChannel", "CEventPeerBlock: peer[%s] is feeding a main chain block "
-                                   "to a fork node, just ignore it",
-                     GetPeerAddressInfo(nNonce).c_str());
+                     "to a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
             return true;
         }
     }
@@ -1320,8 +1377,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         if (hashFork != pCoreProtocol->GetGenesisBlockHash())
         {
             StdTrace("NetChannel", "CEventPeerBlock: peer[%s] is feeding a biz chain block "
-                                   "to a dpos node, just ignore it",
-                     GetPeerAddressInfo(nNonce).c_str());
+                     "to a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
             return true;
         }
     }
