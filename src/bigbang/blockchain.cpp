@@ -101,7 +101,11 @@ bool CBlockChain::HandleInvoke()
         pForkManager->GetForkList(vFork);
         for(const auto& fork : vFork)
         {
-            InitCheckPoints(fork, VecCheckPointsType());
+            if(fork != pCoreProtocol->GetGenesisBlockHash())
+            {
+                InitCheckPoints(fork, GenerateCheckPoints(fork));
+            }
+            
             if(pForkManager->IsAllowed(fork))
             {
                 CBlock block;
@@ -1509,6 +1513,13 @@ void CBlockChain::InitCheckPoints(const uint256& hashFork, const std::vector<CCh
         pairType.first.insert(std::make_pair(point.nHeight, point));
         pairType.second.push_back(point);
     }
+}
+
+CBlockChain::VecCheckPointsType CBlockChain::GenerateCheckPoints(const uint256& hashFork)
+{
+    //TODO
+    (void)hashFork;
+    return VecCheckPointsType();
 }
 
 void CBlockChain::InitCheckPoints()
