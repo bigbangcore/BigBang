@@ -24,6 +24,7 @@ CBlockChain::CBlockChain()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 CBlockChain::~CBlockChain()
@@ -44,7 +45,11 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
-    InitCheckPoints();
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager\n");
+        return false;
+    }
 
     return true;
 }
@@ -53,6 +58,7 @@ void CBlockChain::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pTxPool = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CBlockChain::HandleInvoke()
@@ -86,16 +92,28 @@ bool CBlockChain::HandleInvoke()
         }
     }
 
+    InitCheckPoints();
+
     // Check local block compared to checkpoint
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        CBlock block;
-        //TODO
-        if (!FindPreviousCheckPointBlock(uint256(), block))
+        std::vector<uint256> vFork;
+        pForkManager->GetForkList(vFork);
+        for(const auto& fork : vFork)
         {
-            StdError("BlockChain", "Find CheckPoint Error when the node starting, you should purge data(bigbang -purge) to resync blockchain");
-            return false;
+            InitCheckPoints(fork, VecCheckPointsType());
+            if(pForkManager->IsAllowed(fork))
+            {
+                CBlock block;
+                if(!FindPreviousCheckPointBlock(fork, block))
+                {
+                    StdError("BlockChain", "Find CheckPoint on fork %s Error when the node starting, you should purge data(bigbang -purge) to resync blockchain", 
+                        fork.ToString().c_str());
+                    return false;
+                }
+            }
         }
+        
     }
 
     return true;
@@ -1484,6 +1502,7 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 
 void CBlockChain::InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints)
 {
+    mapForkCheckPoints.insert(std::make_pair(hashFork, CheckPointsPairType()));
     for (const auto& point : vCheckPoints)
     {
         CheckPointsPairType& pairType = mapForkCheckPoints[hashFork];
