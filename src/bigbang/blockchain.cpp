@@ -1517,9 +1517,18 @@ void CBlockChain::InitCheckPoints(const uint256& hashFork, const std::vector<CCh
 
 CBlockChain::VecCheckPointsType CBlockChain::GenerateCheckPoints(const uint256& hashFork)
 {
-    //TODO
-    (void)hashFork;
-    return VecCheckPointsType();
+    VecCheckPointsType vecCheckPoints;
+    for(const auto& point : vecGenesisCheckPoints)
+    {
+        std::vector<uint256> vBlockHash;
+        CBlock block;
+        if(GetBlockHash(hashFork, point.nHeight, vBlockHash) && vBlockHash.size() > 0 && GetBlock(vBlockHash[0], block) && block.IsSubsidiary())
+        {
+            CCheckPoint checkPoint(point.nHeight, vBlockHash[0]);
+            vecCheckPoints.push_back(checkPoint);
+        }
+    }   
+    return vecCheckPoints;
 }
 
 void CBlockChain::InitCheckPoints()
