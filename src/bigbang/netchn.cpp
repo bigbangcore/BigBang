@@ -956,7 +956,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
 
         if (Config()->nMagicNum == MAINNET_MAGICNUM && block.IsPrimary())
         {
-            if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
+            if (!pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
             {
                 StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
                 throw std::runtime_error("block doest not match checkpoint hash");

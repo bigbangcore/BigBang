@@ -131,12 +131,12 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
 
     /////////////    CheckPoints    /////////////////////
-    virtual bool HasCheckPoints() const = 0;
-    virtual bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) = 0;
-    virtual std::vector<CCheckPoint> CheckPoints() const = 0;
-    virtual CCheckPoint LatestCheckPoint() const = 0;
-    virtual bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) = 0;
-    virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
+    virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
+    virtual bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) = 0;
+    virtual std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const = 0;
+    virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
+    virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;
+    virtual bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;

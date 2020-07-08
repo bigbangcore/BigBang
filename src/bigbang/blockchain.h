@@ -6,6 +6,7 @@
 #define BIGBANG_BLOCKCHAIN_H
 
 #include <map>
+#include <utility>
 #include <uint256.h>
 
 #include "base.h"
@@ -65,12 +66,16 @@ public:
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
 
     /////////////    CheckPoints    /////////////////////
-    bool HasCheckPoints() const override;
-    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) override;
-    std::vector<CCheckPoint> CheckPoints() const override;
-    CCheckPoint LatestCheckPoint() const override;
-    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
-    bool FindPreviousCheckPointBlock(CBlock& block) override;
+    typedef std::map<int, CCheckPoint> MapCheckPointsType;
+    typedef std::vector<CCheckPoint> VecCheckPointsType;
+    typedef std::pair<MapCheckPointsType, VecCheckPointsType> CheckPointsPairType;
+
+    bool HasCheckPoints(const uint256& hashFork) const override;
+    bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) override;
+    std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const override;
+    CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
+    bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;
+    bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
 
 protected:
     bool HandleInitialize() override;
@@ -91,6 +96,7 @@ protected:
     bool VerifyBlockCertTx(const CBlock& block);
 
     void InitCheckPoints();
+    void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
 
 protected:
     boost::shared_mutex rwAccess;
@@ -100,8 +106,8 @@ protected:
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
-    std::map<int, CCheckPoint> mapCheckPoints;
-    std::vector<CCheckPoint> vecCheckPoints;
+    VecCheckPointsType vecGenesisCheckPoints;
+    std::map<uint256, CheckPointsPairType> mapForkCheckPoints;
 };
 
 } // namespace bigbang

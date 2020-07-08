@@ -90,7 +90,8 @@ bool CBlockChain::HandleInvoke()
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
         CBlock block;
-        if (!FindPreviousCheckPointBlock(block))
+        //TODO
+        if (!FindPreviousCheckPointBlock(uint256(), block))
         {
             StdError("BlockChain", "Find CheckPoint Error when the node starting, you should purge data(bigbang -purge) to resync blockchain");
             return false;
@@ -1481,15 +1482,28 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
     return true;
 }
 
+void CBlockChain::InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints)
+{
+    for (const auto& point : vCheckPoints)
+    {
+        CheckPointsPairType& pairType = mapForkCheckPoints[hashFork];
+        pairType.first.insert(std::make_pair(point.nHeight, point));
+        pairType.second.push_back(point);
+    }
+}
+
 void CBlockChain::InitCheckPoints()
 {
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
+        std::vector<CCheckPoint> vecGenesisCheckPoints;
 #ifdef BIGBANG_TESTNET
-        vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
+        vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
+        InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
+        
 #else
-        vecCheckPoints.assign(
+        vecGenesisCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
               { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
               { 1000, uint256("000003e86cc97e8b16aaa92216a66c2797c977a239bbd1a12476bad68580be73") },
@@ -1512,57 +1526,77 @@ void CBlockChain::InitCheckPoints()
               { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
               { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
               { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") } });
+
+        InitCheckPoints(uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70"), vecGenesisCheckPoints);
 #endif
     }
-
-    for (const auto& point : vecCheckPoints)
-    {
-        mapCheckPoints.insert(std::make_pair(point.nHeight, point));
-    }
+    
 }
 
-bool CBlockChain::HasCheckPoints() const
+bool CBlockChain::HasCheckPoints(const uint256& hashFork) const
 {
-    return mapCheckPoints.size() > 0;
-}
-
-bool CBlockChain::GetCheckPointByHeight(int nHeight, CCheckPoint& point)
-{
-    if (mapCheckPoints.count(nHeight) == 0)
+    auto iter = mapForkCheckPoints.find(hashFork);
+    if(iter != mapForkCheckPoints.end())
     {
-        return false;
+        return iter->second.first.size() > 0;
     }
     else
     {
-        point = mapCheckPoints[nHeight];
-        return true;
+        return false;
     }
 }
 
-std::vector<IBlockChain::CCheckPoint> CBlockChain::CheckPoints() const
+bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point)
 {
-    return vecCheckPoints;
+    auto iter = mapForkCheckPoints.find(hashFork);
+    if(iter != mapForkCheckPoints.end())
+    {
+        if (iter->second.first.count(nHeight) == 0)
+        {
+            return false;
+        }
+        else
+        {
+            point = iter->second.first[nHeight];
+            return true;
+        }
+    }
+    else
+    {
+        return false;
+    }
 }
 
-IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint() const
+CBlockChain::VecCheckPointsType CBlockChain::CheckPoints(const uint256& hashFork) const
 {
-    if (!HasCheckPoints())
+    auto iter = mapForkCheckPoints.find(hashFork);
+    if(iter != mapForkCheckPoints.end())
+    {
+        return iter->second.second;
+    }
+    
+    return VecCheckPointsType();
+    
+}
+
+IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint(const uint256& hashFork) const
+{
+    if (!HasCheckPoints(hashFork))
     {
         return CCheckPoint();
     }
-
-    return vecCheckPoints.back();
+    return mapForkCheckPoints.at(hashFork).second.back();
 }
 
-bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
+bool CBlockChain::VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash)
 {
-    if (!HasCheckPoints())
+    if (!HasCheckPoints(hashFork))
     {
         return true;
     }
 
     CCheckPoint point;
-    if (!GetCheckPointByHeight(nHeight, point))
+    if (!GetCheckPointByHeight(hashFork, nHeight, point))
     {
         return true;
     }
@@ -1572,29 +1606,29 @@ bool CBlockChain::VerifyCheckPoint(int nHeight, const uint256& nBlockHash)
         return false;
     }
 
-    Log("Verified checkpoint at height %d/block %s", point.nHeight, point.nBlockHash.ToString().c_str());
+    Log("HashFork %s Verified checkpoint at height %d/block %s", hashFork.ToString().c_str(), point.nHeight, point.nBlockHash.ToString().c_str());
 
     return true;
 }
 
-bool CBlockChain::FindPreviousCheckPointBlock(CBlock& block)
+bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block)
 {
-    if (!HasCheckPoints())
+    if (!HasCheckPoints(hashFork))
     {
         return true;
     }
 
-    const auto& points = CheckPoints();
+    const auto& points = CheckPoints(hashFork);
     int numCheckpoints = points.size();
     for (int i = numCheckpoints - 1; i >= 0; i--)
     {
         const CCheckPoint& point = points[i];
 
         uint256 hashBlock;
-        if (!GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), point.nHeight, hashBlock))
+        if (!GetBlockHash(hashFork, point.nHeight, hashBlock))
         {
-            StdTrace("BlockChain", "CheckPoint(%d, %s) doest not exists and continuely try to get previous checkpoint",
-                     point.nHeight, point.nBlockHash.ToString().c_str());
+            StdTrace("BlockChain", "HashFork %s CheckPoint(%d, %s) doest not exists and continuely try to get previous checkpoint",
+                     hashFork.ToString().c_str(), point.nHeight, point.nBlockHash.ToString().c_str());
 
             continue;
         }
