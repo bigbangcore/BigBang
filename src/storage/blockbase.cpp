@@ -1200,7 +1200,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
-        if (filter.setDest.count(block.txMint.sendTo))
+        if (block.txMint.nAmount > 0 && filter.setDest.count(block.txMint.sendTo))
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
