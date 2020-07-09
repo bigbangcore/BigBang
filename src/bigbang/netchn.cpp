@@ -964,9 +964,9 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
 
             // recved forked block before last checkpoint need drop it and do not report DDoS
             auto checkpoint = pBlockChain->LatestCheckPoint(hashFork);
-            if(!checkpoint.IsNull())
+            if(!checkpoint.IsNull() && !pBlockChain->IsSameBranch(hashFork, checkpoint, block))
             {
-                
+                return true;
             }
         }
 

@@ -76,7 +76,7 @@ public:
     CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
     bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
-
+    bool IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block) override;
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;

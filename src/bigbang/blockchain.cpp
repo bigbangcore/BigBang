@@ -1685,4 +1685,10 @@ bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& b
     return true;
 }
 
+bool CBlockChain::IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block)
+{
+    // TODO
+    return true;
+}
+
 } // namespace bigbang
