@@ -1482,6 +1482,7 @@ void CBlockChain::InitCheckPoints()
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
         vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
+        vecCheckPoints.push_back(CCheckPoint(56469, uint256("0000dc95b036170b4e74f5ff047cd534e66c196c80c07c998625d9ee47917d13")));
         /*vecCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
               { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
