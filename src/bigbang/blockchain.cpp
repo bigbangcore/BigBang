@@ -1687,8 +1687,19 @@ bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& b
 
 bool CBlockChain::IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block)
 {
-    // TODO
-    return true;
+    uint256 blockHash;
+    if(!GetBlockHash(hashFork, point.nHeight, blockHash))
+    {
+        return true;
+    }
+
+    uint256 bestChainBlockHash;
+    if(!GetBlockHash(hashFork, block.GetBlockHeight(), bestChainBlockHash))
+    {
+        return true;
+    }
+
+    return blockHash != bestChainBlockHash;
 }
 
 } // namespace bigbang
