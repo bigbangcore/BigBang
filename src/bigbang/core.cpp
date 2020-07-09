@@ -103,6 +103,13 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
 static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 #endif
 
+// Fix mpvss bug begin height
+#ifdef BIGBANG_TESTNET
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
+#else
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 330000;
+#endif
+
 namespace bigbang
 {
 ///////////////////////////////
@@ -956,6 +963,11 @@ bool CCoreProtocol::IsDposHeight(int height)
     return true;
 }
 
+bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+}
+
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BIGBANG_TESTNET
@@ -1256,6 +1268,11 @@ bool CProofOfWorkParam::IsDposHeight(int height)
         return false;
     }
     return true;
+}
+
+bool CProofOfWorkParam::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
 }
 
 } // namespace bigbang
