@@ -954,14 +954,23 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
 
-        if (Config()->nMagicNum == MAINNET_MAGICNUM && (block.IsPrimary() || block.IsSubsidiary()))
+        if (Config()->nMagicNum == MAINNET_MAGICNUM)
         {
-            if (!pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
+            if ((block.IsPrimary() || block.IsSubsidiary()) && !pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
             {
                 StdError("NetChannel", "Fork %s block at height %d does not match checkpoint hash", hashFork.ToString().c_str(), (int)nBlockHeight);
                 throw std::runtime_error("block doest not match checkpoint hash");
             }
+
+            // recved forked block before last checkpoint need drop it and do not report DDoS
+            auto checkpoint = pBlockChain->LatestCheckPoint(hashFork);
+            if(!checkpoint.IsNull())
+            {
+                
+            }
         }
+
+
 
         set<uint64> setSchedPeer, setMisbehavePeer;
         CSchedule& sched = GetSchedule(hashFork);
