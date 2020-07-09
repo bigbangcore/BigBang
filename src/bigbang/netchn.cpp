@@ -954,11 +954,11 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
 
-        if (Config()->nMagicNum == MAINNET_MAGICNUM && block.IsPrimary())
+        if (Config()->nMagicNum == MAINNET_MAGICNUM && (block.IsPrimary() || block.IsSubsidiary()))
         {
             if (!pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
             {
-                StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
+                StdError("NetChannel", "Fork %s block at height %d does not match checkpoint hash", hashFork.ToString().c_str(), (int)nBlockHeight);
                 throw std::runtime_error("block doest not match checkpoint hash");
             }
         }
