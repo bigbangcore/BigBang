@@ -1163,6 +1163,12 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 
 bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
 {
+    int nCreatedHeight = -1;
+    if(!pForkManager->GetCreatedHeight(hashFork, nCreatedHeight))
+    {
+        return true;
+    }
+    
     return false;
 }
 
