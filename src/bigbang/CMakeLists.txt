@@ -133,17 +133,19 @@ target_link_libraries(libbigbang
     common
 )
 
-# create symbol link
-set(exec_link bigbang-cli bigbang-server bigbang-miner)
-foreach(link ${exec_link})
-    add_custom_command(TARGET bigbang POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink bigbang ${link}
-    )
-endforeach()
+if(UNIX)
+    # create symbol link
+    set(exec_link bigbang-cli bigbang-server bigbang-miner)
+    foreach(link ${exec_link})
+        add_custom_command(TARGET bigbang POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink bigbang ${link}
+        )
+    endforeach()
 
-# install to path
-foreach(link bigbang ${exec_link})
-    install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${link}"
-        DESTINATION bin
-    )
-endforeach()
+    # install to path
+    foreach(link bigbang ${exec_link})
+        install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${link}"
+            DESTINATION bin
+        )
+    endforeach()
+endif()

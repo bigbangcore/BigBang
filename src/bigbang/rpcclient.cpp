@@ -93,6 +93,14 @@ void CRPCClient::HandleHalt()
     pClient = nullptr;
     if (thrDispatch.IsRunning())
     {
+#if defined(WIN32) || defined(_WIN32)
+        DWORD out;
+        INPUT_RECORD input;
+        input.EventType = KEY_EVENT;
+        input.Event.KeyEvent.wRepeatCount = 1;
+        input.Event.KeyEvent.uChar.AsciiChar = '\n';
+        WriteConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &out);
+#endif
         CancelCommand();
         thrDispatch.Interrupt();
     }
@@ -269,16 +277,18 @@ void CRPCClient::LaunchConsole()
     timeval timeout;
     while (isConsoleRunning)
     {
+#if defined(WIN32) || defined(_WIN32)
+        rl_callback_read_char();
+#else
         FD_ZERO(&fs);
-        // STDIN_FILENO
-        FD_SET(0, &fs);
+        FD_SET(STDIN_FILENO, &fs);
 
-        timeout.tv_sec = 0;
+        timeout.tv_sec = 1;
         timeout.tv_usec = 100000;
         int ret = select(1, &fs, nullptr, nullptr, &timeout);
         if (ret == -1)
         {
-            cerr << "select error" << endl;
+            cerr << "select error: " << WSAGetLastError() << endl;
         }
         else if (ret == 0)
         {
@@ -295,6 +305,7 @@ void CRPCClient::LaunchConsole()
         {
             rl_callback_read_char();
         }
+#endif
     }
 
     LeaveLoop();

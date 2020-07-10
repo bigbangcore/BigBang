@@ -72,11 +72,10 @@ elseif(MSVC)
     # C4244: 'argument' : conversion from 'type1' to 'type2', possible loss of data
     # C4250: 'class1' : inherits 'class2::member' via dominance
     # C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
-    # C4717: 'function' : recursive on all control paths, function will cause runtime stack overflow
-    # C4786: 'symbol' : object name was truncated to 'number' characters in the debug information
+    # C4700: uninitialized local variable 'name' used (for va_list)
     # C4804: 'operation' : unsafe use of type 'bool' in operation
     # C4805: 'operation' : unsafe mix of type 'type' and type 'type' in operation
-    string(APPEND CMAKE_CXX_FLAGS " /WX /wd4018 /wd4101 /wd4244 /wd4250 /wd4267 /wd4804 /wd4805")
+    string(APPEND CMAKE_CXX_FLAGS " /WX /wd4018 /wd4101 /wd4244 /wd4250 /wd4267 /wd4700 /wd4804 /wd4805")
     string(APPEND CMAKE_C_FLAGS " /WX /wd4244 /wd4267")
     add_definitions("-D_CRT_SECURE_NO_WARNINGS")
 endif()
