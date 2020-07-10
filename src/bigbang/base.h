@@ -154,6 +154,7 @@ public:
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     const CBasicConfig* Config()
     {

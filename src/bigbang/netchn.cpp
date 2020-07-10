@@ -970,6 +970,12 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
         }
 
+        if(!pBlockChain->IsVacantBlockBeforeCreatedForkHeight(hashFork, block))
+        {
+            StdError("NetChannel", "Fork %s block at height %d is not vacant block", hashFork.ToString().c_str(), (int)nBlockHeight);
+            throw std::runtime_error("block is not vacant before valid height of the created fork tx");
+        }
+
 
 
         set<uint64> setSchedPeer, setMisbehavePeer;

@@ -64,6 +64,7 @@ public:
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) override;
 
     /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;

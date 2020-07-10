@@ -1161,6 +1161,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     return OK;
 }
 
+bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
+{
+    return false;
+}
+
 bool CBlockChain::CheckContainer()
 {
     if (cntrBlock.IsEmpty())
