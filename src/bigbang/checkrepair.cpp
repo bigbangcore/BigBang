@@ -1918,7 +1918,7 @@ bool CCheckRepairData::CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>&
             {
                 const uint256& txid = it->first;
                 const CCheckBlockTx& cacheTx = it->second;
-                if (cacheTx.hashAtFork == hashFork)
+                if (cacheTx.hashAtFork == hashFork && cacheTx.tx.nAmount > 0)
                 {
                     bool fIsMine = objWalletAddressWalker.CheckAddress(cacheTx.tx.sendTo);
                     bool fFromMe = objWalletAddressWalker.CheckAddress(cacheTx.txContxt.destIn);
