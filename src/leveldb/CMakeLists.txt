@@ -25,6 +25,9 @@ if (WIN32)
   string(APPEND CMAKE_CXX_FLAGS " /w")
 else (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_POSIX)
+  # Ignore warnings by bigbangcore
+  string(REGEX REPLACE "-Wall" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(APPEND CMAKE_CXX_FLAGS " -w")
 endif (WIN32)
 
 option(LEVELDB_BUILD_TESTS "Build LevelDB's unit tests" ON)

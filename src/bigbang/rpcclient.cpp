@@ -270,7 +270,8 @@ void CRPCClient::LaunchConsole()
     while (isConsoleRunning)
     {
         FD_ZERO(&fs);
-        FD_SET(_fileno(stdin), &fs);
+        // STDIN_FILENO
+        FD_SET(0, &fs);
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 100000;

@@ -8,8 +8,8 @@
 #ifdef __SIZEOF_INT128__
 
 // GNU
-#define uint128_t = __uint128_t
-#define int128_t = __int128_t
+using uint128_t = __uint128_t;
+using int128_t = __int128_t;
 
 #else
 
