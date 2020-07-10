@@ -1175,6 +1175,7 @@ bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, 
 
     if(nTargetHeight > nOriginHeight && nTargetHeight < nCreatedHeight)
     {
+        Log("Target Block Is Vacant %s at height %d in range of (%d, %d)", block.IsVacant() ? "true" : "false", nTargetHeight, nOriginHeight, nCreatedHeight);
         return block.IsVacant();
     }
 
