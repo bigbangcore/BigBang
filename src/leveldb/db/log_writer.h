@@ -7,53 +7,48 @@
 
 #include <stdint.h>
 
+#include "db/log_format.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
 
-#include "db/log_format.h"
-
-namespace leveldb
-{
+namespace leveldb {
 
 class WritableFile;
 
-namespace log
-{
+namespace log {
 
-class Writer
-{
-public:
-    // Create a writer that will append data to "*dest".
-    // "*dest" must be initially empty.
-    // "*dest" must remain live while this Writer is in use.
-    explicit Writer(WritableFile* dest);
+class Writer {
+ public:
+  // Create a writer that will append data to "*dest".
+  // "*dest" must be initially empty.
+  // "*dest" must remain live while this Writer is in use.
+  explicit Writer(WritableFile* dest);
 
-    // Create a writer that will append data to "*dest".
-    // "*dest" must have initial length "dest_length".
-    // "*dest" must remain live while this Writer is in use.
-    Writer(WritableFile* dest, uint64_t dest_length);
+  // Create a writer that will append data to "*dest".
+  // "*dest" must have initial length "dest_length".
+  // "*dest" must remain live while this Writer is in use.
+  Writer(WritableFile* dest, uint64_t dest_length);
 
-    ~Writer();
+  Writer(const Writer&) = delete;
+  Writer& operator=(const Writer&) = delete;
 
-    Status AddRecord(const Slice& slice);
+  ~Writer();
 
-private:
-    WritableFile* dest_;
-    int block_offset_; // Current offset in block
+  Status AddRecord(const Slice& slice);
 
-    // crc32c values for all supported record types.  These are
-    // pre-computed to reduce the overhead of computing the crc of the
-    // record type stored in the header.
-    uint32_t type_crc_[kMaxRecordType + 1];
+ private:
+  Status EmitPhysicalRecord(RecordType type, const char* ptr, size_t length);
 
-    Status EmitPhysicalRecord(RecordType type, const char* ptr, size_t length);
+  WritableFile* dest_;
+  int block_offset_;  // Current offset in block
 
-    // No copying allowed
-    Writer(const Writer&);
-    void operator=(const Writer&);
+  // crc32c values for all supported record types.  These are
+  // pre-computed to reduce the overhead of computing the crc of the
+  // record type stored in the header.
+  uint32_t type_crc_[kMaxRecordType + 1];
 };
 
-} // namespace log
-} // namespace leveldb
+}  // namespace log
+}  // namespace leveldb
 
-#endif // STORAGE_LEVELDB_DB_LOG_WRITER_H_
+#endif  // STORAGE_LEVELDB_DB_LOG_WRITER_H_

@@ -11,7 +11,7 @@
 #include <pthread.h>
 #endif
 
-#ifndef __CYGWIN__
+#if defined(__linux__) || defined(__APPLE__)
 #include <execinfo.h>
 #endif
 
@@ -64,7 +64,7 @@ std::string GetThreadName()
 
 void PrintTrace()
 {
-#ifndef __CYGWIN__
+#ifndef _WIN32
     void* stack_trace[DUMP_STACK_DEPTH_MAX] = { 0 };
     char** stack_strings = nullptr;
     int stack_depth = 0;

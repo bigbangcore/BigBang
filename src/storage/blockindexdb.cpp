@@ -8,6 +8,7 @@
 
 using namespace std;
 using namespace xengine;
+using namespace boost::placeholders;
 
 namespace bigbang
 {

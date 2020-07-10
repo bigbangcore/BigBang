@@ -18,22 +18,27 @@
 #  Readline_LIBRARY          The readline library.
 
 if(Readline_USE_STATIC_LIBS)
-  set(_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    set(_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib")
 endif()
 
-if(UNIX AND NOT APPLE)
-  set(root_path "/opt/local/" "/usr/" "/usr/local/")
+if(UNIX)
+    if(APPLE)
+        set(root_path "/usr/local/" "/usr/local/opt")
+    else()
+        set(root_path "/opt/local/" "/usr/" "/usr/local/")
+    endif()
+
+    FIND_PATH(Readline_ROOT_DIR
+        NAMES include/readline/readline.h
+        PATHS ${root_path}
+        PATH_SUFFIXES readline
+        NO_DEFAULT_PATH
+    )
 else()
-  set(root_path "/usr/local/" "/usr/local/opt")
+    set(Readline_ROOT_DIR ${CMAKE_PREFIX_PATH})
 endif()
 
-FIND_PATH(Readline_ROOT_DIR
-    NAMES include/readline/readline.h
-    PATHS ${root_path}
-    PATH_SUFFIXES readline
-    NO_DEFAULT_PATH
-)
 
 FIND_PATH(Readline_INCLUDE_DIR
     NAMES readline/readline.h
@@ -46,23 +51,25 @@ FIND_LIBRARY(Readline_LIBRARY
 )
 
 if(Readline_USE_STATIC_LIBS)
-  FIND_PATH(Ncurses_ROOT_DIR
-      NAMES include/ncurses.h
-      PATHS ${root_path}
-      PATH_SUFFIXES ncurses
-      NO_DEFAULT_PATH
-  )
-  
-  FIND_LIBRARY(Ncurses_LIBRARY
-    NAMES tinfo termcap ncursesw ncurses cursesw curses
-    HINTS ${Ncurses_ROOT_DIR}/lib
-  )
+    if(UNIX)
+        FIND_PATH(Ncurses_ROOT_DIR
+            NAMES include/ncurses.h
+            PATHS ${root_path}
+            PATH_SUFFIXES ncurses
+            NO_DEFAULT_PATH
+        )
 
-  if(NOT Ncurses_LIBRARY)
-    message(FATAL_ERROR "ncurses library not found")
-  endif()
+        FIND_LIBRARY(Ncurses_LIBRARY
+            NAMES tinfo termcap ncursesw ncurses cursesw curses
+            HINTS ${Ncurses_ROOT_DIR}/lib
+        )
 
-  set(Readline_LIBRARY ${Readline_LIBRARY} ${Ncurses_LIBRARY})
+        if(NOT Ncurses_LIBRARY)
+            message(FATAL_ERROR "ncurses library not found")
+        endif()
+
+        set(Readline_LIBRARY ${Readline_LIBRARY} ${Ncurses_LIBRARY})
+    endif()
 endif()
 
 if (EXISTS "${Readline_INCLUDE_DIR}/readline/readline.h")

@@ -8,6 +8,7 @@
 #include <openssl/rand.h>
 
 using namespace std;
+using namespace boost::placeholders;
 using boost::asio::ip::tcp;
 
 namespace xengine

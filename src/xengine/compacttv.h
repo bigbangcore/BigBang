@@ -219,7 +219,7 @@ public:
             if (type == COMPACT_TYPE_BINARY)
             {
                 std::size_t size = vchEncoded[offset++];
-                std::vector<unsigned char> vch(&vchEncoded[offset], &vchEncoded[offset + size]);
+                std::vector<unsigned char> vch(vchEncoded.begin() + offset, vchEncoded.begin() + offset + size);
                 if (!mapTagValue.insert(std::make_pair(tag, std::make_pair(COMPACT_TYPE_BINARY, vch))).second)
                 {
                     throw std::range_error("duplicated tag");

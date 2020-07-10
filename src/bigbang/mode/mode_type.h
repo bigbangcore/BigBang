@@ -10,10 +10,10 @@ namespace bigbang
 // mode type
 enum class EModeType
 {
-    ERROR = 0, // ERROR type
-    SERVER,    // server
-    CONSOLE,   // console
-    MINER,     // miner
+    MODE_ERROR = 0, // ERROR type
+    MODE_SERVER,    // server
+    MODE_CONSOLE,   // console
+    MODE_MINER,     // miner
 };
 
 } // namespace bigbang

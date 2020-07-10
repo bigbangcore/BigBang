@@ -7,9 +7,6 @@
 #include <cstdint>
 #include <stdio.h>
 
-using uint128_t = __uint128_t;
-using int128_t = __int128_t;
-
 namespace curve25519
 {
 

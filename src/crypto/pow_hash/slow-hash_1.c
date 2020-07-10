@@ -598,7 +598,7 @@ STATIC INLINE void aes_pseudo_round_xor(const uint8_t *in, uint8_t *out,
 }
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
-BOOL SetLockPagesPrivilege(HANDLE hProcess, BOOL bEnable)
+static BOOL SetLockPagesPrivilege(HANDLE hProcess, BOOL bEnable)
 {
     struct
     {

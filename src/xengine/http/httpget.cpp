@@ -12,6 +12,7 @@
 #define HTTPGET_CONNET_TIMEOUT 10
 
 using namespace std;
+using namespace boost::placeholders;
 using boost::asio::ip::tcp;
 
 namespace xengine

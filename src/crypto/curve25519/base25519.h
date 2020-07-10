@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "int128.h"
+
 namespace curve25519
 {
 // print hex(b[0, 31])

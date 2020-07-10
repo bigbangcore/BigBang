@@ -56,6 +56,7 @@ target_link_libraries(test_ctsdb
     OpenSSL::SSL
     OpenSSL::Crypto
     mpvss
+    common
     crypto
     storage
 )

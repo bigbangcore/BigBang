@@ -270,7 +270,7 @@ void CRPCClient::LaunchConsole()
     while (isConsoleRunning)
     {
         FD_ZERO(&fs);
-        FD_SET(STDIN_FILENO, &fs);
+        FD_SET(_fileno(stdin), &fs);
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 100000;
@@ -388,14 +388,14 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
             {
                 CConfig config;
 
-                char* argv[vCommand.size() + 1];
+                vector<char*> argv(vCommand.size() + 1);
                 argv[0] = const_cast<char*>("bigbang-cli");
                 for (int i = 0; i < vCommand.size(); ++i)
                 {
                     argv[i + 1] = const_cast<char*>(vCommand[i].c_str());
                 }
 
-                if (!config.Load(vCommand.size() + 1, argv, "", "") || !config.PostLoad())
+                if (!config.Load(vCommand.size() + 1, &argv[0], "", "") || !config.PostLoad())
                 {
                     return;
                 }

@@ -21,21 +21,15 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
 
 #ifdef WIN32
-#ifdef _MSC_VER
-#pragma warning(disable : 4786)
-#pragma warning(disable : 4804)
-#pragma warning(disable : 4805)
-#pragma warning(disable : 4717)
-#endif
 #include "shlobj.h"
 #include "shlwapi.h"
 #include "windows.h"
@@ -142,7 +136,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // daemon
-    if (config.GetConfig()->fDaemon && (config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER))
+    if (config.GetConfig()->fDaemon && (config.GetModeType() == EModeType::MODE_SERVER || config.GetModeType() == EModeType::MODE_MINER))
     {
         if (!RunInBackground(pathData))
         {
@@ -152,7 +146,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    if ((config.GetModeType() == EModeType::SERVER || config.GetModeType() == EModeType::MINER)
+    if ((config.GetModeType() == EModeType::MODE_SERVER || config.GetModeType() == EModeType::MODE_MINER)
         && log.SetLogFilePath((pathData / "bigbang.log").string())
         && !InitLog(pathData, config.GetConfig()->fDebug, config.GetConfig()->fDaemon, config.GetConfig()->nLogFileSize, config.GetConfig()->nLogHistorySize))
     {
@@ -161,7 +155,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // check and repair data
-    if (config.GetModeType() == EModeType::SERVER
+    if (config.GetModeType() == EModeType::MODE_SERVER
         && (config.GetConfig()->fCheckRepair || config.GetConfig()->fOnlyCheck))
     {
         CCheckRepairData check(pathData.string(), config.GetConfig()->fTestNet, config.GetConfig()->fOnlyCheck);
@@ -483,11 +477,11 @@ path CBbEntry::GetDefaultDataDir()
 
 #ifdef WIN32
     // Windows
-    char pszPath[MAX_PATH] = "";
-    if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
-    {
-        return path(pszPath) / "Bigbang";
-    }
+    //char pszPath[MAX_PATH] = "";
+    //if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
+    //{
+    //    return path(pszPath) / "Bigbang";
+    //}
     return path("C:\\Bigbang");
 #else
     path pathRet;

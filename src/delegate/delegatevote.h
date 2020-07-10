@@ -48,7 +48,7 @@ public:
              it != mapShare.end(); ++it)
         {
             os << " " << (*it).first.GetHex() << " " << (*it).second.size() << "\n";
-            for (int i = 0; i < (*it).second.size(); i++)
+            for (size_t i = 0; i < (*it).second.size(); i++)
             {
                 os << "   " << (*it).second[i].GetHex() << "\n";
             }

@@ -7,8 +7,7 @@
 
 #include "leveldb/export.h"
 
-namespace leveldb
-{
+namespace leveldb {
 
 class Env;
 
@@ -18,6 +17,6 @@ class Env;
 // *base_env must remain live while the result is in use.
 LEVELDB_EXPORT Env* NewMemEnv(Env* base_env);
 
-} // namespace leveldb
+}  // namespace leveldb
 
-#endif // STORAGE_LEVELDB_HELPERS_MEMENV_MEMENV_H_
+#endif  // STORAGE_LEVELDB_HELPERS_MEMENV_MEMENV_H_

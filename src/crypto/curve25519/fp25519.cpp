@@ -265,7 +265,7 @@ CFP25519& CFP25519::operator-=(const CFP25519& b)
 
 CFP25519& CFP25519::operator*=(const CFP25519& b)
 {
-    __uint128_t m[8] = { 0 };
+    uint128_t m[8] = { 0 };
     Mul32(m, value, b.value);
 
     uint64_t carry = 0;

@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 project(Snappy VERSION 1.1.7 LANGUAGES C CXX)
 
+if(MSVC)
+  # Ignore warnings by bigbangcore
+  string(REGEX REPLACE "/W[01234X]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(APPEND CMAKE_CXX_FLAGS " /w")
+endif()
+
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to make
 # it prominent in the GUI.
 option(BUILD_SHARED_LIBS "Build shared libraries(DLLs)." OFF)

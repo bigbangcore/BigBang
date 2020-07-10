@@ -16,4 +16,11 @@ typedef boost::uint32_t uint32;
 typedef boost::int64_t int64;
 typedef boost::uint64_t uint64;
 
+#ifdef _MSC_VER
+
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#endif
+
 #endif //XENGINE_TYPE_H

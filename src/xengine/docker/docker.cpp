@@ -548,7 +548,7 @@ void CDocker::LogException(const char* pszThread, std::exception* pex)
 {
     ostringstream oss;
     oss << "(" << (pszThread != nullptr ? pszThread : "") << "): " << ((pex != nullptr) ? pex->what() : "unknown") << '\n';
-    va_list ap;
+    va_list ap = nullptr;
     LogOutput("docker", "[ERROR]", oss.str().c_str(), ap);
 }
 

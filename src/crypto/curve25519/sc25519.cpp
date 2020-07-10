@@ -126,11 +126,11 @@ const CSC25519 CSC25519::operator-() const
 
 CSC25519& CSC25519::operator+=(const CSC25519& b)
 {
-    __uint128_t sum = 0;
+    uint128_t sum = 0;
     uint64_t carry = 0;
     for (int i = 0; i < 4; i++)
     {
-        sum = (__uint128_t)value[i] + b.value[i] + carry;
+        sum = (uint128_t)value[i] + b.value[i] + carry;
         carry = (sum >> 64) & 0xFFFFFFFFFFFFFFFF;
         value[i] = sum & 0xFFFFFFFFFFFFFFFF;
     }
@@ -140,11 +140,11 @@ CSC25519& CSC25519::operator+=(const CSC25519& b)
 
 CSC25519& CSC25519::operator-=(const CSC25519& b)
 {
-    __uint128_t sum = 0;
+    uint128_t sum = 0;
     int carry = 0;
     for (int i = 0; i < 4; i++)
     {
-        sum = (__uint128_t)prime[i] + value[i] + (~b.value[i]) + 1 + carry;
+        sum = (uint128_t)prime[i] + value[i] + (~b.value[i]) + 1 + carry;
         carry = ((sum >> 64) & 0xFFFFFFFFFFFFFFFF) - 1;
         value[i] = sum;
     }
@@ -154,7 +154,7 @@ CSC25519& CSC25519::operator-=(const CSC25519& b)
 
 CSC25519& CSC25519::operator*=(const CSC25519& b)
 {
-    __uint128_t m[8] = { 0 };
+    uint128_t m[8] = { 0 };
     Mul32(m, value, b.value);
 
     uint64_t n[8];
@@ -174,11 +174,11 @@ CSC25519& CSC25519::operator*=(const CSC25519& b)
 CSC25519& CSC25519::operator*=(const uint32_t& b)
 {
     // m[i], [96, 127] = 0
-    __uint128_t m[4] = { 0 };
-    m[0] = (__uint128_t)value[0] * b;
-    m[1] = (__uint128_t)value[1] * b;
-    m[2] = (__uint128_t)value[2] * b;
-    m[3] = (__uint128_t)value[3] * b;
+    uint128_t m[4] = { 0 };
+    m[0] = (uint128_t)value[0] * b;
+    m[1] = (uint128_t)value[1] * b;
+    m[2] = (uint128_t)value[2] * b;
+    m[3] = (uint128_t)value[3] * b;
 
     uint32_t carry = 0;
     for (int i = 0; i < 4; ++i)
@@ -281,11 +281,11 @@ void CSC25519::Reduce(const uint32_t carry)
         uint64_t c = (carry << 4) + (value[3] >> 60);
 
         uint64_t product[4];
-        __uint128_t product0 = (__uint128_t)reminder[0] * c;
-        __uint128_t product1 = (__uint128_t)reminder[1] * c;
+        uint128_t product0 = (uint128_t)reminder[0] * c;
+        uint128_t product1 = (uint128_t)reminder[1] * c;
 
         product[0] = product0 & 0xffffffffffffffff;
-        __uint128_t sum = (product0 >> 64) + (product1 & 0xffffffffffffffff);
+        uint128_t sum = (product0 >> 64) + (product1 & 0xffffffffffffffff);
         product[1] = sum & 0xffffffffffffffff;
         product[2] = (sum >> 64) + (product1 >> 64);
         product[3] = 0;
@@ -305,7 +305,7 @@ void CSC25519::BarrettReduce(uint64_t* m)
                                     0xffffffffffffffff, 0x3fffffffffffffff };
 
     uint64_t r1[4], r2[4];
-    __uint128_t product[8] = { 0 };
+    uint128_t product[8] = { 0 };
 
     // r1 = m % 2^254
     Copy32(r1, m);
@@ -332,12 +332,12 @@ void CSC25519::BarrettReduce(uint64_t* m)
 
     // r2 = q3 * prime % 2^254
     Zero64(product);
-    __uint128_t p;
+    uint128_t p;
     for (int i = 0; i < 4; i++)
     {
         for (int j = 0; i + j < 4; j++)
         {
-            p = (__uint128_t)r2[i] * prime[j];
+            p = (uint128_t)r2[i] * prime[j];
             product[i + j] += p & 0xFFFFFFFFFFFFFFFF;
             product[i + j + 1] += (p >> 64) & 0xFFFFFFFFFFFFFFFF;
         }
