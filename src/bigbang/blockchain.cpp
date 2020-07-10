@@ -1164,12 +1164,21 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
 {
     int nCreatedHeight = -1;
-    if(!pForkManager->GetCreatedHeight(hashFork, nCreatedHeight))
+    CBlock originBlock;
+    if(!pForkManager->GetCreatedHeight(hashFork, nCreatedHeight) || !GetOrigin(hashFork, originBlock))
     {
         return true;
     }
     
-    return false;
+    int nOriginHeight = originBlock.GetBlockHeight();
+    int nTargetHeight = block.GetBlockHeight();
+
+    if(nTargetHeight > nOriginHeight && nTargetHeight < nCreatedHeight)
+    {
+        return block.IsVacant();
+    }
+
+    return true;
 }
 
 bool CBlockChain::CheckContainer()
