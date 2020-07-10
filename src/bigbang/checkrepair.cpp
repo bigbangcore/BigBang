@@ -1303,7 +1303,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
 
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
     {
         StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
         return false;

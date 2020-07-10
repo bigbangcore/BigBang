@@ -1247,7 +1247,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
 
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, pCoreProtocol->DPoSConsensusCheckRepeated(block.GetBlockHeight())))
     {
         Log("GetBlockDelegateAgreement : Invalid block proof : %s", hashBlock.ToString().c_str());
         return false;
@@ -1303,7 +1303,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
 
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, pCoreProtocol->DPoSConsensusCheckRepeated(block.GetBlockHeight())))
     {
         Log("GetBlockDelegateAgreement : Invalid block proof : %s \n", hashBlock.ToString().c_str());
         return false;

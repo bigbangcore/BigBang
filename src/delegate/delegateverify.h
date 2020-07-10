@@ -18,7 +18,7 @@ public:
     CDelegateVerify(const std::map<CDestination, std::size_t>& mapWeight,
                     const std::map<CDestination, std::vector<unsigned char>>& mapEnrollData);
     bool VerifyProof(const std::vector<unsigned char>& vchProof, uint256& nAgreement,
-                     std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
+                     std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot, bool fCheckRepeated = true);
 };
 
 } // namespace delegate
