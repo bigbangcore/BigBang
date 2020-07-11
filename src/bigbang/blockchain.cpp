@@ -1504,6 +1504,8 @@ void CBlockChain::InitCheckPoints()
     {
 #ifdef BIGBANG_TESTNET
         vecCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
+        vecCheckPoints.push_back(CCheckPoint(56469, uint256("0000dc95b036170b4e74f5ff047cd534e66c196c80c07c998625d9ee47917d13")));
+        vecCheckPoints.push_back(CCheckPoint(56507, uint256("0000dcbbc667cba7a13733cb9911f42367e7aefa1565aa3193f7d9503eb40f40")));
 #else
         vecCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },

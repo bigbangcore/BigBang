@@ -962,6 +962,33 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
                 throw std::runtime_error("block doest not match checkpoint hash");
             }
         }
+        bool fCheckOk = true;
+        if (hashFork == uint256("0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e"))
+        {
+            if (nBlockHeight == 56507 && block.IsSubsidiary() && hash != uint256("0000dcbbca03061a070b561b1c8fbd714ef6074771c24d7dbfb255a29747831b"))
+            {
+                fCheckOk = false;
+            }
+        }
+        if (fCheckOk && hashFork == uint256("00001195d2d0771094ec8459f0b375bab1e0dd75f179cf6f93e678ac86e8bd32"))
+        {
+            if (nBlockHeight == 56507 && block.IsSubsidiary() && hash != uint256("0000dcbbb40beae632738d72294b2c499d18ab9f3b1f8be7ed2a99751b05a3ed"))
+            {
+                fCheckOk = false;
+            }
+        }
+        if (fCheckOk && hashFork == uint256("000038731942c3096b32df1c39e1dae1c163a392158d666582a7abf751cca2d0"))
+        {
+            if (nBlockHeight == 56507 && block.IsSubsidiary() && hash != uint256("0000dcbbb77928dfda53ac20c697a8786a4c0cab9396483e51dce23ca3315714"))
+            {
+                fCheckOk = false;
+            }
+        }
+        if (!fCheckOk)
+        {
+            StdError("NetChannel", "block at height %d does not match checkpoint hash, fork: %s", (int)nBlockHeight, hashFork.GetHex().c_str());
+            throw std::runtime_error("block doest not match checkpoint hash");
+        }
 
         set<uint64> setSchedPeer, setMisbehavePeer;
         CSchedule& sched = GetSchedule(hashFork);
