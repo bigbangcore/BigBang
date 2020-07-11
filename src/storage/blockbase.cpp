@@ -1253,7 +1253,7 @@ bool CBlockBase::FilterTx(const uint256& hashFork, CTxFilter& filter)
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
-        if (filter.setDest.count(block.txMint.sendTo))
+        if (block.txMint.nAmount > 0 && filter.setDest.count(block.txMint.sendTo))
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
@@ -1303,12 +1303,12 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
             return false;
         }
         int nBlockHeight = pIndex->GetBlockHeight();
-        if (filter.setDest.count(block.txMint.sendTo))
+        if (block.txMint.nAmount > 0 && filter.setDest.count(block.txMint.sendTo))
         {
             if (!filter.FoundTx(hashFork, CAssembledTx(block.txMint, nBlockHeight)))
             {
                 StdLog("BlockBase", "FilterTx2: FoundTx mint tx fail, height: %d, txid: %s, block: %s, fork: %s.",
-                       pIndex->GetBlockHeight(), block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
+                       nBlockHeight, block.txMint.GetHash().GetHex().c_str(), pIndex->GetBlockHash().GetHex().c_str(), pIndex->GetOriginHash().GetHex().c_str());
                 return false;
             }
         }
