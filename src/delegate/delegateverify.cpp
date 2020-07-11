@@ -38,7 +38,7 @@ void CDelegateVerify::Enroll(const std::map<CDestination, std::size_t>& mapWeigh
 }
 
 bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,
-                                  size_t& nWeight, map<CDestination, size_t>& mapBallot)
+                                  size_t& nWeight, map<CDestination, size_t>& mapBallot, bool fCheckRepeated)
 {
     uint256 nAgreementParse;
     try
@@ -56,7 +56,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
         {
             const CDelegateData& delegateData = vPublish[i];
             if (!witness.IsCollectCompleted()
-                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare)))
+                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated)))
             {
                 return false;
             }

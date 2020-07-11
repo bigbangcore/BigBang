@@ -1799,6 +1799,11 @@ CRPCResultPtr CRPCMod::RPCSignTransaction(CRPCParamPtr param)
     }
 
     vector<uint8> vchSendToData;
+    if (rawTx.sendTo.IsTemplate() && spParam->strSendtodata.IsValid())
+    {
+        vchSendToData = ParseHexString(spParam->strSendtodata);
+    }
+
     bool fCompleted = false;
     if (!pService->SignTransaction(rawTx, vchSendToData, fCompleted))
     {
