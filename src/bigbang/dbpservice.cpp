@@ -242,8 +242,9 @@ void CDbpService::HandleGetTransaction(CBbEventDbpMethod& event)
     CTransaction tx;
     uint256 forkHash;
     int blockHeight;
-
-    if (pService->GetTransaction(txHash, tx, forkHash, blockHeight))
+    uint256 hashblock;
+    CDestination obj;
+    if (pService->GetTransaction(txHash, tx, forkHash, blockHeight,hashblock,obj))
     {
         CBbDbpTransaction dbpTx;
         CreateDbpTransaction(tx, 0, dbpTx);
