@@ -1028,15 +1028,18 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         mapTxCache.insert(std::make_pair(update.hashFork, CTxCache(CACHE_HEIGHT_INTERVAL)));
     }
 
-    std::vector<CTransaction> vtx;
-    int64 nTotalFee = 0;
-    const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee, lastBlockEx.GetBlockHeight() + 1);
+    if (!update.vBlockAddNew.empty())
+    {
+        std::vector<CTransaction> vtx;
+        int64 nTotalFee = 0;
+        const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
+        ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee, lastBlockEx.GetBlockHeight() + 1);
 
-    auto& cache = mapTxCache[update.hashFork];
-    cache.AddNew(lastBlockEx.GetHash(), vtx);
+        auto& cache = mapTxCache[update.hashFork];
+        cache.AddNew(lastBlockEx.GetHash(), vtx);
 
-    mapPoolView[update.hashFork].SetLastBlock(lastBlockEx.GetHash(), lastBlockEx.GetBlockTime());
+        mapPoolView[update.hashFork].SetLastBlock(lastBlockEx.GetHash(), lastBlockEx.GetBlockTime());
+    }
     return true;
 }
 

@@ -924,6 +924,10 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
     }
+    if (txid == CTransaction().GetHash())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
+    }
 
     CTransaction tx;
     uint256 hashFork;
