@@ -2207,6 +2207,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
     }
+    if ((int64)nForkHeight > (int64)nJointHeight + MAX_JOINT_FORK_INTERVAL_HEIGHT)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Maximum fork spacing height is 1440");
+    }
 
     uint256 hashBlockRef;
     int64 nTimeRef;

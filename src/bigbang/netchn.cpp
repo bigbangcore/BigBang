@@ -1403,7 +1403,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
         if (pBlock != nullptr)
         {
             uint256 hashBlockRef;
-            if (pBlock->IsSubsidiary() || pBlock->IsExtended())
+            if (pBlock->IsSubsidiary() || pBlock->IsExtended()
+                || (pBlock->IsVacant() && pCoreProtocol->IsRefVacantHeight(pBlock->GetBlockHeight())))
             {
                 CProofOfPiggyback proof;
                 proof.Load(pBlock->vchProof);

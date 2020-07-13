@@ -456,7 +456,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
 
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin(), block.IsVacant()))
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
         Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -693,7 +693,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     }
     else
     {
-        if (!cntrBlock.GetBlockView(block.hashPrev, view, false, false))
+        if (!cntrBlock.GetBlockView(block.hashPrev, view, false))
         {
             Log("AddNewOrigin Get Block View Error: %s ", block.hashPrev.ToString().c_str());
             return ERR_SYS_STORAGE_ERROR;
@@ -1061,7 +1061,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     }
 
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin(), block.IsVacant()))
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
     {
         Log("VerifyPowBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -1159,7 +1159,7 @@ bool CBlockChain::CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate&
     }
 
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(pValidLastIndex->GetBlockHash(), view, true, false))
+    if (!cntrBlock.GetBlockView(pValidLastIndex->GetBlockHash(), view, true))
     {
         StdLog("BlockChain", "CheckForkValidLast: Get Block View Error, last block: %s, fork: %s",
                pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
@@ -1554,6 +1554,11 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
 
+            if (block.txMint.sendTo != agreement.GetBallot(0))
+            {
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
             if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef) || *ppIndexRef == nullptr)
             {
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
@@ -1588,11 +1593,6 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             if (block.GetBlockTime() != nGenTime)
             {
                 return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
-            }
-
-            if (block.txMint.sendTo != agreement.GetBallot(0))
-            {
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
         }
     }
