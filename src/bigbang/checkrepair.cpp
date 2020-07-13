@@ -1508,9 +1508,9 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
                     objForkMn.GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
 
                     CBufStream ss;
-                    uint32 nTxOffset = pIndex->nOffset + block.GetTxSerializedOffset();
                     CTxContxt txContxt;
                     txContxt.destIn = block.txMint.sendTo;
+                    uint32 nTxOffset = pIndex->nOffset + block.GetTxSerializedOffset();
                     if (!AddBlockTx(block.txMint, txContxt, block.GetBlockHeight(), hashFork, pIndex->nFile, nTxOffset, vFork))
                     {
                         StdError("check", "UpdateBlockTx: Add mint tx fail, txid: %s, block: %s",

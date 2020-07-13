@@ -925,7 +925,7 @@ bool CBlockBase::GetBlockView(CBlockView& view)
     return true;
 }
 
-bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable, bool fIsVacantBlock)
+bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable)
 {
     CBlockIndex* pIndex = nullptr;
     uint256 hashOrigin;
@@ -951,7 +951,6 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
     view.Initialize(this, spFork, hashOrigin, fCommitable);
 
-    if (!fIsVacantBlock)
     {
         CReadLock rlock(rwAccess);
         CBlockIndex* pForkLast = spFork->GetLast();

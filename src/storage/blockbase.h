@@ -264,7 +264,7 @@ public:
                                std::vector<std::pair<CDestination, int64>>& vecAmount);
     void ListForkIndex(std::multimap<int, CBlockIndex*>& mapForkIndex);
     bool GetBlockView(CBlockView& view);
-    bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false, bool fIsVacantBlock = false);
+    bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false);
     bool GetForkBlockView(const uint256& hashFork, CBlockView& view);
     bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew);
     bool LoadIndex(CBlockOutline& diskIndex);
