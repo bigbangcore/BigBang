@@ -86,7 +86,16 @@ public:
         if (pIndexLast != nullptr)
         {
             CBlockIndex* pIndexNext = pIndexLast;
-            pIndexLast->pNext = nullptr;
+            if (pIndexLast->pNext)
+            {
+                CBlockIndex* p = pIndexLast->pNext;
+                while (p != nullptr)
+                {
+                    p->pPrev->pNext = nullptr;
+                    p = p->pNext;
+                }
+                pIndexLast->pNext = nullptr;
+            }
             while (!pIndexNext->IsOrigin() && pIndexNext->pPrev->pNext != pIndexNext)
             {
                 CBlockIndex* pIndex = pIndexNext->pPrev;
@@ -195,12 +204,13 @@ class CBlockHeightIndex
 public:
     CBlockHeightIndex()
       : nTimeStamp(0) {}
-    CBlockHeightIndex(uint32 nTimeStampIn, CDestination destMintIn)
-      : nTimeStamp(nTimeStampIn), destMint(destMintIn) {}
+    CBlockHeightIndex(uint32 nTimeStampIn, CDestination destMintIn, const uint256& hashRefBlockIn)
+      : nTimeStamp(nTimeStampIn), destMint(destMintIn), hashRefBlock(hashRefBlockIn) {}
 
 public:
     uint32 nTimeStamp;
     CDestination destMint;
+    uint256 hashRefBlock;
 };
 
 class CForkHeightIndex
@@ -208,7 +218,7 @@ class CForkHeightIndex
 public:
     CForkHeightIndex() {}
 
-    void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint);
+    void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock);
     void RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock);
     std::map<uint256, CBlockHeightIndex>* GetBlockMintList(uint32 nHeight);
 
@@ -254,7 +264,7 @@ public:
                                std::vector<std::pair<CDestination, int64>>& vecAmount);
     void ListForkIndex(std::multimap<int, CBlockIndex*>& mapForkIndex);
     bool GetBlockView(CBlockView& view);
-    bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false);
+    bool GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable = false, bool fIsVacantBlock = false);
     bool GetForkBlockView(const uint256& hashFork, CBlockView& view);
     bool CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew);
     bool LoadIndex(CBlockOutline& diskIndex);
@@ -276,13 +286,17 @@ public:
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
     bool GetDelegateEnrollTx(int height, const std::vector<uint256>& vBlockRange, std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
+    bool VerifyRefBlock(const uint256& hashGenesis, const uint256& hashRefBlock);
+    CBlockIndex* GetForkValidLast(const uint256& hashGenesis, const uint256& hashFork, int nRefVacantHeight);
+    bool VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock);
+    bool GetLastRefBlockHash(const uint256& hashFork, const uint256& hashBlock, uint256& hashRefBlock, bool& fOrigin);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
     CBlockIndex* GetOrCreateIndex(const uint256& hash);
     CBlockIndex* GetBranch(CBlockIndex* pIndexRef, CBlockIndex* pIndex, std::vector<CBlockIndex*>& vPath);
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
-    void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint);
+    void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock);
     void RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
@@ -293,6 +307,9 @@ protected:
     bool UpdateDelegate(const uint256& hash, CBlockEx& block, const CDiskPos& posBlock, CDelegateContext& ctxtDelegate);
     bool GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent);
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
+    bool IsValidBlock(CBlockIndex* pForkLast, const uint256& hashBlock);
+    bool VerifyValidBlock(CBlockIndex* pIndexGenesisLast, const CBlockIndex* pIndex);
+    CBlockIndex* GetLongChainLastBlock(const uint256& hashFork, int nStartHeight, CBlockIndex* pIndexGenesisLast, const std::set<uint256>& setInvalidHash);
     void ClearCache();
     bool LoadDB();
     bool SetupLog(const boost::filesystem::path& pathDataLocation, bool fDebug);

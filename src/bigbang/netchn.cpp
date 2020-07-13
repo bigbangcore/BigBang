@@ -1423,7 +1423,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 hashBlockRef = proof.hashRefBlock;
             }
 
-            if (!pBlock->IsVacant() && !sched.IsRepeatBlock(hashBlock))
+            if ((!pBlock->IsVacant() || !pBlock->txMint.sendTo.IsNull()) && !sched.IsRepeatBlock(hashBlock))
             {
                 if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock, hashBlockRef))
                 {
