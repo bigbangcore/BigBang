@@ -1321,7 +1321,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
 
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
     {
         StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -2037,7 +2037,7 @@ bool CCheckRepairData::CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>&
             {
                 const uint256& txid = it->first;
                 const CCheckBlockTx& cacheTx = it->second;
-                if (cacheTx.hashAtFork == hashFork)
+                if (cacheTx.hashAtFork == hashFork && cacheTx.tx.nAmount > 0)
                 {
                     bool fIsMine = objWalletAddressWalker.CheckAddress(cacheTx.tx.sendTo);
                     bool fFromMe = objWalletAddressWalker.CheckAddress(cacheTx.txContxt.destIn);
