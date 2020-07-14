@@ -138,6 +138,7 @@ public:
     virtual bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) = 0;
     virtual std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const = 0;
     virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
+    virtual CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const = 0;
     virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;
     virtual bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) = 0;
     virtual bool IsSameBranch(const uint256& hashFork, const CBlock& block) = 0;

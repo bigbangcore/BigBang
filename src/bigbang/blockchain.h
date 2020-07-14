@@ -73,6 +73,7 @@ public:
     bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) override;
     std::vector<IBlockChain::CCheckPoint> CheckPoints(const uint256& hashFork) const override;
     CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
+    CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const override;
     bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;

@@ -1631,6 +1631,15 @@ IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint(const uint256& hashFork) 
     return mapForkCheckPoints.at(hashFork).rbegin()->second;
 }
 
+IBlockChain::CCheckPoint CBlockChain::UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const
+{
+    if (!HasCheckPoints(hashFork))
+    {
+        return IBlockChain::CCheckPoint();
+    }
+    return mapForkCheckPoints.at(hashFork).upper_bound(nHeight)->second;
+}
+
 bool CBlockChain::VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash)
 {
     if (!HasCheckPoints(hashFork))
