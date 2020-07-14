@@ -1533,8 +1533,7 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        std::vector<CCheckPoint> vecGenesisCheckPoints;
-        vecGenesisCheckPoints.clear();
+        std::vector<CCheckPoint> vecGenesisCheckPoints, vecBBCN;
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
         InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
@@ -1564,7 +1563,13 @@ void CBlockChain::InitCheckPoints()
               { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
               { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") } });
 
+
+         vecBBCN.assign(
+            { { 300000, uint256("000493e02a0f6ef977ebd5f844014badb412b6db85847b120f162b8d913b9028") },
+              { 335999, uint256("0005207f9be2e4f1a278054058d4c17029ae6733cc8f7163a4e3099000deb9ff") } });
+
         InitCheckPoints(uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70"), vecGenesisCheckPoints);
+        InitCheckPoints(uint256("000493e02a0f6ef977ebd5f844014badb412b6db85847b120f162b8d913b9028"), vecBBCN);
 #endif
     }
     
