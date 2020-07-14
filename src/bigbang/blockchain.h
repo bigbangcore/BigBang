@@ -73,6 +73,7 @@ public:
 
     bool HasCheckPoints(const uint256& hashFork) const override;
     bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) override;
+    void AddCheckPoint(const uint256& hashFork, const CCheckPoint& point) override;
     std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const override;
     CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
     bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;

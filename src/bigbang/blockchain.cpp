@@ -1627,6 +1627,20 @@ bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CC
     }
 }
 
+void CBlockChain::AddCheckPoint(const uint256& hashFork, const CCheckPoint& point)
+{
+    CheckPointsPairType& checkPointPair = mapForkCheckPoints[hashFork];
+    MapCheckPointsType& mapCheckPoint = checkPointPair.first;
+    VecCheckPointsType& vecCheckPoints = checkPointPair.second;
+    
+    auto iter = mapCheckPoint.find(point.nHeight);
+    if(iter == mapCheckPoint.end())
+    {
+        mapCheckPoint.insert(std::make_pair(point.nHeight, point));
+        vecCheckPoints.push_back(point);
+    }
+}
+
 CBlockChain::VecCheckPointsType CBlockChain::CheckPoints(const uint256& hashFork) const
 {
     auto iter = mapForkCheckPoints.find(hashFork);
@@ -1708,19 +1722,20 @@ bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& b
 
 bool CBlockChain::IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block)
 {
-    uint256 blockHash;
-    if(!GetBlockHash(hashFork, point.nHeight, blockHash))
+    int nDeltaHeight = point.nHeight - (int)block.GetBlockHeight();
+    uint256 hashPrev = point.nBlockHash;
+    while(nDeltaHeight--)
     {
-        return true;
+        CBlock prevBlock;
+        if(!GetBlock(hashPrev, prevBlock))
+        {
+            return true;
+        }
+
+        hashPrev = prevBlock.hashPrev;
     }
 
-    uint256 bestChainBlockHash;
-    if(!GetBlockHash(hashFork, block.GetBlockHeight(), bestChainBlockHash))
-    {
-        return true;
-    }
-
-    return blockHash != bestChainBlockHash;
+    return hashPrev == block.GetHash();
 }
 
 } // namespace bigbang
