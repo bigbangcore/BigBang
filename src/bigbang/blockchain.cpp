@@ -1722,20 +1722,15 @@ bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& b
 
 bool CBlockChain::IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block)
 {
-    int nDeltaHeight = point.nHeight - (int)block.GetBlockHeight();
-    uint256 hashPrev = point.nBlockHash;
-    while(nDeltaHeight--)
+    (void)point;
+    
+    uint256 bestChainBlockHash;
+    if(!GetBlockHash(hashFork, block.GetBlockHeight(), bestChainBlockHash))
     {
-        CBlock prevBlock;
-        if(!GetBlock(hashPrev, prevBlock))
-        {
-            return true;
-        }
-
-        hashPrev = prevBlock.hashPrev;
+        return true;
     }
 
-    return hashPrev == block.GetHash();
+    return block.GetHash() == bestChainBlockHash;
 }
 
 } // namespace bigbang
