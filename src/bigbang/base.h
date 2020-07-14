@@ -90,6 +90,7 @@ public:
         {
             return (nHeight == -1 || !nBlockHash);
         }
+
     public:
         int nHeight;
         uint256 nBlockHash;

@@ -973,10 +973,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
 
             // recved forked block before last checkpoint need drop it and do not report DDoS
-            if(block.IsSubsidiary())
+            if (block.IsSubsidiary())
             {
                 auto checkpoint = pBlockChain->UpperBoundCheckPoint(hashFork, nBlockHeight);
-                if(!checkpoint.IsNull() && nBlockHeight < checkpoint.nHeight && !pBlockChain->IsSameBranch(hashFork, block))
+                if (!checkpoint.IsNull() && nBlockHeight < checkpoint.nHeight && !pBlockChain->IsSameBranch(hashFork, block))
                 {
                     sched.SetDelayedClear(network::CInv(network::CInv::MSG_BLOCK, hash), CSchedule::MAX_SUB_BLOCK_DELAYED_TIME);
                     return true;
@@ -984,7 +984,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
         }
 
-        if(hashFork != pCoreProtocol->GetGenesisBlockHash() && !pBlockChain->IsVacantBlockBeforeCreatedForkHeight(hashFork, block))
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash() && !pBlockChain->IsVacantBlockBeforeCreatedForkHeight(hashFork, block))
         {
             StdError("NetChannel", "Fork %s block at height %d is not vacant block", hashFork.ToString().c_str(), (int)nBlockHeight);
             throw std::runtime_error("block is not vacant before valid height of the created fork tx");

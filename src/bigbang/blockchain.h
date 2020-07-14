@@ -6,8 +6,8 @@
 #define BIGBANG_BLOCKCHAIN_H
 
 #include <map>
-#include <utility>
 #include <uint256.h>
+#include <utility>
 
 #include "base.h"
 #include "blockbase.h"
@@ -74,9 +74,10 @@ public:
     std::vector<IBlockChain::CCheckPoint> CheckPoints(const uint256& hashFork) const override;
     CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
     CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const override;
-    bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;
+    bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
+
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
