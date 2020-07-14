@@ -966,7 +966,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
 
         if (Config()->nMagicNum == MAINNET_MAGICNUM)
         {
-            if ((block.IsPrimary() || block.IsSubsidiary()) && !pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
+            if (!block.IsExtended() && !pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
             {
                 StdError("NetChannel", "Fork %s block at height %d does not match checkpoint hash", hashFork.ToString().c_str(), (int)nBlockHeight);
                 throw std::runtime_error("block doest not match checkpoint hash");
@@ -995,14 +995,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             {
                 vector<pair<uint256, uint256>> vRefNextBlock;
                 AddNewBlock(hashFork, hash, sched, setSchedPeer, setMisbehavePeer, vRefNextBlock, true);
-
-                IBlockChain::CCheckPoint point;
-                if( block.IsSubsidiary()
-                    && pBlockChain->GetCheckPointByHeight(pCoreProtocol->GetGenesisBlockHash(), nBlockHeight, point) 
-                    && !point.IsNull() && point.nHeight == nBlockHeight)
-                {
-                    pBlockChain->AddCheckPoint(hashFork, IBlockChain::CCheckPoint(nBlockHeight, hash));
-                }
 
                 if (!vRefNextBlock.empty())
                 {

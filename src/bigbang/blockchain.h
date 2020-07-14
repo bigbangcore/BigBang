@@ -68,13 +68,10 @@ public:
 
     /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;
-    typedef std::vector<CCheckPoint> VecCheckPointsType;
-    typedef std::pair<MapCheckPointsType, VecCheckPointsType> CheckPointsPairType;
 
     bool HasCheckPoints(const uint256& hashFork) const override;
     bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) override;
-    void AddCheckPoint(const uint256& hashFork, const CCheckPoint& point) override;
-    std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const override;
+    std::vector<IBlockChain::CCheckPoint> CheckPoints(const uint256& hashFork) const override;
     CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
     bool VerifyCheckPoint(const uint256& hashFork,int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
@@ -99,7 +96,6 @@ protected:
 
     void InitCheckPoints();
     void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
-    VecCheckPointsType GenerateCheckPoints(const uint256& hashFork);
 
 protected:
     boost::shared_mutex rwAccess;
@@ -111,8 +107,7 @@ protected:
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
-    VecCheckPointsType vecGenesisCheckPoints;
-    std::map<uint256, CheckPointsPairType> mapForkCheckPoints;
+    std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
 };
 
 } // namespace bigbang

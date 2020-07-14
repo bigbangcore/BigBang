@@ -136,7 +136,6 @@ public:
     /////////////    CheckPoints    /////////////////////
     virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
     virtual bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) = 0;
-    virtual void AddCheckPoint(const uint256& hashFork, const CCheckPoint& point) = 0;
     virtual std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const = 0;
     virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
     virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;

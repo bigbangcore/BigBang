@@ -100,12 +100,7 @@ bool CBlockChain::HandleInvoke()
         std::map<uint256, CForkStatus> mapForkStatus;
         GetForkStatus(mapForkStatus);
         for(const auto& fork : mapForkStatus)
-        {
-            if(fork.first != pCoreProtocol->GetGenesisBlockHash())
-            {
-                InitCheckPoints(fork.first, GenerateCheckPoints(fork.first));
-            }
-            
+        {    
             CBlock block;
             if(!FindPreviousCheckPointBlock(fork.first, block))
             {
@@ -1171,7 +1166,7 @@ bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, 
     int nOriginHeight = originBlock.GetBlockHeight();
     int nTargetHeight = block.GetBlockHeight();
 
-    if(nTargetHeight > nOriginHeight && nTargetHeight < nCreatedHeight)
+    if(nTargetHeight < nCreatedHeight)
     {
         Log("Target Block Is Vacant %s at height %d in range of (%d, %d)", block.IsVacant() ? "true" : "false", nTargetHeight, nOriginHeight, nCreatedHeight);
         return block.IsVacant();
@@ -1525,29 +1520,12 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
 
 void CBlockChain::InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints)
 {
-    mapForkCheckPoints.insert(std::make_pair(hashFork, CheckPointsPairType()));
+    mapForkCheckPoints.insert(std::make_pair(hashFork, MapCheckPointsType()));
     for (const auto& point : vCheckPoints)
     {
-        CheckPointsPairType& pairType = mapForkCheckPoints[hashFork];
-        pairType.first.insert(std::make_pair(point.nHeight, point));
-        pairType.second.push_back(point);
+        MapCheckPointsType& mapCheckPointType = mapForkCheckPoints[hashFork];
+        mapCheckPointType.insert(std::make_pair(point.nHeight, point));
     }
-}
-
-CBlockChain::VecCheckPointsType CBlockChain::GenerateCheckPoints(const uint256& hashFork)
-{
-    VecCheckPointsType vecCheckPoints;
-    for(const auto& point : vecGenesisCheckPoints)
-    {
-        std::vector<uint256> vBlockHash;
-        CBlock block;
-        if(GetBlockHash(hashFork, point.nHeight, vBlockHash) && vBlockHash.size() > 0 && GetBlock(vBlockHash[0], block) && block.IsSubsidiary())
-        {
-            CCheckPoint checkPoint(point.nHeight, vBlockHash[0]);
-            vecCheckPoints.push_back(checkPoint);
-        }
-    }   
-    return vecCheckPoints;
 }
 
 void CBlockChain::InitCheckPoints()
@@ -1555,6 +1533,7 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
+        std::vector<CCheckPoint> vecGenesisCheckPoints;
         vecGenesisCheckPoints.clear();
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
@@ -1596,7 +1575,7 @@ bool CBlockChain::HasCheckPoints(const uint256& hashFork) const
     auto iter = mapForkCheckPoints.find(hashFork);
     if(iter != mapForkCheckPoints.end())
     {
-        return iter->second.first.size() > 0;
+        return iter->second.size() > 0;
     }
     else
     {
@@ -1609,13 +1588,13 @@ bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CC
     auto iter = mapForkCheckPoints.find(hashFork);
     if(iter != mapForkCheckPoints.end())
     {
-        if (iter->second.first.count(nHeight) == 0)
+        if (iter->second.count(nHeight) == 0)
         {
             return false;
         }
         else
         {
-            point = iter->second.first[nHeight];
+            point = iter->second[nHeight];
             return true;
         }
     }
@@ -1625,29 +1604,21 @@ bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CC
     }
 }
 
-void CBlockChain::AddCheckPoint(const uint256& hashFork, const CCheckPoint& point)
-{
-    CheckPointsPairType& checkPointPair = mapForkCheckPoints[hashFork];
-    MapCheckPointsType& mapCheckPoint = checkPointPair.first;
-    VecCheckPointsType& vecCheckPoints = checkPointPair.second;
-    
-    auto iter = mapCheckPoint.find(point.nHeight);
-    if(iter == mapCheckPoint.end())
-    {
-        mapCheckPoint.insert(std::make_pair(point.nHeight, point));
-        vecCheckPoints.push_back(point);
-    }
-}
-
-CBlockChain::VecCheckPointsType CBlockChain::CheckPoints(const uint256& hashFork) const
+std::vector<IBlockChain::CCheckPoint> CBlockChain::CheckPoints(const uint256& hashFork) const
 {
     auto iter = mapForkCheckPoints.find(hashFork);
     if(iter != mapForkCheckPoints.end())
     {
-        return iter->second.second;
+        std::vector<IBlockChain::CCheckPoint> points;
+        for(const auto& kv : iter->second)
+        {
+            points.push_back(kv.second);
+        }
+        
+        return points;
     }
     
-    return VecCheckPointsType();
+    return std::vector<IBlockChain::CCheckPoint>();
     
 }
 
@@ -1655,9 +1626,9 @@ IBlockChain::CCheckPoint CBlockChain::LatestCheckPoint(const uint256& hashFork) 
 {
     if (!HasCheckPoints(hashFork))
     {
-        return CCheckPoint();
+        return IBlockChain::CCheckPoint();
     }
-    return mapForkCheckPoints.at(hashFork).second.back();
+    return mapForkCheckPoints.at(hashFork).rbegin()->second;
 }
 
 bool CBlockChain::VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash)
