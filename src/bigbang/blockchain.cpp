@@ -1555,7 +1555,7 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        std::vector<CCheckPoint> vecGenesisCheckPoints;
+        vecGenesisCheckPoints.clear();
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
         InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
