@@ -97,25 +97,23 @@ bool CBlockChain::HandleInvoke()
     // Check local block compared to checkpoint
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        std::vector<uint256> vFork;
-        pForkManager->GetForkList(vFork);
-        for(const auto& fork : vFork)
+        std::map<uint256, CForkStatus> mapForkStatus;
+        GetForkStatus(mapForkStatus);
+        for(const auto& fork : mapForkStatus)
         {
-            if(fork != pCoreProtocol->GetGenesisBlockHash())
+            if(fork.first != pCoreProtocol->GetGenesisBlockHash())
             {
-                InitCheckPoints(fork, GenerateCheckPoints(fork));
+                InitCheckPoints(fork.first, GenerateCheckPoints(fork.first));
             }
             
-            if(pForkManager->IsAllowed(fork))
+            CBlock block;
+            if(!FindPreviousCheckPointBlock(fork.first, block))
             {
-                CBlock block;
-                if(!FindPreviousCheckPointBlock(fork, block))
-                {
-                    StdError("BlockChain", "Find CheckPoint on fork %s Error when the node starting, you should purge data(bigbang -purge) to resync blockchain", 
-                        fork.ToString().c_str());
-                    return false;
-                }
+                StdError("BlockChain", "Find CheckPoint on fork %s Error when the node starting, you should purge data(bigbang -purge) to resync blockchain", 
+                    fork.first.ToString().c_str());
+                return false;
             }
+            
         }
         
     }
