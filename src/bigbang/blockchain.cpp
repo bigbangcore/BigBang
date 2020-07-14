@@ -1720,10 +1720,8 @@ bool CBlockChain::FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& b
     return true;
 }
 
-bool CBlockChain::IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block)
+bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
 {
-    (void)point;
-    
     uint256 bestChainBlockHash;
     if(!GetBlockHash(hashFork, block.GetBlockHeight(), bestChainBlockHash))
     {

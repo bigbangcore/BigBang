@@ -141,7 +141,7 @@ public:
     virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
     virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;
     virtual bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) = 0;
-    virtual bool IsSameBranch(const uint256& hashFork, const CCheckPoint& point, const CBlock& block) = 0;
+    virtual bool IsSameBranch(const uint256& hashFork, const CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
