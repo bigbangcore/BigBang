@@ -155,6 +155,7 @@ public:
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
     virtual bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) = 0;
     virtual bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) = 0;
+    virtual bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) = 0;
 
     const CBasicConfig* Config()
     {
