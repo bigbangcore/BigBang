@@ -1155,13 +1155,12 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
 bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
 {
     int nCreatedHeight = -1;
-    CBlock originBlock;
-    if (!pForkManager->GetCreatedHeight(hashFork, nCreatedHeight) || !GetOrigin(hashFork, originBlock))
+    if (!pForkManager->GetCreatedHeight(hashFork, nCreatedHeight))
     {
         return true;
     }
 
-    int nOriginHeight = originBlock.GetBlockHeight();
+    int nOriginHeight = CBlock::GetBlockHeightByHash(hashFork);
     int nTargetHeight = block.GetBlockHeight();
 
     if (nTargetHeight < nCreatedHeight)
