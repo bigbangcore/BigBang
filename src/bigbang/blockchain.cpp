@@ -1637,7 +1637,7 @@ IBlockChain::CCheckPoint CBlockChain::UpperBoundCheckPoint(const uint256& hashFo
     {
         return IBlockChain::CCheckPoint();
     }
-    
+
     auto& forkCheckPoints = mapForkCheckPoints.at(hashFork);
     auto iter = forkCheckPoints.upper_bound(nHeight);
     return (iter != forkCheckPoints.end()) ? IBlockChain::CCheckPoint(iter->second) : IBlockChain::CCheckPoint();
