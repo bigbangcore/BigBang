@@ -29,10 +29,10 @@
 #include "version.h"
 #include "wallet.h"
 
-#ifdef WIN32
-#include "shlobj.h"
-#include "shlwapi.h"
-#include "windows.h"
+#ifdef _WIN32
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <windows.h>
 #endif
 
 #define MINIMUM_HARD_DISK_AVAILABLE 104857600
@@ -475,14 +475,22 @@ path CBbEntry::GetDefaultDataDir()
     // Mac: ~/Library/Application Support/Bigbang
     // Unix: ~/.bigbang
 
-#ifdef WIN32
+#ifdef _WIN32
     // Windows
     //char pszPath[MAX_PATH] = "";
     //if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
     //{
     //    return path(pszPath) / "Bigbang";
     //}
-    return path("C:\\Bigbang");
+    char programPath[MAX_PATH] = { 0 };
+    if (GetModuleFileName(NULL, programPath, MAX_PATH) > 0)
+    {
+        return path(programPath).parent_path() / ".bigbang";
+    }
+    else
+    {
+        return path("C:/.bigbang");
+    }
 #else
     path pathRet;
     char* pszHome = getenv("HOME");
@@ -517,7 +525,7 @@ bool CBbEntry::SetupEnvironment()
     // Disable confusing "helpful" text message on abort, ctrl-c
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
-#ifndef WIN32
+#ifndef _WIN32
     umask(077);
 #endif
     return true;
@@ -525,7 +533,7 @@ bool CBbEntry::SetupEnvironment()
 
 bool CBbEntry::RunInBackground(const path& pathData)
 {
-#ifndef WIN32
+#ifndef _WIN32
     // Daemonize
     ioService.notify_fork(boost::asio::io_service::fork_prepare);
 
@@ -567,7 +575,7 @@ bool CBbEntry::RunInBackground(const path& pathData)
 
 void CBbEntry::ExitBackground(const path& pathData)
 {
-#ifndef WIN32
+#ifndef _WIN32
     boost::filesystem::remove(pathData / "bigbang.pid");
 #endif
 }

@@ -8,6 +8,11 @@
 
 cmake_minimum_required(VERSION 3.10.2)
 
+# vcpkg
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+
 project(Bigbang LANGUAGES C CXX)
 
 # CMP0074: If version >= 3.12, find_package(<PackageName>) will use <PackageName>_ROOT environment variables
@@ -57,7 +62,7 @@ if(UNIX)
     endif()
 else()
     string(APPEND CMAKE_CXX_FLAGS_DEBUG " /Od")
-    string(APPEND CMAKE_CXX_FLAGS_RELEASE " /O2 /MT")
+    string(APPEND CMAKE_CXX_FLAGS_RELEASE " /O2")
 endif()
 
 # warnings
@@ -89,13 +94,20 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # packages
-if(NOT CYGWIN)
+if(UNIX AND NOT CYGWIN)
     set(Boost_USE_STATIC_LIBS ON)
     set(OPENSSL_USE_STATIC_LIBS ON)
     set(sodium_USE_STATIC_LIBS ON)
     set(Boost_USE_MULTITHREADED ON)
     set(Protobuf_USE_STATIC_LIBS ON)
     set(Readline_USE_STATIC_LIBS ON)
+else()
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(OPENSSL_USE_STATIC_LIBS OFF)
+    set(sodium_USE_STATIC_LIBS OFF)
+    set(Boost_USE_MULTITHREADED OFF)
+    set(Protobuf_USE_STATIC_LIBS OFF)
+    set(Readline_USE_STATIC_LIBS OFF)
 endif()
 
 set(Boost_NO_BOOST_CMAKE ON)

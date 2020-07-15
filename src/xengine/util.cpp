@@ -117,6 +117,8 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
     auto date_time_formatter = expr::stream << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f");
     date_time_formatter(rec, strm);
     strm << "|" << logging::extract<std::string>("Channel", rec);
+
+#if !defined(WIN32) && !defined(_WIN32)
     switch (level.get())
     {
     case debug:
@@ -134,10 +136,15 @@ static void console_formatter(logging::record_view const& rec, logging::formatti
     default:
         break;
     }
+#endif
+
     strm << ":" << logging::extract<severity_level>("Severity", rec);
     strm << "|" << logging::extract<std::string>("ThreadName", rec);
     strm << "|" << rec[expr::smessage];
+
+#if !defined(WIN32) && !defined(_WIN32)
     strm << "\033[0m";
+#endif
 }
 
 typedef sinks::text_file_backend backend_t;

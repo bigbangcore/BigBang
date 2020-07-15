@@ -93,7 +93,7 @@ void CRPCClient::HandleHalt()
     pClient = nullptr;
     if (thrDispatch.IsRunning())
     {
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
         DWORD out;
         INPUT_RECORD input;
         input.EventType = KEY_EVENT;
@@ -277,7 +277,7 @@ void CRPCClient::LaunchConsole()
     timeval timeout;
     while (isConsoleRunning)
     {
-#if defined(WIN32) || defined(_WIN32)
+#ifdef _WIN32
         rl_callback_read_char();
 #else
         FD_ZERO(&fs);
