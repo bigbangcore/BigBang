@@ -465,8 +465,7 @@ bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
 void CDispatcher::CheckSubForkLastBlock(const uint256& hashFork)
 {
     CBlockChainUpdate updateBlockChain;
-    if (pBlockChain->CheckForkValidLast(hashFork, updateBlockChain)
-        && !updateBlockChain.IsNull() && !updateBlockChain.vBlockAddNew.empty())
+    if (pBlockChain->CheckForkValidLast(hashFork, updateBlockChain) && !updateBlockChain.IsNull())
     {
         CTxSetChange changeTxSet;
         if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))

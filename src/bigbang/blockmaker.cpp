@@ -691,9 +691,9 @@ bool CBlockMaker::ReplenishSubForkVacant(const uint256& hashFork, int nLastBlock
     {
         uint256 hashPrimaryBlock;
         int64 nPrimaryTime = 0;
-        if (!pBlockChain->GetLastBlockOfHeight(pCoreProtocol->GetGenesisBlockHash(), nNextHeight, hashPrimaryBlock, nPrimaryTime))
+        if (!pBlockChain->GetPrimaryHeightBlockTime(hashRefBlock, nNextHeight, hashPrimaryBlock, nPrimaryTime))
         {
-            StdError("blockmaker", "Replenish vacant: get fork last fail");
+            StdError("blockmaker", "Replenish vacant: get same height time fail");
             return false;
         }
         CBlock block;

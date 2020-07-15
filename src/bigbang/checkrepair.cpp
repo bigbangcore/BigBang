@@ -117,9 +117,11 @@ bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
         dbFork.Deinitialize();
         return false;
     }
+    StdLog("check", "Fetch fork status: fork size: %lu", vFork.size());
 
     for (const auto& fork : vFork)
     {
+        StdLog("check", "Fetch fork status: fork: %s", fork.first.GetHex().c_str());
         const uint256 hashFork = fork.first;
         CCheckForkStatus& status = mapForkStatus[hashFork];
         status.hashLastBlock = fork.second;
@@ -178,6 +180,10 @@ void CCheckForkManager::GetTxFork(const uint256& hashFork, int nHeight, vector<u
         if (it != mapForkStatus.end())
         {
             vForkPtr.push_back(make_pair(hashFork, &(*it).second));
+        }
+        else
+        {
+            StdLog("check", "GetTxFork: find fork fail, fork: %s", hashFork.GetHex().c_str());
         }
     }
     if (nHeight >= 0)
@@ -1029,17 +1035,6 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
                     return false;
                 }
             }
-            else if (block.IsVacant())
-            {
-                if (objProofParam.IsRefVacantHeight(block.GetBlockHeight()))
-                {
-                    nChainTrust = uint64(1);
-                }
-                else
-                {
-                    nChainTrust = uint64(0);
-                }
-            }
             else
             {
                 CBlockIndex* pIndexRef = nullptr;
@@ -1137,14 +1132,7 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
     }
     else if (block.IsVacant())
     {
-        if (objProofParam.IsRefVacantHeight(block.GetBlockHeight()))
-        {
-            nChainTrust = uint64(1);
-        }
-        else
-        {
-            nChainTrust = uint64(0);
-        }
+        nChainTrust = uint64(0);
     }
     else if (block.IsPrimary())
     {
@@ -1748,6 +1736,19 @@ bool CCheckBlockWalker::CheckBlockIndex()
 
 bool CCheckBlockWalker::CheckRefBlock()
 {
+    auto nt = mapCheckFork.find(hashGenesis);
+    if (nt == mapCheckFork.end())
+    {
+        StdError("check", "CheckRefBlock: find primary fork fail, hashGenesis: %s", hashGenesis.GetHex().c_str());
+        return false;
+    }
+    if (nt->second.pLast == nullptr)
+    {
+        StdError("check", "CheckRefBlock: primary fork last is null, hashGenesis: %s", hashGenesis.GetHex().c_str());
+        return false;
+    }
+    CBlockIndex* pPrimaryLast = nt->second.pLast;
+
     bool fCheckRet = true;
     map<uint256, CCheckBlockFork>::iterator mt = mapCheckFork.begin();
     for (; mt != mapCheckFork.end(); ++mt)
@@ -1809,7 +1810,7 @@ bool CCheckBlockWalker::CheckRefBlock()
                         fRet = false;
                         break;
                     }
-                    if (pRefIndex->pNext == nullptr)
+                    if (pRefIndex != pPrimaryLast && pRefIndex->pNext == nullptr)
                     {
                         StdError("check", "CheckRefBlock: ref block is short chain, refblock: %s, block: %s, fork: %s",
                                  proof.hashRefBlock.GetHex().c_str(), pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());

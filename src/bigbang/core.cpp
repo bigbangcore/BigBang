@@ -52,7 +52,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 #endif
 
 #ifdef BIGBANG_TESTNET
-static const uint32 REF_VACANT_HEIGHT = 59600;
+static const uint32 REF_VACANT_HEIGHT = 20;
 #else
 static const uint32 REF_VACANT_HEIGHT = 340000;
 #endif
@@ -809,14 +809,7 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
     }
     else if (block.IsVacant())
     {
-        if (IsRefVacantHeight(block.GetBlockHeight()))
-        {
-            nChainTrust = uint64(1);
-        }
-        else
-        {
-            nChainTrust = uint64(0);
-        }
+        nChainTrust = uint64(0);
     }
     else if (block.IsPrimary())
     {

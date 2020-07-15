@@ -220,6 +220,7 @@ public:
 
     void AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock);
     void RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock);
+    void UpdateBlockRef(int nHeight, const uint256& hashBlock, const uint256& hashRefBlock);
     std::map<uint256, CBlockHeightIndex>* GetBlockMintList(uint32 nHeight);
 
 protected:
@@ -290,6 +291,7 @@ public:
     CBlockIndex* GetForkValidLast(const uint256& hashGenesis, const uint256& hashFork, int nRefVacantHeight);
     bool VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock);
     bool GetLastRefBlockHash(const uint256& hashFork, const uint256& hashBlock, uint256& hashRefBlock, bool& fOrigin);
+    bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -298,6 +300,7 @@ protected:
     CBlockIndex* GetOriginIndex(const uint256& txidMint) const;
     void UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock);
     void RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock);
+    void UpdateBlockRef(const uint256& hashFork, const uint256& hashBlock, const uint256& hashRefBlock);
     CBlockIndex* AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust);
     boost::shared_ptr<CBlockFork> GetFork(const uint256& hash);
     boost::shared_ptr<CBlockFork> GetFork(const std::string& strName);
