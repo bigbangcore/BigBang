@@ -528,8 +528,12 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
                 block.nType = CBlock::BLOCK_VACANT;
                 block.hashPrev = hashPrev;
                 block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
-                if (AddNewBlock(block) != OK)
+
+                Errno err = AddNewBlock(block);
+                if (err != OK && err != ERR_ALREADY_HAVE)
                 {
+                    StdError("Dispatcher", "SyncForkHeight: Add new block failed, error: [%d] %s, block: %s",
+                             err, ErrorString(err), block.GetHash().GetHex().c_str());
                     break;
                 }
                 hashPrev = block.GetHash();

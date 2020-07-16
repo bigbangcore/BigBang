@@ -52,7 +52,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 #endif
 
 #ifdef BIGBANG_TESTNET
-static const uint32 REF_VACANT_HEIGHT = 20;
+static const uint32 REF_VACANT_HEIGHT = 63700; //20;
 #else
 static const uint32 REF_VACANT_HEIGHT = 340000;
 #endif
