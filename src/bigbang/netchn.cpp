@@ -436,7 +436,7 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
     return false;
 }
 
-bool CNetChannel::IsLocalCachePowBlock(int nHeight)
+bool CNetChannel::IsLocalCachePowBlock(int nHeight, bool& fIsDpos)
 {
     bool ret = false;
     try
@@ -444,11 +444,34 @@ bool CNetChannel::IsLocalCachePowBlock(int nHeight)
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         CSchedule& sched = GetSchedule(pCoreProtocol->GetGenesisBlockHash());
         ret = sched.CheckCacheLocalPowBlock(nHeight);
+        if (!ret)
+        {
+            uint256 hashFirstBlock;
+            if (sched.GetFirstCachePowBlock(nHeight, hashFirstBlock))
+            {
+                fIsDpos = true;
+            }
+        }
     }
     catch (exception& e)
     {
         StdError("NetChannel", "IsLocalCachePowBlock: GetSchedule fail, height: %d, error: %s", nHeight, e.what());
         return false;
+    }
+    if (!ret)
+    {
+        uint256 nAgreement;
+        size_t nWeight;
+        vector<CDestination> vBallot;
+        pConsensus->GetAgreement(nHeight, nAgreement, nWeight, vBallot);
+        if (vBallot.size() > 0)
+        {
+            fIsDpos = true;
+        }
+        else
+        {
+            fIsDpos = false;
+        }
     }
     InnerSubmitCachePowBlock();
     return ret;
