@@ -1,3 +1,11 @@
+# Version 2.0.4 (2020-07-16)
+
+### Fixs
+* Fix consensus bug: not check repeated publish
+* Fix signature bug and add "sendtodata" option
+* Enhance verification of CERT
+* Fix crash when failing to inspect wallet tx
+
 # Version 2.0.3 (2020-06-19)
 
 ### Fixs
