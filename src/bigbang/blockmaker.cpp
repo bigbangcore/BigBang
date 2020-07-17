@@ -383,6 +383,7 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
         Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
         return false;
     }
+    Debug("Dispatched block succeeded: %s, type: %u", block.GetHash().ToString().c_str(), block.nType);
     return true;
 }
 
@@ -882,7 +883,7 @@ void CBlockMaker::BizForkThreadFunc()
         }
         catch (exception& e)
         {
-            Error("Biz fork block maker error: %s \n... ignormally exited biz fork block maker thread",
+            Error("Biz fork block maker error: %s ... ignormally exited biz fork block maker thread",
                   e.what());
             return;
         }

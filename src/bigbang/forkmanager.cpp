@@ -127,13 +127,23 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
+    vector<uint256> vActiveFork;
+    if (!pBlockChain->ListActiveFork(vActiveFork))
+    {
+        Error("ListActiveFork failed");
+        return false;
+    }
+    for (const auto& fork : vActiveFork)
+    {
+        setForkAllowed.insert(fork);
+    }
+
     vector<CForkContext> vForkCtxt;
     if (!pBlockChain->ListForkContext(vForkCtxt))
     {
         return false;
     }
-
-    Log("listfork[%d]", vForkCtxt.size());
+    Log("listforks[%d]", vForkCtxt.size());
     for (const CForkContext& ctxt : vForkCtxt)
     {
         Log("listfork[%s][%s][%s]", ctxt.strName.c_str(), ctxt.strSymbol.c_str(), ctxt.hashFork.ToString().c_str());
@@ -144,6 +154,11 @@ bool CForkManager::LoadForkContext(vector<uint256>& vActive)
         }
     }
 
+    Log("active forks[%d]", vActive.size());
+    for (const auto& act : vActive)
+    {
+        Log("active fork[%s]", act.ToString().c_str());
+    }
     return true;
 }
 

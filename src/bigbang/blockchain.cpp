@@ -87,7 +87,7 @@ bool CBlockChain::HandleInvoke()
     }
 
     // Check local block compared to checkpoint
-/*    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+    /*    if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
         CBlock block;
         if (!FindPreviousCheckPointBlock(block))
@@ -1184,6 +1184,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     return OK;
 }
 
+bool CBlockChain::ListActiveFork(std::vector<uint256>& forks)
+{
+    return cntrBlock.ListActiveFork(forks);
+}
+
 bool CBlockChain::CheckContainer()
 {
     if (cntrBlock.IsEmpty())
@@ -1532,7 +1537,7 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-/*        vecCheckPoints.assign(
+        /*        vecCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
               { 100, uint256("000000649ec479bb9944fb85905822cb707eb2e5f42a5d58e598603b642e225d") },
               { 1000, uint256("000003e86cc97e8b16aaa92216a66c2797c977a239bbd1a12476bad68580be73") },

@@ -168,7 +168,7 @@ bool CMQCluster::HandleInvoke()
     arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-        pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
+//        pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
         arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
         arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];

@@ -279,6 +279,7 @@ public:
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
     bool GetDelegateEnrollTx(int height, const std::vector<uint256>& vBlockRange, std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
+    bool ListActiveFork(std::vector<uint256>& forks);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;

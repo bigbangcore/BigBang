@@ -277,7 +277,6 @@ void CBlockView::InsertBlockList(const uint256& hash, const CBlockEx& block, lis
     }
 }
 
-
 //////////////////////////////
 // CForkHeightIndex
 
@@ -2031,6 +2030,23 @@ bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, se
             destEnroll.insert(m.first);
         }
     }
+    return true;
+}
+
+bool CBlockBase::ListActiveFork(std::vector<uint256>& forks)
+{
+    vector<pair<uint256, uint256>> vFork;
+    if (!dbBlock.ListFork(vFork))
+    {
+        return false;
+    }
+
+    forks.clear();
+    for (const auto& fork : vFork)
+    {
+        forks.push_back(fork.first);
+    }
+
     return true;
 }
 
