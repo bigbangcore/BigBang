@@ -52,7 +52,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 #endif
 
 #ifdef BIGBANG_TESTNET
-static const uint32 REF_VACANT_HEIGHT = 20;
+static const uint32 REF_VACANT_HEIGHT = 56690; //20;
 #else
 static const uint32 REF_VACANT_HEIGHT = 340000;
 #endif
@@ -111,7 +111,7 @@ static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 
 // Fix mpvss bug begin height
 #ifdef BIGBANG_TESTNET
-static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 56550;
 #else
 static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 340935;
 #endif
