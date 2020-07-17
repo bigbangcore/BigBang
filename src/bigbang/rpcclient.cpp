@@ -288,7 +288,7 @@ void CRPCClient::LaunchConsole()
         int ret = select(1, &fs, nullptr, nullptr, &timeout);
         if (ret == -1)
         {
-            cerr << "select error: " << WSAGetLastError() << endl;
+            cerr << "select error" << endl;
         }
         else if (ret == 0)
         {

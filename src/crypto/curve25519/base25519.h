@@ -10,8 +10,18 @@
 
 #include "int128.h"
 
+#ifdef __SIZEOF_INT128__
+#define USE_INT128
+using uint128_t = __uint128_t;
+using int128_t = __int128_t;
+#else
+#undef USE_INT128
+#endif
+
 namespace curve25519
 {
+// print hex(b[0, size - 1])
+void Print(const void* p, size_t size, const char* prefix = "");
 // print hex(b[0, 31])
 void Print32(const void* p, const char* prefix = "");
 // n[0, 31] = 0

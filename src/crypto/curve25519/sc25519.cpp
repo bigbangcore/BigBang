@@ -154,7 +154,7 @@ CSC25519& CSC25519::operator-=(const CSC25519& b)
 
 CSC25519& CSC25519::operator*=(const CSC25519& b)
 {
-    uint128_t m[8] = { 0 };
+    uint128_t m[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     Mul32(m, value, b.value);
 
     uint64_t n[8];
@@ -174,7 +174,7 @@ CSC25519& CSC25519::operator*=(const CSC25519& b)
 CSC25519& CSC25519::operator*=(const uint32_t& b)
 {
     // m[i], [96, 127] = 0
-    uint128_t m[4] = { 0 };
+    uint128_t m[4] = { 0, 0, 0, 0 };
     m[0] = (uint128_t)value[0] * b;
     m[1] = (uint128_t)value[1] * b;
     m[2] = (uint128_t)value[2] * b;
@@ -305,7 +305,7 @@ void CSC25519::BarrettReduce(uint64_t* m)
                                     0xffffffffffffffff, 0x3fffffffffffffff };
 
     uint64_t r1[4], r2[4];
-    uint128_t product[8] = { 0 };
+    uint128_t product[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     // r1 = m % 2^254
     Copy32(r1, m);
