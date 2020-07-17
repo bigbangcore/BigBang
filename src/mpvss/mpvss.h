@@ -98,7 +98,7 @@ public:
     void Reconstruct(std::map<uint256, std::pair<uint256, std::size_t>>& mapSecret);
     void Signature(const uint256& hash, uint256& nR, uint256& nS);
     bool VerifySignature(const uint256& nIdentFrom, const uint256& hash, const uint256& nR, const uint256& nS);
-    bool IsCollectCompleted() const;
+    bool IsCollectCompleted();
 
 protected:
     virtual void RandGeneretor(uint256& r);

@@ -36,6 +36,11 @@ const uint256 CMPParticipant::Decrypt(const uint256& cipher) const
 
 bool CMPParticipant::AcceptShare(size_t nThresh, size_t nIndexIn, const vector<uint256>& vEncrypedShare)
 {
+    if (vShare.size() == vEncrypedShare.size())
+    {
+        return true;
+    }
+
     vShare.resize(vEncrypedShare.size());
     for (size_t i = 0; i < vEncrypedShare.size(); i++)
     {
@@ -350,7 +355,6 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
         return false;
     }
 
-    size_t nCompleteCollect = 0;
     for (map<uint256, vector<uint256>>::const_iterator mi = mapShare.begin(); mi != mapShare.end(); ++mi)
     {
         vector<pair<uint32_t, uint256>>& vOpenedShare = mapOpenedShare[(*mi).first];
@@ -362,12 +366,7 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
                 vOpenedShare.push_back(move(share));
             }
         }
-        if (vOpenedShare.size() == nThresh)
-        {
-            nCompleteCollect++;
-        }
     }
-    fCollectCompleted = (nCompleteCollect >= mapShare.size());
     return true;
 }
 
@@ -433,7 +432,25 @@ bool CMPSecretShare::VerifySignature(const uint256& nIdentFrom, const uint256& h
     return participant.candidate.sBox.VerifySignature(hash, nR, nS);
 }
 
-bool CMPSecretShare::IsCollectCompleted() const
+bool CMPSecretShare::IsCollectCompleted()
 {
+    size_t nDistributedCount = (nWeight > 0) ? 1 : 0;
+    for (auto& participant : mapParticipant)
+    {
+        if (participant.second.vShare.size() > 0)
+        {
+            ++nDistributedCount;
+        }
+    }
+
+    size_t nCollectedCount = 0;
+    for (auto& share : mapOpenedShare)
+    {
+        if (share.second.size() == nThresh)
+        {
+            nCollectedCount++;
+        }
+    }
+    fCollectCompleted = (nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size()) || (nCollectedCount >= nDistributedCount);
     return fCollectCompleted;
 }

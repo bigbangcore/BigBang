@@ -255,7 +255,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     {
         if (!witness.IsCollectCompleted())
         {
-            StdLog("CDelegateVote", "Get agreement: mapSecret not is empty, completed: false");
+            StdLog("CDelegateVote", "Get agreement: mapSecret is not empty, completed: false");
         }
         vector<unsigned char> vch;
         CODataStream os(vch);
@@ -276,8 +276,17 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
 
 void CDelegateVote::GetProof(vector<unsigned char>& vchProof)
 {
+    std::vector<CDelegateData> vDeduplicated;
+    std::set<uint256> setCollectedHash;
+    for (auto& data : vCollected)
+    {
+        if (setCollectedHash.insert(data.GetHash()).second)
+        {
+            vDeduplicated.push_back(data);
+        }
+    }
     CODataStream os(vchProof);
-    os << vCollected;
+    os << vDeduplicated;
 }
 
 bool CDelegateVote::IsCollectCompleted()

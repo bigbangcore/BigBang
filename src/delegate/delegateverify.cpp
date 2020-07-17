@@ -39,8 +39,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
         for (int i = 0; i < vPublish.size(); i++)
         {
             const CDelegateData& delegateData = vPublish[i];
-            if (!witness.IsCollectCompleted()
-                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated)))
+            if (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated))
             {
                 return false;
             }
