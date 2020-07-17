@@ -1751,14 +1751,14 @@ void CBlockChain::InitCheckPoints()
         std::vector<CCheckPoint> vecGenesisCheckPoints, vecBBCN;
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
-        vecGenesisCheckPoints.push_back(CCheckPoint(56479, uint256("0000dc9fdb324e350e06f8c28b3c9a59c21300ab4772b96dd4f2a82e1a6a921f")));
+        vecGenesisCheckPoints.push_back(CCheckPoint(56496, uint256("0000dcb0c5b56c12fc06ecc15ed8322e560402f04b417482a2fef9157db759b4")));
 
         InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
 
         {
             std::vector<CCheckPoint> vecCheckPoints;
             vecCheckPoints.assign(
-                { { 56479, uint256("0000dc9ff56fa819d68c4c090746d77c73d03eb08f3ed1f42625b740d4d13f61") } });
+                { { 56496, uint256("0000dcb00e0c099c80d7090b216d161bbab152bf1f277cc1df9490700874dbff") } });
 
             InitCheckPoints(uint256("0000001f9a046730bf5102283f43fe51bd1c1b913b3b931c1566d9c5e1463a7e"), vecCheckPoints);
         }
@@ -1766,7 +1766,7 @@ void CBlockChain::InitCheckPoints()
         {
             std::vector<CCheckPoint> vecCheckPoints;
             vecCheckPoints.assign(
-                { { 56479, uint256("0000dc9f4fc1f3cfebe091bb934f6cc46b105d222014d67afab4c267082a4e7b") } });
+                { { 56496, uint256("0000dcb027555dafd8743c7e5426c77a206a88947e5069c6f56e738b9b6457d0") } });
 
             InitCheckPoints(uint256("00001195d2d0771094ec8459f0b375bab1e0dd75f179cf6f93e678ac86e8bd32"), vecCheckPoints);
         }
@@ -1774,7 +1774,7 @@ void CBlockChain::InitCheckPoints()
         {
             std::vector<CCheckPoint> vecCheckPoints;
             vecCheckPoints.assign(
-                { { 56479, uint256("0000dc9fbba0696fb583f9105648264a158a0de885d2c477a98fb12a8a223e90") } });
+                { { 56496, uint256("0000dcb0412bc768b7f2ea1bfc4870590ba8f5adec26183857c6bc1f5d2b095c") } });
 
             InitCheckPoints(uint256("000038731942c3096b32df1c39e1dae1c163a392158d666582a7abf751cca2d0"), vecCheckPoints);
         }
