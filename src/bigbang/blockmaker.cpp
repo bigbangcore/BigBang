@@ -364,8 +364,12 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
     Errno err = pDispatcher->AddNewBlock(block);
     if (err != OK)
     {
-        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
-        return false;
+        if (err != ERR_ALREADY_HAVE)
+        {
+            Error("Dispatch new block failed (%d) : %s", err, ErrorString(err));
+            return false;
+        }
+        Debug("Dispatching block: %s already have, type: %u", block.GetHash().ToString().c_str(), block.nType);
     }
     return true;
 }
