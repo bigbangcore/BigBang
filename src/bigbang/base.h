@@ -61,6 +61,8 @@ public:
     virtual int64 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) = 0;
+    virtual bool IsRefVacantHeight(uint32 nBlockHeight) = 0;
+    virtual int GetRefVacantHeight() = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -86,6 +88,10 @@ public:
             nHeight = point.nHeight;
             nBlockHash = point.nBlockHash;
             return *this;
+        }
+        bool IsNull() const
+        {
+            return (nHeight == -1 || !nBlockHash);
         }
 
     public:
@@ -132,12 +138,14 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
 
     /////////////    CheckPoints    /////////////////////
-    virtual bool HasCheckPoints() const = 0;
-    virtual bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) = 0;
-    virtual std::vector<CCheckPoint> CheckPoints() const = 0;
-    virtual CCheckPoint LatestCheckPoint() const = 0;
-    virtual bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) = 0;
-    virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
+    virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
+    virtual bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) = 0;
+    virtual std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const = 0;
+    virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
+    virtual CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const = 0;
+    virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;
+    virtual bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) = 0;
+    virtual bool IsSameBranch(const uint256& hashFork, const CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
@@ -151,6 +159,10 @@ public:
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) = 0;
+    virtual bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) = 0;
+    virtual bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) = 0;
+    virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     const CBasicConfig* Config()
     {
@@ -303,6 +315,7 @@ public:
                                const std::vector<unsigned char>& vchPublish)
         = 0;
     virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
+    virtual void CheckAllSubForkLastBlock() = 0;
 };
 
 class IService : public xengine::IBase

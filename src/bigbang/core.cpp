@@ -52,6 +52,12 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 #endif
 
 #ifdef BIGBANG_TESTNET
+static const uint32 REF_VACANT_HEIGHT = 56690; //20;
+#else
+static const uint32 REF_VACANT_HEIGHT = 340000;
+#endif
+
+#ifdef BIGBANG_TESTNET
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
@@ -105,7 +111,7 @@ static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 
 // Fix mpvss bug begin height
 #ifdef BIGBANG_TESTNET
-static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 56550;
 #else
 static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 340935;
 #endif
@@ -335,13 +341,27 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     // validate vacant block
     if (block.nType == CBlock::BLOCK_VACANT)
     {
-        return ValidateVacantBlock(block);
+        if (!IsRefVacantHeight(block.GetBlockHeight()))
+        {
+            return ValidateVacantBlock(block);
+        }
+        if (block.txMint.nAmount != 0 || block.txMint.nTxFee != 0 || block.txMint.nType != CTransaction::TX_STAKE
+            || block.txMint.nTimeStamp == 0 || block.txMint.sendTo.IsNull())
+        {
+            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx, nAmount: %lu, nTxFee: %lu, nType: %d, nTimeStamp: %d, sendTo: %s",
+                         block.txMint.nAmount, block.txMint.nTxFee, block.txMint.nType, block.txMint.nTimeStamp,
+                         (block.txMint.sendTo.IsNull() ? "" : CAddress(block.txMint.sendTo).ToString().c_str()));
+        }
+        if (block.hashMerkle != 0 || !block.vtx.empty())
+        {
+            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "vacant block vtx is not empty");
+        }
     }
 
     // Validate mint tx
     if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
+        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx, tx type: %d", block.txMint.nType);
     }
 
     size_t nBlockSize = GetSerializeSize(block);
@@ -1081,6 +1101,20 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
+bool CCoreProtocol::IsRefVacantHeight(uint32 nBlockHeight)
+{
+    if (nBlockHeight < REF_VACANT_HEIGHT)
+    {
+        return false;
+    }
+    return true;
+}
+
+int CCoreProtocol::GetRefVacantHeight()
+{
+    return REF_VACANT_HEIGHT;
+}
+
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
@@ -1264,6 +1298,15 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
 bool CProofOfWorkParam::IsDposHeight(int height)
 {
     if (height < nDelegateProofOfStakeHeight)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool CProofOfWorkParam::IsRefVacantHeight(int height)
+{
+    if (height < REF_VACANT_HEIGHT)
     {
         return false;
     }

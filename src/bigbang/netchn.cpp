@@ -953,16 +953,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     try
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-
-        if (Config()->nMagicNum == MAINNET_MAGICNUM && block.IsPrimary())
-        {
-            if (!pBlockChain->VerifyCheckPoint((int)nBlockHeight, hash))
-            {
-                StdError("NetChannel", "block at height %d does not match checkpoint hash", (int)nBlockHeight);
-                throw std::runtime_error("block doest not match checkpoint hash");
-            }
-        }
-
         set<uint64> setSchedPeer, setMisbehavePeer;
         CSchedule& sched = GetSchedule(hashFork);
 
@@ -973,6 +963,32 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         }
         StdTrace("NetChannel", "CEventPeerBlock: receive block success, peer: %s, height: %d, block hash: %s",
                  GetPeerAddressInfo(nNonce).c_str(), CBlock::GetBlockHeightByHash(hash), hash.GetHex().c_str());
+
+        if (Config()->nMagicNum == MAINNET_MAGICNUM)
+        {
+            if (!block.IsExtended() && !pBlockChain->VerifyCheckPoint(hashFork, (int)nBlockHeight, hash))
+            {
+                StdError("NetChannel", "Fork %s block at height %d does not match checkpoint hash", hashFork.ToString().c_str(), (int)nBlockHeight);
+                throw std::runtime_error("block doest not match checkpoint hash");
+            }
+
+            // recved forked block before last checkpoint need drop it and do not report DDoS
+            if (block.IsSubsidiary())
+            {
+                auto checkpoint = pBlockChain->UpperBoundCheckPoint(hashFork, nBlockHeight);
+                if (!checkpoint.IsNull() && nBlockHeight < checkpoint.nHeight && !pBlockChain->IsSameBranch(hashFork, block))
+                {
+                    sched.SetDelayedClear(network::CInv(network::CInv::MSG_BLOCK, hash), CSchedule::MAX_SUB_BLOCK_DELAYED_TIME);
+                    return true;
+                }
+            }
+        }
+
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash() && !pBlockChain->IsVacantBlockBeforeCreatedForkHeight(hashFork, block))
+        {
+            StdError("NetChannel", "Fork %s block at height %d is not vacant block", hashFork.ToString().c_str(), (int)nBlockHeight);
+            throw std::runtime_error("block is not vacant before valid height of the created fork tx");
+        }
 
         uint256 hashForkPrev;
         int nHeightPrev;
@@ -1403,7 +1419,8 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
         if (pBlock != nullptr)
         {
             uint256 hashBlockRef;
-            if (pBlock->IsSubsidiary() || pBlock->IsExtended())
+            if (pBlock->IsSubsidiary() || pBlock->IsExtended()
+                || (pBlock->IsVacant() && pCoreProtocol->IsRefVacantHeight(pBlock->GetBlockHeight())))
             {
                 CProofOfPiggyback proof;
                 proof.Load(pBlock->vchProof);
@@ -1423,7 +1440,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 hashBlockRef = proof.hashRefBlock;
             }
 
-            if (!pBlock->IsVacant() && !sched.IsRepeatBlock(hashBlock))
+            if ((!pBlock->IsVacant() || !pBlock->txMint.sendTo.IsNull()) && !sched.IsRepeatBlock(hashBlock))
             {
                 if (!pBlockChain->VerifyRepeatBlock(hashFork, *pBlock, hashBlockRef))
                 {
