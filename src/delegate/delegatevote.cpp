@@ -208,8 +208,14 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
         CDelegateData delegateData;
         CIDataStream is(vchPublishData);
         is >> delegateData;
+
         if (delegateData.nIdentFrom == DestToIdentUInt256(destFrom) && VerifySignature(delegateData))
         {
+            if (find_if(vCollected.begin(), vCollected.end(), [&](const CDelegateData& data) { return data.nIdentFrom == delegateData.nIdentFrom; }) != vCollected.end())
+            {
+                return true;
+            }
+
             fCompleted = witness.IsCollectCompleted();
             if (fCompleted)
             {
@@ -255,7 +261,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     {
         if (!witness.IsCollectCompleted())
         {
-            StdLog("CDelegateVote", "Get agreement: mapSecret not is empty, completed: false");
+            StdLog("CDelegateVote", "Get agreement: mapSecret is not empty, completed: false");
         }
         vector<unsigned char> vch;
         CODataStream os(vch);
