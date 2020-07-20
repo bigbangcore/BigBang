@@ -124,3 +124,7 @@ bool CRecovery::HandleInvoke()
 
         Log("Recovery [%s] end", StorageConfig()->strRecoveryDir.c_str());
     }
+    return true;
+}
+
+} // namespace bigbang
