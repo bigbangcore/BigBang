@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -160,7 +160,7 @@ void CEdwards25519::AddPrescalar(const CEdwards25519& q)
     fT = x * y;
 }
 
-const CEdwards25519 CEdwards25519::ScalarMult(const uint8_t* u8, std::size_t size) const
+const CEdwards25519 CEdwards25519::ScalarMult(const uint8_t* u8, std::size_t size, const bool fPreComputation) const
 {
     if (preScalar.size() != 16 || preScalar[1].fX != fX || preScalar[1].fY != fY)
     {

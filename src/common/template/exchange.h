@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -40,7 +40,7 @@ public:
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
 
-    virtual bool BuildTxSignature(const uint256& hash,
+    virtual bool BuildTxSignature(const uint256& hash, const uint16 nType,
                                   const uint256& hashAnchor,
                                   const CDestination& destTo,
                                   const std::vector<uint8>& vchPreSig,
@@ -54,16 +54,18 @@ protected:
     virtual bool SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, CDestination&& destInstance);
     virtual void BuildTemplateData();
 
-    virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                   const std::vector<uint8>& vchSig, bool& fCompleted) const;
+    virtual bool VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                   const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
 
 public:
     CDestination destSpend_m;
     CDestination destSpend_s;
-    int height_m;
-    int height_s;
+    uint32 height_m;
+    uint32 height_s;
     uint256 fork_m;
     uint256 fork_s;
+
+    static const int DataLen = (sizeof(destSpend_m.prefix) + sizeof(destSpend_m.data) + sizeof(height_m) + sizeof(fork_m)) * 2;
 };
 
 #endif

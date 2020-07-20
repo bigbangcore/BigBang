@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,7 +14,7 @@ namespace bigbang
 namespace storage
 {
 
-#define TXINDEX_FLUSH_INTERVAL (3600)
+#define TXINDEX_FLUSH_INTERVAL (300) // 5 minutes check
 //////////////////////////////
 // CTxIndexDB
 
@@ -71,7 +71,6 @@ void CTxIndexDB::Deinitialize()
         {
             std::shared_ptr<CForkTxDB> spTxDB = (*it).second;
 
-            spTxDB->Flush();
             spTxDB->Flush();
             spTxDB->Deinitialize();
         }
@@ -224,7 +223,7 @@ void CTxIndexDB::FlushProc()
             }
             for (int i = 0; i < vTxDB.size(); i++)
             {
-                vTxDB[i]->Flush();
+                vTxDB[i]->Flush(false);
             }
         }
     }

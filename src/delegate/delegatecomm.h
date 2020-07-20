@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,9 +14,16 @@ namespace bigbang
 namespace delegate
 {
 
+#ifdef BIGBANG_TESTNET
+#define CONSENSUS_DISTRIBUTE_INTERVAL 3
+#define CONSENSUS_ENROLL_INTERVAL 6
+#else
 #define CONSENSUS_DISTRIBUTE_INTERVAL 15
 #define CONSENSUS_ENROLL_INTERVAL 30
+#endif
 #define CONSENSUS_INTERVAL (CONSENSUS_DISTRIBUTE_INTERVAL + CONSENSUS_ENROLL_INTERVAL + 1)
+
+#define MAX_DELEGATE_THRESH (23)
 
 /* 
    Consensus phase:

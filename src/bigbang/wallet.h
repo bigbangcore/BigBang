@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 #define BIGBANG_WALLET_H
 
 #include <boost/thread/thread.hpp>
+#include <set>
 
 #include "base.h"
 #include "util.h"
@@ -150,7 +151,7 @@ public:
     ~CWallet();
     bool IsMine(const CDestination& dest);
     /* Key store */
-    bool AddKey(const crypto::CKey& key) override;
+    boost::optional<std::string> AddKey(const crypto::CKey& key) override;
     bool LoadKey(const crypto::CKey& key);
     void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override;
     bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override;
@@ -177,9 +178,9 @@ public:
     void GetDestinations(std::set<CDestination>& setDest);
     /* Wallet Tx */
     std::size_t GetTxCount() override;
-    bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
+    bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, int nForkHeight, CWalletBalance& balance) override;
-    bool SignTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
+    bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted) override;
     bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
     /* Update */
@@ -209,12 +210,18 @@ protected:
 
     std::shared_ptr<CWalletTx> LoadWalletTx(const uint256& txid);
     std::shared_ptr<CWalletTx> InsertWalletTx(const uint256& txid, const CAssembledTx& tx, const uint256& hashFork, bool fIsMine, bool fFromMe);
-    bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig);
-    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& seed, const uint256& hash, std::vector<uint8>& vchSig);
-    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash, std::vector<uint8>& vchSig, bool& fCompleted);
-    void UpdateAutoLock(CWalletKeyStore& keystore);
+    bool SignPubKey(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig,
+                    std::set<crypto::CPubKey>& setSignedKey);
+    bool SignMultiPubKey(const std::set<crypto::CPubKey>& setPubKey, const uint256& hash, const uint256& hashAnchor,
+                         std::vector<uint8>& vchSig, std::set<crypto::CPubKey>& setSignedKey);
+    bool SignDestination(const CDestination& destIn, const CTransaction& tx, const uint256& hash,
+                         std::vector<uint8>& vchSig, const int32 nForkHeight,
+                         std::set<crypto::CPubKey>& setSignedKey, bool& fCompleted);
+    void UpdateAutoLock(const std::set<crypto::CPubKey>& setSignedKey);
     bool UpdateFork();
     void GetWalletTxFork(const uint256& hashFork, int nHeight, std::vector<uint256>& vFork);
+    bool AddWalletTxOut(const CTxOutPoint& txout);
+    void RemoveWalletTxOut(const CTxOutPoint& txout);
     void AddNewWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, std::vector<uint256>& vFork);
     void RemoveWalletTx(std::shared_ptr<CWalletTx>& spWalletTx, const uint256& hashFork);
     bool SyncWalletTx(CTxFilter& txFilter);
@@ -232,6 +239,7 @@ protected:
     std::map<uint256, std::shared_ptr<CWalletTx>> mapWalletTx;
     std::map<CDestination, CWalletUnspent> mapWalletUnspent;
     std::map<uint256, CWalletFork> mapFork;
+    std::set<CTxOutPoint> setWalletTxOut;
 };
 
 // dummy wallet for on wallet server
@@ -241,9 +249,9 @@ public:
     CDummyWallet() {}
     ~CDummyWallet() {}
     /* Key store */
-    virtual bool AddKey(const crypto::CKey& key) override
+    virtual boost::optional<std::string> AddKey(const crypto::CKey& key) override
     {
-        return false;
+        return std::string();
     }
     virtual void GetPubKeys(std::set<crypto::CPubKey>& setPubKey) const override {}
     virtual bool Have(const crypto::CPubKey& pubkey, const int32 nVersion = -1) const override
@@ -313,7 +321,7 @@ public:
     {
         return 0;
     }
-    virtual bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override
+    virtual bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override
     {
         return true;
     }
@@ -322,8 +330,8 @@ public:
     {
         return false;
     }
-    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx,
-                                 bool& fCompleted) override
+    virtual bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData,
+                                 const int32 nForkHeight, bool& fCompleted) override
     {
         return false;
     }

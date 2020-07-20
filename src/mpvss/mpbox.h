@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +15,8 @@ class CMPSealedBox;
 
 class CMPOpenedBox
 {
+    friend class xengine::CStream;
+
 public:
     CMPOpenedBox();
     CMPOpenedBox(const std::vector<uint256>& vCoeffIn, const uint256& nPrivKeyIn);
@@ -37,6 +39,14 @@ public:
     bool VerifySignature(const uint256& hash, const uint256& nR, const uint256& nS) const;
     bool MakeSealedBox(CMPSealedBox& sealed, const uint256& nIdent, const uint256& r) const;
 
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(vCoeff, opt);
+        s.Serialize(nPrivKey, opt);
+    }
+
 public:
     std::vector<uint256> vCoeff;
     uint256 nPrivKey;
@@ -44,6 +54,8 @@ public:
 
 class CMPSealedBox
 {
+    friend class xengine::CStream;
+
 public:
     CMPSealedBox();
     CMPSealedBox(const std::vector<uint256>& vEncryptedCoeffIn, const uint256& nPubKeyIn, const uint256& nRIn, const uint256& nSIn);
@@ -58,7 +70,15 @@ public:
     void PrecalcPolynomial(std::size_t nThresh, std::size_t nLastIndex);
 
 protected:
-    CEdwards25519& CachedEdPoint(const uint256& pubkey);
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(vEncryptedCoeff, opt);
+        s.Serialize(vEncryptedShare, opt);
+        s.Serialize(nPubKey, opt);
+        s.Serialize(nR, opt);
+        s.Serialize(nS, opt);
+    }
 
 public:
     std::vector<uint256> vEncryptedCoeff;

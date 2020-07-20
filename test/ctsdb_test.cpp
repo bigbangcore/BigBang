@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -41,7 +41,10 @@ typedef CCTSDB<uint224, CMetaData, CCTSChunkSnappy<uint224, CMetaData>> CMetaDB;
 BOOST_AUTO_TEST_CASE(ctsdb)
 {
     CMetaDB db;
-    BOOST_CHECK(db.Initialize(boost::filesystem::path("/home/bigbang/test")));
+    
+    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/dbpath";  
+    std::cout << "init path: " << fullpath << std::endl; 
+    BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
 
     db.RemoveAll();
 
@@ -51,7 +54,7 @@ BOOST_AUTO_TEST_CASE(ctsdb)
         for (int i = 0; i < 3600; i++)
         {
             int64 nTime = loop * 3600 + i;
-            for (int j = 0; j < 10000; j++)
+            for (int j = 0; j < 1000; j++)
             {
                 uint256 txid;
                 bigbang::crypto::CryptoGetRand256(txid);
@@ -89,6 +92,7 @@ BOOST_AUTO_TEST_CASE(ctsdb)
     }
 
     db.Deinitialize();
+    boost::filesystem::remove_all(fullpath);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

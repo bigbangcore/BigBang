@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -45,6 +45,7 @@ public:
     bool RetrieveTxUnspent(const uint256& fork, const CTxOutPoint& out, CTxOut& unspent);
     bool WalkThroughUnspent(const uint256& hashFork, CForkUnspentDBWalker& walker);
     bool RetrieveDelegate(const uint256& hash, std::map<CDestination, int64>& mapDelegate);
+    bool RetrieveEnroll(const uint256& hash, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
 

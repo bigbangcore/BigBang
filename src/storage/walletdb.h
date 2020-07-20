@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -210,13 +210,13 @@ public:
     bool RetrieveTx(const uint256& txid, CWalletTx& wtx);
     bool ExistsTx(const uint256& txid);
     std::size_t GetTxCount();
-    bool ListTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
+    bool ListTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
     bool ListRollBackTx(const uint256& hashFork, int nMinHeight, std::vector<uint256>& vForkTx);
     bool WalkThroughTx(CWalletDBTxWalker& walker);
     bool ClearTx();
 
 protected:
-    bool ListDBTx(int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
+    bool ListDBTx(const uint256& hashFork, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx);
 
 protected:
     CWalletAddrDB dbAddr;

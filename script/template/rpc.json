@@ -62,6 +62,21 @@
                     }
                 }
             },
+            "vote": {
+                "type": "object",
+                "desc": "a vote template",
+                "condition": "type=vote",
+                "content": {
+                    "delegate": {
+                        "type": "string",
+                        "desc": "delegate template address"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
+            },
             "fork": {
                 "type": "object",
                 "desc": "a new fork template",
@@ -163,6 +178,43 @@
                         "desc": "fork_s hash"
                     }
                 }
+            },
+            "payment": {
+                "type": "object",
+                "desc": "a payment template",
+                "condition": "type=payment",
+                "content": {
+                    "business": {
+                        "type": "string",
+                        "desc": "business"
+                    },
+                    "customer": {
+                        "type": "string",
+                        "desc": "customer"
+                    },
+                    "height_exec": {
+                        "type": "int",
+                        "desc": "height_exec"
+                    },
+                    "height_end": {
+                        "type": "int",
+                        "desc": "height_end"
+                    },
+                    "amount": {
+                        "type": "int",
+                        "desc": "amount"
+                    },
+                    "pledge": {
+                        "type": "int",
+                        "desc": "pledge"
+                    }
+                }
+            },
+            "synctx": {
+                "type": "bool",
+                "desc": "sync tx or not",
+                "default": true,
+                "required": false
             }
         }
     },
@@ -193,6 +245,21 @@
                     }
                 },
                 "required": false
+            },
+            "vote": {
+                "type": "object",
+                "desc": "vote template struct",
+                "condition": "type=vote",
+                "content": {
+                    "delegate": {
+                        "type": "string",
+                        "desc": "delegate template address"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
             },
             "fork": {
                 "type": "object",
@@ -279,6 +346,37 @@
                 },
                 "required": false
             },
+            "payment": {
+                "type": "object",
+                "desc": "a payment template",
+                "condition": "type=payment",
+                "content": {
+                    "business": {
+                        "type": "string",
+                        "desc": "business"
+                    },
+                    "customer": {
+                        "type": "string",
+                        "desc": "customer"
+                    },
+                    "height_exec": {
+                        "type": "int",
+                        "desc": "height_exec"
+                    },
+                    "height_end": {
+                        "type": "int",
+                        "desc": "height_end"
+                    },
+                    "amount": {
+                        "type": "int",
+                        "desc": "amount"
+                    },
+                    "pledge": {
+                        "type": "int",
+                        "desc": "pledge"
+                    }
+                }
+            },
             "weighted": {
                 "type": "object",
                 "desc": "weighted template struct",
@@ -330,6 +428,10 @@
             "anchor": {
                 "type": "string",
                 "desc": "anchor hash"
+            },
+            "blockhash": {
+                "type": "string",
+                "desc": "which block tx located in"
             },
             "vin": {
                 "type": "array",
@@ -1370,6 +1472,90 @@
             "{\"code\":-6,\"message\":\"Unknown fork\"}"
         ]
     },
+    "getvotes": {
+        "type": "command",
+        "name": "GetVotes",
+        "desc": "Get votes",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "delegate template address or vote template address"
+                }
+            }
+        },
+        "response": {
+            "type": "double",
+            "name": "votes",
+            "desc": "number of votes"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getvotes 20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0",
+                "response": "70000000.000000"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getvotes\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":70000000.000000}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -6, \"message\" : \"Invalid address\"}",
+            "{\"code\" : -32603, \"message\" : \"Not a delegate template address\"}",
+            "{\"code\" : -32603, \"message\" : \"Vote template address not imported\"}",
+            "{\"code\" : -32603, \"message\" : \"Query failed\"}"
+        ]
+    },
+    "listdelegate": {
+        "type": "command",
+        "name": "ListDelegate",
+        "desc": "List delegate",
+        "request": {
+            "type": "object",
+            "content": {
+                "count": {
+                    "type": "uint",
+                    "desc": "list count, default 0 is all",
+                    "default": 0,
+                    "required": false,
+                    "opt": "n"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "delegate",
+            "content": {
+                "delegate": {
+                    "type": "object",
+                    "content": {
+                        "address": {
+                            "type": "string",
+                            "desc": "delegate address"
+                        },
+                        "votes": {
+                            "type": "double",
+                            "desc": "number of votes"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli listdelegate",
+                "response": "{\"address\":\"20m01802pgptaswc5b2dq09kmj10ns88bn69q0msrnz64mtypx4xm5sff\",\"votes\":100002000.000000}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listdelegate\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"{\"address\":\"20m01802pgptaswc5b2dq09kmj10ns88bn69q0msrnz64mtypx4xm5sff\",\"votes\":100002000.000000}\"}"
+            }
+        ],
+        "error": [
+            "{\"code\" : -32603, \"message\" : \"Query failed\"}"
+        ]
+    },
     "listkey": {
         "type": "command",
         "name": "ListKey",
@@ -1611,6 +1797,13 @@
                 "passphrase": {
                     "type": "string",
                     "desc": "passphrase"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -1680,6 +1873,13 @@
                 "pubkey": {
                     "type": "string",
                     "desc": "public key data"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -1790,6 +1990,13 @@
                 "data": {
                     "type": "string",
                     "desc": "template data"
+                },
+                "synctx": {
+                    "type": "bool",
+                    "desc": "sync tx or not",
+                    "default": true,
+                    "required": false,
+                    "opt": "s"
                 }
             }
         },
@@ -2098,6 +2305,18 @@
                     "desc": "query offset. If not set, from 0",
                     "required": false,
                     "opt": "o"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash. If not set, return all local fork 10 tx",
+                    "required": false,
+                    "opt": "f"
+                },
+                "address": {
+                    "type": "string",
+                    "desc": "from address or sendto address",
+                    "required": false,
+                    "opt": "a"
                 }
             }
         },
@@ -2188,6 +2407,12 @@
                     "desc": "exchange sign s",
                     "required": false,
                     "opt": "ss"
+                },
+                "sendtodata": {
+                    "type": "string",
+                    "desc": "If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'",
+                    "required": false,
+                    "opt": "td"
                 }
             }
         },
@@ -2313,6 +2538,12 @@
                 "txdata": {
                     "type": "string",
                     "desc": "transaction data(hex string)"
+                },
+                "sendtodata": {
+                    "type": "string",
+                    "desc": "If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'",
+                    "required": false,
+                    "opt": "td"
                 }
             }
         },
@@ -2866,7 +3097,7 @@
     "listunspent": {
         "type": "command",
         "name": "ListUnspent",
-        "desc": "Return a JSON object listing unspent utxo by user specifying arguments forkid and address",
+        "desc": "Return a JSON object listing unspent utxo by user specifying arguments address, fork(optional, main fork by default), maximum unspents(optional, 3 by default) and an input file containing list of multiple addresses(optional, plain text file name must be absolute path, one line only contains one wallet address with maximum of 10,000 lines). You may specify one wallet address in RPC command line with or without a text file name, core wallet will return all unspent utxos in a single batch operation.",
         "request": {
             "type": "object",
             "content": {
@@ -2877,15 +3108,21 @@
                 "fork": {
                     "type": "string",
                     "desc": "fork hash",
-                    "opt" : "f",
-                    "required" : false
+                    "opt": "f",
+                    "required": false
                 },
                 "max": {
                     "type": "uint",
                     "desc": "maximum unspents(0 means unlimited)",
-                    "opt" : "n",
-                    "default": 3,
-                    "required" : false
+                    "opt": "n",
+                    "default": 10,
+                    "required": false
+                },
+                "file": {
+                    "type": "string",
+                    "desc": "input file containing list of multiple addresses",
+                    "opt": "if",
+                    "required": false
                 }
             }
         },
@@ -2893,19 +3130,37 @@
             "type": "object",
             "name": "data",
             "content": {
-                "unspents": {
+                "addresses": {
                     "type": "array",
-                    "desc": "unspent list of address owner",
                     "content": {
-                        "unspent": {
-                            "type": "unspentdata",
-                            "desc": "unspent data"
+                        "addr": {
+                            "type": "object",
+                            "content": {
+                                "address": {
+                                    "type": "string",
+                                    "desc": "address to list unspent"
+                                },
+                                "unspents": {
+                                    "type": "array",
+                                    "desc": "unspent list of address owner",
+                                    "content": {
+                                        "unspent": {
+                                            "type": "unspentdata",
+                                            "desc": "unspent data"
+                                        }
+                                    }
+                                },
+                                "sum": {
+                                    "type": "double",
+                                    "desc": "sum of unspent amount"
+                                }
+                            }
                         }
                     }
                 },
-                "sum": {
+                "total": {
                     "type": "double",
-                    "desc": "sum of unspent amount"
+                    "desc": "total of unspent amount for list of addresses"
                 }
             }
         },
@@ -2913,6 +3168,10 @@
             {
                 "request": "bigbang-cli listunspent 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm -f=00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b -n=1",
                 "response": "{\"unspents\":[{\"txid\":\"5dd4bb56b3d0aed9bb0e0a80d01ec1f70d7bd4d1fc200a48df330154b366ca8e\",\"out\":0,\"amount\":1000.000000,\"time\":1574222678,\"lockuntil\":0}],\"sum\":1000.000000}"
+            },
+            {
+                "request": "bigbang-cli listunspent 20g075m4mh5trbkdy8vbh74n9h7t3npe7tewpnvsfb19p57jnyf3kdh45 -if=/home/oijen/addr10",
+                "response": "{\"addresses\":[{\"address\":\"1zbyhm9p0aa1wvebg3wch7xkhxsv5m9z32jsnjngpfnf7cgd778st8tds\",\"unspents\":[{\"txid\":\"5de8bcce65733bbcfff18130de6f3f10cfd46ce94aa4775070f1634777029401\",\"out\":0,\"amount\":340.999900,\"time\":1575533774,\"lockuntil\":0},{\"txid\":\"5e0423aadb07b4142abcf29e576e56d0eff594d5da18f6915155c1ece4c66309\",\"out\":0,\"amount\":11.999900,\"time\":1577329578,\"lockuntil\":0},{\"txid\":\"5df7b69db367bfc7a9b40fea36e2459f99e214db9505a44f9dfa9052e1d6f411\",\"out\":0,\"amount\":10.999900,\"time\":1576515229,\"lockuntil\":0}],\"sum\":363.999700},{\"address\":\"1z98n1sfbhtw3b5wrre69fh648e4res1g7r9bzcp0kf85hte75mv0zc01\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1tbvg7cxbqg36rph6ymws856ms4j5e4cvbd4ssy0ejxn1h869g9hfwv4c\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1j42adjfq37j9grmwsh4gnayfgg6kep59d78srpxg8zf8hdqv1yptjwzx\",\"unspents\":[{\"txid\":\"5df58dcccb52641f3b9c090ba5760181a3999370137cc6b5bbacc30b7b4b5909\",\"out\":0,\"amount\":499.999900,\"time\":1576373708,\"lockuntil\":0},{\"txid\":\"5df80dad00f53331757e19fae811308ec59d722ffb189958ecdb7cc4ad79b30d\",\"out\":0,\"amount\":499.999900,\"time\":1576537517,\"lockuntil\":0},{\"txid\":\"5df7a4344d2d887c929cf6d08bf825bfacc14d8c86cf62ab3944caa142bc6c0f\",\"out\":0,\"amount\":499.999900,\"time\":1576510516,\"lockuntil\":0}],\"sum\":1499.999700},{\"address\":\"1ztsgg3m6az2sm8t6ap6k3cw36z5ewd5sp05k7a62h6rqvpqp871aqpq6\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1ny00y8whrser450hfw3d87h1p3emdeca4fq5xetddwfz9mb4e38ndxx0\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1944eh1ysrjy1rgjyxcr9b0nvmbra2bmtm6v6kt1a3ag6wf07hfa0apgg\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1rjcyqyzsf1p8b22fxdx79qwfcr7wzkx1n2xykc5chzd905jymbfd8j4n\",\"unspents\":[{\"txid\":\"5df61f85cbe11a3ab7eedbc2929241aa10c27179ec0b4fef3cea9f803a9aad15\",\"out\":0,\"amount\":499.999900,\"time\":1576411013,\"lockuntil\":0},{\"txid\":\"5e04142090815b50bf1688e5cbd3ceca550c8f2ad6e44d690fb7a5f21b478227\",\"out\":0,\"amount\":499.999900,\"time\":1577325600,\"lockuntil\":0},{\"txid\":\"5dfa848c46ee3c4b3b468674433dad2b3d5531428e5b60ef3d827c020859f73a\",\"out\":0,\"amount\":499.999900,\"time\":1576699020,\"lockuntil\":0}],\"sum\":1499.999700},{\"address\":\"1jvy4ys1yrz3rg6te1h70mt0t89v9d0pbr038d48wmyzyzvrxk7safdg2\",\"unspents\":[],\"sum\":0.000000},{\"address\":\"1dq62d8y4fz20sfg63zzy4h4ayksswv1fgqjzvegde306bxxg5zygc27q\",\"unspents\":[{\"txid\":\"5df31decea3f149fe53062fbdbc8ca4e42d54e348f9e3c482a1edfb0c5b34100\",\"out\":0,\"amount\":499.999900,\"time\":1576213996,\"lockuntil\":0},{\"txid\":\"5df26e22ab57f87fa7f5ee931b09cdc550583ab7517afa18e5f68db1ee53fb02\",\"out\":0,\"amount\":499.999900,\"time\":1576168994,\"lockuntil\":0},{\"txid\":\"5df235df6a0d575378361ba75560ffab8ee9c786a58e604f14c037d7ec2afd05\",\"out\":0,\"amount\":499.999900,\"time\":1576154591,\"lockuntil\":0}],\"sum\":1499.999700},{\"address\":\"20g075m4mh5trbkdy8vbh74n9h7t3npe7tewpnvsfb19p57jnyf3kdh45\",\"unspents\":[{\"txid\":\"5e032143eb0c23c13f2d422144f1337ecd467c2163c7758e5a00b4d6fbe7ba00\",\"out\":0,\"amount\":1153.000000,\"time\":1577263427,\"lockuntil\":0},{\"txid\":\"5e046a5cae5ea2622a37ad737f53e9185b60ea010242191b75f276b8d50dc900\",\"out\":0,\"amount\":1153.000000,\"time\":1577347676,\"lockuntil\":0},{\"txid\":\"5e0399615cb69be399d6b6fee2bc1aca10d9d4e222467f9eef76745334b8ad01\",\"out\":0,\"amount\":1153.000000,\"time\":1577294177,\"lockuntil\":0}],\"sum\":3459.000000}],\"total\":8322.998800}"
             },
             {
                 "request": "curl -d '{\"id\":0,\"method\":\"listunspent\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"fork\":\"00000000beb6f9e2a8813f4778b26820a8649894de63624e65bc0ffa9562730b\",\"max\":1}}' http://127.0.0.1:9902",
@@ -3128,6 +3387,98 @@
             "{\"code\" : -6, \"message\" : \"Invalid fork\"}",
             "{\"code\" : -6, \"message\" : \"Invalid count\"}",
             "{\"code\" : -32603, \"message\" : \"query error\"}"
+        ]
+    },
+    "signrawtransactionwithwallet": {
+        "type": "command",
+        "name": "SignRawTransactionWithWallet",
+        "introduction": "Sign a transaction offline.",
+        "desc": [
+            "Return json object with keys:",
+            "  hex : raw transaction with signature(s) (hex-encoded string)",
+            "  completed : true if transaction has a completed set of signature (false if not)"
+        ],
+        "request": {
+            "type": "object",
+            "content": {
+                "addrIn": {
+                    "type": "string",
+                    "desc": "hex address string of pubkey or templateid used to sign offline transaction"
+                },
+                "txdata": {
+                    "type": "string",
+                    "desc": "raw transaction data(hex string)"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "signature",
+            "content": {
+                "hex": {
+                    "type": "string",
+                    "desc": "hex of transaction data"
+                },
+                "completed": {
+                    "type": "bool",
+                    "desc": "transaction completed or not"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "bigbang-cli signrawtransactionwithwallet 20m0fetg8ypthr01xxyxmdxbr27bt0fp8j151d321w72ht9ywfkzxxnf5 01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a000000000010270000000000000000",
+                "response": "{\"hex\":\"01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000ee75b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01014b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b08\",\"completed\":false}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signrawtransactionwithwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"addrIn\":\"20m0fetg8ypthr01xxyxmdxbr27bt0fp8j151d321w72ht9ywfkzxxnf5\",\"txdata\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000fd2e0175b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01054b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b087f54c5679e286e77d07c6f9df1e3084daab9bb8accd5725b9146c4fe99f645c177e4d0079dacca1d85afb4f70044eb64e803054dbe150d7c4e6bb5c2bcc78007\",\"completed\":true}}"
+            },
+            {
+                "request": "bigbang-cli signrawtransactionwithwallet 16g92n3v2p04htxgck0r3awk878d9x7gx60kp3wmc47wwdp6b491pxa9x 0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000000",
+                "response": "{\"hex\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\",\"completed\":true}"
+            },
+            {
+                "request": "curl -d '{\"id\":62,\"method\":\"signrawtransactionwithwallet\",\"jsonrpc\":\"2.0\",\"params\":{\"addrIn\":\"16g92n3v2p04htxgck0r3awk878d9x7gx60kp3wmc47wwdp6b491pxa9x\",\"txdata\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000000\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":62,\"jsonrpc\":\"2.0\",\"result\":{\"hex\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\",\"completed\":true}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"TX decode failed\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign offline transaction\"}"
+        ]
+    },
+    "sendrawtransaction": {
+        "type": "command",
+        "name": "SendRawTransaction",
+        "desc": "Submit transaction raw data(serialized, hex-encoded) with offline signature using pubkey or template address.",
+        "request": {
+            "type": "object",
+            "content": {
+                "txdata": {
+                    "type": "string",
+                    "desc": "hex string of transaction binary data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "data",
+            "desc": "txid: hash of transaction raw data"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli sendrawtransaction 01000000e0d2cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e8506000000000195a751b8eaef2e9a2337be86b4e892e15d723ff992501c82c5a6d2aa7bcbcc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f57c0cf6a0000000000102700000000000000fd2e0175b03705c7e9f66feed2338df515ee8826ff991258d0f9786203ce2d3445958d0202004bb6c84b2311f42905ea3749fe0ea2ae2ed79c950daa53d1dd899e99622c02030000000000000013f64ef0eb65bd1846bbe2835937868e8f76cc6ec1d15c18bfe41b5d6b38b3b5014eb8d334d9a93c1c51c31d300050fdf5fa8b9f6029af7354331b87a2300ec2c90106587926a76ffed40f884b39396fdbe4c0ca0a72e6499caecd130073117da5fb01054b4b4efd5425e102e7d13b089bb1c5387c877a4bd147251ad241a21246a443a9e46b18b24d8ae6a22faf6d6c79f3acd014e17f79491f42dd0f5d001d4a294b087f54c5679e286e77d07c6f9df1e3084daab9bb8accd5725b9146c4fe99f645c177e4d0079dacca1d85afb4f70044eb64e803054dbe150d7c4e6bb5c2bcc78007",
+                "response": "5eccd2e09fe34ae041d9a90d896759041b2bc2844f43ed6929889b53e826386b"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"sendrawtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"txdata\":\"0100000065d5cc5e0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001a4df918abd7a55a7296e22b6dbfd1be7fd09651003387456fa59d3d11f96cc5e010139d9d6ac592bb962578d52aac4b0755e5fd59d2d10bb20914896047741205f5720aa44000000000010270000000000000040844cfb574ada0ea0c37a76042c25b7fc82756deefc8a6150ef5babb54bf1ab3de3eba03cc3bc7ab74051ca5986ed83c2286fbcf0ab120ec4491425cef0d25502\"}}' http://127.0.0.1:19902",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"5eccd565e410131217f89ade75e3f89a5a17627edaa7da7638babc94e331ea49\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-8,\"message\":\"Raw tx decode failed\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
         ]
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +9,7 @@ using namespace bigbang;
 static const char* _ErrorFailed = "operation failed";
 static const char* _ErrorUnknown = "unkown error";
 static const char* _ErrorString[] = {
-    // OK, 
+    // OK,
     "",
     // ERR_UNAVAILABLE,
     "unavailable",
@@ -56,6 +56,8 @@ static const char* _ErrorString[] = {
     "block signature is invalid",
     //ERR_BLOCK_INVALID_FORK,
     "block found invalid fork",
+    //ERR_BLOCK_CERTTX_OUT_OF_BOUND
+    "cert transaction quantity out of bounds",
     /* transaction */
     //ERR_TRANSACTION_INVALID,
     "transaction invalid",
@@ -75,6 +77,8 @@ static const char* _ErrorString[] = {
     "transaction signature is invalid",
     //ERR_TRANSACTION_CONFLICTING_INPUT,
     "transaction inputs are conflicting",
+    //ERR_TRANSACTION_TOO_MANY_CERTTX,
+    "transaction too many cert",
     /* wallet */
     //ERR_WALLET_INVALID_AMOUNT,
     "wallet amount is invalid",

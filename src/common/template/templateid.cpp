@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,7 +15,7 @@ CTemplateId::CTemplateId(const uint256& data)
 }
 
 CTemplateId::CTemplateId(const uint16 type, const uint256& hash)
-  : uint256((hash << 16) | (const uint64)(type))
+  : uint256((hash << 16) | (uint64)(type))
 {
 }
 

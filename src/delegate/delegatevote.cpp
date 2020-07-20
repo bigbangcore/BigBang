@@ -1,9 +1,10 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "crypto.h"
 #include "delegatevote.h"
+
+#include "crypto.h"
 
 using namespace std;
 using namespace xengine;
@@ -66,7 +67,8 @@ CDelegateVote::CDelegateVote()
 {
     witness.SetupWitness();
     is_enroll = false;
-    is_public = false;
+    is_published = false;
+    nPublishedTime = 0;
 }
 
 CDelegateVote::~CDelegateVote()
@@ -208,11 +210,28 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
         is >> delegateData;
         if (delegateData.nIdentFrom == DestToIdentUInt256(destFrom) && VerifySignature(delegateData))
         {
-            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
+            fCompleted = witness.IsCollectCompleted();
+            if (fCompleted)
             {
-                vCollected.push_back(delegateData);
+                StdTrace("vote", "CDelegateVote::Collect is enough");
                 return true;
             }
+
+            if (witness.Collect(delegateData.nIdentFrom, delegateData.mapShare))
+            {
+                vCollected.push_back(delegateData);
+                fCompleted = witness.IsCollectCompleted();
+                return true;
+            }
+            else
+            {
+                StdError("vote", "CDelegateVote::Collect witness collect fail");
+            }
+        }
+        else
+        {
+            StdError("vote", "CDelegateVote::Collect fail, delegateData.nIdentFrom == DestToIdentUInt256(destFrom): %d, VerifySignature(delegateData): %d",
+                     delegateData.nIdentFrom == DestToIdentUInt256(destFrom), VerifySignature(delegateData));
         }
     }
     catch (exception& e)
@@ -234,6 +253,10 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
 
     if (!mapSecret.empty())
     {
+        if (!witness.IsCollectCompleted())
+        {
+            StdLog("CDelegateVote", "Get agreement: mapSecret not is empty, completed: false");
+        }
         vector<unsigned char> vch;
         CODataStream os(vch);
         for (map<uint256, pair<uint256, size_t>>::iterator it = mapSecret.begin();
@@ -245,12 +268,21 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
         }
         nAgreement = crypto::CryptoHash(&vch[0], vch.size());
     }
+    else
+    {
+        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty, completed: %s", (witness.IsCollectCompleted() ? "true" : "false"));
+    }
 }
 
 void CDelegateVote::GetProof(vector<unsigned char>& vchProof)
 {
     CODataStream os(vchProof);
     os << vCollected;
+}
+
+bool CDelegateVote::IsCollectCompleted()
+{
+    return witness.IsCollectCompleted();
 }
 
 bool CDelegateVote::VerifySignature(const CDelegateData& delegateData)

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,6 +26,12 @@ bool CStorageConfig::PostLoad()
     if (fHelp)
     {
         return true;
+    }
+
+    if (boost::filesystem::path(strRecoveryDir) == pathRoot / "block")
+    {
+        printf("recoverydir must be not equal datadir/block!\n");
+        return false;
     }
 
     return true;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -84,7 +84,7 @@ class CEventPeerDelegated : public xengine::CEvent
     friend class xengine::CStream;
 
 public:
-    CEventPeerDelegated(uint64 nNonceIn, const int& hashAnchorIn)
+    CEventPeerDelegated(uint64 nNonceIn, const uint256& hashAnchorIn)
       : CEvent(nNonceIn, type), hashAnchor(hashAnchorIn) {}
     virtual ~CEventPeerDelegated() {}
     virtual bool Handle(xengine::CEventListener& listener)
@@ -113,7 +113,7 @@ protected:
     }
 
 public:
-    int hashAnchor;
+    uint256 hashAnchor;
     D data;
 };
 
@@ -125,7 +125,7 @@ public:
     class CDelegatedBitmap
     {
     public:
-        CDelegatedBitmap(const int& hashAnchorIn = uint64(0), uint64 bitmapIn = 0)
+        CDelegatedBitmap(const uint256& hashAnchorIn = uint64(0), uint64 bitmapIn = 0)
           : hashAnchor(hashAnchorIn), bitmap(bitmapIn)
         {
         }
@@ -137,12 +137,12 @@ public:
         }
 
     public:
-        int hashAnchor;
+        uint256 hashAnchor;
         uint64 bitmap;
     };
 
 public:
-    void AddBitmap(const int& hash, uint64 bitmap)
+    void AddBitmap(const uint256& hash, uint64 bitmap)
     {
         vBitmap.push_back(CDelegatedBitmap(hash, bitmap));
     }

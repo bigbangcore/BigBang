@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -35,7 +35,7 @@ public:
         {
             FromStream(is);
         }
-        catch(const std::exception& e)
+        catch (const std::exception& e)
         {
             xengine::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
@@ -110,10 +110,15 @@ public:
 public:
     enum
     {
-        PROOFHASHWORK_SIZE = 43//67
+        PROOFHASHWORK_SIZE = 43 //67
     };
     void Save(std::vector<unsigned char>& vchProof)
     {
+        if (vchProof.size() < PROOFHASHWORK_SIZE)
+        {
+            return;
+        }
+
         unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         *p++ = nAlgo;
         *p++ = nBits;
@@ -124,6 +129,11 @@ public:
     }
     void Load(const std::vector<unsigned char>& vchProof)
     {
+        if (vchProof.size() < PROOFHASHWORK_SIZE)
+        {
+            return;
+        }
+
         const unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         nAlgo = *p++;
         nBits = *p++;
@@ -132,6 +142,21 @@ public:
         p += 32;
         nNonce = *((uint64_t*)p);
     }
+};
+
+class CConsensusParam
+{
+public:
+    CConsensusParam()
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fPow(false), ret(false) {}
+
+    uint256 hashPrev;
+    int64 nPrevTime;
+    int nPrevHeight;
+    uint16 nPrevMintType;
+    int64 nWaitTime;
+    bool fPow;
+    bool ret;
 };
 
 #endif //COMMON_PROOF_H

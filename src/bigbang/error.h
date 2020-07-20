@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -37,6 +37,7 @@ typedef enum
     ERR_BLOCK_TXHASH_MISMATCH,
     ERR_BLOCK_SIGNATURE_INVALID,
     ERR_BLOCK_INVALID_FORK,
+    ERR_BLOCK_CERTTX_OUT_OF_BOUND,
     /* transaction */
     ERR_TRANSACTION_INVALID,
     ERR_TRANSACTION_OVERSIZE,
@@ -47,6 +48,7 @@ typedef enum
     ERR_TRANSACTION_STAKE_REWARD_INVALID,
     ERR_TRANSACTION_SIGNATURE_INVALID,
     ERR_TRANSACTION_CONFLICTING_INPUT,
+    ERR_TRANSACTION_TOO_MANY_CERTTX,
     /* wallet */
     ERR_WALLET_INVALID_AMOUNT,
     ERR_WALLET_INSUFFICIENT_FUNDS,

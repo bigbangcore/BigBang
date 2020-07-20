@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,8 +22,8 @@ protected:
     virtual bool SetTemplateData(const std::vector<uint8>& vchDataIn);
     virtual bool SetTemplateData(const bigbang::rpc::CTemplateRequest& obj, CDestination&& destInstance);
     virtual void BuildTemplateData();
-    virtual bool VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                   const std::vector<uint8>& vchSig, bool& fCompleted) const;
+    virtual bool VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                   const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const;
 
 protected:
     uint8 nRequired;

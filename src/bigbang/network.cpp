@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -36,19 +36,37 @@ bool CNetwork::HandleInitialize()
         return false;
     }
 
-    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK /*| network::NODE_DELEGATED*/,
+    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK | network::NODE_DELEGATED,
               FormatSubVersion(), !NetworkConfig()->vConnectTo.empty(), pCoreProtocol->GetGenesisBlockHash());
 
     CPeerNetConfig config;
     if (NetworkConfig()->fListen || NetworkConfig()->fListen4)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
-                                                 NetworkConfig()->nMaxInBounds));
+        if (NetworkConfig()->strListenAddressv4.empty())
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v4(), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+        }
+        else
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(boost::asio::ip::address::from_string(NetworkConfig()->strListenAddressv4), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+            config.strSocketBindLocalIpV4 = NetworkConfig()->strListenAddressv4;
+        }
     }
     if (NetworkConfig()->fListen || NetworkConfig()->fListen6)
     {
-        config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
-                                                 NetworkConfig()->nMaxInBounds));
+        if (NetworkConfig()->strListenAddressv6.empty())
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(tcp::v6(), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+        }
+        else
+        {
+            config.vecService.push_back(CPeerService(tcp::endpoint(boost::asio::ip::address::from_string(NetworkConfig()->strListenAddressv6), NetworkConfig()->nPort),
+                                                     NetworkConfig()->nMaxInBounds));
+            config.strSocketBindLocalIpV6 = NetworkConfig()->strListenAddressv6;
+        }
     }
     config.nMaxOutBounds = NetworkConfig()->nMaxOutBounds;
     config.nPortDefault = (NetworkConfig()->fTestNet ? DEFAULT_TESTNET_P2PPORT : DEFAULT_P2PPORT);

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,7 +22,7 @@ CDelegateVerify::CDelegateVerify(const map<CDestination, size_t>& mapWeight,
 }
 
 bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,
-                                  size_t& nWeight, map<CDestination, size_t>& mapBallot)
+                                  size_t& nWeight, map<CDestination, size_t>& mapBallot, bool fCheckRepeated)
 {
     uint256 nAgreementParse;
     try
@@ -36,12 +36,11 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
             return true;
         }
         is >> vPublish;
-        bool fCompleted = false;
         for (int i = 0; i < vPublish.size(); i++)
         {
             const CDelegateData& delegateData = vPublish[i];
-            if (!VerifySignature(delegateData)
-                || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCompleted))
+            if (!witness.IsCollectCompleted()
+                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated)))
             {
                 return false;
             }

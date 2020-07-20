@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,6 +17,8 @@ namespace delegate
 
 class CDelegateData
 {
+    friend class xengine::CStream;
+
 public:
     CDelegateData()
     {
@@ -37,21 +39,32 @@ public:
     std::string ToString() const
     {
         std::ostringstream os;
-        os << "CDelegateData: \n";
-        os << nIdentFrom.GetHex() << "\n";
-        os << nR.GetHex() << "\n";
-        os << nS.GetHex() << "\n";
-        os << mapShare.size() << "\n";
+        os << "CDelegateData:";
+        os << " nIdentFrom: " << nIdentFrom.GetHex() << ",";
+        os << " nR: " << nR.GetHex() << ",";
+        os << " nS: " << nS.GetHex() << ",";
+        os << " mapShare [" << mapShare.size() << "]: ";
         for (std::map<uint256, std::vector<uint256>>::const_iterator it = mapShare.begin();
              it != mapShare.end(); ++it)
         {
-            os << " " << (*it).first.GetHex() << " " << (*it).second.size() << "\n";
+            os << "{" << (*it).first.GetHex() << " [" << (*it).second.size() << "]: [";
             for (int i = 0; i < (*it).second.size(); i++)
             {
-                os << "   " << (*it).second[i].GetHex() << "\n";
+                os << (*it).second[i].GetHex() << ", ";
             }
+            os << "]}, ";
         }
         return os.str();
+    }
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(nIdentFrom, opt);
+        s.Serialize(mapShare, opt);
+        s.Serialize(nR, opt);
+        s.Serialize(nS, opt);
     }
 
 public:
@@ -76,6 +89,8 @@ protected:
 
 class CDelegateVote
 {
+    friend class xengine::CStream;
+
 public:
     CDelegateVote();
     ~CDelegateVote();
@@ -91,9 +106,25 @@ public:
     bool Collect(const CDestination& destFrom, const std::vector<unsigned char>& vchPublishData, bool& fCompleted);
     void GetAgreement(uint256& nAgreement, std::size_t& nWeight, std::map<CDestination, std::size_t>& mapBallot);
     void GetProof(std::vector<unsigned char>& vchProof);
+    bool IsCollectCompleted();
 
 protected:
     bool VerifySignature(const CDelegateData& delegateData);
+
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(mapDelegate, opt);
+        s.Serialize(witness, opt);
+        s.Serialize(vCollected, opt);
+
+        s.Serialize(blockHash, opt);
+        s.Serialize(is_enroll, opt);
+        s.Serialize(is_published, opt);
+        s.Serialize(nPublishedTime, opt);
+        s.Serialize(hashDistributeBlock, opt);
+        s.Serialize(hashPublishBlock, opt);
+    }
 
 protected:
     std::map<CDestination, CSecretShare> mapDelegate;
@@ -104,7 +135,10 @@ protected:
 public:
     uint256 blockHash;
     bool is_enroll;
-    bool is_public;
+    bool is_published;
+    int64 nPublishedTime;
+    uint256 hashDistributeBlock;
+    uint256 hashPublishBlock;
 };
 
 } // namespace delegate

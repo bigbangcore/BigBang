@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -142,7 +142,6 @@ public:
             for (std::set<uint64>::iterator si = known.setKnownPeer.begin(); si != known.setKnownPeer.end(); ++si)
             {
                 mapPeer[(*si)]->listDataIdent.remove(ident);
-                ;
             }
             uint64 nAssigned = known.GetAssignedPeer();
             if (nAssigned != 0)

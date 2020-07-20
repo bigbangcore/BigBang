@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -69,6 +69,30 @@ bool CForkUnspentDB::UpdateUnspent(const vector<CTxUnspent>& vAddNew, const vect
     return true;
 }
 
+bool CForkUnspentDB::RepairUnspent(const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove)
+{
+    if (!TxnBegin())
+    {
+        return false;
+    }
+
+    for (const CTxUnspent& unspent : vAddUpdate)
+    {
+        Write(static_cast<const CTxOutPoint&>(unspent), unspent.output);
+    }
+
+    for (const CTxOutPoint& txout : vRemove)
+    {
+        Erase(txout);
+    }
+
+    if (!TxnCommit())
+    {
+        return false;
+    }
+    return true;
+}
+
 bool CForkUnspentDB::WriteUnspent(const CTxOutPoint& txout, const CTxOut& output)
 {
     return Write(txout, output);
@@ -92,8 +116,8 @@ bool CForkUnspentDB::ReadUnspent(const CTxOutPoint& txout, CTxOut& output)
         }
     }
 
-    if (rwLower.ReadTryLock())
     {
+        xengine::CReadLock rlock(rwLower);
         MapType& mapLower = dblCache.GetLowerMap();
         typename MapType::iterator it = mapLower.find(txout);
         if (it != mapLower.end())
@@ -101,13 +125,10 @@ bool CForkUnspentDB::ReadUnspent(const CTxOutPoint& txout, CTxOut& output)
             if (!(*it).second.IsNull())
             {
                 output = (*it).second;
-                rwLower.ReadUnlock();
                 return true;
             }
-            rwLower.ReadUnlock();
             return false;
         }
-        rwLower.ReadUnlock();
     }
 
     return Read(txout, output);
@@ -385,6 +406,18 @@ bool CUnspentDB::Update(const uint256& hashFork,
     if (it != mapUnspentDB.end())
     {
         return (*it).second->UpdateUnspent(vAddNew, vRemove);
+    }
+    return false;
+}
+
+bool CUnspentDB::RepairUnspent(const uint256& hashFork, const std::vector<CTxUnspent>& vAddUpdate, const std::vector<CTxOutPoint>& vRemove)
+{
+    CReadLock rlock(rwAccess);
+
+    map<uint256, std::shared_ptr<CForkUnspentDB>>::iterator it = mapUnspentDB.find(hashFork);
+    if (it != mapUnspentDB.end())
+    {
+        return (*it).second->RepairUnspent(vAddUpdate, vRemove);
     }
     return false;
 }

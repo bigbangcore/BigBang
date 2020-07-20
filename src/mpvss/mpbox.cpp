@@ -1,9 +1,10 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "mpbox.h"
 
+#include <sodium.h>
 #include <stdexcept>
 #include <string>
 
@@ -18,9 +19,7 @@ using namespace xengine;
 static inline const uint256 MPEccPubkey(const uint256& s)
 {
     uint256 pubkey;
-    CEdwards25519 P;
-    P.Generate(s);
-    P.Pack(pubkey.begin());
+    crypto_scalarmult_ed25519_base_noclamp(pubkey.begin(), s.begin());
     return pubkey;
 }
 
@@ -200,7 +199,6 @@ void CMPSealedBox::PrecalcPolynomial(size_t nThresh, size_t nLastIndex)
         vP[i].Unpack(vEncryptedCoeff[i].begin());
     }
 
-    vector<pair<CSC25519, CEdwards25519>> vTerm(nThresh);
     for (uint32_t nX = 1; nX < nLastIndex; nX++)
     {
         CEdwards25519 P = vP[0];

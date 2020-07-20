@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -319,6 +319,21 @@ bool CIOOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout)
     return true;
 }
 
+bool CIOOutBound::ConnectToByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, int64 nTimeout)
+{
+    CIOClient* pClient = ClientAlloc();
+    if (pClient == NULL)
+    {
+        return false;
+    }
+
+    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout, "CIOOutBound ConnectToByBindAddress");
+    pClient->ConnectByBindAddress(epLocal, epRemote, boost::bind(&CIOOutBound::HandleConnect, this, pClient, epRemote, nTimerId, _1));
+
+    mapPending.insert(make_pair(nTimerId, pClient));
+    return true;
+}
+
 void CIOOutBound::Timeout(uint32 nTimerId)
 {
     map<uint32, CIOClient*>::iterator it = mapPending.find(nTimerId);
@@ -514,6 +529,27 @@ bool CIOSSLOutBound::ConnectTo(const tcp::endpoint& epRemote, int64 nTimeout, co
     uint32 nTimerId = pIOProc->SetTimer(0, nTimeout, "CIOSSLOutBound ConnectTo");
     pClient->Connect(epRemote, boost::bind(&CIOSSLOutBound::HandleConnect, this,
                                            pClient, epRemote, nTimerId, _1));
+    setInuseClient.insert(pClient);
+    mapPending.insert(make_pair(nTimerId, pClient));
+    return true;
+}
+
+bool CIOSSLOutBound::ConnectToByBindAddress(const tcp::endpoint& epLocal, const tcp::endpoint& epRemote, int64 nTimeout,
+                                            const CIOSSLOption& optSSL)
+{
+    if (setInuseClient.size() >= nMaxConn)
+    {
+        return false;
+    }
+
+    CIOClient* pClient = ClientAlloc(optSSL);
+    if (pClient == nullptr)
+    {
+        return false;
+    }
+
+    uint32 nTimerId = pIOProc->SetTimer(0, nTimeout, "CIOSSLOutBound ConnectToByBindAddress");
+    pClient->ConnectByBindAddress(epLocal, epRemote, boost::bind(&CIOSSLOutBound::HandleConnect, this, pClient, epRemote, nTimerId, _1));
     setInuseClient.insert(pClient);
     mapPending.insert(make_pair(nTimerId, pClient));
     return true;

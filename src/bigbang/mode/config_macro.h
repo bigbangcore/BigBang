@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,7 +15,7 @@
 #define DEFAULT_RPCPORT 9902
 #define DEFAULT_TESTNET_RPCPORT 9904
 #define DEFAULT_RPC_MAX_CONNECTIONS 5
-#define DEFAULT_RPC_CONNECT_TIMEOUT 120
+#define DEFAULT_RPC_CONNECT_TIMEOUT 600 //120
 
 // network config
 #define DEFAULT_P2PPORT 9901

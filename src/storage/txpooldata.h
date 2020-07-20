@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,6 +24,7 @@ public:
     bool Remove();
     bool Save(const std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
     bool Load(std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
+    bool LoadCheck(std::vector<std::pair<uint256, std::pair<uint256, CAssembledTx>>>& vTx);
 
 protected:
     boost::filesystem::path pathTxPoolFile;

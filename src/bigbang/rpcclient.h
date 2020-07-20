@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include "base.h"
 #include "rpc/rpc.h"
@@ -49,6 +50,8 @@ protected:
     std::vector<std::string> vArgs;
     uint64 nLastNonce;
     xengine::CIOCompletion ioComplt;
+    std::atomic<bool> isConsoleRunning;
+
 };
 
 } // namespace bigbang

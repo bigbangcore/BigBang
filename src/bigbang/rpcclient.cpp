@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -50,7 +50,7 @@ static const char* prompt = "bigbang> ";
 
 CRPCClient::CRPCClient(bool fConsole)
   : IIOModule("rpcclient"),
-    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this))
+    thrDispatch("rpcclient", boost::bind(fConsole ? &CRPCClient::LaunchConsole : &CRPCClient::LaunchCommand, this)), isConsoleRunning(false)
 {
     nLastNonce = 0;
     pHttpGet = nullptr;
@@ -82,6 +82,7 @@ bool CRPCClient::HandleInvoke()
         return false;
     }
     pClient = this;
+    isConsoleRunning = true;
     return IIOModule::HandleInvoke();
 }
 
@@ -96,6 +97,7 @@ void CRPCClient::HandleHalt()
         thrDispatch.Interrupt();
     }
     thrDispatch.Interrupt();
+    isConsoleRunning = false;
     ThreadExit(thrDispatch);
 }
 
@@ -152,7 +154,7 @@ bool CRPCClient::HandleEvent(CEventHttpGetRsp& event)
         }
         else
         {
-            cerr << "server error: neigher error nor result. resp: " << spResp->Serialize(true) << endl;
+            cerr << "server error: neither error nor result. resp: " << spResp->Serialize(true) << endl;
         }
     }
     catch (exception& e)
@@ -174,7 +176,7 @@ bool CRPCClient::GetResponse(uint64 nNonce, const std::string& content)
     CHttpReqData& httpReqData = eventHttpGet.data;
     httpReqData.strIOModule = GetOwnKey();
     httpReqData.nTimeout = Config()->nRPCConnectTimeout;
-    ;
+
     if (Config()->fRPCSSLEnable)
     {
         httpReqData.strProtocol = "https";
@@ -265,7 +267,7 @@ void CRPCClient::LaunchConsole()
 
     fd_set fs;
     timeval timeout;
-    while (true)
+    while (isConsoleRunning)
     {
         FD_ZERO(&fs);
         FD_SET(STDIN_FILENO, &fs);

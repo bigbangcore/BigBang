@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,9 +20,10 @@ class CForkLink
 {
 public:
     CForkLink()
-      : nJointHeight(-1) {}
-    CForkLink(const CForkContext& ctxt)
-      : hashFork(ctxt.hashFork), hashParent(ctxt.hashParent), hashJoint(ctxt.hashJoint), nJointHeight(ctxt.nJointHeight)
+      : nJointHeight(-1), nCreatedHeight(-1) {}
+    CForkLink(const CForkContext& ctxt, const int nCreatedHeight)
+      : hashFork(ctxt.hashFork), hashParent(ctxt.hashParent), hashJoint(ctxt.hashJoint),
+        nJointHeight(ctxt.nJointHeight), nCreatedHeight(nCreatedHeight)
     {
     }
 
@@ -31,6 +32,7 @@ public:
     uint256 hashParent;
     uint256 hashJoint;
     int nJointHeight;
+    int nCreatedHeight;
 };
 
 typedef boost::multi_index_container<
@@ -106,6 +108,7 @@ public:
     bool AddNewForkContext(const CForkContext& ctxt, std::vector<uint256>& vActive);
     void GetForkList(std::vector<uint256>& vFork) const override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
+    bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const override;
 
 protected:
     bool HandleInitialize() override;

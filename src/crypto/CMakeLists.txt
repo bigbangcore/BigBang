@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # CMake file for Bigbang
 #
-# Copyright (c) 2019 The Bigbang developers
+# Copyright (c) 2019-2020 The Bigbang developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
@@ -13,6 +13,7 @@ set(pow_hash
     pow_hash/hash-extra-skein.c
     pow_hash/jh.h     
     pow_hash/slow-hash.c
+    pow_hash/slow-hash_1.c
     pow_hash/variant4_random_math.h
     pow_hash/blake256.c
     pow_hash/groestl.c
@@ -38,10 +39,10 @@ set(pow_hash
 )
 
 set(curve25519
-    curve25519/base25519.cpp    curve25519/base25519.h
-    curve25519/fp25519.cpp      curve25519/fp25519.h
-    curve25519/sc25519.cpp      curve25519/sc25519.h
-    curve25519/ed25519.cpp      curve25519/ed25519.h
+    curve25519/base25519.cpp            curve25519/base25519.h
+    curve25519/fp25519.cpp              curve25519/fp25519.h
+    curve25519/sc25519.cpp              curve25519/sc25519.h
+    curve25519/ed25519.cpp              curve25519/ed25519.h
     curve25519/curve25519.h
 )
 
@@ -60,7 +61,7 @@ set(CMAKE_C_FLAGS "-msse2 -maes")
 
 add_library(crypto ${sources})
 
-include_directories(../xengine ./ ${sodium_INCLUDE_DIR})
+include_directories(../xengine ../common ./ ${sodium_INCLUDE_DIR})
 
 target_link_libraries(crypto
     ${Boost_SYSTEM_LIBRARY}
@@ -74,4 +75,5 @@ target_link_libraries(crypto
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
     xengine
+    common
 )

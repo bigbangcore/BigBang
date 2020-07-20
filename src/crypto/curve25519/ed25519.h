@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,21 +28,21 @@ public:
     CEdwards25519(const CFP25519& x, const CFP25519& y, const CFP25519& z, const CFP25519& t);
     ~CEdwards25519();
     template <typename T>
-    void Generate(const T& t)
+    void Generate(const T& t, const bool fPreComputation = false)
     {
-        *this = base.ScalarMult(t);
+        *this = base.ScalarMult(t, fPreComputation);
     }
     bool Unpack(const uint8_t* md32);
     void Pack(uint8_t* md32) const;
-    const CEdwards25519 ScalarMult(const uint8_t* u8, std::size_t size) const;
+    const CEdwards25519 ScalarMult(const uint8_t* u8, std::size_t size, const bool fPreComputation = false) const;
     template <typename T>
-    const CEdwards25519 ScalarMult(const T& t) const
+    const CEdwards25519 ScalarMult(const T& t, const bool fPreComputation = false) const
     {
-        return ScalarMult((const uint8_t*)&t, sizeof(T));
+        return ScalarMult((const uint8_t*)&t, sizeof(T), fPreComputation);
     }
-    const CEdwards25519 ScalarMult(const CSC25519& s) const
+    const CEdwards25519 ScalarMult(const CSC25519& s, const bool fPreComputation = false) const
     {
-        return ScalarMult((const uint8_t*)s.Data(), 32);
+        return ScalarMult((const uint8_t*)s.Data(), 32, fPreComputation);
     }
     const CEdwards25519 operator-() const
     {

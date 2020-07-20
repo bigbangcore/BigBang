@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,7 @@
 
 #include "base.h"
 #include "delegate.h"
+#include "delegatevotesave.h"
 
 namespace bigbang
 {
@@ -78,7 +79,7 @@ public:
     void ChangeTxSet(const CTxSetChange& change);
     void AddNewTx(const CAssembledTx& tx);
     bool BuildEnrollTx(CTransaction& tx, int nBlockHeight, int64 nTime,
-                       const uint256& hashAnchor, int64 nTxFee, const std::vector<unsigned char>& vchData);
+                       const uint256& hashAnchor, const std::vector<unsigned char>& vchData);
 
 protected:
     CDestination destDelegate;
@@ -96,10 +97,18 @@ public:
     ~CConsensus();
     void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) override;
     void AddNewTx(const CAssembledTx& tx) override;
-    bool AddNewDistribute(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;
-    bool AddNewPublish(int nAnchorHeight, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
+    bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) override;
+    bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) override;
     void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) override;
     void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) override;
+    bool GetNextConsensus(CAgreementBlock& consParam) override;
+    bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) override;
+
+public:
+    enum
+    {
+        WAIT_AGREEMENT_PUBLISH_TIMEOUT = 10
+    };
 
 protected:
     bool HandleInitialize() override;
@@ -108,15 +117,18 @@ protected:
     void HandleHalt() override;
 
     bool LoadDelegateTx();
-    bool LoadChain();
+    bool GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_t& nWeight, vector<CDestination>& vBallot, bool& fCompleted);
+    int64 GetAgreementWaitTime(int nTargetHeight);
 
 protected:
     boost::mutex mutex;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     ITxPool* pTxPool;
+    storage::CDelegateVoteSave datVoteSave;
     delegate::CDelegate delegate;
     std::map<CDestination, CDelegateContext> mapContext;
+    CAgreementBlock cacheAgreementBlock;
 };
 
 } // namespace bigbang

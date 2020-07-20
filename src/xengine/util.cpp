@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -215,7 +215,7 @@ void StdTrace(const char* pszName, const char* pszFormat, ...)
     if (g_log_init && STD_DEBUG)
     {
         std::stringstream ss;
-        char arg_buffer[512] = { 0 };
+        char arg_buffer[2048] = { 0 };
         va_list ap;
         va_start(ap, pszFormat);
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
@@ -233,7 +233,7 @@ void StdDebug(const char* pszName, const char* pszFormat, ...)
     if (g_log_init && STD_DEBUG)
     {
         std::stringstream ss;
-        char arg_buffer[512] = { 0 };
+        char arg_buffer[2048] = { 0 };
         va_list ap;
         va_start(ap, pszFormat);
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
@@ -251,7 +251,7 @@ void StdLog(const char* pszName, const char* pszFormat, ...)
     if (g_log_init)
     {
         std::stringstream ss;
-        char arg_buffer[512] = { 0 };
+        char arg_buffer[2048] = { 0 };
         va_list ap;
         va_start(ap, pszFormat);
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
@@ -269,7 +269,7 @@ void StdWarn(const char* pszName, const char* pszFormat, ...)
     if (g_log_init)
     {
         std::stringstream ss;
-        char arg_buffer[512] = { 0 };
+        char arg_buffer[2048] = { 0 };
         va_list ap;
         va_start(ap, pszFormat);
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);
@@ -287,7 +287,7 @@ void StdError(const char* pszName, const char* pszFormat, ...)
     if (g_log_init)
     {
         std::stringstream ss;
-        char arg_buffer[512] = { 0 };
+        char arg_buffer[2048] = { 0 };
         va_list ap;
         va_start(ap, pszFormat);
         vsnprintf(arg_buffer, sizeof(arg_buffer), pszFormat, ap);

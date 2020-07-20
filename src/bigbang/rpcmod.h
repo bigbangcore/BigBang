@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -92,6 +92,8 @@ private:
     rpc::CRPCResultPtr RPCGetTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSendTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetForkHeight(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetVotes(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListDelegate(rpc::CRPCParamPtr param);
     /* Wallet */
     rpc::CRPCResultPtr RPCListKey(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetNewKey(rpc::CRPCParamPtr param);
@@ -118,6 +120,8 @@ private:
     rpc::CRPCResultPtr RPCExportWallet(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportWallet(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeOrigin(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSignRawTransactionWithWallet(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendRawTransaction(rpc::CRPCParamPtr param);
     /* Util */
     rpc::CRPCResultPtr RPCVerifyMessage(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeKeyPair(rpc::CRPCParamPtr param);
@@ -136,6 +140,7 @@ protected:
     ICoreProtocol* pCoreProtocol;
     IService* pService;
     IDataStat* pDataStat;
+    IForkManager* pForkManager;
 
 private:
     std::map<std::string, RPCFunc> mapRPCFunc;

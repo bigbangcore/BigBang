@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -76,8 +76,11 @@ protected:
     void StopService(const boost::asio::ip::tcp::endpoint& epLocal);
 
     bool Connect(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
+    bool ConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout);
     bool SSLConnect(const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
                     const CIOSSLOption& optSSL = CIOSSLOption());
+    bool SSLConnectByBindAddress(const boost::asio::ip::tcp::endpoint& epLocal, const boost::asio::ip::tcp::endpoint& epRemote, int64 nTimeout,
+                                 const CIOSSLOption& optSSL = CIOSSLOption());
     std::size_t GetOutBoundIdleCount();
     void ResolveHost(const CNetHost& host);
     virtual void EnterLoop();

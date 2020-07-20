@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,6 +16,8 @@ class CSC25519
 public:
     static const CSC25519 naturalPowTable[51][26];
 
+    static CSC25519 Reduce64(uint8_t m[64]);
+
 public:
     CSC25519();
     CSC25519(const CSC25519& sc);
@@ -29,6 +31,7 @@ public:
     void Unpack(const uint8_t* md32);
     void Pack(uint8_t* md32) const;
     const uint64_t* Data() const;
+    const uint8_t* Begin() const;
 
     CSC25519& Negative();
     const CSC25519 operator-() const;

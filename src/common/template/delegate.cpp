@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,23 +29,19 @@ CTemplateDelegate* CTemplateDelegate::clone() const
 bool CTemplateDelegate::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
                                            std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    return false;
-
     if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
-
     setSubDest.clear();
-    if (tx.sendTo.GetTemplateId() == nId)
+    if (tx.nType == CTransaction::TX_CERT)
     {
         setSubDest.insert(CDestination(keyDelegate));
     }
     else
     {
-        setSubDest.insert(tx.sendTo);
+        setSubDest.insert(destOwner);
     }
-
     return true;
 }
 
@@ -61,14 +57,10 @@ bool CTemplateDelegate::BuildVssSignature(const uint256& hash, const vector<uint
     {
         return false;
     }
-
     vchVssSig.clear();
-    xengine::CODataStream ods(vchVssSig, CDestination::DESTINATION_SIZE + vchData.size() + vchDelegateSig.size());
-    //ods << CDestination(nId) << vchData << vchDelegateSig;
-    ods << CDestination(nId);
+    xengine::CODataStream ods(vchVssSig, vchData.size() + vchDelegateSig.size());
     ods.Push(&vchData[0], vchData.size());
     ods.Push(&vchDelegateSig[0], vchDelegateSig.size());
-
     return true;
 }
 
@@ -132,16 +124,16 @@ void CTemplateDelegate::BuildTemplateData()
     os << keyDelegate << destOwner;
 }
 
-bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, bool& fCompleted) const
+bool CTemplateDelegate::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    if (destTo.GetTemplateId() == nId)
+    if (nType == CTransaction::TX_CERT)
     {
-        return CDestination(keyDelegate).VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+        return CDestination(keyDelegate).VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
     else
     {
-        return destTo.VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted);
+        return destOwner.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
 }
 

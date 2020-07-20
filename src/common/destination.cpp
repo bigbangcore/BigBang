@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,7 +6,7 @@
 
 #include "block.h"
 #include "key.h"
-// #include "template/exchange.h"
+#include "template/exchange.h"
 #include "template/mint.h"
 #include "template/template.h"
 #include "transaction.h"
@@ -141,8 +141,8 @@ const CTemplateId CDestination::GetTemplateId() const
     return (prefix == PREFIX_TEMPLATE) ? CTemplateId(data) : CTemplateId(uint64(0));
 }
 
-bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                     const std::vector<uint8>& vchSig, bool& fCompleted) const
+bool CDestination::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                     const std::vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
     if (IsPubKey())
     {
@@ -151,23 +151,23 @@ bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnc
     }
     else if (IsTemplate())
     {
-        return CTemplate::VerifyTxSignature(GetTemplateId(), hash, hashAnchor, destTo, vchSig, fCompleted);
+        return CTemplate::VerifyTxSignature(GetTemplateId(), nType, hash, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
     }
     return false;
 }
 
-bool CDestination::VerifyTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                     const std::vector<uint8>& vchSig, int nForkHeight, const uint256& fork) const
+bool CDestination::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
+                                     const std::vector<uint8>& vchSig, const int32 nForkHeight, const uint256& fork) const
 {
-    // if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
-    // {
-    //     std::shared_ptr<CTemplateExchange> sp = std::make_shared<CTemplateExchange>(vchSig);
-    //     return sp->VerifySignature(hash, vchSig, nForkHeight, fork);
-    // }
-    // else
+    if (IsTemplate() && GetTemplateId().GetType() == TEMPLATE_EXCHANGE)
+    {
+        std::shared_ptr<CTemplateExchange> sp = std::make_shared<CTemplateExchange>(vchSig);
+        return sp->VerifySignature(hash, vchSig, nForkHeight, fork);
+    }
+    else
     {
         bool fCompleted = false;
-        return VerifyTxSignature(hash, hashAnchor, destTo, vchSig, fCompleted) && fCompleted;
+        return VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted) && fCompleted;
     }
 }
 

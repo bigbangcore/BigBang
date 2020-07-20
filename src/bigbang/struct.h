@@ -1,4 +1,4 @@
-/// Copyright (c) 2019 The Bigbang developers
+/// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -21,6 +21,27 @@
 namespace bigbang
 {
 
+inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
+{
+    if (0 == nVchData)
+    {
+        return nMinFee;
+    }
+    uint32_t multiplier = nVchData / 200;
+    if (nVchData % 200 > 0)
+    {
+        multiplier++;
+    }
+    if (multiplier > 5)
+    {
+        return nMinFee + nMinFee * 10 + (multiplier - 5) * nMinFee * 4;
+    }
+    else
+    {
+        return nMinFee + multiplier * nMinFee * 2;
+    }
+}
+
 // Status
 class CForkStatus
 {
@@ -32,8 +53,14 @@ public:
         nOriginHeight(nOriginHeightIn),
         nLastBlockTime(0),
         nLastBlockHeight(-1),
-        nMoneySupply(0)
+        nMoneySupply(0),
+        nMintType(-1)
     {
+    }
+
+    bool IsNull()
+    {
+        return nLastBlockTime == 0;
     }
 
 public:
@@ -45,6 +72,7 @@ public:
     int64 nLastBlockTime;
     int nLastBlockHeight;
     int64 nMoneySupply;
+    uint16 nMintType;
     std::multimap<int, uint256> mapSubline;
 };
 
@@ -80,6 +108,7 @@ public:
         hashLastBlock = pIndex->GetBlockHash();
         nLastBlockTime = pIndex->GetBlockTime();
         nLastBlockHeight = pIndex->GetBlockHeight();
+        nLastMintType = pIndex->nMintType;
         nMoneySupply = pIndex->GetMoneySupply();
     }
     void SetNull()
@@ -87,6 +116,7 @@ public:
         hashFork = 0;
         nOriginHeight = -1;
         nLastBlockHeight = -1;
+        nLastMintType = 0;
     }
     bool IsNull() const
     {
@@ -100,6 +130,7 @@ public:
     uint256 hashLastBlock;
     int64 nLastBlockTime;
     int nLastBlockHeight;
+    uint16 nLastMintType;
     int64 nMoneySupply;
     std::set<uint256> setTxUpdate;
     std::vector<CBlockEx> vBlockAddNew;
@@ -148,11 +179,12 @@ public:
 class CDelegateRoutine
 {
 public:
-    std::vector<std::pair<int, std::map<CDestination, size_t>>> vEnrolledWeight;
+    std::vector<std::pair<uint256, std::map<CDestination, size_t>>> vEnrolledWeight;
 
     std::vector<CTransaction> vEnrollTx;
-    std::map<CDestination, std::vector<unsigned char>> mapDistributeData;
+    std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>> vDistributeData;
     std::map<CDestination, std::vector<unsigned char>> mapPublishData;
+    uint256 hashDistributeOfPublish;
     bool fPublishCompleted;
 
 public:
@@ -168,11 +200,13 @@ public:
     {
         mapWeight.clear();
         mapEnrollData.clear();
+        vecAmount.clear();
     }
 
 public:
     std::map<CDestination, std::size_t> mapWeight;
     std::map<CDestination, std::vector<unsigned char>> mapEnrollData;
+    std::vector<std::pair<CDestination, int64>> vecAmount;
 };
 
 class CDelegateAgreement
@@ -212,6 +246,22 @@ public:
     std::vector<CDestination> vBallot;
 };
 
+class CAgreementBlock
+{
+public:
+    CAgreementBlock()
+      : nPrevTime(0), nPrevHeight(0), nPrevMintType(0), nWaitTime(0), fCompleted(false), ret(false) {}
+
+    uint256 hashPrev;
+    int64 nPrevTime;
+    int nPrevHeight;
+    uint16 nPrevMintType;
+    CDelegateAgreement agreement;
+    int64 nWaitTime;
+    bool fCompleted;
+    bool ret;
+};
+
 /* Protocol & Event */
 class CNil
 {
@@ -227,6 +277,9 @@ protected:
 class CBlockMakerUpdate
 {
 public:
+    uint256 hashParent;
+    int nOriginHeight;
+
     uint256 hashBlock;
     int64 nBlockTime;
     int nBlockHeight;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,6 +14,9 @@
 
 namespace xengine
 {
+
+//#define BIGBANG_TESTNET
+
 extern bool STD_DEBUG;
 
 void SetThreadName(const char* name);
@@ -298,6 +301,11 @@ inline uint64 BSwap64(uint64 n)
     n = ((n & 0xff00ff00ff00ff00ULL) >> 8) | ((n & 0x00ff00ff00ff00ffULL) << 8);
     n = ((n & 0xffff0000ffff0000ULL) >> 16) | ((n & 0x0000ffff0000ffffULL) << 16);
     return (n >> 32) | (n << 32);
+}
+
+inline double ValueFromToken(uint64 amount)
+{
+    return ((double)amount / (double)1000000);
 }
 
 } // namespace xengine

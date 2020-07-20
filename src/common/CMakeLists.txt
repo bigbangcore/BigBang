@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # CMake file for Bigbang
 #
-# Copyright (c) 2019 The Bigbang developers
+# Copyright (c) 2019-2020 The Bigbang developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
@@ -11,14 +11,17 @@ set(template
     template/template.h     template/template.cpp
     template/weighted.h     template/weighted.cpp 
     template/multisig.h     template/multisig.cpp 
-    # template/fork.h         template/fork.cpp 
+    template/fork.h         template/fork.cpp 
     template/mint.h         template/mint.cpp 
     template/proof.h        template/proof.cpp 
-    # template/delegate.h     template/delegate.cpp 
-    # template/exchange.h     template/exchange.cpp 
+    template/delegate.h     template/delegate.cpp 
+    template/exchange.h     template/exchange.cpp 
+    template/vote.h         template/vote.cpp 
+    template/payment.h      template/payment.cpp 
 )
 
 set(sources
+    defs.h          defs.cpp
     destination.h   destination.cpp 
     transaction.h 
     wallettx.h 

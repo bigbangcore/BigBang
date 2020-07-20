@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bigbang developers
+// Copyright (c) 2019-2020 The Bigbang developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,9 +9,9 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-// #include "delegate.h"
-// #include "exchange.h"
-// #include "fork.h"
+#include "delegate.h"
+#include "exchange.h"
+#include "fork.h"
 #include "multisig.h"
 #include "proof.h"
 #include "rpc/auto_protocol.h"
@@ -19,6 +19,8 @@
 #include "template.h"
 #include "templateid.h"
 #include "transaction.h"
+#include "vote.h"
+#include "payment.h"
 #include "weighted.h"
 
 using namespace std;
@@ -42,10 +44,12 @@ using CTypeInfoSet = boost::multi_index_container<
 static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_WEIGHTED, new CTemplateWeighted, "weighted" },
     { TEMPLATE_MULTISIG, new CTemplateMultiSig, "multisig" },
-    // { TEMPLATE_FORK, new CTemplateFork, "fork" },
+    { TEMPLATE_FORK, new CTemplateFork, "fork" },
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
-    // { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
-    // { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
+    { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
+    { TEMPLATE_VOTE, new CTemplateVote, "vote" },
+    { TEMPLATE_PAYMENT, new CTemplatePayment, "payment" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
@@ -157,8 +161,8 @@ string CTemplate::GetTypeName(uint16 nTypeIn)
     return pTypeInfo ? pTypeInfo->strName : "";
 }
 
-bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash, const uint256& hashAnchor,
-                                  const CDestination& destTo, const vector<uint8>& vchSig, bool& fCompleted)
+bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint16 nType, const uint256& hash, const uint256& hashAnchor,
+                                  const CDestination& destTo, const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted)
 {
     CTemplatePtr ptr = CreateTemplatePtr(nIdIn.GetType(), vchSig);
     if (!ptr)
@@ -170,9 +174,8 @@ bool CTemplate::VerifyTxSignature(const CTemplateId& nIdIn, const uint256& hash,
     {
         return false;
     }
-
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
-    return ptr->VerifyTxSignature(hash, hashAnchor, destTo, vchSubSig, fCompleted);
+    return ptr->VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSubSig, nForkHeight, fCompleted);
 }
 
 bool CTemplate::IsTxSpendable(const CDestination& dest)
@@ -201,10 +204,56 @@ bool CTemplate::IsDestInRecorded(const CDestination& dest)
         const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
         if (pTypeInfo)
         {
-            return (dynamic_cast<CDestInRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
+            return (dynamic_cast<CSendToRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
         }
     }
     return false;
+}
+
+bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
+{
+    std::vector<uint8> vchSubSigOut;
+    bool fSendToVoteTemplate = false;
+    CTemplateId tid;
+    if (sendTo.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            sendToDelegateOut = sendTo;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            CDestination destOwnerTemp;
+            if (!CSendToRecordedTemplate::ParseDest(vchSigIn, sendToDelegateOut, destOwnerTemp, vchSubSigOut))
+            {
+                return false;
+            }
+            fSendToVoteTemplate = true;
+        }
+    }
+    if (!fSendToVoteTemplate)
+    {
+        vchSubSigOut = std::move(vchSigIn);
+    }
+
+    if (destIn.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            destInDelegateOut = destIn;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn, vchSubSigOut);
+            if (ptr == nullptr)
+            {
+                return false;
+            }
+            CDestination destOwnerTemp;
+            boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destInDelegateOut, destOwnerTemp);
+        }
+    }
+    return true;
 }
 
 bool CTemplate::IsLockedCoin(const CDestination& dest)
@@ -265,16 +314,18 @@ bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& 
     return true;
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
-                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig, bool& fCompleted) const
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor,
+                                 const CDestination& destTo, const int32 nForkHeight,
+                                 const vector<uint8>& vchPreSig, vector<uint8>& vchSig,
+                                 bool& fCompleted) const
 {
     vchSig = vchData;
-    if (!VerifyTxSignature(hash, hashAnchor, destTo, vchPreSig, fCompleted))
+    if (!VerifyTxSignature(hash, nType, hashAnchor, destTo, vchPreSig, nForkHeight, fCompleted))
     {
         return false;
     }
 
-    return BuildTxSignature(hash, hashAnchor, destTo, vchPreSig, vchSig);
+    return BuildTxSignature(hash, nType, hashAnchor, destTo, vchPreSig, vchSig);
 }
 
 CTemplate::CTemplate(const uint16 nTypeIn)
@@ -292,7 +343,7 @@ void CTemplate::BuildTemplateId()
     nId = CTemplateId(nType, bigbang::crypto::CryptoHash(&vchData[0], vchData.size()));
 }
 
-bool CTemplate::BuildTxSignature(const uint256& hash, const uint256& hashAnchor, const CDestination& destTo,
+bool CTemplate::BuildTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                  const vector<uint8>& vchPreSig, vector<uint8>& vchSig) const
 {
     vchSig.insert(vchSig.end(), vchPreSig.begin(), vchPreSig.end());

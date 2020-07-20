@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # CMake file for Bigbang
 #
-# Copyright (c) 2019 The Bigbang developers
+# Copyright (c) 2019-2020 The Bigbang developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
@@ -20,11 +20,12 @@ set(sources
     leveldbeng.cpp      leveldbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
+    delegatevotesave.cpp delegatevotesave.h
 )
 
 add_library(storage ${sources})
 
-include_directories(../xengine ../crypto ../common ../leveldb/include ../snappy)
+include_directories(../xengine ../crypto ../common ../leveldb/include ../snappy ../delegate ../mpvss)
 
 target_link_libraries(storage
     ${Boost_SYSTEM_LIBRARY}
@@ -43,4 +44,6 @@ target_link_libraries(storage
     common
     leveldb    
     snappy
+    delegate
+    mpvss
 )
