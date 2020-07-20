@@ -351,13 +351,13 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork [%s] intended to be produced by this node [%s]:",
                     fork.ToString().c_str(), clientID.c_str());
             }
-            /*
+
             if (!PostBlockRequest(-1))
             {
                 Error("CMQCluster::HandleEvent(CEventMQEnrollUpdate): failed to post requesting block");
                 return false;
-            }*/
-            FetchBlock(true, -1);
+            }
+            // FetchBlock(true, -1);
 
             return true;
         }
@@ -628,6 +628,7 @@ void CMQCluster::RequestBlockTimerFunc(uint32 nTimer)
 
 void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
 {
+    Log("CMQCluster::OnReceiveMessage(): Received message from [%s]", topic.c_str());
     cout << "\nReceived message from [" << topic << "]..." << endl;
     payload.Dump();
 
@@ -638,7 +639,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         return;
     case NODE_CATEGORY::FORKNODE:
     {
-        Log("CMQCluster::OnReceiveMessage(): current sync height is [%d]", int(lastHeightResp));
+        Log("CMQCluster::OnReceiveMessage(): current sync height is [%d] on fork node side", int(lastHeightResp));
         if (string::npos != topic.find(vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]) && string::npos != topic.find(prefixTopic))
         { //respond to request block of main chain
             Log("CMQCluster::OnReceiveMessage(): entering of fork node processing RESP_BLOCK");
@@ -731,7 +732,8 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             else
             {
                 std::atomic_store(&isMainChainBlockBest, false);
-                FetchBlock(false, lastHeightResp);
+                // FetchBlock(false, lastHeightResp);
+                PostBlockRequest(lastHeightResp);
             }
 
             return;
@@ -1297,7 +1299,6 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     Log("CMQCluster::ClientAgent(): there is no message to send");
                     return 0;
                 }
-                Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
                 buf = deqSendBuff.front();
             }
 
@@ -1324,7 +1325,9 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 //                delitok = client.publish(pubmsg, nullptr, cb);
                 delitok = client.publish(pubmsg);
                 delitok->wait();
+                cout << "\nSent message to [" << buf.first << "]..." << endl;
                 buf.second->Dump();
+                Log("CMQCluster::ClientAgent(): published to [%s] successfully", buf.first.c_str());
                 //                client.publish(pubmsg);
                 /*                if (delitok->wait_for(100))
                 {

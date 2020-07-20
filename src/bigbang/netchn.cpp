@@ -538,7 +538,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         else
         {
             StdLog("NetChannel", "CEventPeerActive: succeed in filtering to "
-                   "get main chain from peer[%s]", GetPeerAddressInfo(nNonce).c_str());
+                                 "get main chain from peer[%s]",
+                   GetPeerAddressInfo(nNonce).c_str());
         }
 
         network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
@@ -882,7 +883,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         StdError("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing a main chain "
-                 "from a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+                               "from a dpos node, just ignore it",
+                 GetPeerAddressInfo(nNonce).c_str());
         return false;
     }
 
@@ -899,7 +901,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
                     if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
                     {
                         StdError("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing a main chain "
-                                 "from a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+                                               "from a fork node, just ignore it",
+                                 GetPeerAddressInfo(nNonce).c_str());
                         return false;
                     }
                     (*it).second.Subscribe(hash);
@@ -940,7 +943,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
         StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing a main chain "
-                 "from a dpos node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+                               "from a dpos node, just ignore it",
+                 GetPeerAddressInfo(nNonce).c_str());
         return true;
     }
 
@@ -954,8 +958,9 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
             {
                 if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
                 {
-                    StdError("NetChannel", "CEventPeerUnsubscribe: peer[%s] is subscribing a main chain "
-                             "from a fork node, just ignore it", GetPeerAddressInfo(nNonce).c_str());
+                    StdError("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing a main chain "
+                                           "from a fork node, just ignore it",
+                             GetPeerAddressInfo(nNonce).c_str());
                     return false;
                 }
                 (*it).second.Unsubscribe(hash);
