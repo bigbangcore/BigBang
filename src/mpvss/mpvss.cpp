@@ -451,6 +451,12 @@ bool CMPSecretShare::IsCollectCompleted()
             nCollectedCount++;
         }
     }
-    fCollectCompleted = (nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size()) || (nCollectedCount >= nDistributedCount);
+
+    // mapOpenedShare.size() > 0: Have collected at least one pushlished data
+    // nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size(): For witiness
+    // nCollectedCount >= nDistributedCount: For DPoS node
+    fCollectCompleted = (mapOpenedShare.size() > 0)
+                        && ((nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size())
+                            || (nCollectedCount >= nDistributedCount));
     return fCollectCompleted;
 }
