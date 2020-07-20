@@ -168,7 +168,7 @@ bool CMQCluster::HandleInvoke()
     arrTopic = {};
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
-//        pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
+        //        pForkManager->SetForkFilter(nodes[0].vecOwnedForks);
 
         arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
         arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
@@ -351,7 +351,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 Log("CMQCluster::HandleEvent(CEventMQEnrollUpdate): fork [%s] intended to be produced by this node [%s]:",
                     fork.ToString().c_str(), clientID.c_str());
             }
-/*
+            /*
             if (!PostBlockRequest(-1))
             {
                 Error("CMQCluster::HandleEvent(CEventMQEnrollUpdate): failed to post requesting block");
@@ -655,15 +655,23 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
 
-            if (-1 == resp.height)
+            if (-1 == resp.height && resp.isBest)
             { //has reached the best height for the first time communication,
-              // then set timer to process the following business rather than req/resp model
+                // then set timer to process the following business rather than req/resp model
                 FetchBlock(false, -1);
                 return;
             }
 
-            //check if this msg is just for me
-            //if (topicReqBlk != clientID)
+            if (-2 == resp.height)
+            { //when missing rollback will come here
+                if (nReqBlkTimerID != 0)
+                {
+                    CancelTimer(nReqBlkTimerID);
+                    nReqBlkTimerID = 0;
+                }
+                PostBlockRequest(0); //todo: using checkpoint is better
+                return;
+            }
 
             //notify to add new block
             Errno err = pDispatcher->AddNewBlock(resp.block);
@@ -933,7 +941,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Error("CMQCluster::OnReceiveMessage(): failed to unpack request msg");
             return;
         }
-/*
+        /*
         {
             boost::unique_lock<boost::mutex> lock(mtxReply);
             auto it = mapReplied.find(req.forkNodeId);
@@ -989,11 +997,11 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Log("CMQCluster::OnReceiveMessage(): block height[%d] owned by fork node[%s] "
                 "has reached the best one on dpos node, please wait...",
                 best, req.forkNodeId.c_str());
-//            resp.height = -1;
-//            resp.hash = uint256();
-//            resp.isBest = 1;
-//            resp.block = CBlock();
-//            resp.blockSize = xengine::GetSerializeSize(resp.block);
+            resp.height = -1;
+            resp.hash = uint256();
+            resp.isBest = 1;
+            resp.block = CBlock();
+            resp.blockSize = xengine::GetSerializeSize(resp.block);
             return;
         }
         else
@@ -1008,38 +1016,46 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
             if (hash != req.lastHash)
-            {
-                Error("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
-                      "at height of [%d] with fork node [%s]",
-                      hash.ToString().c_str(),
-                      req.lastHash.ToString().c_str(), req.lastHeight, req.forkNodeId.c_str());
-                return;
+            { //cause maybe rollback not in time
+                Log("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
+                    "at height of [%d] with fork node [%s]",
+                    hash.ToString().c_str(),
+                    req.lastHash.ToString().c_str(), req.lastHeight, req.forkNodeId.c_str());
+                resp.height = -2;
+                resp.hash = uint256();
+                resp.isBest = 0;
+                resp.block = CBlock();
+                resp.blockSize = xengine::GetSerializeSize(resp.block);
+                // return;
             }
-            if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
+            else
             {
-                Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of [%d] "
-                      "with fork node [%s]",
-                      req.lastHeight + 1, req.forkNodeId.c_str());
-                return;
-            }
-            CBlock block;
-            if (!pBlockChain->GetBlock(hash, block))
-            {
-                Error("CMQCluster::OnReceiveMessage(): failed to get next block for fork node [%s]",
-                      req.forkNodeId.c_str());
-                return;
-            }
+                if (!pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(), req.lastHeight + 1, hash))
+                {
+                    Error("CMQCluster::OnReceiveMessage(): failed to get next block hash at height of [%d] "
+                          "with fork node [%s]",
+                          req.lastHeight + 1, req.forkNodeId.c_str());
+                    return;
+                }
+                CBlock block;
+                if (!pBlockChain->GetBlock(hash, block))
+                {
+                    Error("CMQCluster::OnReceiveMessage(): failed to get next block for fork node [%s]",
+                          req.forkNodeId.c_str());
+                    return;
+                }
 
-            //reply block requested
-            resp.height = req.lastHeight + 1;
-            resp.hash = hash;
-            resp.isBest = req.lastHeight + 1 < best
-                              ? 0
-                              : 1;
-            Log("CMQCluster::OnReceiveMessage(): request[%d] best[%d] isBest[%d]",
-                req.lastHeight + 1, best, resp.isBest);
-            resp.blockSize = xengine::GetSerializeSize(block);
-            resp.block = move(block);
+                //reply block requested
+                resp.height = req.lastHeight + 1;
+                resp.hash = hash;
+                resp.isBest = req.lastHeight + 1 < best
+                                  ? 0
+                                  : 1;
+                Log("CMQCluster::OnReceiveMessage(): request[%d] best[%d] isBest[%d]",
+                    req.lastHeight + 1, best, resp.isBest);
+                resp.blockSize = xengine::GetSerializeSize(block);
+                resp.block = move(block);
+            }
         }
 
         CBufferPtr spSS(new CBufStream);
@@ -1200,7 +1216,7 @@ public:
         xengine::CBufStream ss;
         ss.Write((const char*)&msg->get_payload()[0], msg->get_payload().size());
         mqCluster.OnReceiveMessage(msg->get_topic(), ss);
-/*
+        /*
         mqCluster.LogEvent("[asyncing...]");
         std::async(std::launch::async,
                    [this, &msg]() {
@@ -1285,12 +1301,12 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 buf = deqSendBuff.front();
             }
 
-//            while (!deqSendBuff.empty())
+            //            while (!deqSendBuff.empty())
             {
                 Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
                 //                pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
-//                buf.second->Dump();
+                //                buf.second->Dump();
 
                 mqtt::message_ptr pubmsg = mqtt::make_message(buf.first, buf.second->GetData(), buf.second->GetSize());
                 pubmsg->set_qos(QOS1);
@@ -1407,7 +1423,7 @@ void CMQCluster::MqttThreadFunc()
     ClientAgent(MQ_CLI_ACTION::SUB);
 
     if (NODE_CATEGORY::FORKNODE == catNode)
-    {   //wait for subscribing done before sending request for main chain block
+    { //wait for subscribing done before sending request for main chain block
         //        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
@@ -1441,7 +1457,6 @@ void CMQCluster::MqttThreadFunc()
         {
             Error("thread function of MQTT: publish operation is ignormal, leaving MQTT thread with errno[%d]", ret);
             return;
-
         }
     }
 
