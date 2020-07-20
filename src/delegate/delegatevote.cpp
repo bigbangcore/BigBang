@@ -208,8 +208,14 @@ bool CDelegateVote::Collect(const CDestination& destFrom, const vector<unsigned 
         CDelegateData delegateData;
         CIDataStream is(vchPublishData);
         is >> delegateData;
+
         if (delegateData.nIdentFrom == DestToIdentUInt256(destFrom) && VerifySignature(delegateData))
         {
+            if (find_if(vCollected.begin(), vCollected.end(), [&](const CDelegateData& data) { return data.nIdentFrom == delegateData.nIdentFrom; }) != vCollected.end())
+            {
+                return true;
+            }
+
             fCompleted = witness.IsCollectCompleted();
             if (fCompleted)
             {
@@ -276,17 +282,8 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
 
 void CDelegateVote::GetProof(vector<unsigned char>& vchProof)
 {
-    std::vector<CDelegateData> vDeduplicated;
-    std::set<uint256> setCollectedHash;
-    for (auto& data : vCollected)
-    {
-        if (setCollectedHash.insert(data.GetHash()).second)
-        {
-            vDeduplicated.push_back(data);
-        }
-    }
     CODataStream os(vchProof);
-    os << vDeduplicated;
+    os << vCollected;
 }
 
 bool CDelegateVote::IsCollectCompleted()
