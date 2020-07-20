@@ -372,14 +372,14 @@ bool CMPSecretShare::Collect(const uint256& nIdentFrom, const map<uint256, vecto
 
 void CMPSecretShare::Reconstruct(map<uint256, pair<uint256, size_t>>& mapSecret)
 {
-    using ShareType = tuple<const uint256*, vector<pair<uint32_t, uint256>>>;
+    using ShareType = tuple<const uint256*, std::vector<std::pair<uint32_t, uint256>>*>;
     vector<ShareType> vOpenedShare;
     vOpenedShare.reserve(mapOpenedShare.size());
 
-    for (auto it = mapOpenedShare.begin(); it != mapOpenedShare.end(); ++it)
+    map<uint256, vector<pair<uint32_t, uint256>>>::iterator it;
+    for (it = mapOpenedShare.begin(); it != mapOpenedShare.end(); ++it)
     {
-        vector<pair<uint32_t, uint256>> v(it->second.begin(), it->second.end());
-        vOpenedShare.push_back(ShareType(&it->first, move(v)));
+        vOpenedShare.push_back(ShareType(&it->first, &it->second));
     }
 
     // parallel compute
@@ -387,14 +387,14 @@ void CMPSecretShare::Reconstruct(map<uint256, pair<uint256, size_t>>& mapSecret)
     vector<DataType> vData(vOpenedShare.size());
 
     computer.Transform(vOpenedShare.begin(), vOpenedShare.end(), vData.begin(),
-                       [&](const uint256* pIdent, vector<pair<uint32_t, uint256>> vShare) {
-                           if (vShare.size() == nThresh)
+                       [&](const uint256* pIdent, std::vector<std::pair<uint32_t, uint256>>* pShare) {
+                           if (pShare->size() == nThresh)
                            {
                                const uint256& nIdentAvail = *pIdent;
                                size_t nIndexRet, nWeightRet;
                                if (GetParticipantRange(nIdentAvail, nIndexRet, nWeightRet))
                                {
-                                   return make_pair(MPNewton(vShare), nWeightRet);
+                                   return make_pair(MPNewton(*pShare), nWeightRet);
                                }
                            }
                            return make_pair(uint256(uint64(0)), (size_t)0);
@@ -455,8 +455,13 @@ bool CMPSecretShare::IsCollectCompleted()
     // mapOpenedShare.size() > 0: Have collected at least one pushlished data
     // nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size(): For witiness
     // nCollectedCount >= nDistributedCount: For DPoS node
-    fCollectCompleted = (mapOpenedShare.size() > 0)
-                        && ((nDistributedCount == 0 && nCollectedCount == mapOpenedShare.size())
-                            || (nCollectedCount >= nDistributedCount));
+    if (mapOpenedShare.size() == 0)
+    {
+        fCollectCompleted = false;
+    }
+    else
+    {
+        fCollectCompleted = (nDistributedCount == 0) ? (nCollectedCount == mapOpenedShare.size()) : (nCollectedCount >= nDistributedCount);
+    }
     return fCollectCompleted;
 }
