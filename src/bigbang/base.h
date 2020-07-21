@@ -140,7 +140,7 @@ public:
     virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
-    virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
+    //virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
     //virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block, const uint256& hashBlockRef) = 0;
     //virtual bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) = 0;
