@@ -963,7 +963,7 @@ bool CCheckBlockWalker::Initialize(const string& strPath)
     return true;
 }
 
-bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset)
+bool CCheckBlockWalker::Walk(const CBlockChange& block, uint32 nFile, uint32 nOffset)
 {
     const uint256 hashBlock = block.GetHash();
     if (mapBlock.count(hashBlock) > 0)

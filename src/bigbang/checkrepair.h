@@ -403,7 +403,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////
 // CCheckBlockWalker
-class CCheckBlockWalker : public CTSWalker<CBlockEx>
+class CCheckBlockWalker : public CTSWalker<CBlockChange>
 {
 public:
     CCheckBlockWalker(bool fTestnetIn, bool fOnlyCheckIn)
@@ -412,7 +412,7 @@ public:
 
     bool Initialize(const string& strPath);
 
-    bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
+    bool Walk(const CBlockChange& block, uint32 nFile, uint32 nOffset) override;
 
     bool GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0);
     bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits);

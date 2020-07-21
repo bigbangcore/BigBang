@@ -267,6 +267,8 @@ public:
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
+    bool RecordRollback(const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
+    bool RecordRemove(const CBlockEx& block);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
@@ -276,8 +278,6 @@ public:
     bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote);
     bool GetDelegateEnrollTx(int height, const std::vector<uint256>& vBlockRange, std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool GetBlockDelegatedEnrollTx(const uint256& hashBlock, std::map<int, std::set<CDestination>>& mapEnrollDest);
-    bool RecordRollback(const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
-    bool RecordRemove(const CBlockEx& block);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
