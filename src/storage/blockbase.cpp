@@ -1855,6 +1855,39 @@ bool CBlockBase::ListForkUnspent(const uint256& hashFork, const CDestination& de
     return true;
 }
 
+bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
+{
+    CDiskPos pos;
+    for (const CBlockEx& removed : vBlockRemove)
+    {
+        if (!tsBlock.Write(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
+        {
+            StdError("[BlockBase][ERROR]", "Write removed %s block failed", removed.GetHash().ToString().c_str());
+            return false;
+        }
+    }
+    for (const CBlockEx& added : boost::adaptors::reverse(vBlockAddNew))
+    {
+        if (!tsBlock.Write(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD), pos))
+        {
+            StdError("[BlockBase][ERROR]", "Write added %s block failed", added.GetHash().ToString().c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::RecordRemove(const CBlockEx& block)
+{
+    CDiskPos pos;
+    if (!tsBlock.Write(CBlockChange(block, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
+    {
+        StdError("[BlockBase][ERROR]", "Record removed %s block failed", block.GetHash().ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
 bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
 {
     CListUnspentBatchWalker walker(hashFork, mapUnspent, nMax);
@@ -2012,39 +2045,6 @@ bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, se
         {
             destEnroll.insert(m.first);
         }
-    }
-    return true;
-}
-
-bool CBlockBase::RecordRollback(const vector<CBlockEx>& vBlockAddNew, const vector<CBlockEx>& vBlockRemove)
-{
-    CDiskPos pos;
-    for (const CBlockEx& removed : vBlockRemove)
-    {
-        if (!tsBlock.Write(CBlockChange(removed, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
-        {
-            StdError("[BlockBase][ERROR]", "Write removed %s block failed", removed.GetHash().ToString().c_str());
-            return false;
-        }
-    }
-    for (const CBlockEx& added : boost::adaptors::reverse(vBlockAddNew))
-    {
-        if (!tsBlock.Write(CBlockChange(added, CBlockChange::BLOCK_CHANGE_ADD), pos))
-        {
-            StdError("[BlockBase][ERROR]", "Write added %s block failed", added.GetHash().ToString().c_str());
-            return false;
-        }
-    }
-    return true;
-}
-
-bool CBlockBase::RecordRemove(const CBlockEx& block)
-{
-    CDiskPos pos;
-    if (!tsBlock.Write(CBlockChange(block, CBlockChange::BLOCK_CHANGE_REMOVE), pos))
-    {
-        StdError("[BlockBase][ERROR]", "Record removed %s block failed", block.GetHash().ToString().c_str());
-        return false;
     }
     return true;
 }

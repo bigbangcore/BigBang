@@ -571,14 +571,14 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         && (pIndexFork->nChainTrust > pIndexNew->nChainTrust
             || (pIndexFork->nChainTrust == pIndexNew->nChainTrust && !pIndexNew->IsEquivalent(pIndexFork))))
     {
-        Log("AddNew Block : Short chain, new block height: %d, block type: %s, block: %s, fork chain trust: %s, fork last block: %s, fork: %s",
-            pIndexNew->GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(), hash.GetHex().c_str(),
-            pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str(), pIndexFork->GetOriginHash().GetHex().c_str());
         // record short chain
         if (!cntrBlock.RecordRemove(blockex))
         {
             Error("Record removed block failed, removed %s", blockex.GetHash().ToString().c_str());
-        }
+        } 
+        Log("AddNew Block : Short chain, new block height: %d, block type: %s, block: %s, fork chain trust: %s, fork last block: %s, fork: %s",
+            pIndexNew->GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(), hash.GetHex().c_str(),
+            pIndexFork->nChainTrust.GetHex().c_str(), pIndexFork->GetBlockHash().GetHex().c_str(), pIndexFork->GetOriginHash().GetHex().c_str());
         return OK;
     }
 
@@ -591,6 +591,19 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
+
+    // record rollback
+    if (!update.vBlockRemove.empty() && !update.vBlockAddNew.empty())
+    {
+        if (!cntrBlock.RecordRollback(update.vBlockAddNew, update.vBlockRemove))
+        {
+            Error("Write rollback block failed, removed from %s to %s, added from %s to %s",
+                  update.vBlockRemove.front().GetHash().ToString().c_str(),
+                  update.vBlockRemove.back().GetHash().ToString().c_str(),
+                  update.vBlockAddNew.back().GetHash().ToString().c_str(),
+                  update.vBlockAddNew.front().GetHash().ToString().c_str());
+        }
+    }
 
     StdLog("BlockChain", "AddNewBlock: Commit blockchain success, height: %d, block type: %s, add block: %ld, remove block: %ld, block tx count: %ld, block: %s, fork: %s",
            block.GetBlockHeight(), GetBlockTypeStr(block.nType, block.txMint.nType).c_str(),
@@ -629,19 +642,6 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             "[nBlockAdd]: %u [nBlockDel]: %u [nTxAdd]: %u [nTxDel]: %u",
             pIndexNew->GetBlockHeight(), pIndexNew->GetBlockHash().ToString().c_str(),
             update.vBlockAddNew.size(), update.vBlockRemove.size(), nTxAdd, nTxDel);
-    }
-
-    // record rollback
-    if (!update.vBlockRemove.empty() && !update.vBlockAddNew.empty())
-    {
-        if (!cntrBlock.RecordRollback(update.vBlockAddNew, update.vBlockRemove))
-        {
-            Error("Write rollback block failed, removed from %s to %s, added from %s to %s",
-                  update.vBlockRemove.front().GetHash().ToString().c_str(),
-                  update.vBlockRemove.back().GetHash().ToString().c_str(),
-                  update.vBlockAddNew.back().GetHash().ToString().c_str(),
-                  update.vBlockAddNew.front().GetHash().ToString().c_str());
-        }
     }
 
     return OK;
