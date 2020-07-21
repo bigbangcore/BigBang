@@ -535,15 +535,28 @@ void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::ve
             {
                 vPowBlockHash.push_back(chash);
             }
+            break;
         }
-        else if (consParam.ret && it->first == consParam.nPrevHeight + 1)
+        else if (it->first == consParam.nPrevHeight + 1)
         {
-            if (consParam.fPow || (consParam.nWaitTime < 0 && std::abs(consParam.nWaitTime) > MAX_SUBMIT_POW_TIMEOUT))
+            if (consParam.ret && (consParam.fPow || (consParam.nWaitTime < 0 && std::abs(consParam.nWaitTime) > MAX_SUBMIT_POW_TIMEOUT)))
             {
                 for (auto& chash : it->second)
                 {
                     vPowBlockHash.push_back(chash);
                 }
+                break;
+            }
+        }
+        else
+        {
+            if (consParam.nWaitTime < 0 && std::abs(consParam.nWaitTime) > MAX_SUBMIT_POW_TIMEOUT * 7)
+            {
+                for (auto& chash : it->second)
+                {
+                    vPowBlockHash.push_back(chash);
+                }
+                break;
             }
         }
     }
