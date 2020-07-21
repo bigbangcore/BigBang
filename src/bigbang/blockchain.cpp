@@ -455,8 +455,36 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return err;
     }
 
+    bool fGetBranchBlock = true;
+    if (block.IsVacant())
+    {
+        do
+        {
+            if (!block.IsPrimary() && pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
+                && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
+            {
+                fGetBranchBlock = false;
+                break;
+            }
+
+            uint256 nNewChainTrust;
+            if (!pCoreProtocol->GetBlockTrust(block, nNewChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
+            {
+                break;
+            }
+            nNewChainTrust += pIndexPrev->nChainTrust;
+
+            CBlockIndex* pIndexForkLast = nullptr;
+            if (cntrBlock.RetrieveFork(pIndexPrev->GetOriginHash(), &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
+            {
+                fGetBranchBlock = false;
+                break;
+            }
+        } while (0);
+    }
+
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin(), fGetBranchBlock))
     {
         Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
@@ -544,7 +572,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
-    if (!pIndexNew->IsPrimary() && pIndexRef
+    if (!pIndexNew->IsPrimary() && (!pIndexNew->IsVacant() || pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight())) && pIndexRef
         && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
     {
         Log("AddNew Block: Ref block short chain, refblock: %s, new block: %s, fork: %s",
