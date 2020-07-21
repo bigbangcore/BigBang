@@ -602,10 +602,10 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
             CBlock block;
             std::multimap<int64, CDestination> mapVotes;
             CProofOfSecretShare dpos;
-            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
-            {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
-            }
+            // if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            // {
+            //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            // }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
                 return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
@@ -741,10 +741,10 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
             CBlock block;
             std::multimap<int64, CDestination> mapVotes;
             CProofOfSecretShare dpos;
-            if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
-            {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
-            }
+            // if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
+            // {
+            //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+            // }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
                 return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
