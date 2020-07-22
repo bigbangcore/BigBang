@@ -433,11 +433,12 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
     }
     if (tid.GetType() == TEMPLATE_DELEGATE)
     {
-        if (!pBlockChain->GetVotes(destDelegate, nVotes))
-        {
-            strFailCause = "Query failed";
-            return false;
-        }
+        // if (!pBlockChain->GetVotes(destDelegate, nVotes))
+        // {
+        //     strFailCause = "Query failed";
+        //     return false;
+        // }
+        return false;
     }
     else
     {
@@ -455,18 +456,20 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
             strFailCause = "Vote template address not imported";
             return false;
         }
-        if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
-        {
-            strFailCause = "Query failed";
-            return false;
-        }
+        // if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
+        // {
+        //     strFailCause = "Query failed";
+        //     return false;
+        // }
+        return false;
     }
     return true;
 }
 
 bool CService::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
 {
-    return pBlockChain->ListDelegate(nCount, mapVotes);
+    //return pBlockChain->ListDelegate(nCount, mapVotes);
+    return false;
 }
 
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)

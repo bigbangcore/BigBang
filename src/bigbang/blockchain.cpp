@@ -885,10 +885,10 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block
 //     return cntrBlock.GetBlockDelegateVote(hashBlock, mapVote);
 // }
 
-int64 CBlockChain::GetDelegateMinEnrollAmount(const uint256& hashBlock)
-{
-    return pCoreProtocol->MinEnrollAmount();
-}
+// int64 CBlockChain::GetDelegateMinEnrollAmount(const uint256& hashBlock)
+// {
+//     return pCoreProtocol->MinEnrollAmount();
+// }
 
 // bool CBlockChain::GetDelegateCertTxCount(const uint256& hashLastBlock, map<CDestination, int>& mapVoteCert)
 // {

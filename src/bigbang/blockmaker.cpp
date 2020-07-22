@@ -115,11 +115,11 @@ bool CBlockMaker::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus\n");
-        return false;
-    }
+    // if (!GetObject("consensus", pConsensus))
+    // {
+    //     Error("Failed to request consensus\n");
+    //     return false;
+    // }
 
     if (!GetObject("service", pService))
     {
@@ -239,9 +239,9 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 
     {
         uint256 nAgreement;
-        size_t nWeight;
+        //size_t nWeight;
         vector<CDestination> vBallot;
-        pConsensus->GetAgreement(eventUpdate.data.nBlockHeight, nAgreement, nWeight, vBallot);
+        //pConsensus->GetAgreement(eventUpdate.data.nBlockHeight, nAgreement, nWeight, vBallot);
 
         string strMintType = "dpos";
         if (eventUpdate.data.nMintType == CTransaction::TX_WORK)
@@ -325,7 +325,7 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)
     {
-        pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
+       // pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
     }
 }
 

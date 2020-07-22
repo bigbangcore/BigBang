@@ -1277,47 +1277,47 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
 
 bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust)
 {
-    agreement.Clear();
-    if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
-    {
-        return true;
-    }
+    // agreement.Clear();
+    // if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
+    // {
+    //     return true;
+    // }
 
-    CBlockIndex* pIndex = pIndexPrev;
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
-    {
-        if (pIndex == nullptr)
-        {
-            StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
-            return false;
-        }
-        pIndex = pIndex->pPrev;
-    }
+    // CBlockIndex* pIndex = pIndexPrev;
+    // for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+    // {
+    //     if (pIndex == nullptr)
+    //     {
+    //         StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
+    //         return false;
+    //     }
+    //     pIndex = pIndex->pPrev;
+    // }
 
-    CDelegateEnrolled enrolled;
-    if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
-    {
-        StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }
+    // CDelegateEnrolled enrolled;
+    // if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
+    // {
+    //     StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
+    //     return false;
+    // }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
-    map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
-    {
-        StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }
+    // delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    // map<CDestination, size_t> mapBallot;
+    // if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
+    // {
+    //     StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
+    //     return false;
+    // }
 
-    nEnrollTrust = 0;
-    for (auto& amount : enrolled.vecAmount)
-    {
-        if (mapBallot.find(amount.first) != mapBallot.end())
-        {
-            nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
-        }
-    }
-    nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
+    // nEnrollTrust = 0;
+    // for (auto& amount : enrolled.vecAmount)
+    // {
+    //     if (mapBallot.find(amount.first) != mapBallot.end())
+    //     {
+    //         nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
+    //     }
+    // }
+    // nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
     return true;
 }
 
