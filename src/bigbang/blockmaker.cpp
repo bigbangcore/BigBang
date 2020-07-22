@@ -18,7 +18,7 @@ using namespace xengine;
 #define INITIAL_HASH_RATE (8)
 #define WAIT_AGREEMENT_TIME_OFFSET -5
 #define WAIT_NEWBLOCK_TIME (BLOCK_TARGET_SPACING + 5)
-#define WAIT_LAST_EXTENDED_TIME (BLOCK_TARGET_SPACING - 10)
+#define WAIT_LAST_EXTENDED_TIME 0 //(BLOCK_TARGET_SPACING - 10)
 
 namespace bigbang
 {
@@ -445,6 +445,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         }
 
         bool fCreateExtendedTask = false;
+        uint256 hashExtendedPrevBlock;
         if (block.IsSubsidiary())
         {
             // query previous last extended block
@@ -537,6 +538,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                     if (DispatchBlock(block))
                     {
                         fCreateExtendedTask = true;
+                        hashExtendedPrevBlock = block.GetHash();
                     }
                     else
                     {
@@ -552,31 +554,36 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         else
         {
             // make extended block
-            if (DispatchBlock(block))
+            ArrangeBlockTx(block, hashFork, profile);
+            if (block.vtx.size() == 0)
             {
                 fCreateExtendedTask = true;
+                hashExtendedPrevBlock = block.hashPrev;
+            }
+            else if (!SignBlock(block, profile))
+            {
+                Error("ProcessSubFork extended block sign error, fork: %s, block: %s, seq: %d",
+                      hashFork.ToString().c_str(), block.GetHash().ToString().c_str(),
+                      ((int64)(block.nTimeStamp) - nRefBlockTime) / EXTENDED_BLOCK_SPACING);
+            }
+            else if (!DispatchBlock(block))
+            {
+                Error("ProcessSubFork dispatch subsidiary block error, fork: %s, block: %s",
+                      hashFork.ToString().c_str(), block.GetHash().ToString().c_str());
             }
             else
             {
-                Error("ProcessSubFork dispatch subsidiary block error, fork: %s, block: %s", hashFork.ToString().c_str(), block.GetHash().ToString().c_str());
+                fCreateExtendedTask = true;
+                hashExtendedPrevBlock = block.GetHash();
             }
         }
 
         // create next extended task
-        if (fCreateExtendedTask)
+        if (fCreateExtendedTask && block.nTimeStamp + EXTENDED_BLOCK_SPACING < nRefBlockTime + BLOCK_TARGET_SPACING)
         {
-            if (block.nTimeStamp + EXTENDED_BLOCK_SPACING < nRefBlockTime + BLOCK_TARGET_SPACING)
-            {
-                CBlock extended;
-                if (CreateExtended(extended, profile, agreement, hashRefBlock, hashFork, block.GetHash(), block.nTimeStamp + EXTENDED_BLOCK_SPACING))
-                {
-                    mapBlocks.insert(make_pair(extended.nTimeStamp, make_pair(hashFork, extended)));
-                }
-                else
-                {
-                    Error("ProcessSubFork create extended block task error, fork: %s, block: %s, seq: %d", hashFork.ToString().c_str(), block.GetHash().ToString().c_str(), ((int64)(extended.nTimeStamp) - nRefBlockTime) / EXTENDED_BLOCK_SPACING);
-                }
-            }
+            CBlock extended;
+            CreateExtended(extended, profile, agreement, hashRefBlock, hashFork, hashExtendedPrevBlock, block.nTimeStamp + EXTENDED_BLOCK_SPACING);
+            mapBlocks.insert(make_pair(extended.nTimeStamp, make_pair(hashFork, extended)));
         }
     }
 }
@@ -628,7 +635,7 @@ void CBlockMaker::PreparePiggyback(CBlock& block, const CDelegateAgreement& agre
     }*/
 }
 
-bool CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+void CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                                  const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime)
 {
     CProofOfPiggyback proof;
@@ -648,9 +655,6 @@ bool CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profil
     txMint.sendTo = profile.GetDestination();
     txMint.nAmount = 0;
     txMint.nTxFee = 0;
-
-    ArrangeBlockTx(block, hashFork, profile);
-    return SignBlock(block, profile);
 }
 
 bool CBlockMaker::CreateVacant(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
