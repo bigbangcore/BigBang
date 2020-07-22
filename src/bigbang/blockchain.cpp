@@ -906,7 +906,8 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block
         else
         {
             if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
+                || ((block.GetBlockTime() - pIndexRef->GetBlockTime()) / EXTENDED_BLOCK_SPACING) != 0)
             {
                 StdLog("CBlockChain", "VerifyRepeatBlock: Extended block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
                        block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
@@ -1620,6 +1621,13 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
                     CAddress(block.txMint.sendTo).ToString().c_str(),
                     CAddress(agreement.GetBallot(0)).ToString().c_str(),
                     hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (block.txMint.nTimeStamp != block.GetBlockTime())
+            {
+                Log("Verify block : Vacant txMint timestamp error, mint tx time: %d, block time: %d, block: %s",
+                    block.txMint.nTimeStamp, block.GetBlockTime(), hashBlock.GetHex().c_str());
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
 

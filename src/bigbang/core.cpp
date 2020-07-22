@@ -500,10 +500,13 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u", block.GetBlockTime(), nTime);
     }
-
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
+    }
+    if (block.txMint.nTimeStamp != block.GetBlockTime())
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint timestamp error.");
     }
     return OK;
 }
@@ -511,25 +514,29 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
 Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                       const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+    if (block.GetBlockTime() <= pIndexPrev->GetBlockTime())
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
     }
 
-    if (!block.IsExtended())
+    if (block.IsSubsidiary())
     {
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Subsidiary timestamp out of range.");
         }
     }
     else
     {
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
-            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
+            /*|| block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING*/)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Extended timestamp out of range.");
+        }
+        if (((block.GetBlockTime() - pIndexPrev->GetBlockTime()) % EXTENDED_BLOCK_SPACING) != 0)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Extended timestamp error.");
         }
     }
 
@@ -538,6 +545,10 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
 
+    if (block.txMint.nTimeStamp != block.GetBlockTime())
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint timestamp error.");
+    }
     return OK;
 }
 
