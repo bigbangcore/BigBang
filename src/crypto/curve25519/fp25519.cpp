@@ -265,6 +265,7 @@ CFP25519& CFP25519::operator-=(const CFP25519& b)
 
 CFP25519& CFP25519::operator*=(const CFP25519& b)
 {
+#ifdef DEFINED_INT128
     uint128_t m[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     Mul32(m, value, b.value);
 
@@ -276,6 +277,20 @@ CFP25519& CFP25519::operator*=(const CFP25519& b)
         value[i] = m[i];
     }
     Range(carry);
+#else
+    uint64_t m[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    Mul32(m, value, b.value);
+
+    uint32_t* pv = (uint32_t*)value;
+    uint32_t carry = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        m[i] += carry + m[i + 8] * 38;
+        carry = m[i] >> 32;
+        pv[i] = m[i];
+    }
+    Range(carry);
+#endif
 
     return *this;
 }

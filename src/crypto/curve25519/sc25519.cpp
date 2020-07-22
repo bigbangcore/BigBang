@@ -126,53 +126,33 @@ const CSC25519 CSC25519::operator-() const
 
 CSC25519& CSC25519::operator+=(const CSC25519& b)
 {
-    uint128_t sum = 0;
-    uint64_t carry = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        sum = (uint128_t)value[i] + b.value[i] + carry;
-        carry = (sum >> 64) & 0xFFFFFFFFFFFFFFFF;
-        value[i] = sum & 0xFFFFFFFFFFFFFFFF;
-    }
+    Add32(value, value, b.value);
     Reduce();
+
     return *this;
 }
 
 CSC25519& CSC25519::operator-=(const CSC25519& b)
 {
-    uint128_t sum = 0;
-    int carry = 0;
-    for (int i = 0; i < 4; i++)
+    uint32_t borrow = Sub32(value, value, b.value);
+    if (borrow > 0)
     {
-        sum = (uint128_t)prime[i] + value[i] + (~b.value[i]) + 1 + carry;
-        carry = ((sum >> 64) & 0xFFFFFFFFFFFFFFFF) - 1;
-        value[i] = sum;
+        Add32(value, value, prime);
     }
-    Reduce();
     return *this;
 }
 
 CSC25519& CSC25519::operator*=(const CSC25519& b)
 {
-    uint128_t m[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    Mul32(m, value, b.value);
-
-    uint64_t n[8];
-    uint64_t carry = 0;
-    for (int i = 0; i < 8; i++)
-    {
-        m[i] += carry;
-        carry = m[i] >> 64;
-        n[i] = m[i] & 0xFFFFFFFFFFFFFFFFUL;
-    }
-
+    uint64_t n[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    Multiply32_32(n, value, b.value);
     BarrettReduce(n);
-
     return *this;
 }
 
 CSC25519& CSC25519::operator*=(const uint32_t& b)
 {
+#ifdef DEFINED_INT128
     // m[i], [96, 127] = 0
     uint128_t m[4] = { 0, 0, 0, 0 };
     m[0] = (uint128_t)value[0] * b;
@@ -190,9 +170,34 @@ CSC25519& CSC25519::operator*=(const uint32_t& b)
 
     // uint32 * uint256, [32, 63] = 0 in n[4]
     Reduce(carry);
+#else
+    // m[i], [96, 127] = 0
+    uint64_t m[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint32_t* pv = (uint32_t*)value;
+    m[0] = (uint64_t)pv[0] * b;
+    m[1] = (uint64_t)pv[1] * b;
+    m[2] = (uint64_t)pv[2] * b;
+    m[3] = (uint64_t)pv[3] * b;
+    m[4] = (uint64_t)pv[4] * b;
+    m[5] = (uint64_t)pv[5] * b;
+    m[6] = (uint64_t)pv[6] * b;
+    m[7] = (uint64_t)pv[7] * b;
+
+    uint32_t carry = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        m[i] += carry;
+        pv[i] = m[i];
+        carry = m[i] >> 32;
+    }
+
+    // uint32 * uint256, [32, 63] = 0 in n[4]
+    Reduce(carry);
+#endif
 
     return *this;
 }
+
 const CSC25519 CSC25519::operator+(const CSC25519& b) const
 {
     return CSC25519(*this) += b;
@@ -281,14 +286,7 @@ void CSC25519::Reduce(const uint32_t carry)
         uint64_t c = (carry << 4) + (value[3] >> 60);
 
         uint64_t product[4];
-        uint128_t product0 = (uint128_t)reminder[0] * c;
-        uint128_t product1 = (uint128_t)reminder[1] * c;
-
-        product[0] = product0 & 0xffffffffffffffff;
-        uint128_t sum = (product0 >> 64) + (product1 & 0xffffffffffffffff);
-        product[1] = sum & 0xffffffffffffffff;
-        product[2] = (sum >> 64) + (product1 >> 64);
-        product[3] = 0;
+        Multiply16_8(product, reminder, &c);
 
         Sub32(product, prime, product);
         value[3] &= 0x0fffffffffffffff;
@@ -303,53 +301,57 @@ void CSC25519::BarrettReduce(uint64_t* m)
     // mu = 2^506 / prime
     static const uint64_t mu[4] = { 0x9fb673968c28b04c, 0xac84188574218ca6,
                                     0xffffffffffffffff, 0x3fffffffffffffff };
-
-    uint64_t r1[4], r2[4];
-    uint128_t product[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint64_t r1[4];
 
     // r1 = m % 2^254
     Copy32(r1, m);
     r1[3] &= 0x3fffffffffffffff;
 
     // r2 = ((((m / 2^252) * mu) / 2^254) * prime) % 2^254
-    // q1 = m / 2^252
-    ShiftLeft32(r2, m + 4, 4);
-    r2[0] |= m[3] >> 60;
+    uint64_t r2[4] = { 0, 0, 0, 0 };
 
-    // q2 = q1 * mu
-    Mul32(product, r2, mu);
-    for (int i = 1; i < 8; i++)
     {
-        product[i] += product[i - 1] >> 64;
-        product[i - 1] &= 0xffffffffffffffff;
+        // q1 = m / 2^252
+        uint64_t q1[4];
+        ShiftLeft32(q1, m + 4, 4);
+        q1[0] |= m[3] >> 60;
+
+        // q2 = q1 * mu
+        uint64_t q2[8];
+        Multiply32_32(q2, q1, mu);
+
+        // q3 = q2 / 2^254
+        uint64_t q3[4];
+        q3[0] = (q2[4] << 2) | (q2[3] >> 62);
+        q3[1] = (q2[5] << 2) | (q2[4] >> 62);
+        q3[2] = (q2[6] << 2) | (q2[5] >> 62);
+        q3[3] = (q2[7] << 2) | (q2[6] >> 62);
+
+        // r2 = q3 * prime % 2^254
+        uint32_t tmp[10][4];
+        Multiply8_8(&tmp[0][0], q3, prime);
+        Multiply8_8(&tmp[1][0], q3, prime + 1);
+        Multiply8_8(&tmp[2][0], q3 + 1, prime);
+        Multiply8_8(&tmp[3][0], q3, prime + 2);
+        Multiply8_8(&tmp[4][0], q3 + 1, prime + 1);
+        Multiply8_8(&tmp[5][0], q3 + 2, prime);
+        Multiply8_8(&tmp[6][0], q3, prime + 3);
+        Multiply8_8(&tmp[7][0], q3 + 1, prime + 2);
+        Multiply8_8(&tmp[8][0], q3 + 2, prime + 1);
+        Multiply8_8(&tmp[9][0], q3 + 3, prime);
+
+        uint32_t* p = (uint32_t*)r2;
+        p[0] = tmp[0][0];
+        p[1] = tmp[0][1];
+        *(uint64_t*)&p[2] += (uint64_t)tmp[0][2] + tmp[1][0] + tmp[2][0];
+        *(uint64_t*)&p[3] += (uint64_t)tmp[0][3] + tmp[1][1] + tmp[2][1];
+        *(uint64_t*)&p[4] += (uint64_t)tmp[1][2] + tmp[2][2] + tmp[3][0] + tmp[4][0] + tmp[5][0];
+        *(uint64_t*)&p[5] += (uint64_t)tmp[1][3] + tmp[2][3] + tmp[3][1] + tmp[4][1] + tmp[5][1];
+        *(uint64_t*)&p[6] += (uint64_t)tmp[3][2] + tmp[4][2] + tmp[5][2] + tmp[6][0] + tmp[7][0] + tmp[8][0] + tmp[9][0];
+        p[7] += tmp[3][3] + tmp[4][3] + tmp[5][3] + tmp[6][1] + tmp[7][1] + tmp[8][1] + tmp[9][1];
+
+        r2[3] &= 0x3fffffffffffffff;
     }
-
-    // q3 = q1 / 2^254
-    r2[0] = (product[4] << 2) | (product[3] >> 62);
-    r2[1] = (product[5] << 2) | (product[4] >> 62);
-    r2[2] = (product[6] << 2) | (product[5] >> 62);
-    r2[3] = (product[7] << 2) | (product[6] >> 62);
-
-    // r2 = q3 * prime % 2^254
-    Zero64(product);
-    uint128_t p;
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; i + j < 4; j++)
-        {
-            p = (uint128_t)r2[i] * prime[j];
-            product[i + j] += p & 0xFFFFFFFFFFFFFFFF;
-            product[i + j + 1] += (p >> 64) & 0xFFFFFFFFFFFFFFFF;
-        }
-    }
-
-    r2[0] = product[0];
-    product[1] += product[0] >> 64;
-    r2[1] = product[1];
-    product[2] += product[1] >> 64;
-    r2[2] = product[2];
-    r2[3] = product[3] + (product[2] >> 64);
-    r2[3] &= 0x3fffffffffffffff;
 
     if (Compare32(r1, r2) < 0)
     {

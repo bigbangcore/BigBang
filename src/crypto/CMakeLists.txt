@@ -39,7 +39,6 @@ set(pow_hash
 )
 
 set(curve25519
-    curve25519/int128.h
     curve25519/base25519.cpp            curve25519/base25519.h
     curve25519/fp25519.cpp              curve25519/fp25519.h
     curve25519/sc25519.cpp              curve25519/sc25519.h
