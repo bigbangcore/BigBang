@@ -91,8 +91,8 @@ public:
 
 public:
     bool IsDposHeight(int height);
-    bool IsRefVacantHeight(int height);
     bool DPoSConsensusCheckRepeated(int height);
+    bool IsRefVacantHeight(int height);
 };
 
 } // namespace bigbang
