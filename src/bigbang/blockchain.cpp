@@ -1581,35 +1581,38 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        CBlock blockPrev;
-        if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
-        {
-            Log("Verify block : SubFork retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
-            return ERR_MISSING_PREV;
-        }
-
         CProofOfPiggyback proofPrev;
-        if (!blockPrev.IsVacant() || pCoreProtocol->IsRefVacantHeight(blockPrev.GetBlockHeight()))
+        if (!pIndexPrev->IsOrigin())
         {
-            if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+            CBlock blockPrev;
+            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
             {
-                Log("Verify block : SubFork load prev proof fail, block: %s", hashBlock.GetHex().c_str());
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                Log("Verify block : SubFork retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
+                return ERR_MISSING_PREV;
             }
-            if (proof.hashRefBlock != proofPrev.hashRefBlock
-                && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+            if (!blockPrev.IsVacant() || pCoreProtocol->IsRefVacantHeight(blockPrev.GetBlockHeight()))
             {
-                Log("Verify block : SubFork verify same chain fail, block: %s", hashBlock.GetHex().c_str());
-                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+                {
+                    Log("Verify block : SubFork load prev proof fail, block: %s", hashBlock.GetHex().c_str());
+                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                }
+                if (proof.hashRefBlock != proofPrev.hashRefBlock
+                    && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+                {
+                    Log("Verify block : SubFork verify same chain fail, prev ref: %s, block ref: %s, block: %s",
+                        proofPrev.hashRefBlock.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                }
             }
         }
 
         if (block.IsExtended())
         {
-            if (blockPrev.IsVacant())
+            if (pIndexPrev->IsOrigin() || pIndexPrev->IsVacant())
             {
-                Log("Verify block : SubFork extended prev is vacant, prev: %s, block: %s",
-                    blockPrev.GetHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+                Log("Verify block : SubFork extended prev is origin or vacant, prev: %s, block: %s",
+                    pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
                 return ERR_MISSING_PREV;
             }
             if (proof.nAgreement != proofPrev.nAgreement || proof.nWeight != proofPrev.nWeight)
@@ -1690,27 +1693,29 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
 
-            CBlock blockPrev;
-            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
+            if (!pIndexPrev->IsOrigin())
             {
-                Log("Verify block : Vacant retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
-                return ERR_MISSING_PREV;
-            }
-
-            if (!blockPrev.IsVacant() || pCoreProtocol->IsRefVacantHeight(blockPrev.GetBlockHeight()))
-            {
-                CProofOfPiggyback proofPrev;
-                if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+                CBlock blockPrev;
+                if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
                 {
-                    Log("Verify block : Vacant load prev proof fail, block: %s", hashBlock.GetHex().c_str());
-                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                    Log("Verify block : Vacant retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
+                    return ERR_MISSING_PREV;
                 }
-                if (proof.hashRefBlock != proofPrev.hashRefBlock
-                    && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+                if (!blockPrev.IsVacant() || pCoreProtocol->IsRefVacantHeight(blockPrev.GetBlockHeight()))
                 {
-                    Log("Verify block : Vacant verify same chain fail, prev ref: %s, block ref: %s, block: %s",
-                        proofPrev.hashRefBlock.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
-                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                    CProofOfPiggyback proofPrev;
+                    if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+                    {
+                        Log("Verify block : Vacant load prev proof fail, block: %s", hashBlock.GetHex().c_str());
+                        return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                    }
+                    if (proof.hashRefBlock != proofPrev.hashRefBlock
+                        && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+                    {
+                        Log("Verify block : Vacant verify same chain fail, prev ref: %s, block ref: %s, block: %s",
+                            proofPrev.hashRefBlock.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                        return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                    }
                 }
             }
 
