@@ -609,10 +609,10 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
             {
                 CBlock block;
                 std::multimap<int64, CDestination> mapVotes;
-                if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes))
-                {
-                    return false;
-                }
+                // if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes))
+                // {
+                //     return false;
+                // }
                 CProofOfSecretShare dpos;
                 dpos.Load(block.vchProof);
                 uint32 n = dpos.nAgreement.Get32() % mapVotes.size();

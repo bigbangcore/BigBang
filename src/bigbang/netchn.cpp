@@ -185,11 +185,11 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus\n");
-        return false;
-    }
+    // if (!GetObject("consensus", pConsensus))
+    // {
+    //     Error("Failed to request consensus\n");
+    //     return false;
+    // }
 
     return true;
 }
@@ -450,7 +450,7 @@ bool CNetChannel::IsLocalCachePowBlock(int nHeight)
         StdError("NetChannel", "IsLocalCachePowBlock: GetSchedule fail, height: %d, error: %s", nHeight, e.what());
         return false;
     }
-    InnerSubmitCachePowBlock();
+   // InnerSubmitCachePowBlock();
     return ret;
 }
 
@@ -488,7 +488,7 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     }
     if (ret)
     {
-        InnerSubmitCachePowBlock();
+       // InnerSubmitCachePowBlock();
     }
     return ret;
 }
@@ -1034,7 +1034,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
     }
     if (block.IsPrimary() && block.IsProofOfWork())
     {
-        InnerSubmitCachePowBlock();
+        //InnerSubmitCachePowBlock();
     }
     return true;
 }

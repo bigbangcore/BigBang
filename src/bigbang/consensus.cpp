@@ -365,98 +365,98 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChan
         (*it).second.ChangeTxSet(change);
     }
 
-    for (int i = update.vBlockAddNew.size() - 1; i >= 0; i--)
-    {
-        uint256 hash = update.vBlockAddNew[i].GetHash();
-        int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
+    // for (int i = update.vBlockAddNew.size() - 1; i >= 0; i--)
+    // {
+    //     uint256 hash = update.vBlockAddNew[i].GetHash();
+    //     int nBlockHeight = CBlock::GetBlockHeightByHash(hash);
 
-        CDelegateEnrolled enrolled;
-        if (!pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
-        {
-            StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateEnrolled fail, hash: %s", hash.GetHex().c_str());
-        }
-        else
-        {
-            delegate::CDelegateEvolveResult result;
-            delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
+    //     CDelegateEnrolled enrolled;
+    //     // if (!pBlockChain->GetBlockDelegateEnrolled(hash, enrolled))
+    //     // {
+    //     //     StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateEnrolled fail, hash: %s", hash.GetHex().c_str());
+    //     // }
+    //     // else
+    //     // {
+    //     //     delegate::CDelegateEvolveResult result;
+    //     //     delegate.Evolve(nBlockHeight, enrolled.mapWeight, enrolled.mapEnrollData, result, hash);
 
-            std::map<CDestination, int64> mapDelegateVote;
-            int64 nDelegateMinAmount = pBlockChain->GetDelegateMinEnrollAmount(hash);
-            bool fGetVote = pBlockChain->GetBlockDelegateVote(hash, mapDelegateVote);
-            if (nDelegateMinAmount < 0 || !fGetVote)
-            {
-                if (nDelegateMinAmount < 0)
-                {
-                    StdError("CConsensus", "PrimaryUpdate: GetDelegateMinEnrollAmount fail, nDelegateMinAmount: %.6f, hash: %s",
-                             ValueFromToken(nDelegateMinAmount), hash.GetHex().c_str());
-                }
-                if (!fGetVote)
-                {
-                    StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateVote fail, hash: %s", hash.GetHex().c_str());
-                }
-            }
-            else
-            {
-                for (map<CDestination, vector<unsigned char>>::iterator it = result.mapEnrollData.begin();
-                     it != result.mapEnrollData.end(); ++it)
-                {
-                    StdTrace("CConsensus", "PrimaryUpdate: destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                    map<CDestination, CDelegateContext>::iterator mi = mapContext.find((*it).first);
-                    if (mi == mapContext.end())
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: mapContext find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
-                    std::map<CDestination, int64>::iterator dt = mapDelegateVote.find((*it).first);
-                    if (dt == mapDelegateVote.end())
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: mapDelegateVote find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
-                    if (dt->second < nDelegateMinAmount)
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
-                        continue;
-                    }
-                    CTransaction tx;
-                    if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), (*it).second))
-                    {
-                        StdTrace("CConsensus", "PrimaryUpdate: BuildEnrollTx success, vote token: %.6f, weight ratio: %.6f, destDelegate: %s",
-                                 ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
-                        routine.vEnrollTx.push_back(tx);
-                    }
-                }
-            }
+    //     //     std::map<CDestination, int64> mapDelegateVote;
+    //     //     int64 nDelegateMinAmount = pBlockChain->GetDelegateMinEnrollAmount(hash);
+    //     //     bool fGetVote = pBlockChain->GetBlockDelegateVote(hash, mapDelegateVote);
+    //     //     if (nDelegateMinAmount < 0 || !fGetVote)
+    //     //     {
+    //     //         if (nDelegateMinAmount < 0)
+    //     //         {
+    //     //             StdError("CConsensus", "PrimaryUpdate: GetDelegateMinEnrollAmount fail, nDelegateMinAmount: %.6f, hash: %s",
+    //     //                      ValueFromToken(nDelegateMinAmount), hash.GetHex().c_str());
+    //     //         }
+    //     //         if (!fGetVote)
+    //     //         {
+    //     //             StdError("CConsensus", "PrimaryUpdate: GetBlockDelegateVote fail, hash: %s", hash.GetHex().c_str());
+    //     //         }
+    //     //     }
+    //     //     else
+    //     //     {
+    //     //         for (map<CDestination, vector<unsigned char>>::iterator it = result.mapEnrollData.begin();
+    //     //              it != result.mapEnrollData.end(); ++it)
+    //     //         {
+    //     //             StdTrace("CConsensus", "PrimaryUpdate: destDelegate: %s", CAddress((*it).first).ToString().c_str());
+    //     //             map<CDestination, CDelegateContext>::iterator mi = mapContext.find((*it).first);
+    //     //             if (mi == mapContext.end())
+    //     //             {
+    //     //                 StdTrace("CConsensus", "PrimaryUpdate: mapContext find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
+    //     //                 continue;
+    //     //             }
+    //     //             std::map<CDestination, int64>::iterator dt = mapDelegateVote.find((*it).first);
+    //     //             if (dt == mapDelegateVote.end())
+    //     //             {
+    //     //                 StdTrace("CConsensus", "PrimaryUpdate: mapDelegateVote find fail, destDelegate: %s", CAddress((*it).first).ToString().c_str());
+    //     //                 continue;
+    //     //             }
+    //     //             if (dt->second < nDelegateMinAmount)
+    //     //             {
+    //     //                 StdTrace("CConsensus", "PrimaryUpdate: not enough votes, vote: %.6f, weight ratio: %.6f, destDelegate: %s",
+    //     //                          ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
+    //     //                 continue;
+    //     //             }
+    //     //             CTransaction tx;
+    //     //             if ((*mi).second.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), (*it).second))
+    //     //             {
+    //     //                 StdTrace("CConsensus", "PrimaryUpdate: BuildEnrollTx success, vote token: %.6f, weight ratio: %.6f, destDelegate: %s",
+    //     //                          ValueFromToken(dt->second), ValueFromToken(nDelegateMinAmount), CAddress((*it).first).ToString().c_str());
+    //     //                 routine.vEnrollTx.push_back(tx);
+    //     //             }
+    //     //         }
+    //     //     }
 
-            int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
-            int nPublishTargetHeight = nBlockHeight + 1;
+    //         int nDistributeTargetHeight = nBlockHeight + CONSENSUS_DISTRIBUTE_INTERVAL + 1;
+    //         int nPublishTargetHeight = nBlockHeight + 1;
 
-            StdTrace("CConsensus", "result.mapDistributeData size: %llu", result.mapDistributeData.size());
-            for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
-                 it != result.mapDistributeData.end(); ++it)
-            {
-                delegate.HandleDistribute(nDistributeTargetHeight, hash, (*it).first, (*it).second);
-            }
-            routine.vDistributeData.push_back(make_pair(hash, result.mapDistributeData));
+    //         StdTrace("CConsensus", "result.mapDistributeData size: %llu", result.mapDistributeData.size());
+    //         for (map<CDestination, vector<unsigned char>>::iterator it = result.mapDistributeData.begin();
+    //              it != result.mapDistributeData.end(); ++it)
+    //         {
+    //             delegate.HandleDistribute(nDistributeTargetHeight, hash, (*it).first, (*it).second);
+    //         }
+    //         routine.vDistributeData.push_back(make_pair(hash, result.mapDistributeData));
 
-            if (i == 0 && result.mapPublishData.size() > 0)
-            {
-                StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
-                for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
-                     it != result.mapPublishData.end(); ++it)
-                {
-                    bool fCompleted = false;
-                    delegate.HandlePublish(nPublishTargetHeight, result.hashDistributeOfPublish, (*it).first, (*it).second, fCompleted);
-                    routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
-                }
-                routine.mapPublishData = result.mapPublishData;
-                routine.hashDistributeOfPublish = result.hashDistributeOfPublish;
-            }
+    //         if (i == 0 && result.mapPublishData.size() > 0)
+    //         {
+    //             StdTrace("CConsensus", "result.mapPublishData size: %llu", result.mapPublishData.size());
+    //             for (map<CDestination, vector<unsigned char>>::iterator it = result.mapPublishData.begin();
+    //                  it != result.mapPublishData.end(); ++it)
+    //             {
+    //                 bool fCompleted = false;
+    //                 delegate.HandlePublish(nPublishTargetHeight, result.hashDistributeOfPublish, (*it).first, (*it).second, fCompleted);
+    //                 routine.fPublishCompleted = (routine.fPublishCompleted || fCompleted);
+    //             }
+    //             routine.mapPublishData = result.mapPublishData;
+    //             routine.hashDistributeOfPublish = result.hashDistributeOfPublish;
+    //         }
 
-            routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
-        }
-    }
+    //         routine.vEnrolledWeight.push_back(make_pair(hash, enrolled.mapWeight));
+    //     }
+    // }
 }
 
 void CConsensus::AddNewTx(const CAssembledTx& tx)
@@ -498,24 +498,24 @@ void CConsensus::GetAgreement(int nTargetHeight, uint256& nAgreement, size_t& nW
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        if (nAgreement != 0 && mapBallot.size() > 0)
-        {
-            CDelegateEnrolled enrolled;
-            if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-            {
-                Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
-                return;
-            }
-            int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
-            if (nMoneySupply < 0)
-            {
-                Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
-                return;
-            }
+        // if (nAgreement != 0 && mapBallot.size() > 0)
+        // {
+        //     CDelegateEnrolled enrolled;
+        //     if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        //     {
+        //         Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+        //         return;
+        //     }
+        //     int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+        //     if (nMoneySupply < 0)
+        //     {
+        //         Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+        //         return;
+        //     }
 
-            size_t nEnrollTrust = 0;
-            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
-        }
+        //     size_t nEnrollTrust = 0;
+        //     pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
+        // }
     }
 }
 
@@ -630,11 +630,11 @@ bool CConsensus::LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine)
         }
 
         CDelegateEnrolled enrolled;
-        if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-        {
-            StdError("CConsensus", "LoadConsensusData: GetBlockDelegateEnrolled fail, height: %d, block: %s", i, hashBlock.GetHex().c_str());
-            return false;
-        }
+        // if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        // {
+        //     StdError("CConsensus", "LoadConsensusData: GetBlockDelegateEnrolled fail, height: %d, block: %s", i, hashBlock.GetHex().c_str());
+        //     return false;
+        // }
 
         delegate::CDelegateEvolveResult result;
         delegate.GetEvolveData(i, result, hashBlock);
@@ -682,23 +682,23 @@ bool CConsensus::GetInnerAgreement(int nTargetHeight, uint256& nAgreement, size_
         map<CDestination, size_t> mapBallot;
         delegate.GetAgreement(nTargetHeight, hashBlock, nAgreement, nWeight, mapBallot);
 
-        if (nAgreement != 0 && mapBallot.size() > 0)
-        {
-            CDelegateEnrolled enrolled;
-            if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
-            {
-                Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
-                return false;
-            }
-            int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
-            if (nMoneySupply < 0)
-            {
-                Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
-                return false;
-            }
-            size_t nEnrollTrust = 0;
-            pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
-        }
+        // if (nAgreement != 0 && mapBallot.size() > 0)
+        // {
+        //     CDelegateEnrolled enrolled;
+        //     if (!pBlockChain->GetBlockDelegateEnrolled(hashBlock, enrolled))
+        //     {
+        //         Error("GetAgreement CBlockChain::GetBlockDelegateEnrolled error, hash: %s", hashBlock.ToString().c_str());
+        //         return false;
+        //     }
+        //     int64 nMoneySupply = pBlockChain->GetBlockMoneySupply(hashBlock);
+        //     if (nMoneySupply < 0)
+        //     {
+        //         Error("GetAgreement GetBlockMoneySupply fail, hash: %s", hashBlock.ToString().c_str());
+        //         return false;
+        //     }
+        //     size_t nEnrollTrust = 0;
+        //     pCoreProtocol->GetDelegatedBallot(nAgreement, nWeight, mapBallot, enrolled.vecAmount, nMoneySupply, vBallot, nEnrollTrust, nTargetHeight);
+        // }
     }
     else
     {
