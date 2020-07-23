@@ -252,12 +252,12 @@ public:
     void ListUnspent(const CDestination& dest, const std::set<CTxUnspent>& setTxUnspent, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
     {
         uint32 nCount = 0;
-        for(const auto& kv : mapSpent)
+        for (const auto& kv : mapSpent)
         {
             const CTxOutPoint& outpoint = kv.first;
             const CSpent& spent = kv.second;
             CTxOut out;
-            if(nMax != 0 && nCount >= nMax)
+            if (nMax != 0 && nCount >= nMax)
             {
                 break;
             }
@@ -277,7 +277,7 @@ public:
                         std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
 private:
-    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
+    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink);
     bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
                            std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
