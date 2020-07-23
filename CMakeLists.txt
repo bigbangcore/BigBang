@@ -140,6 +140,10 @@ if(CYGWIN)
     add_definitions(-DBOOST_CYGWIN_FS_PATH)
 endif()
 
+if(MSVC)
+    add_definitions(-D_WIN32_WINNT=0x0601)
+endif()
+
 if(TESTNET)
     add_definitions(-DBIGBANG_TESTNET)
 endif()

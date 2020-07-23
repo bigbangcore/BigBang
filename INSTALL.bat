@@ -1,32 +1,37 @@
 echo "Not support source installation in WIN32"
-REM @echo off
+@echo off
 
-REM set old_dir=%cd%
+set old_dir=%cd%
 
-REM cd %~dp0
+cd %~dp0
 
-REM REM delete build directory
-REM rd /s /q build
-REM del /f /q bigbang.exe
+REM delete build directory
+rd /s /q build
 
-REM REM create build directory
-REM mkdir build
-REM if "%errorlevel%"=="1" goto :end
+REM create build directory
+mkdir build
+if "%errorlevel%"=="1" goto :end
 
-REM REM go to build
-REM cd build
-REM if "%errorlevel%"=="1" goto :end
+REM go to build
+cd build
+if "%errorlevel%"=="1" goto :end
 
-REM REM cmake
-REM cmake .. -G "MinGW Makefiles"
-REM if "%errorlevel%"=="1" goto :end
+REM cmake
+cmake .. -G "Ninja"
+if "%errorlevel%"=="1" goto :end
 
-REM REM make
-REM mingw32-make
-REM if "%errorlevel%"=="1" goto :end
+REM make
+ninja
+if "%errorlevel%"=="1" goto :end
 
-REM REM install
-REM copy src\bigbang.exe ..\
+REM install
+mkdir bin
+copy src\bigbang\bigbang.exe bin\
+copy src\bigbang\*.dll bin\
 
-REM :end
-REM cd %old_dir%
+echo bigbang.exe console > bin\bigbang-console.bat
+echo bigbang.exe -daemon > bin\bigbang-server.bat
+
+:end
+
+cd %old_dir%

@@ -471,7 +471,7 @@ void CBbEntry::Exit()
 
 path CBbEntry::GetDefaultDataDir()
 {
-    // Windows: C:\Documents and Settings\username\Local Settings\Application Data\Bigbang
+    // Windows: ./.bigbang or C:\.bigbang
     // Mac: ~/Library/Application Support/Bigbang
     // Unix: ~/.bigbang
 
