@@ -51,7 +51,7 @@ echo bigbang.exe console > bin\bigbang-console.bat
 echo bigbang.exe -daemon > bin\bigbang-server.bat
 
 echo 'Installed to build\bin\'
-echo
+echo ''
 echo 'Usage:'
 echo 'Run build\bin\bigbang.exe to launch bigbang'
 echo 'Run build\bin\bigbang-console.bat to launch bigbang-console'
