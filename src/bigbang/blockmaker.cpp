@@ -687,13 +687,13 @@ void CBlockMaker::BlockMakerThreadFunc()
         }
 
         CAgreementBlock consParam;
-        if (!pConsensus->GetNextConsensus(consParam))
-        {
-            StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                     consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-            nWaitTime = consParam.nWaitTime;
-            continue;
-        }
+        // if (!pConsensus->GetNextConsensus(consParam))
+        // {
+        //     StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+        //              consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        //     nWaitTime = consParam.nWaitTime;
+        //     continue;
+        // }
         StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
                  consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;

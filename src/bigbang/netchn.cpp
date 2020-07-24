@@ -1937,7 +1937,7 @@ void CNetChannel::InnerSubmitCachePowBlock()
     {
         fContinue = false;
         CAgreementBlock agreeBlock;
-        pConsensus->GetNextConsensus(agreeBlock);
+        //pConsensus->GetNextConsensus(agreeBlock);
         if (agreeBlock.hashPrev != 0 && agreeBlock.hashPrev != hashPrevBlock)
         {
             hashPrevBlock = agreeBlock.hashPrev;

@@ -294,7 +294,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
+        //pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
     }
 
     return OK;
