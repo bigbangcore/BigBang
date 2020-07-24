@@ -4,12 +4,11 @@ set old_dir=%cd%
 
 cd %~dp0
 
-REM delete build directory
-rd /s /q build
-
 REM create build directory
-mkdir build
-if "%errorlevel%"=="1" goto end
+if not exist build (
+	mkdir build
+	if "%errorlevel%"=="1" goto end
+)
 
 REM go to build
 cd build
