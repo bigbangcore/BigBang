@@ -859,7 +859,7 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
         // }
     //}
 
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount, pCoreProtocol->IsDposHeight(nHeight));
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount, false);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)

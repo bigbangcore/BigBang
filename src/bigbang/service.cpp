@@ -730,15 +730,15 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         nPrevBlockHeight = (*it).second.nLastBlockHeight;
         block.hashPrev = hashPrev;
 
-        if (pCoreProtocol->IsDposHeight(nPrevBlockHeight + 1))
-        {
-            nPrevTime = pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1);
-            block.nTimeStamp = max(nPrevTime, (uint32)GetNetTime());
-        }
-        else
-        {
-            block.nTimeStamp = max((*it).second.nLastBlockTime, GetNetTime());
-        }
+        // if (pCoreProtocol->IsDposHeight(nPrevBlockHeight + 1))
+        // {
+        //     nPrevTime = pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1);
+        //     block.nTimeStamp = max(nPrevTime, (uint32)GetNetTime());
+        // }
+        // else
+        // {
+        block.nTimeStamp = max((*it).second.nLastBlockTime, GetNetTime());
+        //}
     }
 
     if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
