@@ -1213,66 +1213,141 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
 
 bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits)
 {
-    if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
+    // if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
+    if (nAlgo <= 0 || nAlgo >= CM_MAX)
     {
         return false;
     }
 
-    const CBlockIndex* pIndex = pIndexPrev;
-    while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
+    if ((pIndexPrev->nHeight + 1) % objProofParam.nProofOfWorkDifficultyInterval != 0)
     {
-        pIndex = pIndex->pPrev;
-    }
-
-    // first
-    if (!pIndex->IsProofOfWork())
-    {
-        nBits = objProofParam.nProofOfWorkInit;
-        return true;
-    }
-
-    nBits = pIndex->nProofBits;
-    int64 nSpacing = 0;
-    int64 nWeight = 0;
-    int nWIndex = objProofParam.nProofOfWorkAdjustCount - 1;
-    while (pIndex->IsProofOfWork())
-    {
-        nSpacing += (pIndex->GetBlockTime() - pIndex->pPrev->GetBlockTime()) << nWIndex;
-        nWeight += (1ULL) << nWIndex;
-        if (!nWIndex--)
-        {
-            break;
-        }
-        pIndex = pIndex->pPrev;
-        while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
-        {
-            pIndex = pIndex->pPrev;
-        }
-    }
-    nSpacing /= nWeight;
-    if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
-    {
-        if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
+        return pIndexPrev->nProofBits;
     }
     else
     {
-        if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
+        // statistic the sum of nProofOfWorkDifficultyInterval blocks time
+        const CBlockIndex* pIndexFirst = pIndexPrev;
+        for (int i = 1; i < objProofParam.nProofOfWorkDifficultyInterval && pIndexFirst; i++)
         {
-            nBits--;
+            pIndexFirst = pIndexFirst->pPrev;
         }
-        else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
+
+        if (!pIndexFirst || pIndexFirst->GetBlockHeight() != (pIndexPrev->GetBlockHeight() - (objProofParam.nProofOfWorkDifficultyInterval - 1)))
         {
-            nBits++;
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: first block of difficulty interval height is error");
+            return false;
+        }
+
+        if (pIndexPrev == pIndexFirst)
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: difficulty interval must be large than 1");
+            return false;
+        }
+
+        // Limit adjustment step
+        int64 nActualTimespan = pIndexPrev->GetBlockTime() - pIndexFirst->GetBlockTime();
+        int64 nTargetTimespan = objProofParam.nProofOfWorkDifficultyInterval * BLOCK_TARGET_SPACING;
+        if (nActualTimespan < nTargetTimespan / 4)
+        {
+            nActualTimespan = nTargetTimespan / 4;
+        }
+        if (nActualTimespan > nTargetTimespan * 4)
+        {
+            nActualTimespan = nTargetTimespan * 4;
+        }
+
+        nBits = pIndexPrev->nProofBits;
+        if (nActualTimespan > nTargetTimespan)
+        {
+            int64_t times = nActualTimespan / nTargetTimespan;
+            if (times >= 4)
+            {
+                nBits += 2;
+            }
+            else if (times >= 2)
+            {
+                nBits += 1;
+            }
+        }
+        else
+        {
+            int64_t times = nTargetTimespan / nActualTimespan;
+            if (times >= 4)
+            {
+                nBits -= 2;
+            }
+            else if (times >= 2)
+            {
+                nBits -= 1;
+            }
+        }
+
+        if (nBits > objProofParam.nProofOfWorkUpperLimit)
+        {
+            nBits = objProofParam.nProofOfWorkUpperLimit;
+        }
+        if (nBits < objProofParam.nProofOfWorkLowerLimit)
+        {
+            nBits = objProofParam.nProofOfWorkLowerLimit;
         }
     }
     return true;
+
+    // const CBlockIndex* pIndex = pIndexPrev;
+    // while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
+    // {
+    //     pIndex = pIndex->pPrev;
+    // }
+
+    // // first
+    // if (!pIndex->IsProofOfWork())
+    // {
+    //     nBits = objProofParam.nProofOfWorkInit;
+    //     return true;
+    // }
+
+    // nBits = pIndex->nProofBits;
+    // int64 nSpacing = 0;
+    // int64 nWeight = 0;
+    // int nWIndex = objProofParam.nProofOfWorkAdjustCount - 1;
+    // while (pIndex->IsProofOfWork())
+    // {
+    //     nSpacing += (pIndex->GetBlockTime() - pIndex->pPrev->GetBlockTime()) << nWIndex;
+    //     nWeight += (1ULL) << nWIndex;
+    //     if (!nWIndex--)
+    //     {
+    //         break;
+    //     }
+    //     pIndex = pIndex->pPrev;
+    //     while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
+    //     {
+    //         pIndex = pIndex->pPrev;
+    //     }
+    // }
+    // nSpacing /= nWeight;
+    // if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
+    // {
+    //     if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
+    //     {
+    //         nBits--;
+    //     }
+    //     else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
+    //     {
+    //         nBits++;
+    //     }
+    // }
+    // else
+    // {
+    //     if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
+    //     {
+    //         nBits--;
+    //     }
+    //     else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
+    //     {
+    //         nBits++;
+    //     }
+    // }
+    // return true;
 }
 
 bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust)

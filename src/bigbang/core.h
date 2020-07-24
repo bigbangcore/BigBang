@@ -55,10 +55,11 @@ protected:
     int nProofOfWorkLowerLimit;
     int nProofOfWorkUpperLimit;
     int nProofOfWorkInit;
-    int64 nProofOfWorkUpperTarget;
-    int64 nProofOfWorkLowerTarget;
-    int64 nProofOfWorkUpperTargetOfDpos;
-    int64 nProofOfWorkLowerTargetOfDpos;
+    uint32 nProofOfWorkDifficultyInterval;
+    // int64 nProofOfWorkUpperTarget;
+    // int64 nProofOfWorkLowerTarget;
+    // int64 nProofOfWorkUpperTargetOfDpos;
+    // int64 nProofOfWorkLowerTargetOfDpos;
     IBlockChain* pBlockChain;
 };
 
@@ -78,11 +79,12 @@ public:
     int nProofOfWorkLowerLimit;
     int nProofOfWorkUpperLimit;
     int nProofOfWorkInit;
-    int64 nProofOfWorkUpperTarget;
-    int64 nProofOfWorkLowerTarget;
-    int64 nProofOfWorkUpperTargetOfDpos;
-    int64 nProofOfWorkLowerTargetOfDpos;
-    int nProofOfWorkAdjustCount;
+    uint32 nProofOfWorkDifficultyInterval;
+    // int64 nProofOfWorkUpperTarget;
+    // int64 nProofOfWorkLowerTarget;
+    // int64 nProofOfWorkUpperTargetOfDpos;
+    // int64 nProofOfWorkLowerTargetOfDpos;
+    // int nProofOfWorkAdjustCount;
     int64 nDelegateProofOfStakeEnrollMinimumAmount;
     int64 nDelegateProofOfStakeEnrollMaximumAmount;
     uint32 nDelegateProofOfStakeHeight;
