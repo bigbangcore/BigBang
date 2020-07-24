@@ -1221,7 +1221,7 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
 
     if ((pIndexPrev->nHeight + 1) % objProofParam.nProofOfWorkDifficultyInterval != 0)
     {
-        return pIndexPrev->nProofBits;
+        nBits = pIndexPrev->nProofBits;
     }
     else
     {
@@ -1281,15 +1281,15 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
                 nBits += 1;
             }
         }
+    }
 
-        if (nBits > objProofParam.nProofOfWorkUpperLimit)
-        {
-            nBits = objProofParam.nProofOfWorkUpperLimit;
-        }
-        if (nBits < objProofParam.nProofOfWorkLowerLimit)
-        {
-            nBits = objProofParam.nProofOfWorkLowerLimit;
-        }
+    if (nBits > objProofParam.nProofOfWorkUpperLimit)
+    {
+        nBits = objProofParam.nProofOfWorkUpperLimit;
+    }
+    if (nBits < objProofParam.nProofOfWorkLowerLimit)
+    {
+        nBits = objProofParam.nProofOfWorkLowerLimit;
     }
     return true;
 

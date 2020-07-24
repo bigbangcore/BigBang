@@ -902,7 +902,7 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 
     if ((pIndexPrev->nHeight + 1) % nProofOfWorkDifficultyInterval != 0)
     {
-        return pIndexPrev->nProofBits;
+        nBits = pIndexPrev->nProofBits;
     }
     else
     {
@@ -962,15 +962,15 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
                 nBits += 1;
             }
         }
+    }
 
-        if (nBits > nProofOfWorkUpperLimit)
-        {
-            nBits = nProofOfWorkUpperLimit;
-        }
-        if (nBits < nProofOfWorkLowerLimit)
-        {
-            nBits = nProofOfWorkLowerLimit;
-        }
+    if (nBits > nProofOfWorkUpperLimit)
+    {
+        nBits = nProofOfWorkUpperLimit;
+    }
+    if (nBits < nProofOfWorkLowerLimit)
+    {
+        nBits = nProofOfWorkLowerLimit;
     }
     return true;
 
