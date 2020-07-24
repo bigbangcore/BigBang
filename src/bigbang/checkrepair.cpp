@@ -1262,11 +1262,11 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
             int64_t times = nActualTimespan / nTargetTimespan;
             if (times >= 4)
             {
-                nBits += 2;
+                nBits -= 2;
             }
             else if (times >= 2)
             {
-                nBits += 1;
+                nBits -= 1;
             }
         }
         else
@@ -1274,11 +1274,11 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
             int64_t times = nTargetTimespan / nActualTimespan;
             if (times >= 4)
             {
-                nBits -= 2;
+                nBits += 2;
             }
             else if (times >= 2)
             {
-                nBits -= 1;
+                nBits += 1;
             }
         }
 
