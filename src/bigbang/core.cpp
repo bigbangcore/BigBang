@@ -103,6 +103,13 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
 static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
 #endif
 
+// Fix mpvss bug begin height
+#ifdef BIGBANG_TESTNET
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
+#else
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 340935;
+#endif
+
 namespace bigbang
 {
 ///////////////////////////////
@@ -547,6 +554,22 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        if (VerifyCertTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
+        }
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
+        }
+    }
+
     // v1.0 function
     /*if (!tx.vchData.empty())
     {
@@ -660,6 +683,22 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        if (VerifyCertTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
+        }
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
+        }
     }
 
     // v1.0 function
@@ -927,6 +966,11 @@ bool CCoreProtocol::IsDposHeight(int height)
     return true;
 }
 
+bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+}
+
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
 #ifdef BIGBANG_TESTNET
@@ -1104,9 +1148,46 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     }
     else
     {
-        vchSigOut = move(tx.vchSig);
+        vchSigOut = tx.vchSig;
     }
     return true;
+}
+
+Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // CERT transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyCertTx CERT tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `from` address must be equal to the `to` address of cert tx
+    if (destIn != tx.sendTo)
+    {
+        Log("VerifyCertTx the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
+            CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `to` address must be delegate template address
+    if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
+    {
+        Log("VerifyCertTx the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
+}
+
+Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // VOTE transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyVoteTx from or to vote template address tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
 }
 
 ///////////////////////////////
@@ -1190,6 +1271,11 @@ bool CProofOfWorkParam::IsDposHeight(int height)
         return false;
     }
     return true;
+}
+
+bool CProofOfWorkParam::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
 }
 
 } // namespace bigbang

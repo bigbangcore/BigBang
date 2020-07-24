@@ -58,6 +58,14 @@ echo 'Run build\bin\bigbang-cli.bat to launch bigbang RPC console'
 echo 'Run build\bin\bigbang-server.bat to launch bigbang server on background'
 echo 'Run build\test\test_big.exe to launch test program.'
 
+echo 'Installed to build\bin\'
+echo ''
+echo 'Usage:'
+echo 'Run build\bin\bigbang.exe to launch bigbang'
+echo 'Run build\bin\bigbang-console.bat to launch bigbang-console'
+echo 'Run build\bin\bigbang-server.bat to launch bigbang server on background'
+echo 'Run build\test\test_big.exe to launch test program.'
+
 :end
 
 cd %old_dir%
