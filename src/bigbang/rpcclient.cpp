@@ -98,7 +98,7 @@ void CRPCClient::HandleHalt()
         INPUT_RECORD input;
         input.EventType = KEY_EVENT;
         input.Event.KeyEvent.wRepeatCount = 1;
-        input.Event.KeyEvent.uChar.AsciiChar = '\n';
+        input.Event.KeyEvent.uChar.AsciiChar = '\0';
         WriteConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &out);
 #endif
         CancelCommand();
