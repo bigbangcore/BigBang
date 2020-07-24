@@ -258,18 +258,18 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    if (IsDposHeight(nHeight))
-    {
-        if (!MoneyRange(tx.nTxFee)
-            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-            || (tx.nType == CTransaction::TX_TOKEN
-                && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
-        {
-            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
-        }
-    }
-    else
-    {
+    // if (IsDposHeight(nHeight))
+    // {
+    //     if (!MoneyRange(tx.nTxFee)
+    //         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+    //         || (tx.nType == CTransaction::TX_TOKEN
+    //             && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
+    //     {
+    //         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+    //     }
+    // }
+    //else
+   // {
         if (!MoneyRange(tx.nTxFee)
             || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
             || (tx.nType == CTransaction::TX_TOKEN
@@ -277,9 +277,9 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
         }
-    }
+    //}
 
-    if (nHeight != 0 && !IsDposHeight(nHeight))
+    if (nHeight != 0 /*&& !IsDposHeight(nHeight)*/)
     {
         if (tx.sendTo.IsTemplate())
         {
@@ -418,25 +418,25 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    if (IsDposHeight(block.GetBlockHeight()))
+    // if (IsDposHeight(block.GetBlockHeight()))
+    // {
+    //     uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
+    //     if (block.GetBlockTime() < nNextTimestamp)
+    //     {
+    //         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Verify proof work: Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
+    //                      block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
+    //                      pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+    //     }
+    // }
+    // else
+    // {
+    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
-        uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
-        if (block.GetBlockTime() < nNextTimestamp)
-        {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Verify proof work: Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
-                         block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
-                         pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
-        }
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
+                        block.GetBlockHeight(), block.GetBlockTime(),
+                        pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
     }
-    else
-    {
-        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
-        {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
-                         block.GetBlockHeight(), block.GetBlockTime(),
-                         pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
-        }
-    }
+//    }
 
     CProofOfHashWorkCompact proof;
     proof.Load(block.vchProof);
@@ -803,11 +803,11 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
         }
         else if (pIndexPrev != nullptr)
         {
-            if (!IsDposHeight(block.GetBlockHeight()))
-            {
-                StdError("CCoreProtocol", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-                return false;
-            }
+            // if (!IsDposHeight(block.GetBlockHeight()))
+            // {
+            //     StdError("CCoreProtocol", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+            //     return false;
+            // }
 
             // Get the last PoW block nAlgo
             int nAlgo;
@@ -929,39 +929,39 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     }
     nSpacing /= nWeight;
 
-    if (IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
+    // if (IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
+    // {
+    //     if (nSpacing > nProofOfWorkUpperTargetOfDpos && nBits > nProofOfWorkLowerLimit)
+    //     {
+    //         nBits--;
+    //     }
+    //     else if (nSpacing < nProofOfWorkLowerTargetOfDpos && nBits < nProofOfWorkUpperLimit)
+    //     {
+    //         nBits++;
+    //     }
+    // }
+    // else
+    // {
+    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
     {
-        if (nSpacing > nProofOfWorkUpperTargetOfDpos && nBits > nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < nProofOfWorkLowerTargetOfDpos && nBits < nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
+        nBits--;
     }
-    else
+    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
     {
-        if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
+        nBits++;
     }
+    //}
     return true;
 }
 
-bool CCoreProtocol::IsDposHeight(int height)
-{
-    if (height < DELEGATE_PROOF_OF_STAKE_HEIGHT)
-    {
-        return false;
-    }
-    return true;
-}
+// bool CCoreProtocol::IsDposHeight(int height)
+// {
+//     if (height < DELEGATE_PROOF_OF_STAKE_HEIGHT)
+//     {
+//         return false;
+//     }
+//     return true;
+// }
 
 bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
 {
