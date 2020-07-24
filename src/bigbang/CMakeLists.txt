@@ -148,13 +148,4 @@ if(UNIX)
             DESTINATION bin
         )
     endforeach()
-else()
-install(CODE [[
-  file(GET_RUNTIME_DEPENDENCIES
-  [RESOLVED_DEPENDENCIES_VAR D1]
-  [UNRESOLVED_DEPENDENCIES_VAR D2]
-  [CONFLICTING_DEPENDENCIES_PREFIX D3]
-  [EXECUTABLES bigbang]
-    )
-  ]])
 endif()

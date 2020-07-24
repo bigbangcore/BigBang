@@ -125,7 +125,7 @@ public:
     {
         for (std::size_t i = 0; i < vEnrolled.size(); i++)
         {
-            if ((bitmap & ((uint64)1 << i)))
+            if (bitmap & (1 << i))
             {
                 setDestination.insert(vEnrolled[i]);
             }

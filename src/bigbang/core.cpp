@@ -608,13 +608,11 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
             }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
-                DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "1\n");
                 return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
             }
         }
         else
         {
-            DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "2\n");
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
         }
     }
@@ -648,7 +646,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
 
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
-        DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "3\n");
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
     }
 

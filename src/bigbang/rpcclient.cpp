@@ -283,7 +283,7 @@ void CRPCClient::LaunchConsole()
         FD_ZERO(&fs);
         FD_SET(STDIN_FILENO, &fs);
 
-        timeout.tv_sec = 1;
+        timeout.tv_sec = 0;
         timeout.tv_usec = 100000;
         int ret = select(1, &fs, nullptr, nullptr, &timeout);
         if (ret == -1)
