@@ -49,7 +49,7 @@ elseif(UNIX)
 elseif(MSVC)
     set(CMAKE_CXX_STANDARD 11)
 else()
-    message(FATAL_ERROR "Unsupported plantform")
+    message(FATAL_ERROR "Unsupported platform")
 endif()
 
 # build type
