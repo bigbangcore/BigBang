@@ -110,7 +110,7 @@ else()
     set(Readline_USE_STATIC_LIBS OFF)
 endif()
 
-set(Boost_NO_BOOST_CMAKE ON)
+    set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.58.0 REQUIRED COMPONENTS
     program_options
@@ -147,6 +147,13 @@ endif()
 if(TESTNET)
     add_definitions(-DBIGBANG_TESTNET)
 endif()
+
+# include directories
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${OpenSSL_INCLUDE_DIR})
+include_directories(${sodium_INCLUDE_DIR})
+include_directories(${Protobuf_INCLUDE_DIR})
+include_directories(${Readline_INCLUDE_DIR})
 
 # sub directories
 add_subdirectory(src)
