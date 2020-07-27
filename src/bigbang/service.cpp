@@ -433,11 +433,12 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
     }
     if (tid.GetType() == TEMPLATE_DELEGATE)
     {
-        if (!pBlockChain->GetVotes(destDelegate, nVotes))
-        {
-            strFailCause = "Query failed";
-            return false;
-        }
+        // if (!pBlockChain->GetVotes(destDelegate, nVotes))
+        // {
+        //     strFailCause = "Query failed";
+        //     return false;
+        // }
+        return false;
     }
     else
     {
@@ -455,18 +456,20 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
             strFailCause = "Vote template address not imported";
             return false;
         }
-        if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
-        {
-            strFailCause = "Query failed";
-            return false;
-        }
+        // if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
+        // {
+        //     strFailCause = "Query failed";
+        //     return false;
+        // }
+        return false;
     }
     return true;
 }
 
 bool CService::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)
 {
-    return pBlockChain->ListDelegate(nCount, mapVotes);
+    //return pBlockChain->ListDelegate(nCount, mapVotes);
+    return false;
 }
 
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
@@ -727,22 +730,22 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         nPrevBlockHeight = (*it).second.nLastBlockHeight;
         block.hashPrev = hashPrev;
 
-        if (pCoreProtocol->IsDposHeight(nPrevBlockHeight + 1))
-        {
-            nPrevTime = pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1);
-            block.nTimeStamp = max(nPrevTime, (uint32)GetNetTime());
-        }
-        else
-        {
-            block.nTimeStamp = max((*it).second.nLastBlockTime, GetNetTime());
-        }
+        // if (pCoreProtocol->IsDposHeight(nPrevBlockHeight + 1))
+        // {
+        //     nPrevTime = pCoreProtocol->GetNextBlockTimeStamp((*it).second.nMintType, (*it).second.nLastBlockTime, CTransaction::TX_WORK, nPrevBlockHeight + 1);
+        //     block.nTimeStamp = max(nPrevTime, (uint32)GetNetTime());
+        // }
+        // else
+        // {
+        block.nTimeStamp = max((*it).second.nLastBlockTime, GetNetTime());
+        //}
     }
 
-    if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
-    {
-        StdTrace("CService", "GetWork: IsLocalCachePowBlock pow exist");
-        return false;
-    }
+    // if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
+    // {
+    //     StdTrace("CService", "GetWork: IsLocalCachePowBlock pow exist");
+    //     return false;
+    // }
 
     nAlgo = CM_CRYPTONIGHT;
     int64 nReward;
@@ -834,10 +837,17 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         return err;
     }
 
-    if (!pNetChannel->AddCacheLocalPowBlock(block))
+    // if (!pNetChannel->AddCacheLocalPowBlock(block))
+    // {
+    //     StdError("CService", "SubmitWork: AddCacheLocalPowBlock fail");
+    //     return FAILED;
+    // }
+
+    err = pDispatcher->AddNewBlock(block);
+    if(err != OK)
     {
-        StdError("CService", "SubmitWork: AddCacheLocalPowBlock fail");
-        return FAILED;
+        StdError("CService", "AddNewBlock: Dispatch::AddNewBlock fail");
+        return err;
     }
     return OK;
 }

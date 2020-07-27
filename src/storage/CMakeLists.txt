@@ -20,7 +20,7 @@ set(sources
     leveldbeng.cpp      leveldbeng.h
     txindexdb.cpp       txindexdb.h
     ctsdb.cpp           ctsdb.h
-    delegatevotesave.cpp delegatevotesave.h
+    #delegatevotesave.cpp delegatevotesave.h
 )
 
 add_library(storage ${sources})
@@ -44,6 +44,6 @@ target_link_libraries(storage
     common
     leveldb    
     snappy
-    delegate
-    mpvss
+   # delegate
+   # mpvss
 )

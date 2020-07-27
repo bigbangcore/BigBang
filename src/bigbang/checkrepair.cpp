@@ -1138,52 +1138,52 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
             uint256 v(1);
             nChainTrust = v << proof.nBits;
         }
-        else if (pIndexPrev != nullptr)
-        {
-            if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
-            {
-                StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-                return false;
-            }
+       // else if (pIndexPrev != nullptr)
+        //{
+            // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
+            // {
+            //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+            //     return false;
+            // }
 
             // Get the last PoW block nAlgo
-            int nAlgo;
-            const CBlockIndex* pIndex = pIndexPrev;
-            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-            {
-                pIndex = pIndex->pPrev;
-            }
-            if (!pIndex->IsProofOfWork())
-            {
-                nAlgo = CM_CRYPTONIGHT;
-            }
-            else
-            {
-                nAlgo = pIndex->nProofAlgo;
-            }
+            // int nAlgo;
+            // const CBlockIndex* pIndex = pIndexPrev;
+            // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+            // {
+            //     pIndex = pIndex->pPrev;
+            // }
+            // if (!pIndex->IsProofOfWork())
+            // {
+            //     nAlgo = CM_CRYPTONIGHT;
+            // }
+            // else
+            // {
+            //     nAlgo = pIndex->nProofAlgo;
+            // }
 
-            // DPoS difficulty = weight * (2 ^ nBits)
-            int nBits;
-            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
-            {
-                if (agreement.nWeight == 0 || nBits <= 0)
-                {
-                    StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
-                    return false;
-                }
-                if (nEnrollTrust <= 0)
-                {
-                    StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-                    return false;
-                }
-                nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-            }
-            else
-            {
-                StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-                return false;
-            }
-        }
+            // // DPoS difficulty = weight * (2 ^ nBits)
+            // int nBits;
+            // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
+            // {
+            //     if (agreement.nWeight == 0 || nBits <= 0)
+            //     {
+            //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+            //         return false;
+            //     }
+            //     if (nEnrollTrust <= 0)
+            //     {
+            //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+            //         return false;
+            //     }
+            //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+            // }
+            // else
+            // {
+            //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
+            //     return false;
+            // }
+       // }
         else
         {
             StdError("check", "GetBlockTrust: Primary pIndexPrev is null");
@@ -1250,19 +1250,19 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
         }
     }
     nSpacing /= nWeight;
-    if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
-    {
-        if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
-    }
-    else
-    {
+    // if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
+    // {
+    //     if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
+    //     {
+    //         nBits--;
+    //     }
+    //     else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
+    //     {
+    //         nBits++;
+    //     }
+    // }
+    // else
+    // {
         if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
         {
             nBits--;
@@ -1271,53 +1271,53 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
         {
             nBits++;
         }
-    }
+   // }
     return true;
 }
 
 bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust)
 {
-    agreement.Clear();
-    if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
-    {
-        return true;
-    }
+    // agreement.Clear();
+    // if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
+    // {
+    //     return true;
+    // }
 
-    CBlockIndex* pIndex = pIndexPrev;
-    for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
-    {
-        if (pIndex == nullptr)
-        {
-            StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
-            return false;
-        }
-        pIndex = pIndex->pPrev;
-    }
+    // CBlockIndex* pIndex = pIndexPrev;
+    // for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
+    // {
+    //     if (pIndex == nullptr)
+    //     {
+    //         StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
+    //         return false;
+    //     }
+    //     pIndex = pIndex->pPrev;
+    // }
 
-    CDelegateEnrolled enrolled;
-    if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
-    {
-        StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }
+    // CDelegateEnrolled enrolled;
+    // if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
+    // {
+    //     StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
+    //     return false;
+    // }
 
-    delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
-    map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
-    {
-        StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }
+    // delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
+    // map<CDestination, size_t> mapBallot;
+    // if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
+    // {
+    //     StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
+    //     return false;
+    // }
 
-    nEnrollTrust = 0;
-    for (auto& amount : enrolled.vecAmount)
-    {
-        if (mapBallot.find(amount.first) != mapBallot.end())
-        {
-            nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
-        }
-    }
-    nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
+    // nEnrollTrust = 0;
+    // for (auto& amount : enrolled.vecAmount)
+    // {
+    //     if (mapBallot.find(amount.first) != mapBallot.end())
+    //     {
+    //         nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
+    //     }
+    // }
+    // nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
     return true;
 }
 
