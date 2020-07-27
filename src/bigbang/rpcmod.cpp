@@ -9,6 +9,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/format.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/regex.hpp>
 #include <regex>
@@ -19,6 +20,7 @@
 #include "template/fork.h"
 #include "template/proof.h"
 #include "template/template.h"
+#include "util.h"
 #include "version.h"
 
 using namespace std;
@@ -37,6 +39,11 @@ const char* GetGitVersion();
 
 static int64 AmountFromValue(const double dAmount)
 {
+    if (IsDoubleEqual(dAmount, -1.0))
+    {
+        return -1;
+    }
+
     if (dAmount <= 0.0 || dAmount > MAX_MONEY)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
@@ -277,6 +284,8 @@ CRPCMod::CRPCMod()
         ("maketemplate", &CRPCMod::RPCMakeTemplate)
         //
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        //
+        ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
@@ -1670,6 +1679,20 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
+    CWalletBalance balance;
+    if (!pService->GetBalance(from, hashFork, balance))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "GetBalance failed");
+    }
+    if (nAmount == -1)
+    {
+        if(balance.nAvailable <= nTxFee)
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
+        }
+        nAmount = balance.nAvailable - nTxFee;
+    }
+
     if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         nAmount -= nTxFee;
@@ -1685,7 +1708,8 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
+        boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr + fmt.str());
     }
 
     bool fCompleted = false;
@@ -1806,6 +1830,20 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
+    CWalletBalance balance;
+    if (!pService->GetBalance(from, hashFork, balance))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "GetBalance failed");
+    }
+    if (nAmount == -1)
+    {
+        if(balance.nAvailable <= nTxFee)
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
+        }
+        nAmount = balance.nAvailable - nTxFee;
+    }
+
     CTemplateId tid;
     if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
     {
@@ -1816,7 +1854,8 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
+        boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr + fmt.str());
     }
 
     CBufStream ss;
@@ -2523,6 +2562,15 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }*/
 
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, uint256(), -1, string()));
+}
+
+CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetTransactionFeeParam>(param);
+    int64 nTxFee = CalcMinTxFee(ParseHexString(spParam->strHexdata).size(), NEW_MIN_TX_FEE);
+    auto spResult = MakeCGetTransactionFeeResultPtr();
+    spResult->dTxfee = ValueFromAmount(nTxFee);
+    return spResult;
 }
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)

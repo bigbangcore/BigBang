@@ -728,6 +728,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     if (CTemplate::IsLockedCoin(destIn))
     {
         // TODO: No redemption temporarily
+
         return false;
         // CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
         // if (!ptr)

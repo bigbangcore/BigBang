@@ -372,6 +372,9 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
 
         vector<std::pair<uint256, int>> vPowBlockHash;
         GetSchedule(hashFork).GetSubmitCachePowBlock(consParam, vPowBlockHash);
+        StdDebug("NetChannel", "Submit cache pow block: pow block count: %lu, ispow: %s, ret: %s, prev height: %d, wait time: %ld, prev block: %s",
+                 vPowBlockHash.size(), (consParam.fPow ? "true" : "false"), (consParam.ret ? "true" : "false"),
+                 consParam.nPrevHeight, consParam.nWaitTime, consParam.hashPrev.GetHex().c_str());
 
         set<uint64> setSchedPeer;
         set<uint64> setMisbehavePeer;
@@ -400,6 +403,22 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
                             AddRefNextBlock(vRefNextBlock);
                         }
                     }
+                    else
+                    {
+                        if (hashForkPrev == 0)
+                        {
+                            StdLog("NetChannel", "Submit cache pow block: GetBlockLocation fail, hashPrev: %s", pBlock->hashPrev.GetHex().c_str());
+                        }
+                        else
+                        {
+                            StdLog("NetChannel", "Submit cache pow block: fork error, prev fork: %s, fork: %s, block: %s",
+                                   hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
+                        }
+                    }
+                }
+                else
+                {
+                    StdLog("NetChannel", "Submit cache pow block: GetBlock fail, block: %s", hashBlock.GetHex().c_str());
                 }
             }
             else
@@ -419,6 +438,10 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
                     }
                     GetSchedule(hashFork).RemoveCacheLocalPowBlock(hashBlock); // Resolve unsubscribefork errors
                 }
+                else
+                {
+                    StdLog("NetChannel", "Submit cache pow block: GetCacheLocalPowBlock fail, block: %s", hashBlock.GetHex().c_str());
+                }
             }
         }
 
@@ -436,7 +459,7 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
     return false;
 }
 
-bool CNetChannel::IsLocalCachePowBlock(int nHeight)
+bool CNetChannel::IsLocalCachePowBlock(int nHeight, bool& fIsDpos)
 {
     bool ret = false;
     try
@@ -444,11 +467,34 @@ bool CNetChannel::IsLocalCachePowBlock(int nHeight)
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         CSchedule& sched = GetSchedule(pCoreProtocol->GetGenesisBlockHash());
         ret = sched.CheckCacheLocalPowBlock(nHeight);
+        if (!ret)
+        {
+            uint256 hashFirstBlock;
+            if (sched.GetFirstCachePowBlock(nHeight, hashFirstBlock))
+            {
+                fIsDpos = true;
+            }
+        }
     }
     catch (exception& e)
     {
         StdError("NetChannel", "IsLocalCachePowBlock: GetSchedule fail, height: %d, error: %s", nHeight, e.what());
         return false;
+    }
+    if (!ret)
+    {
+        uint256 nAgreement;
+        size_t nWeight;
+        vector<CDestination> vBallot;
+        pConsensus->GetAgreement(nHeight, nAgreement, nWeight, vBallot);
+        if (vBallot.size() > 0)
+        {
+            fIsDpos = true;
+        }
+        else
+        {
+            fIsDpos = false;
+        }
     }
     InnerSubmitCachePowBlock();
     return ret;
@@ -1048,7 +1094,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
         DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, string("eventBlock: ") + e.what());
         return true;
     }
-    if (block.IsPrimary() && block.IsProofOfWork())
+    if (block.IsPrimary())
     {
         InnerSubmitCachePowBlock();
     }
