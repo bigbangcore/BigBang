@@ -1138,52 +1138,52 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
             uint256 v(1);
             nChainTrust = v << proof.nBits;
         }
-       // else if (pIndexPrev != nullptr)
+        // else if (pIndexPrev != nullptr)
         //{
-            // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
-            // {
-            //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-            //     return false;
-            // }
+        // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
+        // {
+        //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+        //     return false;
+        // }
 
-            // Get the last PoW block nAlgo
-            // int nAlgo;
-            // const CBlockIndex* pIndex = pIndexPrev;
-            // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-            // {
-            //     pIndex = pIndex->pPrev;
-            // }
-            // if (!pIndex->IsProofOfWork())
-            // {
-            //     nAlgo = CM_CRYPTONIGHT;
-            // }
-            // else
-            // {
-            //     nAlgo = pIndex->nProofAlgo;
-            // }
+        // Get the last PoW block nAlgo
+        // int nAlgo;
+        // const CBlockIndex* pIndex = pIndexPrev;
+        // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+        // {
+        //     pIndex = pIndex->pPrev;
+        // }
+        // if (!pIndex->IsProofOfWork())
+        // {
+        //     nAlgo = CM_CRYPTONIGHT;
+        // }
+        // else
+        // {
+        //     nAlgo = pIndex->nProofAlgo;
+        // }
 
-            // // DPoS difficulty = weight * (2 ^ nBits)
-            // int nBits;
-            // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
-            // {
-            //     if (agreement.nWeight == 0 || nBits <= 0)
-            //     {
-            //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
-            //         return false;
-            //     }
-            //     if (nEnrollTrust <= 0)
-            //     {
-            //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-            //         return false;
-            //     }
-            //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-            // }
-            // else
-            // {
-            //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-            //     return false;
-            // }
-       // }
+        // // DPoS difficulty = weight * (2 ^ nBits)
+        // int nBits;
+        // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
+        // {
+        //     if (agreement.nWeight == 0 || nBits <= 0)
+        //     {
+        //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+        //         return false;
+        //     }
+        //     if (nEnrollTrust <= 0)
+        //     {
+        //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+        //         return false;
+        //     }
+        //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+        // }
+        // else
+        // {
+        //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
+        //     return false;
+        // }
+        // }
         else
         {
             StdError("check", "GetBlockTrust: Primary pIndexPrev is null");
@@ -1263,15 +1263,15 @@ bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int 
     // }
     // else
     // {
-        if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
-   // }
+    if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
+    {
+        nBits--;
+    }
+    else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
+    {
+        nBits++;
+    }
+    // }
     return true;
 }
 
@@ -1323,6 +1323,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
 
 bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled)
 {
+    /*
     enrolled.Clear();
     if (pIndex == nullptr)
     {
@@ -1352,7 +1353,7 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
     {
         StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
         return false;
-    }
+    }*/
     return true;
 }
 

@@ -13,7 +13,6 @@
 #include "consensus.h"
 #include "core.h"
 #include "datastat.h"
-#include "defs.h"
 #include "delegatedchn.h"
 #include "dispatcher.h"
 #include "forkmanager.h"
@@ -21,13 +20,13 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -194,6 +193,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
 
     // hard fork version
+    /*
     if (config.GetConfig()->fTestNet)
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
@@ -203,7 +203,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     {
         HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
         HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
-    }
+    }*/
 
     // modules
     return InitializeModules(config.GetModeType());

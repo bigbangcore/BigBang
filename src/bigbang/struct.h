@@ -21,25 +21,18 @@
 namespace bigbang
 {
 
-inline int64 CalcMinTxFee(const uint32 nVchData, const uint32 nMinFee)
+inline int64 CalcMinTxFee(const CTransaction& tx, const uint32 MIN_TX_FEE)
 {
-    if (0 == nVchData)
+    xengine::CBufStream ss;
+    try
     {
-        return nMinFee;
+        ss << tx;
     }
-    uint32_t multiplier = nVchData / 200;
-    if (nVchData % 200 > 0)
+    catch (const std::exception& e)
     {
-        multiplier++;
+        throw "tx err";
     }
-    if (multiplier > 5)
-    {
-        return nMinFee + nMinFee * 10 + (multiplier - 5) * nMinFee * 4;
-    }
-    else
-    {
-        return nMinFee + multiplier * nMinFee * 2;
-    }
+    return ss.size() * 100;
 }
 
 // Status

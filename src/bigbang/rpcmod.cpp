@@ -86,7 +86,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.strType = tx.GetTypeString();
     ret.nTime = tx.nTimeStamp;
     ret.nLockuntil = tx.nLockUntil;
-    ret.strAnchor = tx.hashAnchor.GetHex();
+    //ret.strAnchor = tx.hashAnchor.GetHex();
     ret.strBlockhash = (!blockHash) ? std::string() : blockHash.GetHex();
     for (const CTxIn& txin : tx.vInput)
     {
@@ -1628,8 +1628,8 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             vchData = ParseHexString(strDataTmp);
         }
     }
-
-    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
+    CTransaction txNew;
+    int64 nTxFee = MIN_TX_FEE * 3; // CalcMinTxFee(txNew, MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         int64 nUserTxFee = AmountFromValue(spParam->dTxfee);
@@ -1651,7 +1651,6 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
-    CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
@@ -1763,12 +1762,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         vchData = ParseHexString(spParam->strData);
     }
 
-    int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
+    int64 nTxFee = MIN_TX_FEE * 3; // CalcMinTxFee(txNew, MIN_TX_FEE);
     if (spParam->dTxfee.IsValid())
     {
         nTxFee = AmountFromValue(spParam->dTxfee);
 
-        int64 nFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
+        int64 nFee = MIN_TX_FEE * 3; //CalcMinTxFee(txNew, MIN_TX_FEE);
         if (nTxFee < nFee)
         {
             nTxFee = nFee;
@@ -1776,13 +1775,13 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         StdTrace("[CreateTransaction]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
+    CTransaction txNew;
     CTemplateId tid;
     if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "create transaction nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
     }
 
-    CTransaction txNew;
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
@@ -2219,7 +2218,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nJointHeight = nJointHeight;
     profile.nAmount = nAmount;
     profile.nMintReward = nMintReward;
-    profile.nMinTxFee = NEW_MIN_TX_FEE;
+    profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 
@@ -2474,7 +2473,7 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
 
-    uint256 hashFork = rawTx.hashAnchor;
+    uint256 hashFork = pCoreProtocol->GetGenesisBlockHash(); // rawTx.hashAnchor;
     /*int nHeight;
     if (!pService->GetBlockLocation(rawTx.hashAnchor, hashFork, nHeight))
     {

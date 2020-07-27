@@ -419,10 +419,6 @@
                 "type": "uint",
                 "desc": "unlock time"
             },
-            "anchor": {
-                "type": "string",
-                "desc": "anchor hash"
-            },
             "blockhash": {
                 "type": "string",
                 "desc": "which block tx located in"
