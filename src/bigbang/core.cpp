@@ -54,7 +54,7 @@ static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
 #ifdef BIGBANG_TESTNET
 static const uint32 REF_VACANT_HEIGHT = 56690; //20;
 #else
-static const uint32 REF_VACANT_HEIGHT = 340000;
+static const uint32 REF_VACANT_HEIGHT = 380000;
 #endif
 
 #ifdef BIGBANG_TESTNET
@@ -350,7 +350,7 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         {
             return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx, nAmount: %lu, nTxFee: %lu, nType: %d, nTimeStamp: %d, sendTo: %s",
                          block.txMint.nAmount, block.txMint.nTxFee, block.txMint.nType, block.txMint.nTimeStamp,
-                         (block.txMint.sendTo.IsNull() ? "" : CAddress(block.txMint.sendTo).ToString().c_str()));
+                         (block.txMint.sendTo.IsNull() ? "null" : CAddress(block.txMint.sendTo).ToString().c_str()));
         }
         if (block.hashMerkle != 0 || !block.vtx.empty())
         {
