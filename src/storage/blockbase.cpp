@@ -2338,10 +2338,11 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         pIndexNew->nRandBeacon = nRandBeacon;
 
         uint256 hashRefBlock;
-        if (!pIndexNew->IsPrimary() && !pIndexNew->IsOrigin() && !block.vchProof.empty())
+        if (!block.IsPrimary() && !block.vchProof.empty()
+            && (block.IsSubsidiary() || block.IsExtended() || (block.IsVacant() && !block.txMint.sendTo.IsNull())))
         {
             CProofOfPiggyback proof;
-            if (proof.Load(block.vchProof))
+            if (proof.Load(block.vchProof) && proof.hashRefBlock != 0)
             {
                 hashRefBlock = proof.hashRefBlock;
             }

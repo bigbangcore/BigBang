@@ -422,7 +422,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
     multimap<int64, pair<uint256, CBlock>> mapBlocks;
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
-        const uint256 hashFork = it->first;
+        const uint256& hashFork = it->first;
         if (hashFork != pCoreProtocol->GetGenesisBlockHash() && pForkManager->IsAllowed(hashFork))
         {
             CBlock block;
@@ -446,6 +446,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
 
         bool fCreateExtendedTask = false;
         uint256 hashExtendedPrevBlock;
+        int64 nExtendedPrevTime = 0;
         if (block.IsSubsidiary())
         {
             // query previous last extended block
@@ -539,6 +540,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                     {
                         fCreateExtendedTask = true;
                         hashExtendedPrevBlock = block.GetHash();
+                        nExtendedPrevTime = block.GetBlockTime();
                     }
                     else
                     {
@@ -559,6 +561,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             {
                 fCreateExtendedTask = true;
                 hashExtendedPrevBlock = block.hashPrev;
+                nExtendedPrevTime = block.GetBlockTime();
             }
             else if (!SignBlock(block, profile))
             {
@@ -575,14 +578,15 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             {
                 fCreateExtendedTask = true;
                 hashExtendedPrevBlock = block.GetHash();
+                nExtendedPrevTime = block.GetBlockTime();
             }
         }
 
         // create next extended task
-        if (fCreateExtendedTask && block.nTimeStamp + EXTENDED_BLOCK_SPACING < nRefBlockTime + BLOCK_TARGET_SPACING)
+        if (fCreateExtendedTask && nExtendedPrevTime + EXTENDED_BLOCK_SPACING < nRefBlockTime + BLOCK_TARGET_SPACING)
         {
             CBlock extended;
-            CreateExtended(extended, profile, agreement, hashRefBlock, hashFork, hashExtendedPrevBlock, block.nTimeStamp + EXTENDED_BLOCK_SPACING);
+            CreateExtended(extended, profile, agreement, hashRefBlock, hashFork, hashExtendedPrevBlock, nExtendedPrevTime + EXTENDED_BLOCK_SPACING);
             mapBlocks.insert(make_pair(extended.nTimeStamp, make_pair(hashFork, extended)));
         }
     }
