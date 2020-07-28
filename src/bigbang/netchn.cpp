@@ -1439,7 +1439,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 }
             }
 
-            if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
+            /*if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
             {
                 bool fAddBlock = false;
                 bool fVerifyPowBlock = false;
@@ -1513,7 +1513,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                              GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                     continue;
                 }
-            }
+            }*/
 
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)
