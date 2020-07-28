@@ -287,7 +287,8 @@
             "default": "1440",
             "format": "-chkdpth=<n>",
             "desc": "Set storage check depth (default: 1440, range=0-n)"
-        },        {
+        },
+        {
             "name": "strRecoveryDir",
             "type": "string",
             "opt": "recoverydir",
@@ -345,14 +346,14 @@
             "opt": "port",
             "default": 0,
             "format": "-port=<port>",
-            "desc": "Listen for connections on <port> (default: 9901 or testnet: 9903)"
+            "desc": "Listen for connections on <port> (default: 8801 or testnet: 8803)"
         },
         {
             "name": "strGateWay",
             "type": "string",
             "opt": "gateway",
             "format": "-gateway=<ip>:<port>",
-            "desc": "The form of <ip>:<port> of address of gateway(<ip> can be IPv4 or IPv6, default <port>: 9901, IPv6 format: [ip]:port)"
+            "desc": "The form of <ip>:<port> of address of gateway(<ip> can be IPv4 or IPv6, default <port>: 8801, IPv6 format: [ip]:port)"
         },
         {
             "name": "nMaxConnection",
@@ -375,14 +376,14 @@
             "type": "vector<string>",
             "opt": "addnode",
             "format": "-addnode=<address>:<port>",
-            "desc": "Add a node to connect to and attempt to keep the connection open(<address> can be IPv4 or IPv6 or domain name, default <port>: 9901, IPv6 format: [ip]:port)"
+            "desc": "Add a node to connect to and attempt to keep the connection open(<address> can be IPv4 or IPv6 or domain name, default <port>: 8801, IPv6 format: [ip]:port)"
         },
         {
             "name": "vConnectTo",
             "type": "vector<string>",
             "opt": "connect",
             "format": "-connect=<address>:<port>",
-            "desc": "Connect only to the specified node(<address> can be IPv4 or IPv6 or domain name, default <port>: 9901, IPv6 format: [ip]:port)"
+            "desc": "Connect only to the specified node(<address> can be IPv4 or IPv6 or domain name, default <port>: 8801, IPv6 format: [ip]:port)"
         },
         {
             "name": "strTrustAddress",
