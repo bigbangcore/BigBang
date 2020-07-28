@@ -13,12 +13,12 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 endif()
 
-project(Bigbang LANGUAGES C CXX)
-
 # CMP0074: If version >= 3.12, find_package(<PackageName>) will use <PackageName>_ROOT environment variables
-if(${CMAKE_VERSION} VERSION_GREATER "3.12.0") 
+if(${CMAKE_VERSION} VERSION_GREATER "3.12.0")
     cmake_policy(SET CMP0074 NEW)
 endif()
+
+project(Bigbang LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake" CACHE PATH "The path to the cmake directory")
@@ -110,7 +110,7 @@ else()
     set(Readline_USE_STATIC_LIBS OFF)
 endif()
 
-    set(Boost_NO_BOOST_CMAKE ON)
+set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.58.0 REQUIRED COMPONENTS
     program_options
@@ -142,6 +142,7 @@ endif()
 
 if(MSVC)
     add_definitions(-D_WIN32_WINNT=0x0601)
+    add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 
 if(TESTNET)
