@@ -79,7 +79,7 @@ public:
     Errno SendOfflineSignedTransaction(CTransaction& tx) override;
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
-                 uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                 uint256& hashPrev, uint32& nPrevTime, int& nAlgo, uint32_t& nBits,
                  const CTemplateMintPtr& templMint) override;
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                      crypto::CKey& keyMint, uint256& hashBlock) override;

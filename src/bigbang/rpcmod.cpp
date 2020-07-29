@@ -2631,7 +2631,8 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
     int nPrevBlockHeight;
     uint256 hashPrev;
     uint32 nPrevTime;
-    int nAlgo, nBits;
+    int nAlgo;
+    uint32 nBits;
     if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, ptr))
     {
         spResult->fResult = false;

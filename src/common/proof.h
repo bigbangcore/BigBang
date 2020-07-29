@@ -82,7 +82,7 @@ class CProofOfHashWork : public CProofOfSecretShare
 {
 public:
     unsigned char nAlgo;
-    unsigned char nBits;
+    uint32_t nBits;
     CDestination destMint;
     uint64_t nNonce;
 
@@ -103,14 +103,14 @@ class CProofOfHashWorkCompact
 {
 public:
     unsigned char nAlgo;
-    unsigned char nBits;
+    uint32_t nBits;
     CDestination destMint;
     uint64_t nNonce;
 
 public:
     enum
     {
-        PROOFHASHWORK_SIZE = 43 //67
+        PROOFHASHWORK_SIZE = 46
     };
     void Save(std::vector<unsigned char>& vchProof)
     {
@@ -121,7 +121,8 @@ public:
 
         unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         *p++ = nAlgo;
-        *p++ = nBits;
+        *((uint32_t*)p) = nBits;
+        p += 4;
         *p++ = destMint.prefix;
         *((uint256*)p) = destMint.data;
         p += 32;
@@ -136,7 +137,8 @@ public:
 
         const unsigned char* p = &vchProof[vchProof.size() - PROOFHASHWORK_SIZE];
         nAlgo = *p++;
-        nBits = *p++;
+        nBits = *((uint32_t*)p);
+        p += 4;
         destMint.prefix = *p++;
         destMint.data = *((uint256*)p);
         p += 32;

@@ -31,7 +31,7 @@ public:
     virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                    const CDelegateAgreement& agreement) override;
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) override;
-    virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
+    virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) override;
     virtual bool IsDposHeight(int height) override;
     virtual bool DPoSConsensusCheckRepeated(int height) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
@@ -52,9 +52,9 @@ protected:
 
 protected:
     uint256 hashGenesisBlock;
-    int nProofOfWorkLowerLimit;
-    int nProofOfWorkUpperLimit;
-    int nProofOfWorkInit;
+    uint256 nProofOfWorkLowerLimit;
+    uint256 nProofOfWorkUpperLimit;
+    uint256 nProofOfWorkInit;
     uint32 nProofOfWorkDifficultyInterval;
     // int64 nProofOfWorkUpperTarget;
     // int64 nProofOfWorkLowerTarget;
@@ -76,9 +76,9 @@ public:
     CProofOfWorkParam(bool fTestnet);
 
 public:
-    int nProofOfWorkLowerLimit;
-    int nProofOfWorkUpperLimit;
-    int nProofOfWorkInit;
+    uint256 nProofOfWorkLowerLimit;
+    uint256 nProofOfWorkUpperLimit;
+    uint256 nProofOfWorkInit;
     uint32 nProofOfWorkDifficultyInterval;
     // int64 nProofOfWorkUpperTarget;
     // int64 nProofOfWorkLowerTarget;

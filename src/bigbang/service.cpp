@@ -709,7 +709,7 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
 
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                        uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
-                       int& nBits, const CTemplateMintPtr& templMint)
+                       uint32_t& nBits, const CTemplateMintPtr& templMint)
 {
     CBlock block;
     block.nType = CBlock::BLOCK_PRIMARY;
@@ -792,7 +792,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         StdError(__PRETTY_FUNCTION__, e.what());
         return FAILED;
     }
-    int nBits;
+    uint32 nBits;
     int64 nReward;
     if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
     {

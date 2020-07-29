@@ -20,6 +20,16 @@ else()
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
+if (WIN32)
+  # Ignore warnings by bigbangcore
+  string(REGEX REPLACE "/W[01234X]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(APPEND CMAKE_CXX_FLAGS " /w")
+else (WIN32)
+  # Ignore warnings by bigbangcore
+  string(REGEX REPLACE "-Wall" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(APPEND CMAKE_CXX_FLAGS " -w")
+endif (WIN32)
+
 option(LEVELDB_BUILD_TESTS "Build LevelDB's unit tests" OFF)
 option(LEVELDB_BUILD_BENCHMARKS "Build LevelDB's benchmarks" OFF)
 option(LEVELDB_INSTALL "Install LevelDB's header and library" OFF)
