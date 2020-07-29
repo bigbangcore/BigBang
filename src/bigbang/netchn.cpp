@@ -407,18 +407,21 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
                     {
                         if (hashForkPrev == 0)
                         {
-                            StdLog("NetChannel", "Submit cache pow block: GetBlockLocation fail, hashPrev: %s", pBlock->hashPrev.GetHex().c_str());
+                            StdError("NetChannel", "Submit cache pow block: GetBlockLocation fail, hashPrev: %s", pBlock->hashPrev.GetHex().c_str());
                         }
                         else
                         {
-                            StdLog("NetChannel", "Submit cache pow block: fork error, prev fork: %s, fork: %s, block: %s",
-                                   hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
+                            StdError("NetChannel", "Submit cache pow block: fork error, prev fork: %s, fork: %s, block: %s",
+                                     hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
                         }
+                        set<uint64> setKnownPeer;
+                        sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
                     }
                 }
                 else
                 {
-                    StdLog("NetChannel", "Submit cache pow block: GetBlock fail, block: %s", hashBlock.GetHex().c_str());
+                    StdError("NetChannel", "Submit cache pow block: GetBlock fail, block: %s", hashBlock.GetHex().c_str());
+                    sched.RemoveHeightBlock(CBlock::GetBlockHeightByHash(hashBlock), hashBlock);
                 }
             }
             else
@@ -440,7 +443,8 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
                 }
                 else
                 {
-                    StdLog("NetChannel", "Submit cache pow block: GetCacheLocalPowBlock fail, block: %s", hashBlock.GetHex().c_str());
+                    StdError("NetChannel", "Submit cache pow block: GetCacheLocalPowBlock fail, block: %s", hashBlock.GetHex().c_str());
+                    sched.RemoveHeightBlock(CBlock::GetBlockHeightByHash(hashBlock), hashBlock);
                 }
             }
         }
