@@ -22,7 +22,7 @@ class CForkKnownIP
 public:
     CForkKnownIP() {}
     CForkKnownIP(const uint256& forkidIn, const uint32& nodeipIn)
-        : forkID(forkidIn), nodeIP(nodeipIn) {}
+      : forkID(forkidIn), nodeIP(nodeipIn) {}
 
 public:
     uint256 forkID;
@@ -33,9 +33,8 @@ typedef boost::multi_index_container<
     CForkKnownIP,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkKnownIP, uint256, &CForkKnownIP::forkID>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkKnownIP, uint32, &CForkKnownIP::nodeIP>>
-        >
-> CForkKnownIPSet;
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CForkKnownIP, uint32, &CForkKnownIP::nodeIP>>>>
+    CForkKnownIPSet;
 
 typedef CForkKnownIPSet::nth_index<0>::type CForkKnownIpSetById;
 typedef CForkKnownIPSet::nth_index<1>::type CForkKnownIpSetByIp;
@@ -87,12 +86,12 @@ public:
     {
         std::ostringstream oss;
         oss << "CSuperNode : superNodeID=" << superNodeID
-            << " ipAddr=" << Int2Ip(ipAddr) << "\n";
+            << " ipAddr=" << Int2Ip(ipAddr) << " ";
         for (auto const& f : vecOwnedForks)
         {
-            oss << " ownedFork=" << f.ToString() << "\n";
+            oss << " ownedFork=" << f.ToString() << " ";
         }
-        oss << " nodeCat=" << nodeCat << "\n";
+        oss << " nodeCat=" << nodeCat << " ";
         return oss.str();
     }
 
@@ -117,11 +116,11 @@ public:
     bool RemoveSuperNode(const std::string& cliID, const uint32& ipNum);
     bool RetrieveSuperNode(const std::string& superNodeID, const uint32& ipNum, std::vector<uint256>& vFork);
     bool UpdateSuperNode(const std::string& cliID, const uint32& ipNum, const std::vector<uint256>& vFork);
-    bool ListSuperNode(std::vector<CSuperNode>& vCli);  //return all nodes
+    bool ListSuperNode(std::vector<CSuperNode>& vCli); //return all nodes
     void Clear();
     bool ClearSuperNode(const CSuperNode& cli);
-    bool FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& mask); //only return super nodes on request
-    bool AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper);  //outer nodes come from peers
+    bool FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& mask);  //only return super nodes on request
+    bool AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper); //outer nodes come from peers
 
 protected:
     bool LoadSuperNodeWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,

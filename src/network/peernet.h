@@ -28,6 +28,7 @@ public:
     virtual bool SubmitCachePowBlock(const CConsensusParam& consParam) = 0;
     virtual bool IsLocalCachePowBlock(int nHeight) = 0;
     virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
+    virtual void DispatchGetBizForksEvent(const std::vector<uint256>& bizForks) = 0;
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener

@@ -429,6 +429,7 @@ bool CMQCluster::HandleEvent(CEventMQBizForkUpdate& eventMqBizFork)
         for (auto const& i : idxIP)
         {
             auto& node = mapOuterNode[i.nodeIP];
+            // node.nodeCat = (int8)NODE_CATEGORY::OUTERNODE;
             node.ipAddr = i.nodeIP;
             node.vecOwnedForks.push_back(i.forkID);
             Log("CMQCluster::HandleEvent(CEventMQBizForkUpdate): add IP[%s] biz fork[%s] to mem structure",
@@ -1233,8 +1234,8 @@ public:
 
     void delivery_complete(mqtt::delivery_token_ptr tok) override
     {
-        cout << "\tDelivery complete for token: "
-             << (tok ? tok->get_message_id() : -1) << endl;
+        cout << "\tDelivery complete for token: ["
+             << (tok ? tok->get_message_id() : -1) << "]" << endl;
         mqCluster.LogEvent("[delivery_complete]");
     }
 };

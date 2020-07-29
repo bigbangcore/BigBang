@@ -516,6 +516,31 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     return ret;
 }
 
+void CNetChannel::DispatchGetBizForksEvent(const vector<uint256>& bizForks)
+{
+    map<uint64, vector<uint256>> mapRequest;
+    for (const auto& hashFork : bizForks)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+        for (auto const& p : mapPeer)
+        {
+            if (p.second.IsSubscribed(hashFork))
+            {
+                uint64 nNonce = p.first;
+                mapRequest[nNonce].push_back(hashFork);
+            }
+        }
+    }
+    for (const auto& req : mapRequest)
+    {
+        uint64 nNonce = req.first;
+        network::CEventPeerGetBizForks eventGetBiz(nNonce);
+        eventGetBiz.data.assign(req.second.begin(), req.second.end());
+        pPeerNet->DispatchEvent(&eventGetBiz);
+        StdLog("NetChannel", "DispatchGetBizForksEvent: request for bizforks to peer[%s]", GetPeerAddressInfo(nNonce).c_str());
+    }
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
@@ -537,8 +562,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         }
         else
         {
-            StdLog("NetChannel", "CEventPeerActive: succeed in filtering to "
-                                 "get main chain from peer[%s]",
+            StdLog("NetChannel", "CEventPeerActive: succeeded in filtering to get main chain from fork node stemmed from peer[%s]",
                    GetPeerAddressInfo(nNonce).c_str());
         }
 
@@ -574,6 +598,18 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         case NODE_CAT_BBCNODE:
         {
             // forks configured by options
+            vector<string> vFork;
+            vector<string> vGroup;
+            vFork = dynamic_cast<const CForkConfigOption*>(Config())->vFork;
+            vGroup = dynamic_cast<const CForkConfigOption*>(Config())->vGroup;
+            if (vFork.end() != find(vFork.begin(), vFork.end(), "any")
+                || vGroup.end() != find(vGroup.begin(), vGroup.end(), pCoreProtocol->GetGenesisBlockHash().ToString()))
+            {
+                // send request for all biz forks while set fork filter as "any"
+                StdLog("NetChannel", "CEventPeerActive: watched fork as any or watched group as genesis");
+                eventGetBiz.data.clear();
+                break;
+            }
             {
                 boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
                 for (auto const& sched : mapSched)
@@ -683,14 +719,10 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     }
 
     StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] node(s) without dpos node", nodes.size());
-    for (auto const& node : nodes)
-    {
-        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s] w/o dpos node", node.ToString().c_str());
-    }
-
     storage::CForkKnownIPSet setForkIp;
     for (auto const& node : nodes)
     {
+        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s] w/o dpos node", node.ToString().c_str());
         for (auto const& fork : node.vecOwnedForks)
         {
             setForkIp.emplace(storage::CForkKnownIP(fork, node.ipAddr));
@@ -807,7 +839,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
     const storage::CForkKnownIpSetByIp& idxNodeID = setForkIp.get<1>();
     for (auto const& it : idxNodeID)
     {
-        mapIpForks[it.nodeIP].emplace_back(it.forkID);
+        mapIpForks[it.nodeIP].push_back(it.forkID);
     }
 
     vector<storage::CSuperNode> nodes;
@@ -882,8 +914,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
 
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        StdError("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing a main chain "
-                               "from a dpos node, just ignore it",
+        StdTrace("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing biz chains from a dpos node, just ignore it",
                  GetPeerAddressInfo(nNonce).c_str());
         return false;
     }
@@ -942,8 +973,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
 
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing a main chain "
-                               "from a dpos node, just ignore it",
+        StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing biz chains from a dpos node, just ignore it",
                  GetPeerAddressInfo(nNonce).c_str());
         return true;
     }

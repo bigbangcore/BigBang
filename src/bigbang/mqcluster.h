@@ -182,7 +182,7 @@ private:
     bool fAbort;
     std::string addrBroker;
     std::string dposNodeCliID;
-//    const std::string prefixTopic = "Cluster01/";
+    //    const std::string prefixTopic = "Cluster01/";
     std::string prefixTopic;
     enum
     {
@@ -201,7 +201,7 @@ private:
 
     NODE_CATEGORY catNode;
 
-    std::array<std::string, TOPIC_SUFFIX_MAX> arrTopic;  //shared by both dpos and fork node
+    std::array<std::string, TOPIC_SUFFIX_MAX> arrTopic; //shared by both dpos and fork node
 
     boost::mutex mtxStatus;
     boost::condition_variable condStatus;
@@ -216,8 +216,8 @@ private:
     boost::mutex mtxReply;
     std::map<std::string, std::pair<int32, uint256>> mapReplied;
     boost::mutex mtxOuter;
-    std::map<uint32, storage::CSuperNode> mapOuterNode;        //for dpos/fork node
-    std::map<std::string, std::string> mapBizForkUpdateTopic;  //only for dpos node
+    std::map<uint32, storage::CSuperNode> mapOuterNode;       //for dpos/fork node
+    std::map<std::string, std::string> mapBizForkUpdateTopic; //only for dpos node
 
     boost::mutex mtxSend;
     boost::condition_variable condSend;

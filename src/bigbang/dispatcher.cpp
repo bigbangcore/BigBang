@@ -459,6 +459,10 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
     }
     pNetChannel->SubscribeFork(hashFork, nNonce);
     Log("Activated fork %s ...", hashFork.GetHex().c_str());
+
+    vector<uint256> forks;
+    forks.push_back(hashFork);
+    pNetChannel->DispatchGetBizForksEvent(forks);
 }
 
 bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
