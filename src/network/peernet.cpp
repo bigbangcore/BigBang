@@ -54,11 +54,11 @@ bool CBbPeerNet::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("delegatedchannel", pDelegatedChannel))
-    {
-        Error("Failed to request delegated datachannel\n");
-        return false;
-    }
+    // if (!GetObject("delegatedchannel", pDelegatedChannel))
+    // {
+    //     Error("Failed to request delegated datachannel\n");
+    //     return false;
+    // }
 
     return true;
 }
@@ -211,7 +211,7 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
 
             if (pEventDeactiveDelegated != nullptr)
             {
-                pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
+                //pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
             }
         }
     }
@@ -384,7 +384,7 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         pNetChannel->PostEvent(pEventActive);
         if (pEventActiveDelegated != nullptr)
         {
-            pDelegatedChannel->PostEvent(pEventActiveDelegated);
+           // pDelegatedChannel->PostEvent(pEventActiveDelegated);
         }
 
         pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
@@ -628,7 +628,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
+                // pDelegatedChannel->PostEvent(pEvent);
                 return true;
             }
         }
@@ -639,7 +639,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
+                //pDelegatedChannel->PostEvent(pEvent);
                 return true;
             }
         }
@@ -657,7 +657,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 CInv inv(CInv::MSG_DISTRIBUTE, hash);
                 CancelTimer(pBbPeer->Responded(inv));
 
-                pDelegatedChannel->PostEvent(pEvent);
+                //pDelegatedChannel->PostEvent(pEvent);
 
                 return true;
             }
@@ -676,7 +676,7 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
                 CInv inv(CInv::MSG_PUBLISH, hash);
                 CancelTimer(pBbPeer->Responded(inv));
 
-                pDelegatedChannel->PostEvent(pEvent);
+                //pDelegatedChannel->PostEvent(pEvent);
                 return true;
             }
         }

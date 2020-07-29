@@ -64,11 +64,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("consensus", pConsensus))
-    {
-        Error("Failed to request consensus");
-        return false;
-    }
+    // if (!GetObject("consensus", pConsensus))
+    // {
+    //     Error("Failed to request consensus");
+    //     return false;
+    // }
 
     if (!GetObject("wallet", pWallet))
     {
@@ -94,11 +94,11 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("delegatedchannel", pDelegatedChannel))
-    {
-        Error("Failed to request delegatedchanne");
-        return false;
-    }
+    // if (!GetObject("delegatedchannel", pDelegatedChannel))
+    // {
+    //     Error("Failed to request delegatedchanne");
+    //     return false;
+    // }
 
     if (!GetObject("datastat", pDataStat))
     {
@@ -139,13 +139,13 @@ bool CDispatcher::HandleInvoke()
     }
 
     CDelegateRoutine routine;
-    int nStartHeight = 0;
-    if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
-    {
-        pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
-                                         routine.vEnrolledWeight, routine.vDistributeData,
-                                         routine.mapPublishData, routine.hashDistributeOfPublish);
-    }
+   // int nStartHeight = 0;
+    // if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
+    // {
+    //     pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
+    //                                      routine.vEnrolledWeight, routine.vDistributeData,
+    //                                      routine.mapPublishData, routine.hashDistributeOfPublish);
+    // }
     return true;
 }
 
@@ -294,7 +294,7 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
-        pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
+        //pConsensus->AddNewTx(CAssembledTx(tx, -1, destIn, nValueIn));
     }
 
     return OK;
@@ -302,12 +302,14 @@ Errno CDispatcher::AddNewTx(const CTransaction& tx, uint64 nNonce)
 
 bool CDispatcher::AddNewDistribute(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchDistribute)
 {
-    return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    //return pConsensus->AddNewDistribute(hashAnchor, dest, vchDistribute);
+    return true;
 }
 
 bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& dest, const vector<unsigned char>& vchPublish)
 {
-    return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    //return pConsensus->AddNewPublish(hashAnchor, dest, vchPublish);
+    return true;
 }
 
 void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
@@ -339,33 +341,33 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     CDelegateRoutine routineDelegate;
-    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+    //pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
-    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
+    // pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+    //                                  routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
+    //                                  routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
 
-    for (const CTransaction& tx : routineDelegate.vEnrollTx)
-    {
-        if (tx.vInput.size() == 0)
-        {
-            Error("Send DelegateTx: tx.vInput.size() == 0.");
-            continue;
-        }
-        Errno err = AddNewTx(tx, nNonce);
-        if (err == OK)
-        {
-            Log("Send DelegateTx success, txid: %s, previd: %s.",
-                tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
-        }
-        else
-        {
-            Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
-                err, ErrorString(err), tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
-        }
-    }
+    // for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    // {
+    //     if (tx.vInput.size() == 0)
+    //     {
+    //         Error("Send DelegateTx: tx.vInput.size() == 0.");
+    //         continue;
+    //     }
+    //     Errno err = AddNewTx(tx, nNonce);
+    //     if (err == OK)
+    //     {
+    //         Log("Send DelegateTx success, txid: %s, previd: %s.",
+    //             tx.GetHash().GetHex().c_str(),
+    //             tx.vInput[0].prevout.hash.GetHex().c_str());
+    //     }
+    //     else
+    //     {
+    //         Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
+    //             err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+    //             tx.vInput[0].prevout.hash.GetHex().c_str());
+    //     }
+    // }
 
     CEventBlockMakerUpdate* pBlockMakerUpdate = new CEventBlockMakerUpdate(0);
     if (pBlockMakerUpdate != nullptr)

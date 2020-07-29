@@ -296,10 +296,10 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::DELEGATEDCHANNEL:
         {
-            if (!AttachModule(new CDelegatedChannel()))
-            {
-                return false;
-            }
+            // if (!AttachModule(new CDelegatedChannel()))
+            // {
+            //     return false;
+            // }
             break;
         }
         case EModuleType::NETWORK:
@@ -385,10 +385,10 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::CONSENSUS:
         {
-            if (!AttachModule(new CConsensus()))
-            {
-                return false;
-            }
+            // if (!AttachModule(new CConsensus()))
+            // {
+            //     return false;
+            // }
             break;
         }
         case EModuleType::DATASTAT:

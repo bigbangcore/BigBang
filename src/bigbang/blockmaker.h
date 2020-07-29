@@ -81,15 +81,15 @@ protected:
     void ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
     bool DispatchBlock(const CBlock& block);
-    void ProcessDelegatedProofOfStake(const CAgreementBlock& consParam);
+    //void ProcessDelegatedProofOfStake(const CAgreementBlock& consParam);
     void ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                         const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType);
-    bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
+    //bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool CreateProofOfWork();
-    void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
-                          int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
-    bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                        const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
+   // void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
+                         // int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
+    //bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+                      //  const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
 
 private:
     void BlockMakerThreadFunc();
