@@ -407,8 +407,9 @@ bool CCheckWalletForkUnspent::CheckWalletUnspent(const CTxOutPoint& point, const
 
 bool CCheckDelegateDB::CheckDelegate(const uint256& hashBlock)
 {
-    CDelegateContext ctxtDelegate;
-    return Retrieve(hashBlock, ctxtDelegate);
+    // CDelegateContext ctxtDelegate;
+    // return Retrieve(hashBlock, ctxtDelegate);
+    return true;
 }
 
 bool CCheckDelegateDB::UpdateDelegate(const uint256& hashBlock, CBlockEx& block, uint32 nBlockFile, uint32 nBlockOffset)
@@ -1004,14 +1005,14 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     if (block.IsPrimary() && !objDelegateDB.CheckDelegate(hashBlock))
     {
         StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
-        if (!fOnlyCheck)
-        {
-            if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
-            {
-                StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
-                return false;
-            }
-        }
+        // if (!fOnlyCheck)
+        // {
+        //     if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
+        //     {
+        //         StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
+        //         return false;
+        //     }
+        // }
     }
 
     CBlockIndex* pNewBlockIndex = nullptr;
