@@ -325,7 +325,7 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)
     {
-       // pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
+        // pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
     }
 }
 
@@ -607,7 +607,8 @@ bool CBlockMaker::CreateProofOfWork()
     int nPrevBlockHeight = 0;
     uint256 hashPrev;
     uint32 nPrevTime = 0;
-    int nAlgo = 0, nBits = 0;
+    int nAlgo = 0;
+    uint32 nBits = 0;
     if (!pService->GetWork(vchWorkData, nPrevBlockHeight, hashPrev, nPrevTime, nAlgo, nBits, profile.templMint))
     {
         //StdTrace("blockmaker", "GetWork fail");
@@ -622,9 +623,10 @@ bool CBlockMaker::CreateProofOfWork()
     int64 nHashComputeCount = 0;
     int64 nHashComputeBeginTime = GetTime();
 
-    Log("Proof-of-work: start hash compute, target height: %d, difficulty bits: (%d)", nPrevBlockHeight + 1, nBits);
+    Log("Proof-of-work: start hash compute, target height: %d, difficulty bits: (0x%x)", nPrevBlockHeight + 1, nBits);
 
-    uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
+    uint256 hashTarget;
+    hashTarget.SetCompact(nBits);
     while (!InterruptedPoW(hashPrev))
     {
         if (nHashRate == 0)
@@ -640,7 +642,7 @@ bool CBlockMaker::CreateProofOfWork()
                 int64 nDuration = GetTime() - nHashComputeBeginTime;
                 int nCompHashRate = ((nDuration <= 0) ? 0 : (nHashComputeCount / nDuration));
 
-                Log("Proof-of-work: block found (%s), target height: %d, compute: (rate:%ld, count:%ld, duration:%lds, hashrate:%ld), difficulty bits: (%d)\nhash :   %s\ntarget : %s",
+                Log("Proof-of-work: block found (%s), target height: %d, compute: (rate:%ld, count:%ld, duration:%lds, hashrate:%ld), difficulty bits: (0x%x)\nhash :   %s\ntarget : %s",
                     pHashAlgo->strAlgo.c_str(), nPrevBlockHeight + 1, nHashRate, nHashComputeCount, nDuration, nCompHashRate, nBits,
                     hash.GetHex().c_str(), hashTarget.GetHex().c_str());
 
@@ -694,8 +696,8 @@ void CBlockMaker::BlockMakerThreadFunc()
         //     nWaitTime = consParam.nWaitTime;
         //     continue;
         // }
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        // StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+        //          consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
 
         if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())

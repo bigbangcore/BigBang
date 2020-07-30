@@ -51,8 +51,8 @@ public:
     virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork) = 0;
     virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork) = 0;
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
-    virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
-   // virtual bool IsDposHeight(int height) = 0;
+    virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) = 0;
+    // virtual bool IsDposHeight(int height) = 0;
     virtual bool DPoSConsensusCheckRepeated(int height) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
@@ -125,7 +125,7 @@ public:
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
-    virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
+    virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, uint32_t& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
@@ -375,7 +375,7 @@ public:
     virtual Errno SendOfflineSignedTransaction(CTransaction& tx) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
-                         uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,
+                         uint256& hashPrev, uint32& nPrevTime, int& nAlgo, uint32_t& nBits,
                          const CTemplateMintPtr& templMint)
         = 0;
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,

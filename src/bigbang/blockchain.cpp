@@ -745,7 +745,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
 //     }
 // }
 
-bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward)
+bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, uint32_t& nBits, int64& nReward)
 {
     CBlockIndex* pIndexPrev;
     if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))

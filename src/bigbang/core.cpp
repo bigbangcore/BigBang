@@ -28,11 +28,13 @@ static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
 #endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
-static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
-static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
-static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
-static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
-static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
+// static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
+// static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
+// static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
+// static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
+// static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
+static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET = 10000;
+static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET = 3;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
 #ifdef BIGBANG_TESTNET
@@ -117,13 +119,16 @@ namespace bigbang
 
 CCoreProtocol::CCoreProtocol()
 {
-    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
-    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
-    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
-    nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
-    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
+    nProofOfWorkLowerLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_LOWER_LIMIT);
+    nProofOfWorkLowerLimit.SetCompact(nProofOfWorkLowerLimit.GetCompact());
+    nProofOfWorkUpperLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_UPPER_LIMIT);
+    nProofOfWorkUpperLimit.SetCompact(nProofOfWorkUpperLimit.GetCompact());
+    nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_MAINNET);
+    nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET;
+    // nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    // nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    // nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    // nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     pBlockChain = nullptr;
 }
 
@@ -269,14 +274,14 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     //     }
     // }
     //else
-   // {
-        if (!MoneyRange(tx.nTxFee)
-            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-            || (tx.nType == CTransaction::TX_TOKEN
-                && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
-        {
-            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
-        }
+    // {
+    if (!MoneyRange(tx.nTxFee)
+        || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+        || (tx.nType == CTransaction::TX_TOKEN
+            && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+    {
+        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
+    }
     //}
 
     if (nHeight != 0 /*&& !IsDposHeight(nHeight)*/)
@@ -433,15 +438,15 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
-                        block.GetBlockHeight(), block.GetBlockTime(),
-                        pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
+                     block.GetBlockHeight(), block.GetBlockTime(),
+                     pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
     }
-//    }
+    //    }
 
     CProofOfHashWorkCompact proof;
     proof.Load(block.vchProof);
 
-    int nBits = 0;
+    uint32 nBits = 0;
     int64 nReward = 0;
     if (!GetProofOfWorkTarget(pIndexPrev, proof.nAlgo, nBits, nReward))
     {
@@ -457,7 +462,16 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "destMint error, destMint: %s.", proof.destMint.ToString().c_str());
     }
 
-    uint256 hashTarget = (~uint256(uint64(0)) >> nBits);
+    bool fNegative;
+    bool fOverflow;
+    uint256 hashTarget;
+    hashTarget.SetCompact(nBits, &fNegative, &fOverflow);
+
+    if (fNegative || hashTarget == 0 || fOverflow || hashTarget < nProofOfWorkUpperLimit || hashTarget > nProofOfWorkLowerLimit)
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "nBits error, nBits: %u, hashTarget: %s, negative: %d, overflow: %d, upper: %s, lower: %s",
+                     nBits, hashTarget.ToString().c_str(), fNegative, fOverflow, nProofOfWorkUpperLimit.ToString().c_str(), nProofOfWorkLowerLimit.ToString().c_str());
+    }
 
     vector<unsigned char> vchProofOfWork;
     block.GetSerializedProofOfWorkData(vchProofOfWork);
@@ -795,11 +809,12 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
     {
         if (block.IsProofOfWork())
         {
-            // PoW difficulty = 2 ^ nBits
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
-            uint256 v(1);
-            nChainTrust = v << proof.nBits;
+            uint256 nTarget;
+            nTarget.SetCompact(proof.nBits);
+            // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
+            nChainTrust = (~nTarget / (nTarget + 1)) + 1;
         }
         else if (pIndexPrev != nullptr)
         {
@@ -825,8 +840,7 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
                 nAlgo = pIndex->nProofAlgo;
             }
 
-            // DPoS difficulty = weight * (2 ^ nBits)
-            int nBits;
+            uint32_t nBits;
             int64 nReward;
             if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
             {
@@ -840,7 +854,11 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
                     StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
                     return false;
                 }
-                nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+                uint256 nTarget;
+                nTarget.SetCompact(nBits);
+                // nChainTrust = nEnrollTrust * (2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1)
+                nChainTrust = (~nTarget / (nTarget + 1)) + 1;
+                nChainTrust *= uint256((uint64)nEnrollTrust);
             }
             else
             {
@@ -880,77 +898,81 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
     return true;
 }
 
-bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward)
+bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward)
 {
-    if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
+    if (nAlgo <= 0 || nAlgo >= CM_MAX)
     {
-        if (!pIndexPrev->IsPrimary())
-        {
-            StdLog("CCoreProtocol", "GetProofOfWorkTarget: not is primary");
-        }
-        else
-        {
-            StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
-        }
+        StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
         return false;
     }
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
 
-    const CBlockIndex* pIndex = pIndexPrev;
-    while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
+    if (pIndexPrev->GetBlockHeight() == 0)
     {
-        pIndex = pIndex->pPrev;
+        nBits = nProofOfWorkInit.GetCompact();
     }
-
-    // first
-    if (!pIndex->IsProofOfWork())
+    else if ((pIndexPrev->nHeight + 1) % nProofOfWorkDifficultyInterval != 0)
     {
-        nBits = nProofOfWorkInit;
-        return true;
+        nBits = pIndexPrev->nProofBits;
     }
-
-    nBits = pIndex->nProofBits;
-    int64 nSpacing = 0;
-    int64 nWeight = 0;
-    int nWIndex = PROOF_OF_WORK_ADJUST_COUNT - 1;
-    while (pIndex->IsProofOfWork())
+    else
     {
-        nSpacing += (pIndex->GetBlockTime() - pIndex->pPrev->GetBlockTime()) << nWIndex;
-        nWeight += (1ULL) << nWIndex;
-        if (!nWIndex--)
+        // statistic the sum of nProofOfWorkDifficultyInterval blocks time
+        const CBlockIndex* pIndexFirst = pIndexPrev;
+        for (int i = 1; i < nProofOfWorkDifficultyInterval && pIndexFirst; i++)
         {
-            break;
+            pIndexFirst = pIndexFirst->pPrev;
         }
-        pIndex = pIndex->pPrev;
-        while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
-        {
-            pIndex = pIndex->pPrev;
-        }
-    }
-    nSpacing /= nWeight;
 
-    // if (IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
-    // {
-    //     if (nSpacing > nProofOfWorkUpperTargetOfDpos && nBits > nProofOfWorkLowerLimit)
-    //     {
-    //         nBits--;
-    //     }
-    //     else if (nSpacing < nProofOfWorkLowerTargetOfDpos && nBits < nProofOfWorkUpperLimit)
-    //     {
-    //         nBits++;
-    //     }
-    // }
-    // else
-    // {
-    if (nSpacing > nProofOfWorkUpperTarget && nBits > nProofOfWorkLowerLimit)
-    {
-        nBits--;
+        if (!pIndexFirst || pIndexFirst->GetBlockHeight() != (pIndexPrev->GetBlockHeight() - (nProofOfWorkDifficultyInterval - 1)))
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: first block of difficulty interval height is error");
+            return false;
+        }
+
+        if (pIndexPrev == pIndexFirst)
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: difficulty interval must be large than 1");
+            return false;
+        }
+
+        // Limit adjustment step
+        if (pIndexPrev->GetBlockTime() < pIndexFirst->GetBlockTime())
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: prev block time [%ld] < first block time [%ld]", pIndexPrev->GetBlockTime(), pIndexFirst->GetBlockTime());
+            return false;
+        }
+        uint64 nActualTimespan = pIndexPrev->GetBlockTime() - pIndexFirst->GetBlockTime();
+        uint64 nTargetTimespan = (uint64)nProofOfWorkDifficultyInterval * BLOCK_TARGET_SPACING;
+        if (nActualTimespan < nTargetTimespan / 4)
+        {
+            nActualTimespan = nTargetTimespan / 4;
+        }
+        if (nActualTimespan > nTargetTimespan * 4)
+        {
+            nActualTimespan = nTargetTimespan * 4;
+        }
+
+        uint256 newBits;
+        newBits.SetCompact(pIndexPrev->nProofBits);
+        // StdLog("CCoreProtocol", "newBits: %s", newBits.ToString().c_str());
+        newBits *= nActualTimespan;
+        // StdLog("CCoreProtocol", "newBits *= nActualTimespan, newBits: %s, nActualTimespan: %lu", newBits.ToString().c_str(), nActualTimespan);
+        newBits /= uint256(nTargetTimespan);
+        // StdLog("CCoreProtocol", "newBits /= nTargetTimespan, newBits: %s, nTargetTimespan: %lu", newBits.ToString().c_str(), nTargetTimespan);
+
+        if (newBits < nProofOfWorkUpperLimit)
+        {
+            newBits = nProofOfWorkUpperLimit;
+        }
+        if (newBits > nProofOfWorkLowerLimit)
+        {
+            newBits = nProofOfWorkLowerLimit;
+        }
+        nBits = newBits.GetCompact();
+        // StdLog("CCoreProtocol", "newBits.GetCompact(), newBits: %s, nBits: %x", newBits.ToString().c_str(), nBits);
     }
-    else if (nSpacing < nProofOfWorkLowerTarget && nBits < nProofOfWorkUpperLimit)
-    {
-        nBits++;
-    }
-    //}
+
     return true;
 }
 
@@ -1192,7 +1214,8 @@ Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& de
 
 CTestNetCoreProtocol::CTestNetCoreProtocol()
 {
-    nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
+    nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_TESTNET);
+    nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET;
 }
 
 /*
@@ -1241,21 +1264,25 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
 CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
 {
-    nProofOfWorkLowerLimit = PROOF_OF_WORK_BITS_LOWER_LIMIT;
-    nProofOfWorkUpperLimit = PROOF_OF_WORK_BITS_UPPER_LIMIT;
-    nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
-    nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
+    nProofOfWorkLowerLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_LOWER_LIMIT);
+    nProofOfWorkLowerLimit.SetCompact(nProofOfWorkLowerLimit.GetCompact());
+    nProofOfWorkUpperLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_UPPER_LIMIT);
+    nProofOfWorkUpperLimit.SetCompact(nProofOfWorkUpperLimit.GetCompact());
+    // nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    // nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
+    // nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
+    // nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     if (fTestnet)
     {
-        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_TESTNET;
+        nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_TESTNET);
+        nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET;
     }
     else
     {
-        nProofOfWorkInit = PROOF_OF_WORK_BITS_INIT_MAINNET;
+        nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_MAINNET);
+        nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET;
     }
-    nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
+    // nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
     nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
     nDelegateProofOfStakeHeight = DELEGATE_PROOF_OF_STAKE_HEIGHT;

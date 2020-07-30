@@ -1132,58 +1132,59 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
     {
         if (block.IsProofOfWork())
         {
-            // PoW difficulty = 2 ^ nBits
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
-            uint256 v(1);
-            nChainTrust = v << proof.nBits;
+            uint256 nTarget;
+            nTarget.SetCompact(proof.nBits);
+            // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
+            nChainTrust = (~nTarget / (nTarget + 1)) + 1;
         }
-       // else if (pIndexPrev != nullptr)
+        // else if (pIndexPrev != nullptr)
         //{
-            // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
-            // {
-            //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-            //     return false;
-            // }
+        // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
+        // {
+        //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
+        //     return false;
+        // }
 
-            // Get the last PoW block nAlgo
-            // int nAlgo;
-            // const CBlockIndex* pIndex = pIndexPrev;
-            // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-            // {
-            //     pIndex = pIndex->pPrev;
-            // }
-            // if (!pIndex->IsProofOfWork())
-            // {
-            //     nAlgo = CM_CRYPTONIGHT;
-            // }
-            // else
-            // {
-            //     nAlgo = pIndex->nProofAlgo;
-            // }
+        // Get the last PoW block nAlgo
+        // int nAlgo;
+        // const CBlockIndex* pIndex = pIndexPrev;
+        // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
+        // {
+        //     pIndex = pIndex->pPrev;
+        // }
+        // if (!pIndex->IsProofOfWork())
+        // {
+        //     nAlgo = CM_CRYPTONIGHT;
+        // }
+        // else
+        // {
+        //     nAlgo = pIndex->nProofAlgo;
+        // }
 
-            // // DPoS difficulty = weight * (2 ^ nBits)
-            // int nBits;
-            // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
-            // {
-            //     if (agreement.nWeight == 0 || nBits <= 0)
-            //     {
-            //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
-            //         return false;
-            //     }
-            //     if (nEnrollTrust <= 0)
-            //     {
-            //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-            //         return false;
-            //     }
-            //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-            // }
-            // else
-            // {
-            //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-            //     return false;
-            // }
-       // }
+        // // DPoS difficulty = weight * (2 ^ nBits)
+        // int nBits;
+        // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
+        // {
+        //     if (agreement.nWeight == 0 || nBits <= 0)
+        //     {
+        //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
+        //         return false;
+        //     }
+        //     if (nEnrollTrust <= 0)
+        //     {
+        //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
+        //         return false;
+        //     }
+        //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
+        // }
+        // else
+        // {
+        //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
+        //     return false;
+        // }
+        // }
         else
         {
             StdError("check", "GetBlockTrust: Primary pIndexPrev is null");
@@ -1209,69 +1210,78 @@ bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrus
         return false;
     }
     return true;
-}
+} // namespace bigbang
 
-bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits)
+bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits)
 {
-    if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
+    // if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
+    if (nAlgo <= 0 || nAlgo >= CM_MAX)
     {
         return false;
     }
 
-    const CBlockIndex* pIndex = pIndexPrev;
-    while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
+    if (pIndexPrev->GetBlockHeight() == 0)
     {
-        pIndex = pIndex->pPrev;
+        nBits = objProofParam.nProofOfWorkInit.GetCompact();
+    }
+    else if ((pIndexPrev->nHeight + 1) % objProofParam.nProofOfWorkDifficultyInterval != 0)
+    {
+        nBits = pIndexPrev->nProofBits;
+    }
+    else
+    {
+        // statistic the sum of nProofOfWorkDifficultyInterval blocks time
+        const CBlockIndex* pIndexFirst = pIndexPrev;
+        for (int i = 1; i < objProofParam.nProofOfWorkDifficultyInterval && pIndexFirst; i++)
+        {
+            pIndexFirst = pIndexFirst->pPrev;
+        }
+
+        if (!pIndexFirst || pIndexFirst->GetBlockHeight() != (pIndexPrev->GetBlockHeight() - (objProofParam.nProofOfWorkDifficultyInterval - 1)))
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: first block of difficulty interval height is error");
+            return false;
+        }
+
+        if (pIndexPrev == pIndexFirst)
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: difficulty interval must be large than 1");
+            return false;
+        }
+
+        // Limit adjustment step
+        if (pIndexPrev->GetBlockTime() < pIndexFirst->GetBlockTime())
+        {
+            StdError("CCoreProtocol", "GetProofOfWorkTarget: prev block time [%ld] < first block time [%ld]", pIndexPrev->GetBlockTime(), pIndexFirst->GetBlockTime());
+            return false;
+        }
+        uint64 nActualTimespan = pIndexPrev->GetBlockTime() - pIndexFirst->GetBlockTime();
+        uint64 nTargetTimespan = (uint64)objProofParam.nProofOfWorkDifficultyInterval * BLOCK_TARGET_SPACING;
+        if (nActualTimespan < nTargetTimespan / 4)
+        {
+            nActualTimespan = nTargetTimespan / 4;
+        }
+        if (nActualTimespan > nTargetTimespan * 4)
+        {
+            nActualTimespan = nTargetTimespan * 4;
+        }
+
+        uint256 newBits;
+        newBits.SetCompact(pIndexPrev->nProofBits);
+        newBits *= nActualTimespan;
+        newBits /= uint256(nTargetTimespan);
+
+        if (newBits < objProofParam.nProofOfWorkUpperLimit)
+        {
+            newBits = objProofParam.nProofOfWorkUpperLimit;
+        }
+        if (newBits > objProofParam.nProofOfWorkLowerLimit)
+        {
+            newBits = objProofParam.nProofOfWorkLowerLimit;
+        }
+        nBits = newBits.GetCompact();
     }
 
-    // first
-    if (!pIndex->IsProofOfWork())
-    {
-        nBits = objProofParam.nProofOfWorkInit;
-        return true;
-    }
-
-    nBits = pIndex->nProofBits;
-    int64 nSpacing = 0;
-    int64 nWeight = 0;
-    int nWIndex = objProofParam.nProofOfWorkAdjustCount - 1;
-    while (pIndex->IsProofOfWork())
-    {
-        nSpacing += (pIndex->GetBlockTime() - pIndex->pPrev->GetBlockTime()) << nWIndex;
-        nWeight += (1ULL) << nWIndex;
-        if (!nWIndex--)
-        {
-            break;
-        }
-        pIndex = pIndex->pPrev;
-        while ((!pIndex->IsProofOfWork() || pIndex->nProofAlgo != nAlgo) && pIndex->pPrev != nullptr)
-        {
-            pIndex = pIndex->pPrev;
-        }
-    }
-    nSpacing /= nWeight;
-    // if (objProofParam.IsDposHeight(pIndexPrev->GetBlockHeight() + 1))
-    // {
-    //     if (nSpacing > objProofParam.nProofOfWorkUpperTargetOfDpos && nBits > objProofParam.nProofOfWorkLowerLimit)
-    //     {
-    //         nBits--;
-    //     }
-    //     else if (nSpacing < objProofParam.nProofOfWorkLowerTargetOfDpos && nBits < objProofParam.nProofOfWorkUpperLimit)
-    //     {
-    //         nBits++;
-    //     }
-    // }
-    // else
-    // {
-        if (nSpacing > objProofParam.nProofOfWorkUpperTarget && nBits > objProofParam.nProofOfWorkLowerLimit)
-        {
-            nBits--;
-        }
-        else if (nSpacing < objProofParam.nProofOfWorkLowerTarget && nBits < objProofParam.nProofOfWorkUpperLimit)
-        {
-            nBits++;
-        }
-   // }
     return true;
 }
 

@@ -248,7 +248,7 @@ public:
     uint256 nChainTrust;
     int64 nMoneySupply;
     uint8 nProofAlgo;
-    uint8 nProofBits;
+    uint32 nProofBits;
     uint32 nFile;
     uint32 nOffset;
 
