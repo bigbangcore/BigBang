@@ -258,10 +258,16 @@ bool CNetChannel::IsForkSynchronized(const uint256& hashFork) const
 void CNetChannel::BroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock)
 {
     set<uint64> setKnownPeer;
+    try
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         CSchedule& sched = GetSchedule(hashFork);
         sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+    }
+    catch (exception& e)
+    {
+        StdError("NetChannel", "BroadcastBlockInv: GetSchedule fail, error: %s", e.what());
+        return;
     }
 
     network::CEventPeerInv eventInv(0, hashFork);
@@ -1946,8 +1952,16 @@ bool CNetChannel::CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256&
 void CNetChannel::InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock)
 {
     set<uint64> setKnownPeer;
-    CSchedule& sched = GetSchedule(hashFork);
-    sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+    try
+    {
+        CSchedule& sched = GetSchedule(hashFork);
+        sched.GetKnownPeer(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
+    }
+    catch (exception& e)
+    {
+        StdError("NetChannel", "InnerBroadcastBlockInv: GetSchedule fail, error: %s", e.what());
+        return;
+    }
 
     network::CEventPeerInv eventInv(0, hashFork);
     eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
