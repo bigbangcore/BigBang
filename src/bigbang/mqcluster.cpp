@@ -334,7 +334,7 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                     setBizFork.emplace(fork);
                 }
                 arrTopic = {};
-                arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
+                arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK]; //only placeholder
                 arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
                 arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + dposNodeCliID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
                 arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];
@@ -374,9 +374,9 @@ bool CMQCluster::HandleEvent(CEventMQEnrollUpdate& eventMqUpdateEnroll)
                 setBizFork.emplace(forks[0]);
                 arrTopic = {};
                 arrTopic[TOPIC_SUFFIX_REQ_BLOCK] = prefixTopic + "+" + vecSuffixTopic[TOPIC_SUFFIX_REQ_BLOCK];
-                arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK]; //only placeholder
-                arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK];
-                arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK]; //only placeholder
+                arrTopic[TOPIC_SUFFIX_RESP_BLOCK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];        //only placeholder
+                arrTopic[TOPIC_SUFFIX_UPDATE_BLOCK] = prefixTopic + clientID + vecSuffixTopic[TOPIC_SUFFIX_UPDATE_BLOCK]; //only placeholder
+                arrTopic[TOPIC_SUFFIX_ASGN_BIZFORK] = prefixTopic + "***" + vecSuffixTopic[TOPIC_SUFFIX_ASGN_BIZFORK];    //only placeholder
             }
             condStatus.notify_all();
 

@@ -541,6 +541,38 @@ void CNetChannel::DispatchGetBizForksEvent(const vector<uint256>& bizForks)
     }
 }
 
+void CNetChannel::BroadcastBizForks(const uint32& nIP, const vector<uint256>& bizForks)
+{
+    map<uint64, pair<uint256, uint32>> mapNote;
+    for (const auto& hashFork : bizForks)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+        for (auto const& p : mapPeer)
+        {
+            if (p.second.IsSubscribed(hashFork))
+            {
+                uint64 nNonce = p.first;
+                mapNote.insert(make_pair(nNonce, make_pair(hashFork, nIP)));
+                StdLog("NetChannel", "BroadcastBizForks: peer[%s] has subscribed fork[%s]", GetPeerAddressInfo(nNonce).c_str(),
+                       hashFork.ToString().c_str());
+            }
+        }
+    }
+    StdLog("NetChannel", "BroadcastBizForks: mapNote.size()[%d] for nIP[%d]", mapNote.size(), nIP);
+    for (const auto& peer : mapNote)
+    {
+        uint64 nNonce = peer.first;
+        network::CEventPeerBizForks eventBiz(nNonce);
+        network::CBizFork& biz = eventBiz.data;
+        vector<uint32> vIP;
+        vIP.push_back(peer.second.second);
+        biz.mapFork[peer.second.first] = move(vIP);
+        pPeerNet->DispatchEvent(&eventBiz);
+        StdLog("NetChannel", "BroadcastBizForks: broadcast biz[%s]ip[%d] to peer[%s]", peer.second.first.ToString().c_str(),
+               peer.second.second, GetPeerAddressInfo(nNonce).c_str());
+    }
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
@@ -906,17 +938,17 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
 {
     uint64 nNonce = eventSubscribe.nNonce;
     uint256& hashFork = eventSubscribe.hashFork;
-    StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+    StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, mainfork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
     for (const auto& fork : eventSubscribe.data)
     {
-        StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), fork.GetHex().c_str());
+        StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, bizfork: %s", GetPeerAddressInfo(nNonce).c_str(), fork.GetHex().c_str());
     }
 
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        StdTrace("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing biz chains from a dpos node, just ignore it",
+        StdTrace("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing biz chains from a dpos node",
                  GetPeerAddressInfo(nNonce).c_str());
-        return false;
+        // return false;
     }
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
@@ -936,6 +968,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
                                  GetPeerAddressInfo(nNonce).c_str());
                         return false;
                     }
+                    StdTrace("NetChannel", "CEventPeerSubscribe: note peer[%s] as subscribed to fork[%s]",
+                             GetPeerAddressInfo(nNonce).c_str(), hash.ToString().c_str());
                     (*it).second.Subscribe(hash);
                     mapUnsync[hash].insert(nNonce);
                     vDispatchHash.push_back(hash);
@@ -973,9 +1007,9 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
 
     if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing biz chains from a dpos node, just ignore it",
+        StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing biz chains from a dpos node",
                  GetPeerAddressInfo(nNonce).c_str());
-        return true;
+        // return true;
     }
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())

@@ -2230,7 +2230,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     int nForkHeight = pService->GetForkHeight(hashParent);
     if (nForkHeight - nJointHeight < MIN_CREATE_FORK_INTERVAL_HEIGHT)
     {
-//        throw CRPCException(RPC_INVALID_PARAMETER, string("The minimum confirmed height of the previous block is: ") + std::to_string(MIN_CREATE_FORK_INTERVAL_HEIGHT));
+        //        throw CRPCException(RPC_INVALID_PARAMETER, string("The minimum confirmed height of the previous block is: ") + std::to_string(MIN_CREATE_FORK_INTERVAL_HEIGHT));
     }
 
     uint256 hashBlockRef;
@@ -2381,7 +2381,7 @@ CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
     if (err != OK)
     {
         throw CRPCException(RPC_TRANSACTION_REJECTED, string("Tx rejected : ")
-                                                      + ErrorString(err));
+                                                          + ErrorString(err));
     }
 
     return MakeCSendOfflineSignedTransactionResultPtr(rawTx.GetHash().GetHex());

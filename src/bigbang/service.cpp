@@ -682,7 +682,8 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
         StdError("CService", "SendOfflineSignedTransaction: FetchInputs fail or vUnspent"
-                             " is empty, txid: %s", tx.GetHash().GetHex().c_str());
+                             " is empty, txid: %s",
+                 tx.GetHash().GetHex().c_str());
         return FAILED;
     }
 
@@ -869,6 +870,11 @@ bool CService::AddSuperNode(const storage::CSuperNode& node)
     }
 
     pForkManager->SetForkFilter(node.vecOwnedForks);
+
+    if (0 != node.ipAddr)
+    {
+        pNetChannel->BroadcastBizForks(node.ipAddr, node.vecOwnedForks);
+    }
 
     return true;
 }

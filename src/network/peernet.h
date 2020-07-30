@@ -29,6 +29,7 @@ public:
     virtual bool IsLocalCachePowBlock(int nHeight) = 0;
     virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
     virtual void DispatchGetBizForksEvent(const std::vector<uint256>& bizForks) = 0;
+    virtual void BroadcastBizForks(const uint32& nIP, const std::vector<uint256>& bizForks) = 0;
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener

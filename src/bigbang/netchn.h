@@ -259,6 +259,7 @@ public:
     bool IsLocalCachePowBlock(int nHeight) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
     void DispatchGetBizForksEvent(const vector<uint256>& bizForks) override;
+    void BroadcastBizForks(const uint32& nIP, const vector<uint256>& bizForks) override;
 
 protected:
     enum
