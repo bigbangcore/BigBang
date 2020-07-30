@@ -1395,6 +1395,7 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
         {
             if (pIndex->GetOriginHash() != hashFork)
             {
+                StdTrace("BlockBase", "GetForkBlockInv GetOriginHash error, fork: %s", hashFork.ToString().c_str());
                 return false;
             }
             break;

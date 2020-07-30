@@ -875,12 +875,20 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
     if (eventGetBlocks.data.vBlockHash.empty())
     {
         StdError("NetChannel", "CEventPeerGetBlocks: vBlockHash is empty");
-        return false;
+        DispatchMisbehaveEvent(nNonce, CEndpointManager::DDOS_ATTACK, "CEventPeerGetBlocks vBlockHash is empty");
+        return true;
     }
     if (!pBlockChain->GetBlockInv(hashFork, eventGetBlocks.data, vBlockHash, MAX_GETBLOCKS_COUNT))
     {
         StdError("NetChannel", "CEventPeerGetBlocks: GetBlockInv fail");
-        return false;
+
+        network::CEventPeerMsgRsp eventMsgRsp(nNonce, hashFork);
+        eventMsgRsp.data.nReqMsgType = network::PROTO_CMD_GETBLOCKS;
+        eventMsgRsp.data.nReqMsgSubType = MSGRSP_SUBTYPE_NON;
+        eventMsgRsp.data.nRspResult = MSGRSP_RESULT_GETBLOCKS_EQUAL;
+
+        pPeerNet->DispatchEvent(&eventMsgRsp);
+        return true;
     }
     if (vBlockHash.empty())
     {
