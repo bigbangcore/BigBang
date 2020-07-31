@@ -553,7 +553,7 @@ void CNetChannel::BroadcastBizForks(const uint32& nIP, const vector<uint256>& bi
             {
                 uint64 nNonce = p.first;
                 mapNote.insert(make_pair(nNonce, make_pair(hashFork, nIP)));
-                StdLog("NetChannel", "BroadcastBizForks: peer[%s] has subscribed fork[%s]", GetPeerAddressInfo(nNonce).c_str(),
+                StdLog("NetChannel", "BroadcastBizForks: peer[%ld] has subscribed fork[%s]", nNonce,
                        hashFork.ToString().c_str());
             }
         }
@@ -963,13 +963,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
                 {
                     if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
                     {
-                        StdError("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing a main chain "
+                        StdError("NetChannel", "CEventPeerSubscribe: peer[%ld] is subscribing a main chain "
                                                "from a fork node, just ignore it",
-                                 GetPeerAddressInfo(nNonce).c_str());
+                                 nNonce);
                         return false;
                     }
-                    StdTrace("NetChannel", "CEventPeerSubscribe: note peer[%s] as subscribed to fork[%s]",
-                             GetPeerAddressInfo(nNonce).c_str(), hash.ToString().c_str());
+                    StdTrace("NetChannel", "CEventPeerSubscribe: note peer[%d] as subscribed to fork[%s]",
+                             nNonce, hash.ToString().c_str());
                     (*it).second.Subscribe(hash);
                     mapUnsync[hash].insert(nNonce);
                     vDispatchHash.push_back(hash);
@@ -1022,11 +1022,13 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
             {
                 if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
                 {
-                    StdError("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing a main chain "
+                    StdError("NetChannel", "CEventPeerUnsubscribe: peer[%ld] is unsubscribing a main chain "
                                            "from a fork node, just ignore it",
-                             GetPeerAddressInfo(nNonce).c_str());
+                             nNonce);
                     return false;
                 }
+                StdTrace("NetChannel", "CEventPeerUnsubscribe: note peer[%d] as unsubscribed to fork[%s]",
+                         nNonce, hash.ToString().c_str());
                 (*it).second.Unsubscribe(hash);
                 mapUnsync[hash].erase(nNonce);
             }
