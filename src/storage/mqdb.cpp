@@ -3,8 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "mqdb.h"
-#include "defs.h"
+
 #include "leveldbeng.h"
+
+#include "defs.h"
 
 using namespace std;
 using namespace xengine;
@@ -156,9 +158,35 @@ bool CSuperNodeDB::FetchSuperNode(std::vector<CSuperNode>& vCli, const uint8& ma
 
 bool CSuperNodeDB::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper)
 {
+    vector<CSuperNode> outersIn = outers;
+    vector<CSuperNode> outersPrev;
+    if (!FetchSuperNode(outersPrev, 1 << 0))
+    {
+        return false;
+    }
+    for (auto& sn : outersIn)
+    {
+        for (auto& prev : outersPrev)
+        {
+            if (sn.ipAddr == prev.ipAddr)
+            {
+                vector<uint256>& v1 = sn.vecOwnedForks;
+                vector<uint256>& v2 = prev.vecOwnedForks;
+                for (auto& f2 : v2)
+                {
+                    auto it = std::find(v1.begin(), v1.end(), f2);
+                    if (v1.end() == it)
+                    {
+                        v1.push_back(f2);
+                    }
+                }
+            }
+        }
+    }
+
     if (!fSuper)
     {
-        for (auto const& n : outers)
+        for (auto const& n : outersIn)
         {
             if (!Write(make_pair(CLIENT_ID_OUT_OF_MQ_CLUSTER, n.ipAddr), n.vecOwnedForks, true))
             {
@@ -178,7 +206,7 @@ bool CSuperNodeDB::AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSu
     {
         forknodeips.emplace_back(fn.ipAddr);
     }
-    for (auto const& n : outers)
+    for (auto const& n : outersIn)
     {
         if (forknodeips.end() == find(forknodeips.begin(), forknodeips.end(), n.ipAddr))
         {

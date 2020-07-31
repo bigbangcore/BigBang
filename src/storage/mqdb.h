@@ -91,7 +91,7 @@ public:
         {
             oss << " ownedFork=" << f.ToString() << " ";
         }
-        oss << " nodeCat=" << nodeCat << " ";
+        oss << " nodeCat=" << std::to_string(nodeCat) << " ";
         return oss.str();
     }
 

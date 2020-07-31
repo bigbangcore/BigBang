@@ -734,12 +734,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
         return false;
     }
 
-    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] node(s) all", nodes.size());
-    for (auto const& node : nodes)
-    {
-        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s]", node.ToString().c_str());
-    }
-
     //filter out dpos node itself
     for (auto it = nodes.begin(); it != nodes.end(); ++it)
     {
@@ -750,11 +744,21 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
         }
     }
 
-    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] node(s) without dpos node", nodes.size());
+    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] biz fork node(s) all", nodes.size());
+    for (auto const& node : nodes)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s]", node.ToString().c_str());
+    }
+
+    if (nodes.empty())
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: there has been no biz fork till now.");
+        return true;
+    }
+
     storage::CForkKnownIPSet setForkIp;
     for (auto const& node : nodes)
     {
-        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s] w/o dpos node", node.ToString().c_str());
         for (auto const& fork : node.vecOwnedForks)
         {
             setForkIp.emplace(storage::CForkKnownIP(fork, node.ipAddr));
@@ -762,7 +766,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
     }
 
     if (bizForks.empty())
-    { //fetch all to acquiring peer of dpos node
+    { //fetch all to acquiring peer of dpos/bbc node
         map<uint256, vector<uint32>> mapForkIps;
         const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
         for (auto const& it : idxForkID)
@@ -782,13 +786,6 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
             {
                 StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
             }
-        }
-
-        if (mapForkIps.empty())
-        {
-            StdLog("NetChannel", "CEventPeerGetBizForks: there is no matched biz fork to feedback, "
-                                 "so bypass bizforks to peer of dpos node");
-            return true;
         }
 
         network::CEventPeerBizForks eventFork(nNonce);
