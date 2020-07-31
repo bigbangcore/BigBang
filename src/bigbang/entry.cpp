@@ -186,7 +186,9 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         StdLog("Bigbang", "Check and repair data complete.");
     }
 
+#ifndef _WIN32
     StdLog("Bigbang", "malloc_trim: %d.", malloc_trim(0));
+#endif
 
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
