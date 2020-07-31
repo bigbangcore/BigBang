@@ -4,6 +4,9 @@
 
 #include "entry.h"
 
+#if !defined(WIN32) && !defined(__APPLE__)
+#include <malloc.h>
+#endif
 #include <map>
 #include <string>
 
@@ -13,6 +16,9 @@
 #include "consensus.h"
 #include "core.h"
 #include "datastat.h"
+#include "dbpclient.h"
+#include "dbpserver.h"
+#include "dbpservice.h"
 #include "defs.h"
 #include "delegatedchn.h"
 #include "dispatcher.h"
@@ -21,16 +27,13 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
-#include "dbpclient.h"
-#include "dbpserver.h"
-#include "dbpservice.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -187,6 +190,10 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         }
         StdLog("Bigbang", "Check and repair data complete.");
     }
+
+#if !defined(WIN32) && !defined(__APPLE__)
+    StdLog("Bigbang", "malloc_trim: %d.", malloc_trim(0));
+#endif
 
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
@@ -420,14 +427,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::DBPCLIENT:
         {
-            if(!AttachModule(new CBbDbpClient()))
+            if (!AttachModule(new CBbDbpClient()))
             {
                 return false;
             }
             break;
         }
         case EModuleType::DBPSERVICE:
-        {   
+        {
             auto pBase = docker.GetObject("dbpserver");
             if (!pBase)
             {
@@ -436,7 +443,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             dynamic_cast<CDbpServer*>(pBase)->AddNewHost(GetDbpHostConfig());
 
             auto pClientBase = docker.GetObject("dbpclient");
-            if(!pClientBase)
+            if (!pClientBase)
             {
                 return false;
             }
@@ -476,7 +483,7 @@ CHttpHostConfig CBbEntry::GetRPCHostConfig()
 
 CDbpHostConfig CBbEntry::GetDbpHostConfig()
 {
-    
+
     const CBbDbpServerConfig* pConfig = CastConfigPtr<CBbDbpServerConfig*>(config.GetConfig());
     CIOSSLOption sslDbp(pConfig->fDbpSSLEnable, pConfig->fDbpSSLVerify,
                         pConfig->strDbpCAFile, pConfig->strDbpCertFile,
@@ -493,12 +500,12 @@ CDbpHostConfig CBbEntry::GetDbpHostConfig()
 
 CDbpClientConfig CBbEntry::GetDbpClientConfig()
 {
-    const CBbDbpClientConfig* pConfig =  CastConfigPtr<CBbDbpClientConfig*>(config.GetConfig());
+    const CBbDbpClientConfig* pConfig = CastConfigPtr<CBbDbpClientConfig*>(config.GetConfig());
     CIOSSLOption sslDbp(pConfig->fDbpSSLEnable, pConfig->fDbpSSLVerify,
                         pConfig->strDbpCAFile, pConfig->strDbpCertFile,
                         pConfig->strDbpPKFile, pConfig->strDbpCiphers);
-    
-    return CDbpClientConfig(pConfig->epParentHost,pConfig->strSupportForks,sslDbp,"dbpservice");
+
+    return CDbpClientConfig(pConfig->epParentHost, pConfig->strSupportForks, sslDbp, "dbpservice");
 }
 
 void CBbEntry::PurgeStorage()
