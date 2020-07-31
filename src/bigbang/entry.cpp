@@ -4,7 +4,9 @@
 
 #include "entry.h"
 
+#if !defined(WIN32) && !defined(__APPLE__)
 #include <malloc.h>
+#endif
 #include <map>
 #include <string>
 
@@ -186,7 +188,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         StdLog("Bigbang", "Check and repair data complete.");
     }
 
-#ifndef _WIN32
+#if !defined(WIN32) && !defined(__APPLE__)
     StdLog("Bigbang", "malloc_trim: %d.", malloc_trim(0));
 #endif
 
