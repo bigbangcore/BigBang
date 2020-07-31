@@ -105,7 +105,6 @@ bool CDispatcher::HandleInitialize()
         Error("Failed to request datastat");
         return false;
     }
-    strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
     return true;
 }
 
@@ -139,7 +138,7 @@ bool CDispatcher::HandleInvoke()
     }
 
     CDelegateRoutine routine;
-   // int nStartHeight = 0;
+    // int nStartHeight = 0;
     // if (pConsensus->LoadConsensusData(nStartHeight, routine) && !routine.vEnrolledWeight.empty())
     // {
     //     pDelegatedChannel->PrimaryUpdate(nStartHeight - 1,
@@ -327,20 +326,7 @@ void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
 
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
-    if (!strCmd.empty())
-    {
-        std::string cmd = strCmd;
-        std::string block_hash = " " + updateBlockChain.hashFork.GetHex();
-        for (auto ite = updateBlockChain.vBlockAddNew.rbegin(); ite != updateBlockChain.vBlockAddNew.rend(); ++ite)
-        {
-            block_hash += " " + ite->GetHash().GetHex();
-        }
-        cmd += block_hash;
-        static std::future<int> fut;
-        fut = std::async(std::launch::async, [cmd]() { return ::system(cmd.c_str()); });
-    }
-
-    CDelegateRoutine routineDelegate;
+    //CDelegateRoutine routineDelegate;
     //pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
 
     // pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),

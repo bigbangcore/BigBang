@@ -1169,7 +1169,8 @@ bool CBlockBase::LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint
         StdTrace("BlockBase", "LoadTx::Read %s block failed", tx.GetHash().ToString().c_str());
         return false;
     }
-    CBlockIndex* pIndex = (tx.hashAnchor != 0 ? GetIndex(tx.hashAnchor) : GetOriginIndex(tx.GetHash()));
+    //CBlockIndex* pIndex = (tx.hashAnchor != 0 ? GetIndex(tx.hashAnchor) : GetOriginIndex(tx.GetHash()));
+    CBlockIndex* pIndex = GetOriginIndex(tx.GetHash());
     if (pIndex == nullptr)
     {
         return false;
@@ -1599,6 +1600,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                         }
                     }
 
+                    /*
                     if (tx.nType == CTransaction::TX_CERT)
                     {
                         const uint256& anchor = tx.hashAnchor;
@@ -1614,7 +1616,7 @@ bool CBlockBase::CheckConsistency(int nCheckLevel, int nCheckDepth)
                         const uint32& nFile = txIdx.nFile;
                         const uint32& nOffset = txIdx.nOffset;
                         mapEnrollRanged[make_pair(anchor, dest)] = make_tuple(blk, nFile, nOffset);
-                    }
+                    }*/
                 }
 
                 vector<CDestination> vDestNull;

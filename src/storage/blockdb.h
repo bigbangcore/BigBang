@@ -57,7 +57,7 @@ protected:
     CBlockIndexDB dbBlockIndex;
     CTxIndexDB dbTxIndex;
     CUnspentDB dbUnspent;
-    CDelegateDB dbDelegate;
+    //CDelegateDB dbDelegate;
 };
 
 } // namespace storage

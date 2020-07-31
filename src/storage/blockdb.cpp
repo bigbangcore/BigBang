@@ -46,17 +46,18 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData)
         return false;
     }
 
+    /*
     if (!dbDelegate.Initialize(pathData))
     {
         return false;
-    }
+    }*/
 
     return LoadFork();
 }
 
 void CBlockDB::Deinitialize()
 {
-    dbDelegate.Deinitialize();
+    //dbDelegate.Deinitialize();
     dbUnspent.Deinitialize();
     dbTxIndex.Deinitialize();
     dbBlockIndex.Deinitialize();
@@ -65,7 +66,7 @@ void CBlockDB::Deinitialize()
 
 bool CBlockDB::RemoveAll()
 {
-    dbDelegate.Clear();
+    //dbDelegate.Clear();
     dbUnspent.Clear();
     dbTxIndex.Clear();
     dbBlockIndex.Clear();
@@ -180,7 +181,7 @@ bool CBlockDB::RemoveBlock(const uint256& hash)
 
 bool CBlockDB::UpdateDelegateContext(const uint256& hash, const CDelegateContext& ctxtDelegate)
 {
-    return dbDelegate.AddNew(hash, ctxtDelegate);
+    return true; // dbDelegate.AddNew(hash, ctxtDelegate);
 }
 
 bool CBlockDB::WalkThroughBlock(CBlockDBWalker& walker)
@@ -212,18 +213,18 @@ bool CBlockDB::WalkThroughUnspent(const uint256& hashFork, CForkUnspentDBWalker&
 
 bool CBlockDB::RetrieveDelegate(const uint256& hash, map<CDestination, int64>& mapDelegate)
 {
-    return dbDelegate.RetrieveDelegatedVote(hash, mapDelegate);
+    return true; //dbDelegate.RetrieveDelegatedVote(hash, mapDelegate);
 }
 
 bool CBlockDB::RetrieveEnroll(const uint256& hash, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos)
 {
-    return dbDelegate.RetrieveDelegatedEnrollTx(hash, mapEnrollTxPos);
+    return true; //dbDelegate.RetrieveDelegatedEnrollTx(hash, mapEnrollTxPos);
 }
 
 bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,
                               map<CDestination, CDiskPos>& mapEnrollTxPos)
 {
-    return dbDelegate.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos);
+    return true; //dbDelegate.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos);
 }
 
 bool CBlockDB::LoadFork()

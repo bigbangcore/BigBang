@@ -22,36 +22,10 @@ static const int64 MAX_CLOCK_DRIFT = 80;
 
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
-#ifdef BIGBANG_TESTNET
 static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
-#else
-static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
-#endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
-// static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
-// static const int PROOF_OF_WORK_ADJUST_DEBOUNCE = 15;
-// static const int PROOF_OF_WORK_TARGET_SPACING = 45; // BLOCK_TARGET_SPACING;
-// static const int PROOF_OF_WORK_TARGET_OF_DPOS_UPPER = 65;
-// static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
-static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET = 10000;
-static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET = 3;
-
-static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
-#ifdef BIGBANG_TESTNET
-static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
-#else
-static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000 * COIN;
-#endif
-static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
-static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
-static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
-
-// dpos begin height
-#ifdef BIGBANG_TESTNET
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
-#else
-static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
-#endif
+static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET = 30;
+static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET = 30;
 
 #ifdef BIGBANG_TESTNET
 static const int64 BBCP_TOKEN_INIT = 300000000;
@@ -59,57 +33,9 @@ static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
 #else
 static const int64 BBCP_TOKEN_INIT = 0;
-static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 20;
+static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 50;
 
-#define BBCP_TOKEN_SET_COUNT 16
-static const int64 BBCP_END_HEIGHT[BBCP_TOKEN_SET_COUNT] = {
-    //CPOW
-    43200,
-    86400,
-    129600,
-    172800,
-    216000,
-    //CPOW+EDPOS
-    432000,
-    648000,
-    864000,
-    1080000,
-    1296000,
-    1512000,
-    1728000,
-    1944000,
-    2160000,
-    2376000,
-    2592000
-};
-static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
-    //CPOW
-    1153,
-    1043,
-    933,
-    823,
-    713,
-    //CPOW+EDPOS
-    603,
-    550,
-    497,
-    444,
-    391,
-    338,
-    285,
-    232,
-    179,
-    126,
-    73
-};
-static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
-#endif
-
-// Fix mpvss bug begin height
-#ifdef BIGBANG_TESTNET
-static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
-#else
-static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 340935;
+static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_YEAR_INC_REWARD_TOKEN;
 #endif
 
 namespace bigbang
@@ -125,10 +51,6 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkUpperLimit.SetCompact(nProofOfWorkUpperLimit.GetCompact());
     nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_MAINNET);
     nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET;
-    // nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    // nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    // nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
-    // nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     pBlockChain = nullptr;
 }
 
@@ -190,15 +112,15 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nType = CTransaction::TX_GENESIS;
     tx.nTimeStamp = block.nTimeStamp;
     tx.sendTo = destOwner;
-    tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
+    tx.nAmount = BBCP_INIT_REWARD_TOKEN * COIN;
 
     CProfile profile;
-    profile.strName = "BigBang Core";
-    profile.strSymbol = "BBC";
+    profile.strName = "Market Finance";
+    profile.strSymbol = "MKF";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = OLD_MIN_TX_FEE;
+    profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
@@ -263,26 +185,13 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
     }
 
-    // if (IsDposHeight(nHeight))
-    // {
-    //     if (!MoneyRange(tx.nTxFee)
-    //         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
-    //         || (tx.nType == CTransaction::TX_TOKEN
-    //             && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
-    //     {
-    //         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
-    //     }
-    // }
-    //else
-    // {
     if (!MoneyRange(tx.nTxFee)
         || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
         || (tx.nType == CTransaction::TX_TOKEN
-            && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+            && (tx.nTxFee < CalcMinTxFee(tx, MIN_TX_FEE))))
     {
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
     }
-    //}
 
     if (nHeight != 0 /*&& !IsDposHeight(nHeight)*/)
     {
@@ -658,7 +567,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
 
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
     }
@@ -737,7 +646,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
     }
 
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
     }
@@ -955,12 +864,21 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 
         uint256 newBits;
         newBits.SetCompact(pIndexPrev->nProofBits);
-        // StdLog("CCoreProtocol", "newBits: %s", newBits.ToString().c_str());
-        newBits *= nActualTimespan;
         // StdLog("CCoreProtocol", "newBits *= nActualTimespan, newBits: %s, nActualTimespan: %lu", newBits.ToString().c_str(), nActualTimespan);
-        newBits /= uint256(nTargetTimespan);
+        //newBits /= uint256(nTargetTimespan);
+        // StdLog("CCoreProtocol", "newBits: %s", newBits.ToString().c_str());
+        //newBits *= nActualTimespan;
         // StdLog("CCoreProtocol", "newBits /= nTargetTimespan, newBits: %s, nTargetTimespan: %lu", newBits.ToString().c_str(), nTargetTimespan);
-
+        if (newBits >= uint256(nTargetTimespan))
+        {
+            newBits /= uint256(nTargetTimespan);
+            newBits *= nActualTimespan;
+        }
+        else
+        {
+            newBits *= nActualTimespan;
+            newBits /= uint256(nTargetTimespan);
+        }
         if (newBits < nProofOfWorkUpperLimit)
         {
             newBits = nProofOfWorkUpperLimit;
@@ -976,109 +894,24 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     return true;
 }
 
-// bool CCoreProtocol::IsDposHeight(int height)
-// {
-//     if (height < DELEGATE_PROOF_OF_STAKE_HEIGHT)
-//     {
-//         return false;
-//     }
-//     return true;
-// }
-
 bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
 {
-    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+    return true;
 }
 
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-#ifdef BIGBANG_TESTNET
-    return BBCP_BASE_REWARD_TOKEN * COIN;
-#else
-    int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
-    for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
-    {
-        if (nBlockHeight <= BBCP_END_HEIGHT[i])
-        {
-            return BBCP_REWARD_TOKEN[i] * COIN;
-        }
-    }
-    return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-#endif
+    return BBCP_INIT_REWARD_TOKEN * COIN;
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t>& mapBallot,
                                        const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollTrust, int nBlockHeight)
 {
-    vBallot.clear();
-    if (nAgreement == 0 || mapBallot.size() == 0)
-    {
-        StdTrace("Core", "Get delegated ballot: height: %d, nAgreement: %s, mapBallot.size: %ld", nBlockHeight, nAgreement.GetHex().c_str(), mapBallot.size());
-        return;
-    }
-    if (nMoneySupply < 0)
-    {
-        StdTrace("Core", "Get delegated ballot: nMoneySupply < 0");
-        return;
-    }
-    if (vecAmount.size() != mapBallot.size())
-    {
-        StdError("Core", "Get delegated ballot: dest ballot size %llu is not equal amount size %llu", mapBallot.size(), vecAmount.size());
-    }
-
-    int nSelected = 0;
-    for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
-    {
-        nSelected ^= *p;
-    }
-
-    map<CDestination, size_t> mapSelectBallot;
-    size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
-    size_t nEnrollWeight = 0;
-    nEnrollTrust = 0;
-    for (auto& amount : vecAmount)
-    {
-        StdTrace("Core", "Get delegated ballot: height: %d, vote dest: %s, amount: %lld",
-                 nBlockHeight, CAddress(amount.first).ToString().c_str(), amount.second);
-        if (mapBallot.find(amount.first) != mapBallot.end())
-        {
-            size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
-            mapSelectBallot[amount.first] = nDestWeight;
-            nEnrollWeight += nDestWeight;
-            nEnrollTrust += (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT));
-            StdTrace("Core", "Get delegated ballot: height: %d, ballot dest: %s, weight: %lld",
-                     nBlockHeight, CAddress(amount.first).ToString().c_str(), nDestWeight);
-        }
-    }
-    nEnrollTrust /= DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
-    StdTrace("Core", "Get delegated ballot: trust height: %d, ballot dest count is %llu, enroll trust: %llu", nBlockHeight, mapSelectBallot.size(), nEnrollTrust);
-
-    size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
-                         / (nMaxWeight * nMaxWeight);
-    StdTrace("Core", "Get delegated ballot: weight height: %d, nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
-             nBlockHeight, nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
-    if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
-    {
-        size_t total = nEnrollWeight;
-        size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
-        for (map<CDestination, size_t>::const_iterator it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
-        {
-            if (n < it->second)
-            {
-                vBallot.push_back(it->first);
-                break;
-            }
-            n -= (*it).second;
-        }
-    }
-
-    StdTrace("Core", "Get delegated ballot: height: %d, consensus: %s, ballot dest: %s",
-             nBlockHeight, (vBallot.size() > 0 ? "dpos" : "pow"), (vBallot.size() > 0 ? CAddress(vBallot[0]).ToString().c_str() : ""));
 }
 
 int64 CCoreProtocol::MinEnrollAmount()
 {
-    return DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
+    return 0;
 }
 
 uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
@@ -1244,15 +1077,15 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nType = CTransaction::TX_GENESIS;
     tx.nTimeStamp = block.nTimeStamp;
     tx.sendTo = destOwner;
-    tx.nAmount = BBCP_TOKEN_INIT * COIN; // initial number of token
+    tx.nAmount = BBCP_INIT_REWARD_TOKEN * COIN; // initial number of token
 
     CProfile profile;
-    profile.strName = "BigBang Core Test";
-    profile.strSymbol = "BBCTest";
+    profile.strName = "Market Finance Test";
+    profile.strSymbol = "MKFTest";
     profile.destOwner = destOwner;
     profile.nAmount = tx.nAmount;
     profile.nMintReward = BBCP_INIT_REWARD_TOKEN * COIN;
-    profile.nMinTxFee = OLD_MIN_TX_FEE;
+    profile.nMinTxFee = MIN_TX_FEE;
     profile.nHalveCycle = 0;
     profile.SetFlag(true, false, false);
 
@@ -1268,10 +1101,6 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nProofOfWorkLowerLimit.SetCompact(nProofOfWorkLowerLimit.GetCompact());
     nProofOfWorkUpperLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_UPPER_LIMIT);
     nProofOfWorkUpperLimit.SetCompact(nProofOfWorkUpperLimit.GetCompact());
-    // nProofOfWorkUpperTarget = PROOF_OF_WORK_TARGET_SPACING + PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    // nProofOfWorkLowerTarget = PROOF_OF_WORK_TARGET_SPACING - PROOF_OF_WORK_ADJUST_DEBOUNCE;
-    // nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
-    // nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     if (fTestnet)
     {
         nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_TESTNET);
@@ -1282,24 +1111,16 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
         nProofOfWorkInit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_INIT_MAINNET);
         nProofOfWorkDifficultyInterval = PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET;
     }
-    // nProofOfWorkAdjustCount = PROOF_OF_WORK_ADJUST_COUNT;
-    nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
-    nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
-    nDelegateProofOfStakeHeight = DELEGATE_PROOF_OF_STAKE_HEIGHT;
 }
 
 bool CProofOfWorkParam::IsDposHeight(int height)
 {
-    if (height < nDelegateProofOfStakeHeight)
-    {
-        return false;
-    }
-    return true;
+    return false;
 }
 
 bool CProofOfWorkParam::DPoSConsensusCheckRepeated(int height)
 {
-    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+    return true;
 }
 
 } // namespace bigbang

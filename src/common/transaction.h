@@ -96,7 +96,7 @@ public:
     uint16 nType;
     uint32 nTimeStamp;
     uint32 nLockUntil;
-    uint256 hashAnchor;
+    //uint256 hashAnchor;
     std::vector<CTxIn> vInput;
     CDestination sendTo;
     int64 nAmount;
@@ -122,7 +122,7 @@ public:
         nType = 0;
         nTimeStamp = 0;
         nLockUntil = 0;
-        hashAnchor = 0;
+        //hashAnchor = 0;
         vInput.clear();
         sendTo.SetNull();
         nAmount = 0;
@@ -168,7 +168,7 @@ public:
     uint256 GetSignatureHash() const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << nLockUntil << hashAnchor << vInput << sendTo << nAmount << nTxFee << vchData;
+        ss << nVersion << nType << nTimeStamp << nLockUntil /*<< hashAnchor*/ << vInput << sendTo << nAmount << nTxFee << vchData;
         return bigbang::crypto::CryptoHash(ss.GetData(), ss.GetSize());
     }
 
@@ -195,7 +195,7 @@ public:
     }
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
-        return (a.nVersion == b.nVersion && a.nType == b.nType && a.nTimeStamp == b.nTimeStamp && a.nLockUntil == b.nLockUntil && a.hashAnchor == b.hashAnchor && a.vInput == b.vInput && a.sendTo == b.sendTo && a.nAmount == b.nAmount && a.nTxFee == b.nTxFee && a.vchData == b.vchData && a.vchSig == b.vchSig);
+        return (a.nVersion == b.nVersion && a.nType == b.nType && a.nTimeStamp == b.nTimeStamp && a.nLockUntil == b.nLockUntil /*&& a.hashAnchor == b.hashAnchor*/ && a.vInput == b.vInput && a.sendTo == b.sendTo && a.nAmount == b.nAmount && a.nTxFee == b.nTxFee && a.vchData == b.vchData && a.vchSig == b.vchSig);
     }
     friend bool operator!=(const CTransaction& a, const CTransaction& b)
     {
@@ -210,7 +210,7 @@ protected:
         s.Serialize(nType, opt);
         s.Serialize(nTimeStamp, opt);
         s.Serialize(nLockUntil, opt);
-        s.Serialize(hashAnchor, opt);
+        //s.Serialize(hashAnchor, opt);
         s.Serialize(vInput, opt);
         s.Serialize(sendTo, opt);
         s.Serialize(nAmount, opt);

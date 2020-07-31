@@ -9,8 +9,7 @@
 
 static const int64 COIN = 1000000;
 static const int64 CENT = 10000;
-static const int64 OLD_MIN_TX_FEE = CENT / 100;
-static const int64 NEW_MIN_TX_FEE = CENT;
+static const int64 MIN_TX_FEE = CENT;
 static const int64 MAX_MONEY = 1000000000000 * COIN;
 inline bool MoneyRange(int64 nValue)
 {

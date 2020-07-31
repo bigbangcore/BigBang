@@ -46,7 +46,6 @@ protected:
     network::INetChannel* pNetChannel;
     network::IDelegatedChannel* pDelegatedChannel;
     IDataStat* pDataStat;
-    std::string strCmd;
 };
 
 } // namespace bigbang

@@ -4,7 +4,6 @@
 
 #include "service.h"
 
-#include "defs.h"
 #include "event.h"
 #include "template/delegate.h"
 
@@ -332,9 +331,9 @@ bool CService::GetTransaction(const uint256& txid, CTransaction& tx, uint256& ha
     if (pTxPool->Get(txid, txTemp))
     {
         int nAnchorHeight;
-        if (!pBlockChain->GetBlockLocation(txTemp.hashAnchor, hashFork, nAnchorHeight))
+        if (!pBlockChain->GetBlockLocation(/*txTemp.hashAnchor*/ pCoreProtocol->GetGenesisBlockHash(), hashFork, nAnchorHeight))
         {
-            StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), txTemp.hashAnchor.GetHex().c_str());
+            //StdLog("CService", "GetTransaction: BlockChain GetBlockLocation fail, txid: %s, hashAnchor: %s", txid.GetHex().c_str(), txTemp.hashAnchor.GetHex().c_str());
             return false;
         }
         tx = txTemp;
@@ -544,22 +543,15 @@ bool CService::SignSignature(const crypto::CPubKey& pubkey, const uint256& hash,
 
 bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToData, bool& fCompleted)
 {
-    uint256 hashFork;
-    int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
-    {
-        StdError("CService", "SignTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
-        return false;
-    }
     vector<CTxOut> vUnspent;
-    if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
+    if (!pTxPool->FetchInputs(pCoreProtocol->GetGenesisBlockHash(), tx, vUnspent) || vUnspent.empty())
     {
         StdError("CService", "SignTransaction: FetchInputs fail or vUnspent is empty, txid: %s", tx.GetHash().GetHex().c_str());
         return false;
     }
 
     const CDestination& destIn = vUnspent[0].destTo;
-    int32 nForkHeight = GetForkHeight(hashFork);
+    int32 nForkHeight = GetForkHeight(pCoreProtocol->GetGenesisBlockHash());
     if (!pWallet->SignTransaction(destIn, tx, vchSendToData, nForkHeight, fCompleted))
     {
         StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
@@ -568,7 +560,7 @@ bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToD
 
     if (!fCompleted
         || (pCoreProtocol->ValidateTransaction(tx, nForkHeight) == OK
-            && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork) == OK))
+            && pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, pCoreProtocol->GetGenesisBlockHash()) == OK))
     {
         return true;
     }
@@ -634,7 +626,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
             return std::string("find fork fail, fork: ") + hashFork.GetHex();
         }
         nForkHeight = it->second.nLastBlockHeight;
-        txNew.hashAnchor = hashFork;
+        //txNew.hashAnchor = hashFork;
     }
     txNew.nType = CTransaction::TX_TOKEN;
     txNew.nTimeStamp = GetNetTime();
@@ -661,9 +653,9 @@ bool CService::SignOfflineTransaction(const CDestination& destIn, CTransaction& 
 {
     uint256 hashFork;
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(/*tx.hashAnchor*/ pCoreProtocol->GetGenesisBlockHash(), hashFork, nHeight))
     {
-        StdError("CService", "SignOfflineTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+        //StdError("CService", "SignOfflineTransaction: GetBlockLocation fail, txid: %s, hashAnchor: %s", tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return false;
     }
 
@@ -681,11 +673,11 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
 {
     uint256 hashFork;
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(pCoreProtocol->GetGenesisBlockHash() /*tx.hashAnchor*/, hashFork, nHeight))
     {
-        StdError("CService", "SendOfflineSignedTransaction: GetBlockLocation fail,"
-                             " txid: %s, hashAnchor: %s",
-                 tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+        //StdError("CService", "SendOfflineSignedTransaction: GetBlockLocation fail,"
+        //                     " txid: %s, hashAnchor: %s",
+        //         tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return FAILED;
     }
     vector<CTxOut> vUnspent;
@@ -806,7 +798,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
     txMint.nTimeStamp = block.nTimeStamp;
-    txMint.hashAnchor = block.hashPrev;
+    //txMint.hashAnchor = block.hashPrev;
     txMint.sendTo = CDestination(templMint->GetTemplateId());
     txMint.nAmount = nReward;
 
@@ -844,7 +836,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     // }
 
     err = pDispatcher->AddNewBlock(block);
-    if(err != OK)
+    if (err != OK)
     {
         StdError("CService", "AddNewBlock: Dispatch::AddNewBlock fail");
         return err;

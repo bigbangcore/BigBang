@@ -1001,6 +1001,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
+    /*
     if (block.IsPrimary() && !objDelegateDB.CheckDelegate(hashBlock))
     {
         StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
@@ -1012,7 +1013,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
                 return false;
             }
         }
-    }
+    }*/
 
     CBlockIndex* pNewBlockIndex = nullptr;
     CBlockOutline* pBlockOutline = objBlockIndexWalker.GetBlockOutline(hashBlock);
@@ -1333,6 +1334,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
 
 bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled)
 {
+    /*
     enrolled.Clear();
     if (pIndex == nullptr)
     {
@@ -1362,7 +1364,7 @@ bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBloc
     {
         StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
         return false;
-    }
+    }*/
     return true;
 }
 

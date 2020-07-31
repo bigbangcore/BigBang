@@ -450,7 +450,7 @@ bool CNetChannel::IsLocalCachePowBlock(int nHeight)
         StdError("NetChannel", "IsLocalCachePowBlock: GetSchedule fail, height: %d, error: %s", nHeight, e.what());
         return false;
     }
-   // InnerSubmitCachePowBlock();
+    // InnerSubmitCachePowBlock();
     return ret;
 }
 
@@ -488,7 +488,7 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     }
     if (ret)
     {
-       // InnerSubmitCachePowBlock();
+        // InnerSubmitCachePowBlock();
     }
     return ret;
 }
@@ -923,7 +923,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
 
         uint256 hashForkAnchor;
         int nHeightAnchor;
-        if (pBlockChain->GetBlockLocation(tx.hashAnchor, hashForkAnchor, nHeightAnchor)
+        if (pBlockChain->GetBlockLocation(/*tx.hashAnchor*/ pCoreProtocol->GetGenesisBlockHash(), hashForkAnchor, nHeightAnchor)
             && hashForkAnchor == hashFork)
         {
             AddNewTx(hashFork, txid, sched, setSchedPeer, setMisbehavePeer);
@@ -931,7 +931,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         else
         {
             StdLog("NetChannel", "CEventPeerTx: GetBlockLocation fail, txid: %s, hashAnchor: %s",
-                   txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+                   txid.GetHex().c_str(), /*tx.hashAnchor*/ pCoreProtocol->GetGenesisBlockHash().GetHex().c_str());
             sched.InvalidateTx(txid, setMisbehavePeer);
         }
         PostAddNew(hashFork, setSchedPeer, setMisbehavePeer);
@@ -1439,7 +1439,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                 }
             }
 
-            if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
+            /*if ((fCheckPow || hash != hashBlock) && pBlock->IsPrimary() && pBlock->IsProofOfWork())
             {
                 bool fAddBlock = false;
                 bool fVerifyPowBlock = false;
@@ -1513,7 +1513,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
                              GetPeerAddressInfo(nNonceSender).c_str(), CBlock::GetBlockHeightByHash(hashBlock), hashBlock.GetHex().c_str());
                     continue;
                 }
-            }
+            }*/
 
             Errno err = pDispatcher->AddNewBlock(*pBlock, nNonceSender);
             if (err == OK)

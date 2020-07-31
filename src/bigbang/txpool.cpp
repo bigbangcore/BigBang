@@ -337,26 +337,9 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
         {
             return false;
         }
-
-       // if (!fIsDposHeight)
-        //{
-            vtx.push_back(*static_cast<CTransaction*>(ptx));
-            nTotalSize += ptx->nSerializeSize;
-            nTotalTxFee += ptx->nTxFee;
-        //}
-        // else
-        // {
-        //     if (ptx->nType == CTransaction::TX_CERT || ptx->nTxFee >= CalcMinTxFee(ptx->vchData.size(), NEW_MIN_TX_FEE))
-        //     {
-        //         vtx.push_back(*static_cast<CTransaction*>(ptx));
-        //         nTotalSize += ptx->nSerializeSize;
-        //         nTotalTxFee += ptx->nTxFee;
-        //     }
-        //     else
-        //     {
-        //         setUnTx.insert(ptx->GetHash());
-        //     }
-        // }
+        vtx.push_back(*static_cast<CTransaction*>(ptx));
+        nTotalSize += ptx->nSerializeSize;
+        nTotalTxFee += ptx->nTxFee;
     }
     else
     {
@@ -599,10 +582,10 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
     }
 
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(pCoreProtocol->GetGenesisBlockHash(), hashFork, nHeight))
     {
-        StdError("CTxPool", "Push: GetBlockLocation fail, txid: %s, hashAnchor: %s",
-                 txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
+        //StdError("CTxPool", "Push: GetBlockLocation fail, txid: %s, hashAnchor: %s",
+        //         txid.GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
@@ -837,26 +820,26 @@ void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const ui
     map<CDestination, int> mapVoteCert;
     std::map<CDestination, int64> mapVote;
     int64 nMinEnrollAmount = 0;
-   // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+    // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     //{
-        // if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
-        // {
-        //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
-        //     return;
-        // }
+    // if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
+    // {
+    //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
+    //     return;
+    // }
 
-        // if (!pBlockChain->GetBlockDelegateVote(hashBlock, mapVote))
-        // {
-        //     StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
-        //     return;
-        // }
+    // if (!pBlockChain->GetBlockDelegateVote(hashBlock, mapVote))
+    // {
+    //     StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
+    //     return;
+    // }
 
-        // nMinEnrollAmount = pBlockChain->GetDelegateMinEnrollAmount(hashBlock);
-        // if (nMinEnrollAmount < 0)
-        // {
-        //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateMinEnrollAmount fail");
-        //     return;
-        // }
+    // nMinEnrollAmount = pBlockChain->GetDelegateMinEnrollAmount(hashBlock);
+    // if (nMinEnrollAmount < 0)
+    // {
+    //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateMinEnrollAmount fail");
+    //     return;
+    // }
     //}
 
     mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount, false);
@@ -1205,10 +1188,10 @@ void CTxPool::RemoveTx(const uint256& txid)
         return;
     }
 
-    CPooledTx& tx = (*it).second;
+    //CPooledTx& tx = (*it).second;
     uint256 hashFork;
     int nHeight;
-    if (!pBlockChain->GetBlockLocation(tx.hashAnchor, hashFork, nHeight))
+    if (!pBlockChain->GetBlockLocation(/*tx.hashAnchor*/ pCoreProtocol->GetGenesisBlockHash(), hashFork, nHeight))
     {
         StdError("CTxPool", "RemoveTx: GetBlockLocation fail, txid: %s", txid.GetHex().c_str());
         return;
