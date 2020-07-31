@@ -21,13 +21,13 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
-#include "recovery.h"
 
 #ifdef WIN32
 #ifdef _MSC_VER
@@ -184,6 +184,8 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         }
         StdLog("Bigbang", "Check and repair data complete.");
     }
+
+    StdLog("Bigbang", "malloc_trim: %d.", malloc_trim(0));
 
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
