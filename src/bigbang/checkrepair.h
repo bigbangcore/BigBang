@@ -414,14 +414,6 @@ public:
 
     bool Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset) override;
 
-    bool GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0);
-    bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits);
-    bool GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust);
-    bool GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled);
-    bool RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange, int64 nMinEnrollAmount,
-                               map<CDestination, size_t>& mapWeight, map<CDestination, vector<unsigned char>>& mapEnrollData,
-                               vector<pair<CDestination, int64>>& vecAmount);
-
     bool UpdateBlockNext();
     bool UpdateBlockTx(CCheckForkManager& objForkMn);
     bool AddBlockTx(const CTransaction& txIn, const CTxContxt& contxtIn, int nHeight, const uint256& hashAtForkIn, uint32 nFileNoIn, uint32 nOffsetIn, const vector<uint256>& vFork);
@@ -444,7 +436,6 @@ public:
     map<uint256, CBlockIndex*> mapBlockIndex;
     CBlockIndexDB dbBlockIndex;
     CCheckBlockIndexWalker objBlockIndexWalker;
-    CCheckDelegateDB objDelegateDB;
     CCheckTsBlock objTsBlock;
 };
 

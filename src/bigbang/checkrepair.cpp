@@ -941,12 +941,6 @@ CCheckBlockWalker::~CCheckBlockWalker()
 
 bool CCheckBlockWalker::Initialize(const string& strPath)
 {
-    if (!objDelegateDB.Initialize(path(strPath)))
-    {
-        StdError("check", "Block walker: Delegate db initialize fail, path: %s.", strPath.c_str());
-        return false;
-    }
-
     if (!objTsBlock.Initialize(path(strPath) / "block", BLOCKFILE_PREFIX))
     {
         StdError("check", "Block walker: TsBlock initialize fail, path: %s.", strPath.c_str());
@@ -973,18 +967,12 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
 
     CBlockEx* pPrevBlock = nullptr;
-    CBlockIndex* pIndexPrev = nullptr;
     if (block.hashPrev != 0)
     {
         map<uint256, CBlockEx>::iterator it = mapBlock.find(block.hashPrev);
         if (it != mapBlock.end())
         {
             pPrevBlock = &(it->second);
-        }
-        map<uint256, CBlockIndex*>::iterator mt = mapBlockIndex.find(block.hashPrev);
-        if (mt != mapBlockIndex.end())
-        {
-            pIndexPrev = mt->second;
         }
     }
     if (!block.IsGenesis() && pPrevBlock == nullptr)
@@ -1001,77 +989,23 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
-    /*
-    if (block.IsPrimary() && !objDelegateDB.CheckDelegate(hashBlock))
-    {
-        StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
-        if (!fOnlyCheck)
-        {
-            if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
-            {
-                StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
-                return false;
-            }
-        }
-    }*/
-
     CBlockIndex* pNewBlockIndex = nullptr;
     CBlockOutline* pBlockOutline = objBlockIndexWalker.GetBlockOutline(hashBlock);
     if (pBlockOutline == nullptr)
     {
         uint256 nChainTrust;
-        if (pIndexPrev != nullptr && !(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+        if (block.IsGenesis())
         {
-            if (block.IsProofOfWork())
-            {
-                if (!GetBlockTrust(block, nChainTrust))
-                {
-                    StdError("check", "Block walk: Get block trust fail 1, block: %s.", hashBlock.GetHex().c_str());
-                    return false;
-                }
-            }
-            else
-            {
-                CBlockIndex* pIndexRef = nullptr;
-                CDelegateAgreement agreement;
-                size_t nEnrollTrust = 0;
-                if (block.IsPrimary())
-                {
-                    if (!GetBlockDelegateAgreement(hashBlock, checkBlock, pIndexPrev, agreement, nEnrollTrust))
-                    {
-                        StdError("check", "Block walk: GetBlockDelegateAgreement fail, block: %s.", hashBlock.GetHex().c_str());
-                        return false;
-                    }
-                }
-                else if (block.IsSubsidiary() || block.IsExtended())
-                {
-                    CProofOfPiggyback proof;
-                    proof.Load(block.vchProof);
-                    if (proof.hashRefBlock != 0)
-                    {
-                        map<uint256, CBlockIndex*>::iterator mt = mapBlockIndex.find(proof.hashRefBlock);
-                        if (mt != mapBlockIndex.end())
-                        {
-                            pIndexRef = mt->second;
-                        }
-                    }
-                    if (pIndexRef == nullptr)
-                    {
-                        StdError("check", "Block walk: refblock find fail, refblock: %s, block: %s.", proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
-                        return false;
-                    }
-                    if (pIndexRef->pPrev == nullptr)
-                    {
-                        StdError("check", "Block walk: pIndexRef->pPrev is null, refblock: %s, block: %s.", proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
-                        return false;
-                    }
-                }
-                if (!GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
-                {
-                    StdError("check", "Block walk: Get block trust fail 2, block: %s.", hashBlock.GetHex().c_str());
-                    return false;
-                }
-            }
+            nChainTrust = uint64(0);
+        }
+        else
+        {
+            CProofOfHashWorkCompact proof;
+            proof.Load(block.vchProof);
+            uint256 nTarget;
+            nTarget.SetCompact(proof.nBits);
+            // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
+            nChainTrust = (~nTarget / (nTarget + 1)) + 1;
         }
         pNewBlockIndex = AddNewIndex(hashBlock, static_cast<const CBlock&>(checkBlock), nFile, nOffset, nChainTrust);
         if (pNewBlockIndex == nullptr)
@@ -1116,314 +1050,6 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
 
     nBlockCount++;
 
-    return true;
-}
-
-bool CCheckBlockWalker::GetBlockTrust(const CBlockEx& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollTrust)
-{
-    if (block.IsGenesis())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if (block.IsVacant())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if (block.IsPrimary())
-    {
-        if (block.IsProofOfWork())
-        {
-            CProofOfHashWorkCompact proof;
-            proof.Load(block.vchProof);
-            uint256 nTarget;
-            nTarget.SetCompact(proof.nBits);
-            // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
-            nChainTrust = (~nTarget / (nTarget + 1)) + 1;
-        }
-        // else if (pIndexPrev != nullptr)
-        //{
-        // if (!objProofParam.IsDposHeight(block.GetBlockHeight()))
-        // {
-        //     StdError("check", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-        //     return false;
-        // }
-
-        // Get the last PoW block nAlgo
-        // int nAlgo;
-        // const CBlockIndex* pIndex = pIndexPrev;
-        // while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-        // {
-        //     pIndex = pIndex->pPrev;
-        // }
-        // if (!pIndex->IsProofOfWork())
-        // {
-        //     nAlgo = CM_CRYPTONIGHT;
-        // }
-        // else
-        // {
-        //     nAlgo = pIndex->nProofAlgo;
-        // }
-
-        // // DPoS difficulty = weight * (2 ^ nBits)
-        // int nBits;
-        // if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits))
-        // {
-        //     if (agreement.nWeight == 0 || nBits <= 0)
-        //     {
-        //         StdError("check", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
-        //         return false;
-        //     }
-        //     if (nEnrollTrust <= 0)
-        //     {
-        //         StdError("check", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-        //         return false;
-        //     }
-        //     nChainTrust = uint256(uint64(nEnrollTrust)) << nBits;
-        // }
-        // else
-        // {
-        //     StdError("check", "GetBlockTrust: GetProofOfWorkTarget fail");
-        //     return false;
-        // }
-        // }
-        else
-        {
-            StdError("check", "GetBlockTrust: Primary pIndexPrev is null");
-            return false;
-        }
-    }
-    else if (block.IsOrigin())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if ((block.IsSubsidiary() || block.IsExtended()) && (pIndexRef != nullptr))
-    {
-        if (pIndexRef->pPrev == nullptr)
-        {
-            StdError("check", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return false;
-        }
-        nChainTrust = pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
-    }
-    else
-    {
-        StdError("check", "GetBlockTrust: block type error");
-        return false;
-    }
-    return true;
-} // namespace bigbang
-
-bool CCheckBlockWalker::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits)
-{
-    // if (nAlgo <= 0 || nAlgo >= CM_MAX || !pIndexPrev->IsPrimary())
-    if (nAlgo <= 0 || nAlgo >= CM_MAX)
-    {
-        return false;
-    }
-
-    if (pIndexPrev->GetBlockHeight() == 0)
-    {
-        nBits = objProofParam.nProofOfWorkInit.GetCompact();
-    }
-    else if ((pIndexPrev->nHeight + 1) % objProofParam.nProofOfWorkDifficultyInterval != 0)
-    {
-        nBits = pIndexPrev->nProofBits;
-    }
-    else
-    {
-        // statistic the sum of nProofOfWorkDifficultyInterval blocks time
-        const CBlockIndex* pIndexFirst = pIndexPrev;
-        for (int i = 1; i < objProofParam.nProofOfWorkDifficultyInterval && pIndexFirst; i++)
-        {
-            pIndexFirst = pIndexFirst->pPrev;
-        }
-
-        if (!pIndexFirst || pIndexFirst->GetBlockHeight() != (pIndexPrev->GetBlockHeight() - (objProofParam.nProofOfWorkDifficultyInterval - 1)))
-        {
-            StdError("CCoreProtocol", "GetProofOfWorkTarget: first block of difficulty interval height is error");
-            return false;
-        }
-
-        if (pIndexPrev == pIndexFirst)
-        {
-            StdError("CCoreProtocol", "GetProofOfWorkTarget: difficulty interval must be large than 1");
-            return false;
-        }
-
-        // Limit adjustment step
-        if (pIndexPrev->GetBlockTime() < pIndexFirst->GetBlockTime())
-        {
-            StdError("CCoreProtocol", "GetProofOfWorkTarget: prev block time [%ld] < first block time [%ld]", pIndexPrev->GetBlockTime(), pIndexFirst->GetBlockTime());
-            return false;
-        }
-        uint64 nActualTimespan = pIndexPrev->GetBlockTime() - pIndexFirst->GetBlockTime();
-        uint64 nTargetTimespan = (uint64)objProofParam.nProofOfWorkDifficultyInterval * BLOCK_TARGET_SPACING;
-        if (nActualTimespan < nTargetTimespan / 4)
-        {
-            nActualTimespan = nTargetTimespan / 4;
-        }
-        if (nActualTimespan > nTargetTimespan * 4)
-        {
-            nActualTimespan = nTargetTimespan * 4;
-        }
-
-        uint256 newBits;
-        newBits.SetCompact(pIndexPrev->nProofBits);
-        newBits *= nActualTimespan;
-        newBits /= uint256(nTargetTimespan);
-
-        if (newBits < objProofParam.nProofOfWorkUpperLimit)
-        {
-            newBits = objProofParam.nProofOfWorkUpperLimit;
-        }
-        if (newBits > objProofParam.nProofOfWorkLowerLimit)
-        {
-            newBits = objProofParam.nProofOfWorkLowerLimit;
-        }
-        nBits = newBits.GetCompact();
-    }
-
-    return true;
-}
-
-bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev, CDelegateAgreement& agreement, size_t& nEnrollTrust)
-{
-    // agreement.Clear();
-    // if (pIndexPrev->GetBlockHeight() < CONSENSUS_INTERVAL - 1)
-    // {
-    //     return true;
-    // }
-
-    // CBlockIndex* pIndex = pIndexPrev;
-    // for (int i = 0; i < CONSENSUS_DISTRIBUTE_INTERVAL; i++)
-    // {
-    //     if (pIndex == nullptr)
-    //     {
-    //         StdLog("check", "GetBlockDelegateAgreement : pIndex is null, block: %s", hashBlock.ToString().c_str());
-    //         return false;
-    //     }
-    //     pIndex = pIndex->pPrev;
-    // }
-
-    // CDelegateEnrolled enrolled;
-    // if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), pIndex, enrolled))
-    // {
-    //     StdLog("check", "GetBlockDelegateAgreement : GetBlockDelegateEnrolled fail, block: %s", hashBlock.ToString().c_str());
-    //     return false;
-    // }
-
-    // delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
-    // map<CDestination, size_t> mapBallot;
-    // if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
-    // {
-    //     StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
-    //     return false;
-    // }
-
-    // nEnrollTrust = 0;
-    // for (auto& amount : enrolled.vecAmount)
-    // {
-    //     if (mapBallot.find(amount.first) != mapBallot.end())
-    //     {
-    //         nEnrollTrust += (size_t)(min(amount.second, objProofParam.nDelegateProofOfStakeEnrollMaximumAmount));
-    //     }
-    // }
-    // nEnrollTrust /= objProofParam.nDelegateProofOfStakeEnrollMinimumAmount;
-    return true;
-}
-
-bool CCheckBlockWalker::GetBlockDelegateEnrolled(const uint256& hashBlock, CBlockIndex* pIndex, CDelegateEnrolled& enrolled)
-{
-    /*
-    enrolled.Clear();
-    if (pIndex == nullptr)
-    {
-        StdLog("check", "GetBlockDelegateEnrolled : pIndex is null, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }
-
-    if (pIndex->GetBlockHeight() < CONSENSUS_ENROLL_INTERVAL)
-    {
-        return true;
-    }
-
-    vector<uint256> vBlockRange;
-    for (int i = 0; i < CONSENSUS_ENROLL_INTERVAL; i++)
-    {
-        if (pIndex == nullptr)
-        {
-            StdLog("check", "GetBlockDelegateEnrolled : pIndex is null 2, block: %s", hashBlock.ToString().c_str());
-            return false;
-        }
-        vBlockRange.push_back(pIndex->GetBlockHash());
-        pIndex = pIndex->pPrev;
-    }
-
-    if (!RetrieveAvailDelegate(hashBlock, pIndex->GetBlockHeight(), vBlockRange, objProofParam.nDelegateProofOfStakeEnrollMinimumAmount,
-                               enrolled.mapWeight, enrolled.mapEnrollData, enrolled.vecAmount))
-    {
-        StdLog("check", "GetBlockDelegateEnrolled : Retrieve Avail Delegate Error, block: %s", hashBlock.ToString().c_str());
-        return false;
-    }*/
-    return true;
-}
-
-bool CCheckBlockWalker::RetrieveAvailDelegate(const uint256& hash, int height, const vector<uint256>& vBlockRange,
-                                              int64 nMinEnrollAmount,
-                                              map<CDestination, size_t>& mapWeight,
-                                              map<CDestination, vector<unsigned char>>& mapEnrollData,
-                                              vector<pair<CDestination, int64>>& vecAmount)
-{
-    map<CDestination, int64> mapVote;
-    if (!objDelegateDB.RetrieveDelegatedVote(hash, mapVote))
-    {
-        StdLog("check", "RetrieveAvailDelegate: RetrieveDelegatedVote fail, block: %s", hash.ToString().c_str());
-        return false;
-    }
-
-    map<CDestination, CDiskPos> mapEnrollTxPos;
-    if (!objDelegateDB.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos))
-    {
-        StdLog("check", "RetrieveAvailDelegate: RetrieveEnrollTx fail, block: %s, height: %d", hash.ToString().c_str(), height);
-        return false;
-    }
-
-    map<pair<int64, CDiskPos>, pair<CDestination, vector<uint8>>> mapSortEnroll;
-    for (map<CDestination, int64>::iterator it = mapVote.begin(); it != mapVote.end(); ++it)
-    {
-        if ((*it).second >= nMinEnrollAmount)
-        {
-            const CDestination& dest = (*it).first;
-            map<CDestination, CDiskPos>::iterator mi = mapEnrollTxPos.find(dest);
-            if (mi != mapEnrollTxPos.end())
-            {
-                CTransaction tx;
-                if (!objTsBlock.Read(tx, (*mi).second))
-                {
-                    StdLog("check", "RetrieveAvailDelegate: Read tx fail, txid: %s", tx.GetHash().ToString().c_str());
-                    return false;
-                }
-
-                if (tx.vchData.size() <= sizeof(int))
-                {
-                    StdLog("check", "RetrieveAvailDelegate: tx.vchData error, txid: %s", tx.GetHash().ToString().c_str());
-                    return false;
-                }
-                std::vector<uint8> vchCertData;
-                vchCertData.assign(tx.vchData.begin() + sizeof(int), tx.vchData.end());
-
-                mapSortEnroll.insert(make_pair(make_pair(it->second, mi->second), make_pair(dest, vchCertData)));
-            }
-        }
-    }
-
-    // first 23 destination sorted by amount and sequence
-    for (auto it = mapSortEnroll.rbegin(); it != mapSortEnroll.rend() && mapWeight.size() < MAX_DELEGATE_THRESH; it++)
-    {
-        mapWeight.insert(make_pair(it->second.first, 1));
-        mapEnrollData.insert(make_pair(it->second.first, it->second.second));
-        vecAmount.push_back(make_pair(it->second.first, it->first.first));
-    }
     return true;
 }
 
@@ -1473,7 +1099,8 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
     }
 
     vector<uint256> vForkList;
-    objForkMn.GetForkList(hashGenesis, vForkList);
+    //objForkMn.GetForkList(hashGenesis, vForkList);
+    vForkList.push_back(hashGenesis);
 
     for (const uint256& hashFork : vForkList)
     {
