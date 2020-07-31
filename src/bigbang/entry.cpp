@@ -4,6 +4,7 @@
 
 #include "entry.h"
 
+#include <malloc.h>
 #include <map>
 #include <string>
 
