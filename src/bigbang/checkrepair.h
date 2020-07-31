@@ -134,14 +134,15 @@ public:
 class CCheckForkManager
 {
 public:
-    CCheckForkManager() {}
+    CCheckForkManager(const bool fTestnet)
+      : objProofParam(fTestnet) {}
 
     bool FetchForkStatus(const string& strDataPath);
-    void GetForkList(const uint256& hashGenesis, vector<uint256>& vForkList);
     void GetTxFork(const uint256& hashFork, int nHeight, vector<uint256>& vFork);
     bool UpdateForkLast(const string& strDataPath, const vector<pair<uint256, uint256>>& vForkLast);
 
 public:
+    CProofOfWorkParam objProofParam;
     map<uint256, CCheckForkStatus> mapForkStatus;
 };
 
@@ -267,23 +268,6 @@ public:
 
 public:
     set<CDestination> setAddress;
-};
-
-/////////////////////////////////////////////////////////////////////////
-// CCheckDelegateDB
-
-class CCheckDelegateDB : public CDelegateDB
-{
-public:
-    CCheckDelegateDB() {}
-    ~CCheckDelegateDB()
-    {
-        Deinitialize();
-    }
-
-public:
-    bool CheckDelegate(const uint256& hashBlock);
-    bool UpdateDelegate(const uint256& hashBlock, CBlockEx& block, uint32 nBlockFile, uint32 nBlockOffset);
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -446,7 +430,7 @@ class CCheckRepairData
 {
 public:
     CCheckRepairData(const string& strPath, bool fTestnetIn, bool fOnlyCheckIn)
-      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objBlockWalker(fTestnetIn, fOnlyCheckIn) {}
+      : strDataPath(strPath), fTestnet(fTestnetIn), fOnlyCheck(fOnlyCheckIn), objForkManager(fTestnetIn), objBlockWalker(fTestnetIn, fOnlyCheckIn) {}
 
 protected:
     bool FetchBlockData();

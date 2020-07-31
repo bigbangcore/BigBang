@@ -1097,6 +1097,21 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
 CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
 {
+    if (fTestnet)
+    {
+        CBlock block;
+        CTestNetCoreProtocol core;
+        core.GetGenesisBlock(block);
+        hashGenesisBlock = block.GetHash();
+    }
+    else
+    {
+        CBlock block;
+        CCoreProtocol core;
+        core.GetGenesisBlock(block);
+        hashGenesisBlock = block.GetHash();
+    }
+
     nProofOfWorkLowerLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_LOWER_LIMIT);
     nProofOfWorkLowerLimit.SetCompact(nProofOfWorkLowerLimit.GetCompact());
     nProofOfWorkUpperLimit = (~uint256(uint64(0)) >> PROOF_OF_WORK_BITS_UPPER_LIMIT);

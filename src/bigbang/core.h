@@ -76,6 +76,7 @@ public:
     CProofOfWorkParam(bool fTestnet);
 
 public:
+    uint256 hashGenesisBlock;
     uint256 nProofOfWorkLowerLimit;
     uint256 nProofOfWorkUpperLimit;
     uint256 nProofOfWorkInit;
