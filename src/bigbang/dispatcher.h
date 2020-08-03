@@ -22,7 +22,6 @@ public:
                           const std::vector<unsigned char>& vchDistribute) override;
     bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
-    void SetConsensus(const CAgreementBlock& agreeBlock) override;
 
 protected:
     bool HandleInitialize() override;

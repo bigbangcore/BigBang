@@ -311,19 +311,6 @@ bool CDispatcher::AddNewPublish(const uint256& hashAnchor, const CDestination& d
     return true;
 }
 
-void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
-{
-    CConsensusParam consParam;
-    consParam.hashPrev = agreeBlock.hashPrev;
-    consParam.nPrevTime = agreeBlock.nPrevTime;
-    consParam.nPrevHeight = agreeBlock.nPrevHeight;
-    consParam.nPrevMintType = agreeBlock.nPrevMintType;
-    consParam.nWaitTime = agreeBlock.nWaitTime;
-    consParam.fPow = agreeBlock.agreement.IsProofOfWork();
-    consParam.ret = agreeBlock.ret;
-    pNetChannel->SubmitCachePowBlock(consParam);
-}
-
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
     //CDelegateRoutine routineDelegate;

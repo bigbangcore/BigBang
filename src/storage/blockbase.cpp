@@ -1909,8 +1909,7 @@ bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std:
     return true;
 }
 
-bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint, uint16 nBlockType,
-                                   uint32 nBlockTimeStamp, uint32 nRefBlockTimeStamp, uint32 nExtendedBlockSpacing)
+bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint)
 {
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
     if (it != mapForkHeightIndex.end())
@@ -1925,7 +1924,7 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
                     CTransaction tx;
                     CBlockIndex* pBlockIndex = nullptr;
                     if (RetrieveIndex(mt.first, &pBlockIndex)
-                        && !pBlockIndex->IsVacant()
+                        && pBlockIndex != nullptr
                         && RetrieveTx(pBlockIndex->txidMint, tx))
                     {
                         mt.second.destMint = tx.sendTo;
@@ -1933,21 +1932,8 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
                 }
                 if (mt.second.destMint == destMint)
                 {
-                    if (nBlockType == CBlock::BLOCK_SUBSIDIARY || nBlockType == CBlock::BLOCK_EXTENDED)
-                    {
-                        if ((nBlockTimeStamp - nRefBlockTimeStamp) / nExtendedBlockSpacing
-                            == (mt.second.nTimeStamp - nRefBlockTimeStamp) / nExtendedBlockSpacing)
-                        {
-                            StdTrace("CBlockBase", "VerifyRepeatBlock: subsidiary or extended repeat block, block time: %d, cache block time: %d, ref block time: %d, destMint: %s",
-                                     nBlockTimeStamp, mt.second.nTimeStamp, mt.second.nTimeStamp, CAddress(destMint).ToString().c_str());
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        StdTrace("CBlockBase", "VerifyRepeatBlock: repeat block: %s, destMint: %s", mt.first.GetHex().c_str(), CAddress(destMint).ToString().c_str());
-                        return false;
-                    }
+                    StdTrace("CBlockBase", "VerifyRepeatBlock: repeat block: %s, destMint: %s", mt.first.GetHex().c_str(), CAddress(destMint).ToString().c_str());
+                    return false;
                 }
             }
         }
