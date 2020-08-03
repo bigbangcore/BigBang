@@ -379,13 +379,13 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         }
 
         pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-        CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
+        //CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
 
         pNetChannel->PostEvent(pEventActive);
-        if (pEventActiveDelegated != nullptr)
-        {
+        //if (pEventActiveDelegated != nullptr)
+        //{
            // pDelegatedChannel->PostEvent(pEventActiveDelegated);
-        }
+        //}
 
         pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     }
