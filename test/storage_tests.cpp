@@ -18,7 +18,7 @@ using namespace boost::filesystem;
 BOOST_FIXTURE_TEST_SUITE(storage_tests, BasicUtfSetup)
 
 // basic config
-const uint32 nMagicNum = 0x5E33A1EF;
+const uint32 nMagicNum = 0x8F4EBC9E;
 
 BOOST_AUTO_TEST_CASE(filetest)
 {
