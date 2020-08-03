@@ -83,19 +83,18 @@ class CProofOfHashWork : public CProofOfSecretShare
 public:
     unsigned char nAlgo;
     uint32_t nBits;
-    CDestination destMint;
     uint64_t nNonce;
 
 protected:
     virtual void ToStream(xengine::CODataStream& os) override
     {
         CProofOfSecretShare::ToStream(os);
-        os << nAlgo << nBits << destMint.prefix << destMint.data << nNonce;
+        os << nAlgo << nBits << nNonce;
     }
     virtual void FromStream(xengine::CIDataStream& is) override
     {
         CProofOfSecretShare::FromStream(is);
-        is >> nAlgo >> nBits >> destMint.prefix >> destMint.data >> nNonce;
+        is >> nAlgo >> nBits >> nNonce;
     }
 };
 
@@ -104,14 +103,17 @@ class CProofOfHashWorkCompact
 public:
     unsigned char nAlgo;
     uint32_t nBits;
-    CDestination destMint;
     uint64_t nNonce;
 
 public:
     enum
     {
-        PROOFHASHWORK_SIZE = 46
+        PROOFHASHWORK_SIZE = 13
     };
+    CProofOfHashWorkCompact()
+      : nAlgo(0), nBits(0), nNonce(0)
+    {
+    }
     void Save(std::vector<unsigned char>& vchProof)
     {
         if (vchProof.size() < PROOFHASHWORK_SIZE)
@@ -123,9 +125,6 @@ public:
         *p++ = nAlgo;
         *((uint32_t*)p) = nBits;
         p += 4;
-        *p++ = destMint.prefix;
-        *((uint256*)p) = destMint.data;
-        p += 32;
         *((uint64_t*)p) = nNonce;
     }
     void Load(const std::vector<unsigned char>& vchProof)
@@ -139,9 +138,6 @@ public:
         nAlgo = *p++;
         nBits = *((uint32_t*)p);
         p += 4;
-        destMint.prefix = *p++;
-        destMint.data = *((uint256*)p);
-        p += 32;
         nNonce = *((uint64_t*)p);
     }
 };

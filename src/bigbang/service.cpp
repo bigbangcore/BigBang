@@ -752,7 +752,6 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.nAgreement = 0;
     proof.nAlgo = nAlgo;
     proof.nBits = nBits;
-    proof.destMint = CDestination(templMint->GetTemplateId());
     proof.nNonce = 0;
     proof.Save(block.vchProof);
 
