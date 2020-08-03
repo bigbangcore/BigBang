@@ -100,7 +100,7 @@ public:
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
         xengine::CBufStream ss;
-        ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
+        ss << nVersion << nType << nTimeStamp << hashPrev << hashMerkle << vchProof;
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
     int64 GetBlockTime() const
@@ -146,10 +146,16 @@ public:
     uint256 BuildMerkleTree(std::vector<uint256>& vMerkleTree) const
     {
         vMerkleTree.clear();
+        vMerkleTree.reserve(vtx.size() + 1);
+
+        vMerkleTree.push_back(txMint.GetHash());
         for (const CTransaction& tx : vtx)
+        {
             vMerkleTree.push_back(tx.GetHash());
+        }
+
         int j = 0;
-        for (int nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
+        for (int nSize = vtx.size() + 1; nSize > 1; nSize = (nSize + 1) / 2)
         {
             for (int i = 0; i < nSize; i += 2)
             {

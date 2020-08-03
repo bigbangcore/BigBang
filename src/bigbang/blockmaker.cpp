@@ -331,9 +331,9 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+    // size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     int64 nTotalTxFee = 0;
-    if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
+    if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), /*nMaxTxSize, */ block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
     }
