@@ -37,8 +37,10 @@ static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 #ifdef BIGBANG_TESTNET
 static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 0;
+static const unsigned int MAX_JOINT_FORK_INTERVAL_HEIGHT = 0x7FFFFFFF;
 #else
 static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 30;
+static const unsigned int MAX_JOINT_FORK_INTERVAL_HEIGHT = 1440;
 #endif
 
 enum ConsensusMethod

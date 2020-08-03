@@ -69,7 +69,7 @@ bool CBlockChain::HandleInvoke()
         return false;
     }
 
-    if (!CheckContainer())
+    /*if (!CheckContainer())
     {
         cntrBlock.Clear();
         Log("Block container is invalid,try rebuild from block storage");
@@ -79,7 +79,7 @@ bool CBlockChain::HandleInvoke()
             cntrBlock.Clear();
             Error("Failed to rebuild Block container,reconstruct all");
         }
-    }
+    }*/
 
     if (cntrBlock.IsEmpty())
     {
@@ -458,7 +458,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    int64 nReward;
+    int64 nReward = 0;
     CDelegateAgreement agreement;
     size_t nEnrollTrust = 0;
     CBlockIndex* pIndexRef = nullptr;
@@ -469,14 +469,42 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return err;
     }
 
+    bool fGetBranchBlock = true;
+    if (block.IsVacant())
+    {
+        do
+        {
+            if (!block.IsPrimary() && pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
+                && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
+            {
+                fGetBranchBlock = false;
+                break;
+            }
+
+            uint256 nNewChainTrust;
+            if (!pCoreProtocol->GetBlockTrust(block, nNewChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
+            {
+                break;
+            }
+            nNewChainTrust += pIndexPrev->nChainTrust;
+
+            CBlockIndex* pIndexForkLast = nullptr;
+            if (cntrBlock.RetrieveFork(pIndexPrev->GetOriginHash(), &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
+            {
+                fGetBranchBlock = false;
+                break;
+            }
+        } while (0);
+    }
+
     storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin()))
+    if (!cntrBlock.GetBlockView(block.hashPrev, view, !block.IsOrigin(), fGetBranchBlock))
     {
         Log("AddNewBlock Get Block View Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    if (!block.IsVacant())
+    if (!block.IsVacant() || !block.txMint.sendTo.IsNull())
     {
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
@@ -485,8 +513,10 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
 
     int64 nTotalFee = 0;
-
-    vTxContxt.reserve(block.vtx.size());
+    if (block.vtx.size() > 0)
+    {
+        vTxContxt.reserve(block.vtx.size());
+    }
 
     int nForkHeight;
     if (block.nType == block.BLOCK_EXTENDED)
@@ -555,6 +585,14 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return ERR_SYS_STORAGE_ERROR;
     }
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
+
+    if (!pIndexNew->IsPrimary() && (!pIndexNew->IsVacant() || pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight())) && pIndexRef
+        && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
+    {
+        Log("AddNew Block: Ref block short chain, refblock: %s, new block: %s, fork: %s",
+            pIndexRef->GetBlockHash().GetHex().c_str(), hash.GetHex().c_str(), pIndexNew->GetOriginHash().GetHex().c_str());
+        return OK;
+    }
 
     CBlockIndex* pIndexFork = nullptr;
     if (cntrBlock.RetrieveFork(pIndexNew->GetOriginHash(), &pIndexFork)
@@ -882,7 +920,8 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block
         else
         {
             if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
+                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
+                || ((block.GetBlockTime() - pIndexRef->GetBlockTime()) % EXTENDED_BLOCK_SPACING) != 0)
             {
                 StdLog("CBlockChain", "VerifyRepeatBlock: Extended block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
                        block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
@@ -1053,7 +1092,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    int64 nReward;
+    int64 nReward = 0;
     CDelegateAgreement agreement;
     size_t nEnrollTrust = 0;
     CBlockIndex* pIndexRef = nullptr;
@@ -1071,7 +1110,7 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         return ERR_SYS_STORAGE_ERROR;
     }
 
-    if (!block.IsVacant())
+    if (!block.IsVacant() || !block.txMint.sendTo.IsNull())
     {
         view.AddTx(block.txMint.GetHash(), block.txMint);
     }
@@ -1080,8 +1119,10 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     vector<CTxContxt>& vTxContxt = blockex.vTxContxt;
 
     int64 nTotalFee = 0;
-
-    vTxContxt.reserve(block.vtx.size());
+    if (block.vtx.size() > 0)
+    {
+        vTxContxt.reserve(block.vtx.size());
+    }
 
     int nForkHeight;
     if (block.nType == block.BLOCK_EXTENDED)
@@ -1150,6 +1191,77 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     }
 
     return OK;
+}
+
+bool CBlockChain::CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update)
+{
+    CBlockIndex* pValidLastIndex = cntrBlock.GetForkValidLast(pCoreProtocol->GetGenesisBlockHash(), hashFork, pCoreProtocol->GetRefVacantHeight());
+    if (pValidLastIndex == nullptr)
+    {
+        return false;
+    }
+
+    storage::CBlockView view;
+    if (!cntrBlock.GetBlockView(pValidLastIndex->GetBlockHash(), view, true))
+    {
+        StdLog("BlockChain", "CheckForkValidLast: Get Block View Error, last block: %s, fork: %s",
+               pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+
+    if (!cntrBlock.CommitBlockView(view, pValidLastIndex))
+    {
+        StdLog("BlockChain", "CheckForkValidLast: Storage Commit BlockView Error, last block: %s, fork: %s",
+               pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+
+    StdLog("BlockChain", "CheckForkValidLast: Repair fork last success, last block: %s, fork: %s",
+           pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
+
+    update = CBlockChainUpdate(pValidLastIndex);
+    view.GetTxUpdated(update.setTxUpdate);
+    view.GetBlockChanges(update.vBlockAddNew, update.vBlockRemove);
+
+    if (update.IsNull())
+    {
+        StdLog("BlockChain", "CheckForkValidLast: update is null, last block: %s, fork: %s",
+               pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
+    }
+    if (update.vBlockAddNew.empty())
+    {
+        StdLog("BlockChain", "CheckForkValidLast: vBlockAddNew is empty, last block: %s, fork: %s",
+               pValidLastIndex->GetBlockHash().ToString().c_str(), hashFork.GetHex().c_str());
+    }
+    return true;
+}
+
+bool CBlockChain::VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock)
+{
+    uint256 hashRefBlock;
+    bool fOrigin = false;
+    if (!cntrBlock.GetLastRefBlockHash(hashFork, hashForkBlock, hashRefBlock, fOrigin))
+    {
+        StdLog("BlockChain", "VerifyForkRefLongChain: Get ref block fail, last block: %s, fork: %s",
+               hashForkBlock.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    if (!fOrigin)
+    {
+        if (!cntrBlock.VerifySameChain(hashRefBlock, hashPrimaryBlock))
+        {
+            StdLog("BlockChain", "VerifyForkRefLongChain: Fork does not refer to long chain, fork last: %s, ref block: %s, primayr block: %s, fork: %s",
+                   hashForkBlock.GetHex().c_str(), hashRefBlock.GetHex().c_str(),
+                   hashPrimaryBlock.GetHex().c_str(), hashFork.GetHex().c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CBlockChain::GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime)
+{
+    return cntrBlock.GetPrimaryHeightBlockTime(hashLastBlock, nHeight, hashBlock, nTime);
 }
 
 bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
@@ -1332,6 +1444,7 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateA
     CDelegateEnrolled enrolled;
     if (!GetBlockDelegateEnrolled(pIndex->GetBlockHash(), enrolled))
     {
+        Log("GetBlockDelegateAgreement : Get delegate enrolled fail, block: %s", hashBlock.ToString().c_str());
         return false;
     }
 
@@ -1358,6 +1471,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     nReward = 0;
     if (block.IsOrigin())
     {
+        Log("Verify block : Is origin, block: %s", hashBlock.GetHex().c_str());
         return ERR_BLOCK_INVALID_FORK;
     }
 
@@ -1365,21 +1479,26 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     {
         if (!pIndexPrev->IsPrimary())
         {
+            Log("Verify block : Prev block not is primary, prev: %s, block: %s",
+                pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
             return ERR_BLOCK_INVALID_FORK;
         }
 
         if (!VerifyBlockCertTx(block))
         {
+            Log("Verify block : Verify cert tx fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
         }
 
         if (!GetBlockDelegateAgreement(hashBlock, block, pIndexPrev, agreement, nEnrollTrust))
         {
+            Log("Verify block : Get agreement fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
         if (!GetBlockMintReward(block.hashPrev, nReward))
         {
+            Log("Verify block : Get mint reward fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_COINBASE_INVALID;
         }
 
@@ -1387,6 +1506,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         {
             if (!agreement.IsProofOfWork())
             {
+                Log("Verify block : POW stage not is pow block, block: %s", hashBlock.GetHex().c_str());
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
             return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
@@ -1403,45 +1523,80 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             }
         }
     }
-    else if (!block.IsVacant())
+    else if (block.IsSubsidiary() || block.IsExtended())
     {
         if (pIndexPrev->IsPrimary())
         {
+            Log("Verify block : SubFork prev not is primary, prev: %s, block: %s",
+                pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
             return ERR_BLOCK_INVALID_FORK;
         }
 
         CProofOfPiggyback proof;
-        proof.Load(block.vchProof);
+        if (!proof.Load(block.vchProof) || proof.hashRefBlock == 0)
+        {
+            Log("Verify block : SubFork load proof fail, block: %s", hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
+        }
 
         CDelegateAgreement agreement;
         if (!GetBlockDelegateAgreement(proof.hashRefBlock, agreement))
         {
+            Log("Verify block : SubFork get agreement fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
         if (agreement.nAgreement != proof.nAgreement || agreement.nWeight != proof.nWeight
             || agreement.IsProofOfWork())
         {
+            Log("Verify block : SubFork agreement error, ref agreement: %s, block agreement: %s, ref weight: %d, block weight: %d, type: %s, block: %s",
+                agreement.nAgreement.GetHex().c_str(), proof.nAgreement.GetHex().c_str(),
+                agreement.nWeight, proof.nWeight, (agreement.IsProofOfWork() ? "pow" : "dpos"),
+                hashBlock.GetHex().c_str());
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
         }
 
-        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef))
+        if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef) || *ppIndexRef == nullptr || !(*ppIndexRef)->IsPrimary())
         {
+            Log("Verify block : SubFork retrieve ref index fail, ref block: %s, block: %s",
+                proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
             return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+        }
+
+        CProofOfPiggyback proofPrev;
+        if (!pIndexPrev->IsOrigin() && (!pIndexPrev->IsVacant() || pCoreProtocol->IsRefVacantHeight(pIndexPrev->GetBlockHeight())))
+        {
+            CBlock blockPrev;
+            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
+            {
+                Log("Verify block : SubFork retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
+                return ERR_MISSING_PREV;
+            }
+            if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+            {
+                Log("Verify block : SubFork load prev proof fail, block: %s", hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+            if (proof.hashRefBlock != proofPrev.hashRefBlock
+                && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+            {
+                Log("Verify block : SubFork verify same chain fail, prev ref: %s, block ref: %s, block: %s",
+                    proofPrev.hashRefBlock.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
         }
 
         if (block.IsExtended())
         {
-            CBlock blockPrev;
-            if (!cntrBlock.Retrieve(pIndexPrev, blockPrev) || blockPrev.IsVacant())
+            if (pIndexPrev->IsOrigin() || pIndexPrev->IsVacant())
             {
+                Log("Verify block : SubFork extended prev is origin or vacant, prev: %s, block: %s",
+                    pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
                 return ERR_MISSING_PREV;
             }
-
-            CProofOfPiggyback proofPrev;
-            proofPrev.Load(blockPrev.vchProof);
             if (proof.nAgreement != proofPrev.nAgreement || proof.nWeight != proofPrev.nWeight)
             {
+                Log("Verify block : SubFork extended agreement error, block: %s", hashBlock.GetHex().c_str());
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
             nReward = 0;
@@ -1450,19 +1605,117 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         {
             if (!GetBlockMintReward(block.hashPrev, nReward))
             {
+                Log("Verify block : SubFork get mint reward error, block: %s", hashBlock.GetHex().c_str());
                 return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
             }
         }
 
         return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
+    else if (block.IsVacant())
+    {
+        if (!pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()))
+        {
+            if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+            {
+                Log("Verify block : Vacant time error, block time: %d, prev time: %d, block: %s",
+                    block.GetBlockTime(), pIndexPrev->GetBlockTime(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+            }
+        }
+        else
+        {
+            CProofOfPiggyback proof;
+            if (!proof.Load(block.vchProof) || proof.hashRefBlock == 0)
+            {
+                Log("Verify block : Vacant load proof error, block: %s", hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            CDelegateAgreement agreement;
+            if (!GetBlockDelegateAgreement(proof.hashRefBlock, agreement))
+            {
+                Log("Verify block : Vacant get agreement fail, block: %s", hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (agreement.nAgreement != proof.nAgreement || agreement.nWeight != proof.nWeight
+                || agreement.IsProofOfWork())
+            {
+                Log("Verify block : Vacant agreement error, ref agreement: %s, block agreement: %s, ref weight: %d, block weight: %d, type: %s, block: %s",
+                    agreement.nAgreement.GetHex().c_str(), proof.nAgreement.GetHex().c_str(),
+                    agreement.nWeight, proof.nWeight, (agreement.IsProofOfWork() ? "pow" : "dpos"),
+                    hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (block.txMint.sendTo != agreement.GetBallot(0))
+            {
+                Log("Verify block : Vacant sendTo error, sendTo: %s, ballot: %s, block: %s",
+                    CAddress(block.txMint.sendTo).ToString().c_str(),
+                    CAddress(agreement.GetBallot(0)).ToString().c_str(),
+                    hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (block.txMint.nTimeStamp != block.GetBlockTime())
+            {
+                Log("Verify block : Vacant txMint timestamp error, mint tx time: %d, block time: %d, block: %s",
+                    block.txMint.nTimeStamp, block.GetBlockTime(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (!cntrBlock.RetrieveIndex(proof.hashRefBlock, ppIndexRef) || *ppIndexRef == nullptr || !(*ppIndexRef)->IsPrimary())
+            {
+                Log("Verify block : Vacant retrieve ref index fail, ref: %s, block: %s",
+                    proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+
+            if (!pIndexPrev->IsOrigin() && (!pIndexPrev->IsVacant() || pCoreProtocol->IsRefVacantHeight(pIndexPrev->GetBlockHeight())))
+            {
+                CBlock blockPrev;
+                if (!cntrBlock.Retrieve(pIndexPrev, blockPrev))
+                {
+                    Log("Verify block : Vacant retrieve prev index fail, block: %s", hashBlock.GetHex().c_str());
+                    return ERR_MISSING_PREV;
+                }
+                CProofOfPiggyback proofPrev;
+                if (!proofPrev.Load(blockPrev.vchProof) || proofPrev.hashRefBlock == 0)
+                {
+                    Log("Verify block : Vacant load prev proof fail, block: %s", hashBlock.GetHex().c_str());
+                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                }
+                if (proof.hashRefBlock != proofPrev.hashRefBlock
+                    && !cntrBlock.VerifySameChain(proofPrev.hashRefBlock, proof.hashRefBlock))
+                {
+                    Log("Verify block : Vacant verify same chain fail, prev ref: %s, block ref: %s, block: %s",
+                        proofPrev.hashRefBlock.GetHex().c_str(), proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                    return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+                }
+            }
+
+            uint256 hashPrimaryBlock;
+            int64 nPrimaryTime = 0;
+            if (!cntrBlock.GetPrimaryHeightBlockTime((*ppIndexRef)->GetBlockHash(), block.GetBlockHeight(), hashPrimaryBlock, nPrimaryTime))
+            {
+                Log("Verify block : Vacant get height time, block ref: %s, block: %s",
+                    (*ppIndexRef)->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
+            }
+            if (block.GetBlockTime() != nPrimaryTime)
+            {
+                Log("Verify block : Vacant time error, block time: %d, primary time: %d, ref block: %s, same height block: %s, block: %s",
+                    block.GetBlockTime(), nPrimaryTime, (*ppIndexRef)->GetBlockHash().GetHex().c_str(),
+                    hashPrimaryBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+                return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
+            }
+        }
+    }
     else
     {
-        // Vacant block
-        if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
-        {
-            return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
-        }
+        Log("Verify block : block type error, nType: %d, block: %s", block.nType, hashBlock.GetHex().c_str());
+        return ERR_BLOCK_PROOF_OF_STAKE_INVALID;
     }
 
     return OK;

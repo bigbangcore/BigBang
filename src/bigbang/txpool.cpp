@@ -920,13 +920,12 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     CTxPoolView viewInvolvedTx;
     CTxPoolView& txView = mapPoolView[update.hashFork];
 
-    //int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
     {
         int nBlockHeight = block.GetBlockHeight();
         if (block.txMint.nAmount != 0)
         {
-            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight /*nHeight*/));
+            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight));
         }
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -951,21 +950,17 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     {
                         txView.InvalidateSpent(txin.prevout, viewInvolvedTx);
                     }
-                    change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight /*nHeight*/, txContxt.destIn, txContxt.GetValueIn()));
+                    change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight, txContxt.destIn, txContxt.GetValueIn()));
                 }
             }
             else
             {
-                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
+                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
             }
         }
-        //nHeight++;
     }
 
     vector<pair<uint256, vector<CTxIn>>> vTxRemove;
-    //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
-    //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
-    //for (const CBlockEx& block : vBlockRemove)
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
     {
         for (int i = 0; i < block.vtx.size(); ++i)
@@ -1030,13 +1025,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
     std::vector<CTransaction> vtx;
     int64 nTotalFee = 0;
-    const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee, lastBlockEx.GetBlockHeight() + 1);
+    ArrangeBlockTx(update.hashFork, update.nLastBlockTime, update.hashLastBlock, MAX_BLOCK_SIZE, vtx, nTotalFee, update.nLastBlockHeight + 1);
 
     auto& cache = mapTxCache[update.hashFork];
-    cache.AddNew(lastBlockEx.GetHash(), vtx);
+    cache.AddNew(update.hashLastBlock, vtx);
 
-    mapPoolView[update.hashFork].SetLastBlock(lastBlockEx.GetHash(), lastBlockEx.GetBlockTime());
+    mapPoolView[update.hashFork].SetLastBlock(update.hashLastBlock, update.nLastBlockTime);
+
     return true;
 }
 

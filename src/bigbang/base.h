@@ -61,6 +61,8 @@ public:
     virtual int64 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) = 0;
+    virtual bool IsRefVacantHeight(uint32 nBlockHeight) = 0;
+    virtual int GetRefVacantHeight() = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -157,6 +159,9 @@ public:
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) = 0;
+    virtual bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) = 0;
+    virtual bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) = 0;
     virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     const CBasicConfig* Config()
@@ -309,6 +314,7 @@ public:
                                const std::vector<unsigned char>& vchPublish)
         = 0;
     virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
+    virtual void CheckAllSubForkLastBlock() = 0;
 };
 
 class IService : public xengine::IBase

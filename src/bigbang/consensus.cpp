@@ -142,13 +142,13 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         delegateTx = CDelegateTx(tx);
         fAddTx = true;
         mapUnspent.insert(make_pair(CTxOutPoint(txid, 0), &delegateTx));
-        StdTrace("CDelegateContext", "AddNewTx: sendto and unspent: [0] %s", txid.GetHex().c_str());
+        //StdTrace("CDelegateContext", "AddNewTx: sendto and unspent: [0] %s", txid.GetHex().c_str());
     }
     if (tx.destIn == destDelegate)
     {
         for (const CTxIn& txin : tx.vInput)
         {
-            StdTrace("CDelegateContext", "AddNewTx: destIn erase unspent: [%d] %s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
+            //StdTrace("CDelegateContext", "AddNewTx: destIn erase unspent: [%d] %s", txin.prevout.n, txin.prevout.hash.GetHex().c_str());
             mapUnspent.erase(txin.prevout);
         }
         uint256 txid = tx.GetHash();
@@ -158,7 +158,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
         if (delegateTx.nChange != 0)
         {
             mapUnspent.insert(make_pair(CTxOutPoint(txid, 1), &delegateTx));
-            StdTrace("CDelegateContext", "AddNewTx: destIn add unspent: [1] %s", txid.GetHex().c_str());
+            //StdTrace("CDelegateContext", "AddNewTx: destIn add unspent: [1] %s", txid.GetHex().c_str());
         }
     }
 }

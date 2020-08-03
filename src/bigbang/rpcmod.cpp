@@ -924,6 +924,10 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
     }
+    if (txid == CTransaction().GetHash())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
+    }
 
     CTransaction tx;
     uint256 hashFork;
@@ -2202,6 +2206,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     if (nForkHeight < nJointHeight + MIN_CREATE_FORK_INTERVAL_HEIGHT)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
+    }
+    if ((int64)nForkHeight > (int64)nJointHeight + MAX_JOINT_FORK_INTERVAL_HEIGHT)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Maximum fork spacing height is 1440");
     }
 
     uint256 hashBlockRef;

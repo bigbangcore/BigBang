@@ -188,7 +188,6 @@ public:
     void Remove(const uint256& hash);
     void GetNext(const uint256& prev, std::vector<uint256>& vNext);
     void GetNext(const uint256& prev, std::vector<uint256>& vNext, std::set<uint256>& setHash);
-    void RemoveNext(const uint256& prev);
     void RemoveBranch(const uint256& root, std::vector<uint256>& vBranch);
 
 protected:
@@ -247,6 +246,7 @@ public:
     bool AddNewInv(const network::CInv& inv, uint64 nPeerNonce);
     bool RemoveInv(const network::CInv& inv, std::set<uint64>& setKnownPeer);
     bool ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBlock& block, std::set<uint64>& setSchedPeer);
+    void RemoveInvState(const network::CInv& inv);
     bool ReceiveTx(uint64 nPeerNonce, const uint256& txid, const CTransaction& tx, std::set<uint64>& setSchedPeer);
     CBlock* GetBlock(const uint256& hash, uint64& nNonceSender);
     CTransaction* GetTransaction(const uint256& txid, uint64& nNonceSender);
