@@ -781,37 +781,17 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
     CTxCache& cache = it->second;
 
-    std::vector<CTransaction> vCacheTx;
-    if (!cache.Retrieve(hashPrev, vCacheTx))
+    if (!cache.Retrieve(hashPrev, vtx))
     {
         StdError("CTxPool", "ArrangeBlockTx: find hashPrev in cache failed");
         return false;
     }
 
-    // const CTxPoolView& viewTx = mapPoolView[hashFork];
-    // if (hashPrev == viewTx.hashLastBlock)
-    // {
-    //     ArrangeBlockTx(hashFork, nBlockTime /*viewTx.nLastBlockTime*/, viewTx.hashLastBlock, nMaxSize, vtx, nTotalTxFee, CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1);
-    //     //cache.AddNew(viewTx.hashLastBlock, vtx);
-    //     StdDebug("CTxPool", "ArrangeBlockTx: hashPrev is last block, target height: %d, new vtx size: %ld, old vtx size: %ld, view tx count: %ld",
-    //              CBlock::GetBlockHeightByHash(viewTx.hashLastBlock) + 1, vtx.size(), vCacheTx.size(), viewTx.Count());
-    // }
-    // else
-    // {
     nTotalTxFee = 0;
-    // size_t currentSize = 0;
-    for (const auto& tx : vCacheTx)
+    for (const auto& tx : vtx)
     {
-        // size_t nSerializeSize = xengine::GetSerializeSize(tx);
-        // currentSize += nSerializeSize;
-        // if (currentSize > nMaxSize)
-        // {
-        //     break;
-        // }
         nTotalTxFee += tx.nTxFee;
-        vtx.push_back(tx);
     }
-    // }
     return true;
 }
 
