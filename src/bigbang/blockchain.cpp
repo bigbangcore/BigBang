@@ -48,7 +48,7 @@ bool CBlockChain::HandleInitialize()
 
     if (!GetObject("forkmanager", pForkManager))
     {
-        Error("Failed to request forkmanager\n");
+        Error("Failed to request forkmanager");
         return false;
     }
 
@@ -536,7 +536,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
-    if (pIndexNew->GetOriginHash() == pCoreProtocol->GetGenesisBlockHash())
+    if (pIndexNew->IsPrimary())
     {
         if (!AddBlockForkContext(blockex))
         {
