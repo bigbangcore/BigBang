@@ -18,7 +18,7 @@ using namespace boost::filesystem;
 BOOST_FIXTURE_TEST_SUITE(storage_tests, BasicUtfSetup)
 
 // basic config
-const uint32 nMagicNum = 0x5E33A1EF;
+const uint32 nMagicNum = 0x8F4EBC9E;
 
 BOOST_AUTO_TEST_CASE(filetest)
 {
@@ -49,14 +49,14 @@ BOOST_AUTO_TEST_CASE(filetest)
             {
                 break;
             }
-            cout << "nMagic error, nMagic: " << nMagic << ", nMagicNum: " << nMagicNum << ", GetCurPos: " << fs.GetCurPos() << ", nOffset: " << nOffset << ", nSize: " << nSize << endl;
+            cout << "nMagic: " << nMagic << ", nMagicNum: " << nMagicNum << ", GetCurPos: " << fs.GetCurPos() << ", nOffset: " << nOffset << ", nSize: " << nSize << endl;
             BOOST_CHECK(nMagic == nMagicNum);
             BOOST_CHECK(fs.GetCurPos() - nOffset - 8 == nSize);
             nOffset = fs.GetCurPos();
             nBlockCount++;
         }
         cout << GetLocalTime() << " file test success: nBlockCount: " << nBlockCount << ", time: " << GetTime() - nBeginTime << endl;
-        BOOST_CHECK(nBlockCount == 11);
+        BOOST_CHECK(nBlockCount == 12);
     }
     catch (const std::exception& e)
     {
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(fileread)
         nSyDataLen -= (nSize + 8);
     }
     cout << GetLocalTime() << "  data end, nDataLen: " << nDataLen << ", nBlockCount: " << nBlockCount << ", nSyDataLen: " << nSyDataLen << endl;
-    BOOST_CHECK(nBlockCount == 11);
+    BOOST_CHECK(nBlockCount == 12);
     free(pBuf);
 }
 
