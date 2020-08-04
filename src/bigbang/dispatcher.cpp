@@ -234,20 +234,15 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
     }
 
+    if (block.IsPrimary() && updateBlockChain.hashLastBlock != 0)
+    {
+        pForkManager->SetPrimaryLastBlock(updateBlockChain.hashLastBlock);
+    }
+
     if (!block.IsVacant())
     {
-        uint256 hashPrimaryLastBlock;
-        int nTempHeight;
-        int64 nTempTime;
-        uint16 nTempMintType;
-        if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
-        {
-            StdError("CDispatcher", "AddNewBlock: GetLastBlock fail, block: %s", block.GetHash().GetHex().c_str());
-            return ERR_SYS_DATABASE_ERROR;
-        }
-
         vector<uint256> vActive, vDeactive;
-        pForkManager->ForkUpdate(updateBlockChain, hashPrimaryLastBlock, vActive, vDeactive);
+        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
 
         for (const uint256& hashFork : vActive)
         {
@@ -530,22 +525,15 @@ void CDispatcher::CheckSubForkLastBlock(const uint256& hashFork)
 
         pService->NotifyBlockChainUpdate(updateBlockChain);
 
-        uint256 hashPrimaryLastBlock;
-        int nTempHeight;
-        int64 nTempTime;
-        uint16 nTempMintType;
-        if (pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
+        vector<uint256> vActive, vDeactive;
+        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
+        for (const uint256 hashFork : vActive)
         {
-            vector<uint256> vActive, vDeactive;
-            pForkManager->ForkUpdate(updateBlockChain, hashPrimaryLastBlock, vActive, vDeactive);
-            for (const uint256 hashFork : vActive)
-            {
-                ActivateFork(hashFork, 0);
-            }
-            for (const uint256 hashFork : vDeactive)
-            {
-                pNetChannel->UnsubscribeFork(hashFork);
-            }
+            ActivateFork(hashFork, 0);
+        }
+        for (const uint256 hashFork : vDeactive)
+        {
+            pNetChannel->UnsubscribeFork(hashFork);
         }
     }
 }

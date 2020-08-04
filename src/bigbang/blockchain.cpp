@@ -164,18 +164,8 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 
 void CBlockChain::GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)
 {
-    uint256 hashPrimaryLastBlock;
-    int nTempHeight;
-    int64 nTempTime;
-    uint16 nTempMintType;
-    if (!GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
-    {
-        StdError("BlockChain", "GetValidForkStatus GetLastBlock fail");
-        return;
-    }
-
     map<uint256, bool> mapValidFork;
-    pForkManager->GetValidForkList(hashPrimaryLastBlock, mapValidFork);
+    pForkManager->GetValidForkList(mapValidFork);
 
     GetForkStatus(mapForkStatus);
 
@@ -1355,17 +1345,7 @@ bool CBlockChain::GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nH
 
 bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block)
 {
-    uint256 hashPrimaryLastBlock;
-    int nTempHeight;
-    int64 nTempTime;
-    uint16 nTempMintType;
-    if (!GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
-    {
-        StdError("BlockChain", "AddNewBlock: GetLastBlock fail");
-        return true;
-    }
-
-    int nCreatedHeight = pForkManager->GetValidForkCreatedHeight(hashPrimaryLastBlock, hashFork);
+    int nCreatedHeight = pForkManager->GetForkCreatedHeight(hashFork);
     if (nCreatedHeight < 0)
     {
         return true;

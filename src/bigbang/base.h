@@ -213,18 +213,19 @@ public:
       : IBase("forkmanager") {}
     virtual bool IsAllowed(const uint256& hashFork) const = 0;
     virtual bool GetJoint(const uint256& hashFork, uint256& hashParent, uint256& hashJoint, int& nHeight) const = 0;
-    virtual bool LoadForkContext(const uint256& hashPrimaryLastBlock, const std::vector<CForkContext>& vForkCtxt,
+    virtual bool LoadForkContext(const uint256& hashPrimaryLastBlockIn, const std::vector<CForkContext>& vForkCtxt,
                                  const std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId, std::vector<uint256>& vActive)
         = 0;
+    virtual void SetPrimaryLastBlock(const uint256& hashPrimaryLastBlockIn) = 0;
     virtual bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) = 0;
     virtual bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
                                 bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork)
         = 0;
-    virtual void ForkUpdate(const CBlockChainUpdate& update, const uint256& hashPrimaryLastBlock, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
-    virtual void GetValidForkList(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork) = 0;
+    virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
+    virtual void GetValidForkList(std::map<uint256, bool>& mapFork) = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
     virtual int64 ForkLockedCoin(const uint256& hashFork, const uint256& hashBlock) = 0;
-    virtual int GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork) = 0;
+    virtual int GetForkCreatedHeight(const uint256& hashFork) = 0;
     const CForkConfig* ForkConfig()
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());

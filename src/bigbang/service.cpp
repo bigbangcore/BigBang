@@ -112,18 +112,8 @@ void CService::HandleHalt()
 
 void CService::NotifyBlockChainUpdate(const CBlockChainUpdate& update)
 {
-    uint256 hashPrimaryLastBlock;
-    int nTempHeight;
-    int64 nTempTime;
-    uint16 nTempMintType;
-    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
-    {
-        StdLog("CService", "NotifyBlockChainUpdate: GetLastBlock fail");
-        return;
-    }
-
     map<uint256, bool> mapFork;
-    pForkManager->GetValidForkList(hashPrimaryLastBlock, mapFork);
+    pForkManager->GetValidForkList(mapFork);
 
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwForkStatus);
@@ -260,17 +250,8 @@ void CService::ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool f
     boost::shared_lock<boost::shared_mutex> rlock(rwForkStatus);
     if (fAll)
     {
-        uint256 hashPrimaryLastBlock;
-        int nTempHeight;
-        int64 nTempTime;
-        uint16 nTempMintType;
-        if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
-        {
-            return;
-        }
-
         map<uint256, bool> mapFork;
-        pForkManager->GetValidForkList(hashPrimaryLastBlock, mapFork);
+        pForkManager->GetValidForkList(mapFork);
         vFork.reserve(mapFork.size());
         for (const auto& vd : mapFork)
         {

@@ -111,10 +111,12 @@ bool CForkManager::GetJoint(const uint256& hashFork, uint256& hashParent, uint25
     return false;
 }
 
-bool CForkManager::LoadForkContext(const uint256& hashPrimaryLastBlock, const vector<CForkContext>& vForkCtxt,
+bool CForkManager::LoadForkContext(const uint256& hashPrimaryLastBlockIn, const vector<CForkContext>& vForkCtxt,
                                    const map<uint256, pair<uint256, map<uint256, int>>>& mapValidForkId, vector<uint256>& vActive)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+
+    hashPrimaryLastBlock = hashPrimaryLastBlockIn;
 
     for (const auto& vd : mapValidForkId)
     {
@@ -123,12 +125,21 @@ bool CForkManager::LoadForkContext(const uint256& hashPrimaryLastBlock, const ve
 
     for (const CForkContext& ctxt : vForkCtxt)
     {
-        if (!AddDbForkContext(hashPrimaryLastBlock, ctxt, vActive))
+        if (!AddDbForkContext(ctxt, vActive))
         {
             return false;
         }
     }
     return true;
+}
+
+void CForkManager::SetPrimaryLastBlock(const uint256& hashPrimaryLastBlockIn)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
+    if (hashPrimaryLastBlockIn != 0)
+    {
+        hashPrimaryLastBlock = hashPrimaryLastBlockIn;
+    }
 }
 
 bool CForkManager::VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const string& strForkName)
@@ -211,7 +222,7 @@ bool CForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& h
     return true;
 }
 
-void CForkManager::ForkUpdate(const CBlockChainUpdate& update, const uint256& hashPrimaryLastBlock, vector<uint256>& vActive, vector<uint256>& vDeactive)
+void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwAccess);
 
@@ -276,7 +287,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, const uint256& ha
         }
 
         map<uint256, bool> mapValidFork;
-        ListValidFork(hashPrimaryLastBlock, mapValidFork);
+        ListValidFork(mapValidFork);
 
         auto it = setCurValidFork.begin();
         while (it != setCurValidFork.end())
@@ -303,10 +314,10 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, const uint256& ha
     }
 }
 
-void CForkManager::GetValidForkList(const uint256& hashPrimaryLastBlock, map<uint256, bool>& mapFork)
+void CForkManager::GetValidForkList(map<uint256, bool>& mapFork)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
-    ListValidFork(hashPrimaryLastBlock, mapFork);
+    ListValidFork(mapFork);
 }
 
 bool CForkManager::GetSubline(const uint256& hashFork, vector<pair<int, uint256>>& vSubline) const
@@ -345,26 +356,10 @@ int64 CForkManager::ForkLockedCoin(const uint256& hashFork, const uint256& hashB
     return -1;
 }
 
-int CForkManager::GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork)
+int CForkManager::GetForkCreatedHeight(const uint256& hashFork)
 {
-    const auto it = mapBlockValidFork.find(hashBlock);
-    if (it != mapBlockValidFork.end())
-    {
-        int nCreaatedHeight = it->second.GetCreatedHeight(hashFork);
-        if (nCreaatedHeight >= 0)
-        {
-            return nCreaatedHeight;
-        }
-        if (it->second.hashRefFdBlock != 0)
-        {
-            const auto mt = mapBlockValidFork.find(it->second.hashRefFdBlock);
-            if (mt != mapBlockValidFork.end())
-            {
-                return mt->second.GetCreatedHeight(hashFork);
-            }
-        }
-    }
-    return -1;
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    return GetValidForkCreatedHeight(hashPrimaryLastBlock, hashFork);
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -394,7 +389,29 @@ bool CForkManager::IsAllowedFork(const uint256& hashFork, const uint256& hashPar
     return false;
 }
 
-bool CForkManager::AddDbForkContext(const uint256& hashPrimaryLastBlock, const CForkContext& ctxt, vector<uint256>& vActive)
+int CForkManager::GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork)
+{
+    const auto it = mapBlockValidFork.find(hashBlock);
+    if (it != mapBlockValidFork.end())
+    {
+        int nCreaatedHeight = it->second.GetCreatedHeight(hashFork);
+        if (nCreaatedHeight >= 0)
+        {
+            return nCreaatedHeight;
+        }
+        if (it->second.hashRefFdBlock != 0)
+        {
+            const auto mt = mapBlockValidFork.find(it->second.hashRefFdBlock);
+            if (mt != mapBlockValidFork.end())
+            {
+                return mt->second.GetCreatedHeight(hashFork);
+            }
+        }
+    }
+    return -1;
+}
+
+bool CForkManager::AddDbForkContext(const CForkContext& ctxt, vector<uint256>& vActive)
 {
     CForkSchedule& sched = mapForkSched[ctxt.hashFork];
     sched.ctxtFork = ctxt;
@@ -443,7 +460,7 @@ bool CForkManager::GetValidFdForkId(const uint256& hashBlock, map<uint256, int>&
     return false;
 }
 
-void CForkManager::ListValidFork(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork)
+void CForkManager::ListValidFork(std::map<uint256, bool>& mapFork)
 {
     map<uint256, int> mapValidFork;
     if (GetValidFdForkId(hashPrimaryLastBlock, mapValidFork))

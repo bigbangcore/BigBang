@@ -1977,7 +1977,7 @@ void CNetChannel::ForkUpdateTimerFunc(uint32 nTimerId)
         nTimerForkUpdate = SetTimer(FORKUPDATE_TIMEOUT, boost::bind(&CNetChannel::ForkUpdateTimerFunc, this, _1));
 
         map<uint256, bool> mapValidFork;
-        pForkManager->GetValidForkList(pCoreProtocol->GetGenesisBlockHash(), mapValidFork);
+        pForkManager->GetValidForkList(mapValidFork);
 
         set<uint256> setValidFork;
         for (auto& vd : mapValidFork)
