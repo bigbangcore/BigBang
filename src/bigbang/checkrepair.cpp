@@ -192,9 +192,11 @@ bool CCheckForkManager::FetchForkStatus()
         StdError("check", "Fetch fork status: ListFork fail");
         return false;
     }
+    StdLog("check", "Fetch fork status: fork size: %lu", vFork.size());
 
     for (const auto& fork : vFork)
     {
+        StdLog("check", "Fetch fork status: fork: %s", fork.first.GetHex().c_str());
         const uint256 hashFork = fork.first;
         CCheckForkStatus& status = mapForkStatus[hashFork];
         status.hashLastBlock = fork.second;
@@ -251,6 +253,10 @@ void CCheckForkManager::GetTxFork(const uint256& hashFork, int nHeight, vector<u
         if (it != mapForkStatus.end())
         {
             vForkPtr.push_back(make_pair(hashFork, &(*it).second));
+        }
+        else
+        {
+            StdLog("check", "GetTxFork: find fork fail, fork: %s", hashFork.GetHex().c_str());
         }
     }
     if (nHeight >= 0)
@@ -1526,7 +1532,7 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     if (pBlockOutline == nullptr)
     {
         uint256 nChainTrust;
-        if (pIndexPrev != nullptr && !(block.IsOrigin() || block.IsVacant() || block.IsNull()))
+        if (pIndexPrev != nullptr && !block.IsOrigin() && !block.IsNull())
         {
             if (block.IsProofOfWork())
             {
@@ -1810,7 +1816,7 @@ bool CCheckBlockWalker::GetBlockDelegateAgreement(const uint256& hashBlock, cons
 
     delegate::CDelegateVerify verifier(enrolled.mapWeight, enrolled.mapEnrollData);
     map<CDestination, size_t> mapBallot;
-    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot))
+    if (!verifier.VerifyProof(block.vchProof, agreement.nAgreement, agreement.nWeight, mapBallot, objProofParam.DPoSConsensusCheckRepeated(block.GetBlockHeight())))
     {
         StdLog("check", "GetBlockDelegateAgreement : Invalid block proof, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -2092,7 +2098,7 @@ bool CCheckBlockWalker::UpdateBlockTx()
                     return false;
                 }
                 const CBlockEx& block = it->second;
-                if (!(block.IsVacant() || block.IsNull()))
+                if (!block.IsNull() && (!block.IsVacant() || !block.txMint.sendTo.IsNull()))
                 {
                     vector<uint256> vFork;
                     pCheckForkManager->GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
@@ -2296,7 +2302,7 @@ bool CCheckBlockWalker::GetBlockWalletTx(const set<CDestination>& setAddress, ve
                     vWalletTx.push_back(wtx);
                 }
             }
-            if (!block.txMint.IsNull() && setAddress.find(block.txMint.sendTo) != setAddress.end())
+            if (!block.txMint.sendTo.IsNull() && setAddress.find(block.txMint.sendTo) != setAddress.end())
             {
                 CAssembledTx atx(block.txMint, block.GetBlockHeight(), CDestination(), 0);
                 CWalletTx wtx(block.txMint.GetHash(), atx, hashFork, true, false);
@@ -2335,6 +2341,112 @@ bool CCheckBlockWalker::CheckBlockIndex()
     }
     return true;
 }
+
+bool CCheckBlockWalker::CheckRefBlock()
+{
+    auto nt = mapCheckFork.find(hashGenesis);
+    if (nt == mapCheckFork.end())
+    {
+        StdError("check", "CheckRefBlock: find primary fork fail, hashGenesis: %s", hashGenesis.GetHex().c_str());
+        return false;
+    }
+    if (nt->second.pLast == nullptr)
+    {
+        StdError("check", "CheckRefBlock: primary fork last is null, hashGenesis: %s", hashGenesis.GetHex().c_str());
+        return false;
+    }
+    CBlockIndex* pPrimaryLast = nt->second.pLast;
+
+    bool fCheckRet = true;
+    map<uint256, CCheckBlockFork>::iterator mt = mapCheckFork.begin();
+    for (; mt != mapCheckFork.end(); ++mt)
+    {
+        if (mt->first == hashGenesis)
+        {
+            continue;
+        }
+        const uint256& hashFork = mt->first;
+        CCheckBlockFork& checkFork = mt->second;
+        if (checkFork.pOrigin == nullptr)
+        {
+            StdError("check", "CheckRefBlock: pOrigin is null, fork: %s", hashFork.GetHex().c_str());
+            return false;
+        }
+        CBlockIndex* pBlockIndex = checkFork.pOrigin;
+        while (pBlockIndex)
+        {
+            map<uint256, CBlockEx>::iterator it = mapBlock.find(pBlockIndex->GetBlockHash());
+            if (it == mapBlock.end())
+            {
+                StdError("check", "CheckRefBlock: find block fail, block: %s, fork: %s", pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                return false;
+            }
+            const CBlockEx& block = it->second;
+
+            if (block.IsSubsidiary() || block.IsExtended())
+            {
+                bool fRet = true;
+                do
+                {
+                    CProofOfPiggyback proof;
+                    if (!proof.Load(block.vchProof) || proof.hashRefBlock == 0)
+                    {
+                        StdError("check", "CheckRefBlock: subfork vchProof error, block: %s, fork: %s", pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                        fRet = false;
+                        break;
+                    }
+                    auto it = mapBlockIndex.find(proof.hashRefBlock);
+                    if (it == mapBlockIndex.end())
+                    {
+                        StdError("check", "CheckRefBlock: find ref index fail, refblock: %s, block: %s, fork: %s",
+                                 proof.hashRefBlock.GetHex().c_str(), pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                        fRet = false;
+                        break;
+                    }
+                    CBlockIndex* pRefIndex = it->second;
+                    if (pRefIndex == nullptr)
+                    {
+                        StdError("check", "CheckRefBlock: ref index is null, refblock: %s, block: %s, fork: %s",
+                                 proof.hashRefBlock.GetHex().c_str(), pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                        fRet = false;
+                        break;
+                    }
+                    if (!pRefIndex->IsPrimary())
+                    {
+                        StdError("check", "CheckRefBlock: ref block not is primary chain, refblock: %s, block: %s, fork: %s",
+                                 proof.hashRefBlock.GetHex().c_str(), pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                        fRet = false;
+                        break;
+                    }
+                    if (pRefIndex != pPrimaryLast && pRefIndex->pNext == nullptr)
+                    {
+                        StdError("check", "CheckRefBlock: ref block is short chain, refblock: %s, block: %s, fork: %s",
+                                 proof.hashRefBlock.GetHex().c_str(), pBlockIndex->GetBlockHash().GetHex().c_str(), hashFork.GetHex().c_str());
+                        fRet = false;
+                        break;
+                    }
+                } while (0);
+
+                if (!fRet)
+                {
+                    fCheckRet = false;
+                    if (!fOnlyCheck)
+                    {
+                        checkFork.pLast = pBlockIndex->pPrev;
+                    }
+                    break;
+                }
+            }
+            pBlockIndex = pBlockIndex->pNext;
+        }
+    }
+    if (!fCheckRet && fOnlyCheck)
+    {
+        return false;
+    }
+    return true;
+}
+
 /////////////////////////////////////////////////////////////////////////
 // CCheckRepairData
 
@@ -2387,6 +2499,14 @@ bool CCheckRepairData::FetchBlockData()
             return false;
         }
         StdLog("check", "Check repair fork success.");
+
+        StdLog("check", "Check refblock......");
+        if (!objBlockWalker.CheckRefBlock())
+        {
+            StdError("check", "Fetch block and tx, check refblock fail");
+            return false;
+        }
+        StdLog("check", "Check refblock success, main chain height: %d.", objBlockWalker.nMainChainHeight);
 
         StdLog("check", "Update block tx......");
         if (!objBlockWalker.UpdateBlockTx())
@@ -2676,52 +2796,6 @@ bool CCheckRepairData::CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>&
     return true;
 }
 
-bool CCheckRepairData::CheckBlockIndex()
-{
-    StdLog("check", "Start check block index.");
-    CBlockIndexDB dbBlockIndex;
-    if (!dbBlockIndex.Initialize(path(strDataPath)))
-    {
-        StdLog("check", "dbBlockIndex Initialize fail");
-        return false;
-    }
-
-    CCheckBlockIndexWalker walker;
-    dbBlockIndex.WalkThroughBlock(walker);
-    StdLog("check", "Fetch block index success, count: %ld", walker.mapBlockIndex.size());
-
-    for (map<uint256, CBlockIndex*>::iterator it = objBlockWalker.mapBlockIndex.begin(); it != objBlockWalker.mapBlockIndex.end(); ++it)
-    {
-        if (!it->second->IsOrigin())
-        {
-            if (!walker.CheckBlock(CBlockOutline(it->second)))
-            {
-                if (!fOnlyCheck)
-                {
-                    dbBlockIndex.AddNewBlock(CBlockOutline(it->second));
-                }
-            }
-        }
-    }
-
-    for (map<uint256, CBlockOutline>::iterator it = walker.mapBlockIndex.begin(); it != walker.mapBlockIndex.end(); ++it)
-    {
-        const CBlockOutline& blockOut = it->second;
-        map<uint256, CBlockEx>::iterator mt = objBlockWalker.mapBlock.find(blockOut.hashBlock);
-        if (mt == objBlockWalker.mapBlock.end())
-        {
-            StdLog("check", "CheckBlockIndex: Find block hash fail, remove block index, block: %s.", blockOut.hashBlock.GetHex().c_str());
-            if (!fOnlyCheck)
-            {
-                dbBlockIndex.RemoveBlock(blockOut.hashBlock);
-            }
-        }
-    }
-
-    dbBlockIndex.Deinitialize();
-    return true;
-}
-
 bool CCheckRepairData::CheckTxIndex()
 {
     CTxIndexDB dbTxIndex;
@@ -2759,7 +2833,7 @@ bool CCheckRepairData::CheckTxIndex()
                 return false;
             }
             const CBlockEx& block = at->second;
-            if (!(block.IsVacant() || block.IsNull()))
+            if (!block.IsNull() && (!block.IsVacant() || !block.txMint.sendTo.IsNull()))
             {
                 CBufStream ss;
                 CTxIndex txIndex;

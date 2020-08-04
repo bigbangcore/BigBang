@@ -212,11 +212,11 @@ bool CWallet::HandleInvoke()
         return false;
     }
 
-    if (!InspectWalletTx(StorageConfig()->nCheckDepth))
+    /*if (!InspectWalletTx(StorageConfig()->nCheckDepth))
     {
         Log("Failed to inspect wallet transactions");
         return false;
-    }
+    }*/
 
     return true;
 }

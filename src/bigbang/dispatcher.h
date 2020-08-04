@@ -23,6 +23,7 @@ public:
     bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
                        const std::vector<unsigned char>& vchPublish) override;
     void SetConsensus(const CAgreementBlock& agreeBlock) override;
+    void CheckAllSubForkLastBlock() override;
 
 protected:
     bool HandleInitialize() override;
@@ -32,6 +33,7 @@ protected:
     void UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce);
     void ActivateFork(const uint256& hashFork, const uint64& nNonce);
     bool ProcessForkTx(const uint256& txid, const CTransaction& tx);
+    void CheckSubForkLastBlock(const uint256& hashFork);
     void SyncForkHeight(int nPrimaryHeight);
 
 protected:

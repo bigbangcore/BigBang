@@ -37,8 +37,10 @@ static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 #ifdef BIGBANG_TESTNET
 static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 0;
+static const unsigned int MAX_JOINT_FORK_INTERVAL_HEIGHT = 0x7FFFFFFF;
 #else
-static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 10;
+static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 30;
+static const unsigned int MAX_JOINT_FORK_INTERVAL_HEIGHT = 1440;
 #endif
 
 enum ConsensusMethod
@@ -70,7 +72,8 @@ static std::vector<std::pair<int, uint256>> vCheckPoints = { { 0, uint256("00000
                                                              { 210000, uint256("000334508ed90eb9419392e1fce660467973d3dede5ca51f6e457517d03f2138") },
                                                              { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
                                                              { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
-                                                             { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") } };
+                                                             { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") },
+                                                             { 366692, uint256("00059864d72f76565cb8aa190c1e73ab4eb449d6641d73f7eba4e6a849589453") } };
 #endif
 
 #endif //BIGBANG_PARAM_H

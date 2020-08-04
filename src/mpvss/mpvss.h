@@ -94,11 +94,11 @@ public:
     void Distribute(std::map<uint256, std::vector<uint256>>& mapShare);
     bool Accept(const uint256& nIdentFrom, const std::vector<uint256>& vEncrypedShare);
     void Publish(std::map<uint256, std::vector<uint256>>& mapShare);
-    bool Collect(const uint256& nIdentFrom, const std::map<uint256, std::vector<uint256>>& mapShare);
+    bool Collect(const uint256& nIdentFrom, const std::map<uint256, std::vector<uint256>>& mapShare, bool fCheckRepeated = true);
     void Reconstruct(std::map<uint256, std::pair<uint256, std::size_t>>& mapSecret);
     void Signature(const uint256& hash, uint256& nR, uint256& nS);
     bool VerifySignature(const uint256& nIdentFrom, const uint256& hash, const uint256& nR, const uint256& nS);
-    bool IsCollectCompleted() const;
+    bool IsCollectCompleted();
 
 protected:
     virtual void RandGeneretor(uint256& r);

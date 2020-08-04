@@ -39,19 +39,20 @@ public:
     std::string ToString() const
     {
         std::ostringstream os;
-        os << "CDelegateData: \n";
-        os << nIdentFrom.GetHex() << "\n";
-        os << nR.GetHex() << "\n";
-        os << nS.GetHex() << "\n";
-        os << mapShare.size() << "\n";
+        os << "CDelegateData:";
+        os << " nIdentFrom: " << nIdentFrom.GetHex() << ",";
+        os << " nR: " << nR.GetHex() << ",";
+        os << " nS: " << nS.GetHex() << ",";
+        os << " mapShare [" << mapShare.size() << "]: ";
         for (std::map<uint256, std::vector<uint256>>::const_iterator it = mapShare.begin();
              it != mapShare.end(); ++it)
         {
-            os << " " << (*it).first.GetHex() << " " << (*it).second.size() << "\n";
+            os << "{" << (*it).first.GetHex() << " [" << (*it).second.size() << "]: [";
             for (int i = 0; i < (*it).second.size(); i++)
             {
-                os << "   " << (*it).second[i].GetHex() << "\n";
+                os << (*it).second[i].GetHex() << ", ";
             }
+            os << "]}, ";
         }
         return os.str();
     }

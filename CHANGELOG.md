@@ -1,3 +1,24 @@
+# Version 2.0.5 (2020-08-04)
+
+### Fixs
+* Support fork checkpoint and Verify vacant block in fork invalid range
+* Remove repeated collected in vchProof of block
+* Fork rollback and extended maker
+* Modify get work state
+* Reduce bigbang core memory usage
+
+### Features
+* Add full-value transaction when amount=-1 for RPC CreateTransaction and SendFrom
+
+
+# Version 2.0.4 (2020-07-16)
+
+### Fixs
+* Fix consensus bug: not check repeated publish
+* Fix signature bug and add "sendtodata" option
+* Enhance verification of CERT
+* Fix crash when failing to inspect wallet tx
+
 # Version 2.0.3 (2020-06-19)
 
 ### Fixs

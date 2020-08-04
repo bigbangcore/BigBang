@@ -101,6 +101,7 @@ public:
     void GetValidForkList(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork) override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;
     int64 ForkLockedCoin(const uint256& hashFork, const uint256& hashBlock) override;
+    int GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork) override;
 
 protected:
     bool HandleInitialize() override;
@@ -110,7 +111,6 @@ protected:
     bool IsAllowedFork(const uint256& hashFork, const uint256& hashParent) const;
     bool AddDbForkContext(const uint256& hashPrimaryLastBlock, const CForkContext& ctxt, std::vector<uint256>& vActive);
     bool GetValidFdForkId(const uint256& hashBlock, std::map<uint256, int>& mapFdForkIdOut);
-    int GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork);
     void ListValidFork(const uint256& hashPrimaryLastBlock, std::map<uint256, bool>& mapFork);
 
 protected:
