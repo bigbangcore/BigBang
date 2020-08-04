@@ -443,17 +443,13 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
                     }
                     else
                     {
-                        if (hashForkPrev == 0)
-                        {
-                            StdError("NetChannel", "Submit cache pow block: GetBlockLocation fail, hashPrev: %s", pBlock->hashPrev.GetHex().c_str());
-                        }
-                        else
+                        if (hashForkPrev != 0 && hashForkPrev != hashFork)
                         {
                             StdError("NetChannel", "Submit cache pow block: fork error, prev fork: %s, fork: %s, block: %s",
                                      hashForkPrev.GetHex().c_str(), hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
+                            set<uint64> setKnownPeer;
+                            sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
                         }
-                        set<uint64> setKnownPeer;
-                        sched.RemoveInv(network::CInv(network::CInv::MSG_BLOCK, hashBlock), setKnownPeer);
                     }
                 }
                 else
