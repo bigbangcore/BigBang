@@ -735,7 +735,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         }
     }
 
-    if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
+    bool fIsDpos = false;
+    if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1, fIsDpos))
     {
         StdTrace("CService", "GetWork: IsLocalCachePowBlock pow exist");
         return false;
@@ -759,6 +760,11 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.Save(block.vchProof);
 
     block.GetSerializedProofOfWorkData(vchWorkData);
+
+    if (fIsDpos)
+    {
+        nAlgo = CM_MPVSS;
+    }
     return true;
 }
 

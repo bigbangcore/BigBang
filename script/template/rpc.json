@@ -3062,6 +3062,38 @@
             "{\"code\":-6,\"message\":\"Unknown anchor block\"}"
         ]
     },
+    "gettxfee": {
+        "type": "command",
+        "name": "GetTransactionFee",
+        "desc": "Return TxFee for vchData Hex data",
+        "request": {
+            "type": "object",
+            "content": {
+                "hexdata": {
+                    "type": "string",
+                    "desc": "Hex encoded vchData in transaction"
+                }
+            }
+        },
+        "response": {
+            "type": "double",
+            "name": "txfee",
+            "desc": "transaction Fee"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli gettxfee feeda13f124bbc",
+                "response": "0.01"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"gettxfee\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"feeda13f124bbc\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0.01\"}\n"
+            }
+        ],
+        "error": [
+            
+        ]
+    },
     "listunspent": {
         "type": "command",
         "name": "ListUnspent",

@@ -9,6 +9,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/format.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/regex.hpp>
 #include <regex>
@@ -19,6 +20,7 @@
 #include "template/fork.h"
 #include "template/proof.h"
 #include "template/template.h"
+#include "util.h"
 #include "version.h"
 
 using namespace std;
@@ -37,6 +39,11 @@ const char* GetGitVersion();
 
 static int64 AmountFromValue(const double dAmount)
 {
+    if (IsDoubleEqual(dAmount, -1.0))
+    {
+        return -1;
+    }
+
     if (dAmount <= 0.0 || dAmount > MAX_MONEY)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
@@ -275,6 +282,8 @@ CRPCMod::CRPCMod()
         ("maketemplate", &CRPCMod::RPCMakeTemplate)
         //
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
+        //
+        ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
@@ -921,6 +930,10 @@ CRPCResultPtr CRPCMod::RPCGetTransaction(CRPCParamPtr param)
     uint256 txid;
     txid.SetHex(spParam->strTxid);
     if (txid == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
+    }
+    if (txid == CTransaction().GetHash())
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txid");
     }
@@ -1629,6 +1642,20 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         StdTrace("[SendFrom]", "txudatasize : %d ; mintxfee : %d", vchData.size(), nTxFee);
     }
 
+    CWalletBalance balance;
+    if (!pService->GetBalance(from, hashFork, balance))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "GetBalance failed");
+    }
+    if (nAmount == -1)
+    {
+        if (balance.nAvailable <= nTxFee)
+        {
+            throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
+        }
+        nAmount = balance.nAvailable - nTxFee;
+    }
+
     if (from.IsTemplate() && from.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         nAmount -= nTxFee;
@@ -1644,7 +1671,8 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
+        boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr + fmt.str());
     }
 
     bool fCompleted = false;
@@ -1769,7 +1797,8 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
-        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr);
+        boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
+        throw CRPCException(RPC_WALLET_ERROR, std::string("Failed to create transaction: ") + *strErr + fmt.str());
     }
     if (spParam->nTs != 0)
     {
@@ -1777,7 +1806,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
     std::string str_inputs = spParam->strInputs;
     std::vector<std::string> vecInputs;
-    boost::split(vecInputs, str_inputs,boost::is_any_of("|"));
+    boost::split(vecInputs, str_inputs, boost::is_any_of("|"));
     for (int i = 0; i < vecInputs.size(); i++)
     {
         CTxIn obj;
@@ -1793,7 +1822,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     CBufStream ss;
     ss << txNew;
 
-    auto res = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize()) + "|" +  txNew.GetSignatureHash().GetHex();
+    auto res = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize()) + "|" + txNew.GetSignatureHash().GetHex();
     return MakeCCreateTransactionResultPtr(res);
 }
 
@@ -2204,6 +2233,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
     }
+    if ((int64)nForkHeight > (int64)nJointHeight + MAX_JOINT_FORK_INTERVAL_HEIGHT)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Maximum fork spacing height is 1440");
+    }
 
     uint256 hashBlockRef;
     int64 nTimeRef;
@@ -2483,6 +2516,15 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }*/
 
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, hashFork, uint256(), -1, string()));
+}
+
+CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetTransactionFeeParam>(param);
+    int64 nTxFee = CalcMinTxFee(ParseHexString(spParam->strHexdata).size(), NEW_MIN_TX_FEE);
+    auto spResult = MakeCGetTransactionFeeResultPtr();
+    spResult->dTxfee = ValueFromAmount(nTxFee);
+    return spResult;
 }
 
 CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
