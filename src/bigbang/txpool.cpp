@@ -305,36 +305,6 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
                 return true;
             }
         }
-        if (ptx->nType == CTransaction::TX_CERT && !mapVoteCert.empty())
-        {
-            std::map<CDestination, int>::iterator it = mapVoteCert.find(ptx->sendTo);
-            if (it != mapVoteCert.end())
-            {
-                if (it->second <= 0)
-                {
-                    setUnTx.insert(ptx->GetHash());
-                    return true;
-                }
-                it->second--;
-            }
-        }
-        if (ptx->nType == CTransaction::TX_CERT && !mapVote.empty())
-        {
-            std::map<CDestination, int64>::iterator iter = mapVote.find(ptx->sendTo);
-            if (iter != mapVote.end())
-            {
-                if (iter->second < nMinEnrollAmount)
-                {
-                    setUnTx.insert(ptx->GetHash());
-                    return true;
-                }
-            }
-            else
-            {
-                setUnTx.insert(ptx->GetHash());
-                return true;
-            }
-        }
         if (nTotalSize + ptx->nSerializeSize > nMaxSize)
         {
             return false;
@@ -359,17 +329,17 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     nTotalTxFee = 0;
 
     // Collect all cert related tx
-    const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
-    const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
-    const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
-    for (auto iter = iterBegin; iter != iterEnd; ++iter)
-    {
-        if (iter->ptx && iter->nType == CTransaction::TX_CERT)
-        {
-            GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
-            setCertRelativesIndex.insert(*iter);
-        }
-    }
+    //const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
+    //const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
+    //const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
+    //for (auto iter = iterBegin; iter != iterEnd; ++iter)
+    //{
+    //    if (iter->ptx && iter->nType == CTransaction::TX_CERT)
+    //    {
+    //         GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
+    //         setCertRelativesIndex.insert(*iter);
+    //     }
+    //}
 
     // process all cert related tx by seqnum
     const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
@@ -902,10 +872,6 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                 if (txView.Exists(txid))
                 {
                     txView.Remove(txid);
-                    if (tx.nType == CTransaction::TX_CERT)
-                    {
-                        certTxDest.RemoveCertTx(tx.sendTo, txid);
-                    }
                     mapTx.erase(txid);
                     change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
                 }
@@ -977,10 +943,6 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         if (it != mapTx.end())
         {
             change.vTxRemove.push_back(make_pair(txseq.hashTX, (*it).second.vInput));
-            if (it->second.nType == CTransaction::TX_CERT)
-            {
-                certTxDest.RemoveCertTx(it->second.sendTo, txseq.hashTX);
-            }
             mapTx.erase(it);
         }
     }
@@ -1006,7 +968,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
 void CTxPool::AddDestDelegate(const CDestination& destDeleage)
 {
-    certTxDest.AddDelegate(destDeleage);
+    //certTxDest.AddDelegate(destDeleage);
 }
 
 bool CTxPool::LoadData()
@@ -1025,14 +987,8 @@ bool CTxPool::LoadData()
         const uint256& hashFork = vTx[i].first;
         const uint256& txid = vTx[i].second.first;
         const CAssembledTx& tx = vTx[i].second.second;
-
         map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, GetSequenceNumber()))).first;
         mapPoolView[hashFork].AddNew(txid, (*mi).second);
-
-        if (tx.nType == CTransaction::TX_CERT)
-        {
-            certTxDest.AddCertTx(tx.sendTo, txid);
-        }
     }
 
     std::map<uint256, CForkStatus> mapForkStatus;
@@ -1089,15 +1045,6 @@ bool CTxPool::SaveData()
 
 Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransaction& tx, const uint256& hashFork, int nForkHeight)
 {
-    if (tx.nType == CTransaction::TX_CERT)
-    {
-        uint256 txidRemove;
-        if (certTxDest.GetTimeoutCertTx(tx.sendTo, txidRemove))
-        {
-            RemoveTx(txidRemove);
-        }
-    }
-
     vector<CTxOut> vPrevOutput;
     vPrevOutput.resize(tx.vInput.size());
     for (int i = 0; i < tx.vInput.size(); i++)
@@ -1137,25 +1084,12 @@ Errno CTxPool::AddNew(CTxPoolView& txView, const uint256& txid, const CTransacti
         return err;
     }
 
-    if (tx.nType == CTransaction::TX_CERT)
-    {
-        if (!certTxDest.IsOverMaxCertCount(tx.sendTo))
-        {
-            StdLog("CTxPool", "AddNew: too many certtx, txid: %s, sendto: %s", txid.GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
-            return ERR_TRANSACTION_TOO_MANY_CERTTX;
-        }
-    }
-
     CDestination destIn = vPrevOutput[0].destTo;
     map<uint256, CPooledTx>::iterator mi = mapTx.insert(make_pair(txid, CPooledTx(tx, -1, GetSequenceNumber(), destIn, nValueIn))).first;
     if (!txView.AddNew(txid, (*mi).second))
     {
         StdTrace("CTxPool", "AddNew: txView AddNew fail, txid: %s", txid.GetHex().c_str());
         return ERR_NOT_FOUND;
-    }
-    if (tx.nType == CTransaction::TX_CERT)
-    {
-        certTxDest.AddCertTx(tx.sendTo, txid);
     }
     return OK;
 }
@@ -1188,13 +1122,8 @@ void CTxPool::RemoveTx(const uint256& txid)
     const CPooledTxLinkSetBySequenceNumber& idxTx = viewInvolvedTx.setTxLinkIndex.get<1>();
     for (CPooledTxLinkSetBySequenceNumber::const_iterator mi = idxTx.begin(); mi != idxTx.end(); ++mi)
     {
-        if (mi->ptx && mi->ptx->nType == CTransaction::TX_CERT)
-        {
-            certTxDest.RemoveCertTx(mi->ptx->sendTo, mi->hashTX);
-        }
         mapTx.erase(mi->hashTX);
     }
-
     StdTrace("CTxPool", "RemoveTx success, txid: %s", txid.GetHex().c_str());
 }
 

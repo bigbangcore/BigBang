@@ -9,18 +9,15 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include "delegate.h"
 #include "exchange.h"
-#include "fork.h"
 #include "multisig.h"
+#include "payment.h"
 #include "proof.h"
 #include "rpc/auto_protocol.h"
 #include "stream/datastream.h"
 #include "template.h"
 #include "templateid.h"
 #include "transaction.h"
-#include "vote.h"
-#include "payment.h"
 #include "weighted.h"
 
 using namespace std;
@@ -44,11 +41,8 @@ using CTypeInfoSet = boost::multi_index_container<
 static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_WEIGHTED, new CTemplateWeighted, "weighted" },
     { TEMPLATE_MULTISIG, new CTemplateMultiSig, "multisig" },
-    { TEMPLATE_FORK, new CTemplateFork, "fork" },
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
-    { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
-    { TEMPLATE_VOTE, new CTemplateVote, "vote" },
     { TEMPLATE_PAYMENT, new CTemplatePayment, "payment" },
 };
 
@@ -215,43 +209,9 @@ bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination
     std::vector<uint8> vchSubSigOut;
     bool fSendToVoteTemplate = false;
     CTemplateId tid;
-    if (sendTo.GetTemplateId(tid))
-    {
-        if (tid.GetType() == TEMPLATE_DELEGATE)
-        {
-            sendToDelegateOut = sendTo;
-        }
-        else if (tid.GetType() == TEMPLATE_VOTE)
-        {
-            CDestination destOwnerTemp;
-            if (!CSendToRecordedTemplate::ParseDest(vchSigIn, sendToDelegateOut, destOwnerTemp, vchSubSigOut))
-            {
-                return false;
-            }
-            fSendToVoteTemplate = true;
-        }
-    }
     if (!fSendToVoteTemplate)
     {
         vchSubSigOut = std::move(vchSigIn);
-    }
-
-    if (destIn.GetTemplateId(tid))
-    {
-        if (tid.GetType() == TEMPLATE_DELEGATE)
-        {
-            destInDelegateOut = destIn;
-        }
-        else if (tid.GetType() == TEMPLATE_VOTE)
-        {
-            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn, vchSubSigOut);
-            if (ptr == nullptr)
-            {
-                return false;
-            }
-            CDestination destOwnerTemp;
-            boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destInDelegateOut, destOwnerTemp);
-        }
     }
     return true;
 }

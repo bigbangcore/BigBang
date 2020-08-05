@@ -86,10 +86,10 @@ protected:
                         const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType);
     //bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
     bool CreateProofOfWork();
-   // void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
-                         // int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
+    // void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
+    // int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
     //bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
-                      //  const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
+    //  const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
 
 private:
     void BlockMakerThreadFunc();
@@ -105,7 +105,6 @@ protected:
     CForkStatus lastStatus;
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
-    std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IForkManager* pForkManager;

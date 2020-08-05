@@ -81,8 +81,7 @@ public:
     }
     bool IsMintTx() const
     {
-        return (nType == CTransaction::TX_GENESIS || nType == CTransaction::TX_STAKE
-                || nType == CTransaction::TX_WORK);
+        return (nType == CTransaction::TX_GENESIS || nType == CTransaction::TX_WORK);
     }
     bool IsMine() const
     {
@@ -96,12 +95,8 @@ public:
     {
         if (nType == CTransaction::TX_TOKEN)
             return std::string("token");
-        if (nType == CTransaction::TX_CERT)
-            return std::string("certification");
         if (nType == CTransaction::TX_GENESIS)
             return std::string("genesis");
-        if (nType == CTransaction::TX_STAKE)
-            return std::string("stake");
         if (nType == CTransaction::TX_WORK)
             return std::string("work");
         return std::string("undefined");

@@ -20,17 +20,11 @@ const CTemplateMintPtr CTemplateMint::CreateTemplatePtr(CTemplateMint* ptr)
 bool CTemplateMint::VerifyBlockSignature(const CTemplateId& nIdIn, const uint256& hash, const vector<uint8>& vchSig)
 {
     uint16 nType = nIdIn.GetType();
-    if (nType != TEMPLATE_PROOF && nType != TEMPLATE_DELEGATE)
-    {
-        return false;
-    }
-
     const CTemplateMintPtr ptr = boost::dynamic_pointer_cast<CTemplateMint>(CTemplate::CreateTemplatePtr(nType, vchSig));
     if (!ptr)
     {
         return false;
     }
-
     vector<uint8> vchSubSig(vchSig.begin() + ptr->vchData.size(), vchSig.end());
     return ptr->VerifyBlockSignature(hash, vchSubSig);
 }

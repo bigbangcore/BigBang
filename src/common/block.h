@@ -107,6 +107,7 @@ public:
     {
         return (int64)nTimeStamp;
     }
+
     uint32 GetBlockHeight() const
     {
         if (IsGenesis())
@@ -122,6 +123,7 @@ public:
             return hashPrev.Get32(7) + 1;
         }
     }
+
     uint64 GetBlockBeacon(int idx = 0) const
     {
         if (vchProof.empty())
@@ -232,8 +234,6 @@ inline std::string GetBlockTypeStr(uint16 nType, uint16 nMintType)
         str = "vacant";
     if (nMintType == CTransaction::TX_WORK)
         return (str + "pow");
-    if (nMintType == CTransaction::TX_STAKE)
-        return (str + "dpos");
     return str;
 }
 

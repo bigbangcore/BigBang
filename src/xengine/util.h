@@ -15,8 +15,6 @@
 namespace xengine
 {
 
-//#define BIGBANG_TESTNET
-
 extern bool STD_DEBUG;
 
 void SetThreadName(const char* name);

@@ -42,8 +42,7 @@ static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 30;
 
 enum ConsensusMethod
 {
-    CM_MPVSS = 0,
-    CM_CRYPTONIGHT = 1,
+    CM_CRYPTONIGHT = 0,
     CM_MAX
 };
 

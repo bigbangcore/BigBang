@@ -16,7 +16,6 @@
 
 #include "address.h"
 #include "rpc/auto_protocol.h"
-#include "template/fork.h"
 #include "template/proof.h"
 #include "template/template.h"
 #include "version.h"
@@ -576,12 +575,12 @@ CRPCResultPtr CRPCMod::RPCHelp(CRPCParamPtr param)
 CRPCResultPtr CRPCMod::RPCStop(CRPCParamPtr param)
 {
     pService->Stop();
-    return MakeCStopResultPtr("bigbang server stopping");
+    return MakeCStopResultPtr("mkf server stopping");
 }
 
 CRPCResultPtr CRPCMod::RPCVersion(CRPCParamPtr param)
 {
-    string strVersion = string("Bigbang server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
+    string strVersion = string("mkf server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
     return MakeCVersionResultPtr(strVersion);
 }
 
@@ -1645,12 +1644,6 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         nAmount -= nTxFee;
     }
 
-    CTemplateId tid;
-    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "sendfrom nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
-    }
-
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
@@ -1776,12 +1769,6 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    CTemplateId tid;
-    if (to.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK && nAmount < CTemplateFork::CreatedCoin())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "create transaction nAmount must be at least " + std::to_string(CTemplateFork::CreatedCoin() / COIN) + " for creating fork");
-    }
-
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {

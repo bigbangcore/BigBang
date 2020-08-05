@@ -5,7 +5,6 @@
 #include "service.h"
 
 #include "event.h"
-#include "template/delegate.h"
 
 using namespace std;
 using namespace xengine;
@@ -423,46 +422,7 @@ bool CService::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::m
 
 bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause)
 {
-    CTemplateId tid;
-    if (!destDelegate.GetTemplateId(tid)
-        || (tid.GetType() != TEMPLATE_DELEGATE && tid.GetType() != TEMPLATE_VOTE))
-    {
-        strFailCause = "Not a delegate or vote template address";
-        return false;
-    }
-    if (tid.GetType() == TEMPLATE_DELEGATE)
-    {
-        // if (!pBlockChain->GetVotes(destDelegate, nVotes))
-        // {
-        //     strFailCause = "Query failed";
-        //     return false;
-        // }
-        return false;
-    }
-    else
-    {
-        CTemplatePtr ptr = pWallet->GetTemplate(tid);
-        if (ptr == nullptr)
-        {
-            strFailCause = "Vote template address not imported";
-            return false;
-        }
-        CDestination destDelegateTemplateOut;
-        CDestination destOwnerOut;
-        boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
-        if (destDelegateTemplateOut.IsNull())
-        {
-            strFailCause = "Vote template address not imported";
-            return false;
-        }
-        // if (!pBlockChain->GetVotes(destDelegateTemplateOut, nVotes))
-        // {
-        //     strFailCause = "Query failed";
-        //     return false;
-        // }
-        return false;
-    }
-    return true;
+    return false;
 }
 
 bool CService::ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes)

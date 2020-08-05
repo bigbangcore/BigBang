@@ -28,8 +28,6 @@ bool CMintConfig::PostLoad()
     {
         return true;
     }
-
-    ExtractMintParamPair(strAddressMpvss, strKeyMpvss, destMpvss, keyMpvss);
     ExtractMintParamPair(strAddressCryptonight, strkeyCryptonight, destCryptonight,
                          keyCryptonight);
     return true;
@@ -39,8 +37,6 @@ std::string CMintConfig::ListConfig() const
 {
     std::ostringstream oss;
     oss << CMintConfigOption::ListConfigImpl();
-    oss << "destMpvss: " << destMpvss.ToString() << "\n";
-    oss << "keyMpvss: " << keyMpvss.GetHex() << "\n";
     oss << "destCryptonight: " << destCryptonight.ToString() << "\n";
     oss << "keyCryptonight: " << keyCryptonight.GetHex() << "\n";
     return oss.str();

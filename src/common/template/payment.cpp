@@ -60,6 +60,8 @@ const CTemplatePaymentPtr CTemplatePayment::CreateTemplatePtr(CTemplatePayment* 
 
 bool CTemplatePayment::ValidateParam() const
 {
+    //Disable
+    return false;
     if (!m_business.IsPubKey() || !m_customer.IsPubKey())
     {
         return false;
@@ -80,7 +82,7 @@ bool CTemplatePayment::ValidateParam() const
 }
 
 bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
-                                           std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
+                                          std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
     uint32 height;
     int64 nValueIn;
@@ -113,7 +115,7 @@ bool CTemplatePayment::GetSignDestination(const CTransaction& tx, const std::vec
         {
             setSubDest.insert(m_business);
         }
-        else if (nValueIn ==  m_pledge)
+        else if (nValueIn == m_pledge)
         {
             setSubDest.insert(m_customer);
         }
@@ -143,7 +145,7 @@ bool CTemplatePayment::SetTemplateData(const bigbang::rpc::CTemplateRequest& obj
 
     m_height_exec = obj.payment.nHeight_Exec;
     m_height_end = obj.payment.nHeight_End;
-    
+
     m_amount = obj.payment.nAmount;
     m_pledge = obj.payment.nPledge;
     return true;
@@ -183,8 +185,10 @@ bool CTemplatePayment::SetTemplateData(const vector<uint8>& vchDataIn)
 }
 
 bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
-                                          const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
+                                         const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
+    //Disable
+    return false;
     if (nForkHeight < (m_height_exec + SafeHeight))
     {
         return false;
@@ -213,7 +217,7 @@ bool CTemplatePayment::VerifyTxSignature(const uint256& hash, const uint16 nType
     }
 }
 
-bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height,std::multimap<int64, CDestination> &mapVotes,const uint256 &nAgreement,int64 nValueIn)
+bool CTemplatePayment::VerifyTransaction(const CTransaction& tx, uint32 height, std::multimap<int64, CDestination>& mapVotes, const uint256& nAgreement, int64 nValueIn)
 {
     if (tx.vInput.size() != 1)
     {

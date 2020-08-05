@@ -105,11 +105,11 @@ public:
     std::vector<uint8> vchSig;
     enum
     {
-        TX_TOKEN = 0x0000,   // normal Tx 0
-        TX_CERT = 0xff00,    // Enroll Tx 65280
+        TX_TOKEN = 0x0000, // normal Tx 0
+        //TX_CERT = 0xff00,    // Enroll Tx 65280
         TX_GENESIS = 0x0100, // 256
-        TX_STAKE = 0x0200,   // DPoS mint tx 512
-        TX_WORK = 0x0300     // PoW mint tx 768
+        //TX_STAKE = 0x0200,   // DPoS mint tx 512
+        TX_WORK = 0x0300 // PoW mint tx 768
     };
     CTransaction()
     {
@@ -136,18 +136,14 @@ public:
     }
     bool IsMintTx() const
     {
-        return (nType == TX_GENESIS || nType == TX_STAKE || nType == TX_WORK);
+        return (nType == TX_GENESIS || nType == TX_WORK);
     }
     std::string GetTypeString() const
     {
         if (nType == TX_TOKEN)
             return std::string("token");
-        if (nType == TX_CERT)
-            return std::string("certification");
         if (nType == TX_GENESIS)
             return std::string("genesis");
-        if (nType == TX_STAKE)
-            return std::string("stake");
         if (nType == TX_WORK)
             return std::string("work");
         return std::string("undefined");

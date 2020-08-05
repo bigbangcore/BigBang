@@ -6,8 +6,6 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-#include "template/fork.h"
-
 using namespace std;
 using namespace xengine;
 
@@ -160,9 +158,7 @@ void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& 
             for (const CTransaction& tx : block.vtx)
             {
                 CTemplateId tid;
-                if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_FORK
-                    && !tx.vchData.empty()
-                    && tx.nAmount >= CTemplateFork::CreatedCoin())
+                if (!tx.vchData.empty())
                 {
                     CForkContext ctxt;
                     if (pBlockChain->AddNewForkContext(tx, ctxt) == OK)

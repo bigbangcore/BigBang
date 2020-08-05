@@ -6,10 +6,8 @@
 
 #include "../common/template/exchange.h"
 #include "address.h"
-#include "template/delegate.h"
 #include "template/mint.h"
 #include "template/payment.h"
-#include "template/vote.h"
 
 using namespace std;
 using namespace xengine;
@@ -572,32 +570,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     CDestination sendToOwner;
     bool fDestInRecorded = false;
     CTemplateId tid;
-    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
-    {
-        if (!vchSendToData.empty())
-        {
-            CTemplatePtr tempPtr = CTemplate::Import(vchSendToData);
-            if (tempPtr != nullptr && tempPtr->GetTemplateId() == tid)
-            {
-                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
-            }
-        }
-        if (sendToDelegate.IsNull() || sendToOwner.IsNull())
-        {
-            CTemplatePtr tempPtr = GetTemplate(tid);
-            if (tempPtr != nullptr)
-            {
-                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
-            }
-            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
-            {
-                StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
-                         CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        fDestInRecorded = true;
-    }
     if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
     {
         CTemplatePtr tempPtr = GetTemplate(tid);
@@ -1435,8 +1407,7 @@ int64 CWallet::SelectCoins(const CDestination& dest, const uint256& hashFork, in
 
     for (const CWalletTxOut& out : walletCoins.setCoins)
     {
-        if (out.IsLocked(nForkHeight) || out.GetTxTime() > nTxTime
-            || (out.spWalletTx->nType == CTransaction::TX_CERT && out.n == 0))
+        if (out.IsLocked(nForkHeight) || out.GetTxTime() > nTxTime)
         {
             continue;
         }

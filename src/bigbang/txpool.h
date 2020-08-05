@@ -432,7 +432,7 @@ protected:
     std::map<uint256, CPooledTx> mapTx;
     uint64 nLastSequenceNumber;
     std::map<uint256, CTxCache> mapTxCache;
-    CCertTxDestCache certTxDest;
+    //CCertTxDestCache certTxDest;
 };
 
 } // namespace bigbang

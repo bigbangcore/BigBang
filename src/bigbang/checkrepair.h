@@ -9,8 +9,6 @@
 #include "block.h"
 #include "blockindexdb.h"
 #include "core.h"
-#include "delegatecomm.h"
-#include "delegateverify.h"
 #include "param.h"
 #include "struct.h"
 #include "timeseries.h"

@@ -4,12 +4,9 @@
 
 #include "core.h"
 
-#include "../common/template/delegate.h"
 #include "../common/template/exchange.h"
-#include "../common/template/fork.h"
 #include "../common/template/mint.h"
 #include "../common/template/payment.h"
-#include "../common/template/vote.h"
 #include "address.h"
 #include "wallet.h"
 
@@ -27,16 +24,9 @@ static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_MAINNET = 30;
 static const uint32 PROOF_OF_WORK_DIFFICULTY_INTERVAL_TESTNET = 30;
 
-#ifdef BIGBANG_TESTNET
-static const int64 BBCP_TOKEN_INIT = 300000000;
-static const int64 BBCP_BASE_REWARD_TOKEN = 20;
-static const int64 BBCP_INIT_REWARD_TOKEN = 20;
-#else
-static const int64 BBCP_TOKEN_INIT = 0;
+static const int64 BBCP_TOKEN_INIT = 1000000000;
 static const int64 BBCP_YEAR_INC_REWARD_TOKEN = 50;
-
-static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_YEAR_INC_REWARD_TOKEN;
-#endif
+static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_TOKEN_INIT;
 
 namespace bigbang
 {
@@ -129,46 +119,11 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
 Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
 {
-    // Basic checks that don't depend on any context
-    // Don't allow CTransaction::TX_CERT type in v1.0.0
-    /*if (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_GENESIS
-        && tx.nType != CTransaction::TX_STAKE && tx.nType != CTransaction::TX_WORK)
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "tx type is invalid.\n");
-    }*/
-    if (tx.nType == CTransaction::TX_TOKEN
-        && (tx.sendTo.IsPubKey()
-            || (tx.sendTo.IsTemplate()
-                && (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_WEIGHTED || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_MULTISIG)))
-        && !tx.vchData.empty())
-    {
-        if (tx.vchData.size() < 21)
-        { //vchData must contain 3 fields of UUID, timestamp, szDescription at least
-            return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData is less than 21 bytes.\n");
-        }
-        //check description field
-        uint16 nPos = 20;
-        uint8 szDesc = tx.vchData[nPos];
-        if (szDesc > 0)
-        {
-            if ((nPos + 1 + szDesc) > tx.vchData.size())
-            {
-                return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData is overflow.\n");
-            }
-            std::string strDescEncodedBase64(tx.vchData.begin() + nPos + 1, tx.vchData.begin() + nPos + 1 + szDesc);
-            xengine::CHttpUtil util;
-            std::string strDescDecodedBase64;
-            if (!util.Base64Decode(strDescEncodedBase64, strDescDecodedBase64))
-            {
-                return DEBUG(ERR_TRANSACTION_INVALID, "tx vchData description base64 is not available.\n");
-            }
-        }
-    }
-    if (tx.vInput.empty() && tx.nType != CTransaction::TX_GENESIS && tx.nType != CTransaction::TX_WORK && tx.nType != CTransaction::TX_STAKE)
+    if (tx.vInput.empty() && tx.nType != CTransaction::TX_GENESIS && tx.nType != CTransaction::TX_WORK)
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is empty\n");
     }
-    if (!tx.vInput.empty() && (tx.nType == CTransaction::TX_GENESIS || tx.nType == CTransaction::TX_WORK || tx.nType == CTransaction::TX_STAKE))
+    if (!tx.vInput.empty() && (tx.nType == CTransaction::TX_GENESIS || tx.nType == CTransaction::TX_WORK))
     {
         return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is not empty for genesis or work tx\n");
     }
@@ -193,21 +148,12 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
         return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
     }
 
-    if (nHeight != 0 /*&& !IsDposHeight(nHeight)*/)
+    if (tx.sendTo.IsTemplate())
     {
-        if (tx.sendTo.IsTemplate())
+        CTemplateId tid;
+        if (!tx.sendTo.GetTemplateId(tid))
         {
-            CTemplateId tid;
-            if (!tx.sendTo.GetTemplateId(tid))
-            {
-                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 1");
-            }
-            if (tid.GetType() == TEMPLATE_FORK
-                || tid.GetType() == TEMPLATE_DELEGATE
-                || tid.GetType() == TEMPLATE_VOTE)
-            {
-                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
-            }
+            return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 1");
         }
     }
 
@@ -363,7 +309,7 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.");
     }
 
-    if (nBits != proof.nBits /*|| proof.nAlgo != CM_CRYPTONIGHT*/)
+    if (nBits != proof.nBits)
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.", nAlgo, proof.nBits, block.vchProof.size());
     }
@@ -382,7 +328,6 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     vector<unsigned char> vchProofOfWork;
     block.GetSerializedProofOfWorkData(vchProofOfWork);
     uint256 hash = crypto::CryptoPowHash(&vchProofOfWork[0], vchProofOfWork.size());
-
     if (hash > hashTarget)
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error: proof[%s] vs. target[%s] with bits[%d]",
@@ -474,28 +419,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    if (tx.nType == CTransaction::TX_CERT)
-    {
-        if (VerifyCertTx(tx, destIn, fork) != OK)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
-        }
-    }
-
-    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
-    {
-        if (VerifyVoteTx(tx, destIn, fork) != OK)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
-        }
-    }
-
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
-
     vector<uint8> vchSig;
     /*if (CTemplate::IsDestInRecorded(tx.sendTo))
     {
@@ -519,17 +442,18 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
         {
-            CBlock block;
-            std::multimap<int64, CDestination> mapVotes;
-            CProofOfSecretShare dpos;
+            //CBlock block;
+            //std::multimap<int64, CDestination> mapVotes;
+            //CProofOfSecretShare dpos;
             // if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
             // {
             //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
             // }
-            if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
-            {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
-            }
+            //if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
+            //{
+            //    return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            //}
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
         }
         else
         {
@@ -552,11 +476,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         // {
         //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
         // }
-    }
-
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
-    {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
     }
 
     if (!VerifyDestRecorded(tx, vchSig))
@@ -601,28 +520,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
-
-    if (tx.nType == CTransaction::TX_CERT)
-    {
-        if (VerifyCertTx(tx, destIn, fork) != OK)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
-        }
-    }
-
-    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
-    {
-        if (VerifyVoteTx(tx, destIn, fork) != OK)
-        {
-            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
-        }
-    }
-
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
 
     // record destIn in vchSig
     vector<uint8> vchSig;
@@ -692,12 +589,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
         // }
     }
-
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
-    {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
-    }
-
     return OK;
 }
 
@@ -878,7 +769,7 @@ bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
 
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-    return BBCP_INIT_REWARD_TOKEN * COIN;
+    return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
 }
 
 void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t>& mapBallot,
@@ -904,10 +795,6 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
 {
     if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
     {
-        if (nTargetMintType == CTransaction::TX_STAKE)
-        {
-            return nPrevTimeStamp + BLOCK_TARGET_SPACING;
-        }
         return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
     }
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
@@ -953,27 +840,6 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
             StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
             return false;
         }
-        CTemplateId tid;
-        if (!(tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE))
-        {
-            StdError("Core", "Verify dest recorded: sendTo not is template, txid: %s, sendTo: %s", tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str());
-            return false;
-        }
-        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(new CTemplateVote(sendToDelegateTemplate, sendToOwner));
-        if (ptr == nullptr)
-        {
-            StdError("Core", "Verify dest recorded: sendTo CreateTemplatePtr fail, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
-                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
-                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
-            return false;
-        }
-        if (ptr->GetTemplateId() != tx.sendTo.GetTemplateId())
-        {
-            StdError("Core", "Verify dest recorded: sendTo error, txid: %s, sendTo: %s, delegate dest: %s, owner dest: %s",
-                     tx.GetHash().GetHex().c_str(), CAddress(tx.sendTo).ToString().c_str(),
-                     CAddress(sendToDelegateTemplate).ToString().c_str(), CAddress(sendToOwner).ToString().c_str());
-            return false;
-        }
     }
     else
     {
@@ -997,13 +863,6 @@ Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx, const CDestination& de
             CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
         return ERR_TRANSACTION_INVALID;
     }
-    // the `to` address must be delegate template address
-    if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
-    {
-        Log("VerifyCertTx the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-
     return OK;
 }
 
@@ -1015,7 +874,6 @@ Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& de
         Log("VerifyVoteTx from or to vote template address tx is not on the main chain, fork: %s", fork.ToString().c_str());
         return ERR_TRANSACTION_INVALID;
     }
-
     return OK;
 }
 
