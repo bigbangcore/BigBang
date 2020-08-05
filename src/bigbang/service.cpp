@@ -729,7 +729,7 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         // }
         // else
         // {
-        block.nTimeStamp = max((*it).second.nLastBlockTime, GetNetTime());
+        block.nTimeStamp = max((*it).second.nLastBlockTime + 1, GetNetTime());
         //}
     }
 
@@ -752,9 +752,26 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.nAgreement = 0;
     proof.nAlgo = nAlgo;
     proof.nBits = nBits;
-    proof.destMint = CDestination(templMint->GetTemplateId());
     proof.nNonce = 0;
     proof.Save(block.vchProof);
+
+    // tx mint
+    CTransaction& txMint = block.txMint;
+    txMint.nType = CTransaction::TX_WORK;
+    txMint.nTimeStamp = nPrevTime + 1;
+    //txMint.hashAnchor = block.hashPrev;
+    txMint.sendTo = CDestination(templMint->GetTemplateId());
+    txMint.nAmount = nReward;
+    // size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
+    // size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
+    int64 nTotalTxFee = 0;
+    if (!pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.hashPrev, block.nTimeStamp, /*nMaxTxSize, */ block.vtx, nTotalTxFee))
+    {
+        StdError("CService", "GetWork: ArrangeBlockTx fail");
+        return false;
+    }
+    txMint.nAmount += nTotalTxFee;
+    block.hashMerkle = block.CalcMerkleTreeRoot();
 
     block.GetSerializedProofOfWorkData(vchWorkData);
     return true;
@@ -774,7 +791,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     ss.Write((const char*)&vchWorkData[0], vchWorkData.size());
     try
     {
-        ss >> block.nVersion >> block.nType >> block.nTimeStamp >> block.hashPrev >> block.vchProof;
+        ss >> block.nVersion >> block.nType >> block.nTimeStamp >> block.hashPrev >> block.hashMerkle >> block.vchProof;
         proof.Load(block.vchProof);
         if (proof.nAlgo != CM_CRYPTONIGHT)
         {
@@ -795,23 +812,35 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         return FAILED;
     }
 
+    CBlock blockPrev;
+    if (!pBlockChain->GetBlock(block.hashPrev, blockPrev))
+    {
+        StdError("CService", "SubmitWork: Get prev block fail");
+        return FAILED;
+    }
+
     CTransaction& txMint = block.txMint;
     txMint.nType = CTransaction::TX_WORK;
-    txMint.nTimeStamp = block.nTimeStamp;
+    txMint.nTimeStamp = blockPrev.nTimeStamp + 1;
     //txMint.hashAnchor = block.hashPrev;
     txMint.sendTo = CDestination(templMint->GetTemplateId());
     txMint.nAmount = nReward;
 
-    size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
+    // size_t nSigSize = templMint->GetTemplateData().size() + 64 + 2;
+    // size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
     int64 nTotalTxFee = 0;
-    if (!pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.hashPrev, block.nTimeStamp, nMaxTxSize, block.vtx, nTotalTxFee))
+    if (!pTxPool->ArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.hashPrev, block.nTimeStamp, /*nMaxTxSize, */ block.vtx, nTotalTxFee))
     {
         StdError("CService", "SubmitWork: ArrangeBlockTx fail");
         return FAILED;
     }
-    block.hashMerkle = block.CalcMerkleTreeRoot();
-    block.txMint.nAmount += nTotalTxFee;
+    txMint.nAmount += nTotalTxFee;
+
+    if (block.hashMerkle != block.CalcMerkleTreeRoot())
+    {
+        StdError("CService", "SubmitWork: hashMerkle is not correct");
+        return FAILED;
+    }
 
     hashBlock = block.GetHash();
     vector<unsigned char> vchMintSig;
