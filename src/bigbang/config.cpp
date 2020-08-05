@@ -54,15 +54,15 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     std::string cmd = (vecCmd.size() > 0) ? vecCmd[0] : "";
 
     int ignoreCmd = 0;
-    if (exec == "bigbang-server")
+    if (exec == "mkf-server")
     {
         emMode = EModeType::SERVER;
     }
-    else if (exec == "bigbang-miner")
+    else if (exec == "mkf-miner")
     {
         emMode = EModeType::MINER;
     }
-    else if (exec == "bigbang-cli")
+    else if (exec == "mkf-cli")
     {
         emMode = EModeType::CONSOLE;
 

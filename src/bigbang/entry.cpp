@@ -192,19 +192,6 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
 
-    // hard fork version
-    /*
-    if (config.GetConfig()->fTestNet)
-    {
-        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
-    }
-    else
-    {
-        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
-        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
-    }*/
-
     // modules
     return InitializeModules(config.GetModeType());
 }
@@ -486,9 +473,9 @@ path CBbEntry::GetDefaultDataDir()
     char pszPath[MAX_PATH] = "";
     if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
     {
-        return path(pszPath) / "Bigbang";
+        return path(pszPath) / "MKF";
     }
-    return path("C:\\Bigbang");
+    return path("C:\\MKF");
 #else
     path pathRet;
     char* pszHome = getenv("HOME");
@@ -504,10 +491,10 @@ path CBbEntry::GetDefaultDataDir()
     // Mac
     pathRet /= "Library/Application Support";
     create_directory(pathRet);
-    return pathRet / "Bigbang";
+    return pathRet / "MKF";
 #else
     // Unix
-    return pathRet / ".bigbang";
+    return pathRet / ".mkf";
 #endif
 #endif
 }
@@ -543,7 +530,7 @@ bool CBbEntry::RunInBackground(const path& pathData)
     }
     if (pid > 0)
     {
-        FILE* file = fopen((pathData / "bigbang.pid").string().c_str(), "w");
+        FILE* file = fopen((pathData / "mkf.pid").string().c_str(), "w");
         if (file)
         {
             fprintf(file, "%d\n", pid);
@@ -574,7 +561,7 @@ bool CBbEntry::RunInBackground(const path& pathData)
 void CBbEntry::ExitBackground(const path& pathData)
 {
 #ifndef WIN32
-    boost::filesystem::remove(pathData / "bigbang.pid");
+    boost::filesystem::remove(pathData / "mkf.pid");
 #endif
 }
 

@@ -78,14 +78,14 @@ set(sources
 )
 
 add_library(libbigbang ${sources})
-add_executable(bigbang bigbang.cpp)
+add_executable(mkf bigbang.cpp)
 
 include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 include_directories(${Protobuf_INCLUDE_DIRS})
 
-target_link_libraries(bigbang
+target_link_libraries(mkf
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -129,15 +129,15 @@ target_link_libraries(libbigbang
 )
 
 # create symbol link
-set(exec_link bigbang-cli bigbang-server bigbang-miner)
+set(exec_link mkf-cli mkf-server mkf-miner)
 foreach(link ${exec_link})
-    add_custom_command(TARGET bigbang POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink bigbang ${link}
+    add_custom_command(TARGET mkf POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink mkf ${link}
     )
 endforeach()
 
 # install to path
-foreach(link bigbang ${exec_link})
+foreach(link mkf ${exec_link})
     install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${link}"
         DESTINATION bin
     )
