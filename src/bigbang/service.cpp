@@ -733,12 +733,6 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         //}
     }
 
-    // if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
-    // {
-    //     StdTrace("CService", "GetWork: IsLocalCachePowBlock pow exist");
-    //     return false;
-    // }
-
     nAlgo = CM_CRYPTONIGHT;
     int64 nReward;
     if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
@@ -857,12 +851,6 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
         StdError("CService", "SubmitWork: ValidateBlock fail");
         return err;
     }
-
-    // if (!pNetChannel->AddCacheLocalPowBlock(block))
-    // {
-    //     StdError("CService", "SubmitWork: AddCacheLocalPowBlock fail");
-    //     return FAILED;
-    // }
 
     err = pDispatcher->AddNewBlock(block);
     if (err != OK)

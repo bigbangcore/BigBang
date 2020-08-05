@@ -251,9 +251,6 @@ public:
     void BroadcastTxInv(const uint256& hashFork) override;
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
-    bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
-    bool IsLocalCachePowBlock(int nHeight) override;
-    bool AddCacheLocalPowBlock(const CBlock& block) override;
 
 protected:
     enum
@@ -307,19 +304,15 @@ protected:
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
     void AddNewBlock(const uint256& hashFork, const uint256& hash, CSchedule& sched,
-                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer,
-                     std::vector<std::pair<uint256, uint256>>& vRefNextBlock, bool fCheckPow);
+                     std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
-    void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
     void PostAddNew(const uint256& hashFork, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
     const string GetPeerAddressInfo(uint64 nNonce);
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
-    void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
-    void InnerSubmitCachePowBlock();
 
     const CBasicConfig* Config()
     {

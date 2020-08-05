@@ -844,40 +844,9 @@ bool CBlockChain::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std
 //     return cntrBlock.GetDelegateList(pCoreProtocol->GetGenesisBlockHash(), nCount, mapVotes);
 // }
 
-bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block, const uint256& hashBlockRef)
+bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const CBlock& block)
 {
-    uint32 nRefTimeStamp = 0;
-    if (hashBlockRef != 0 && (block.IsSubsidiary() || block.IsExtended()))
-    {
-        CBlockIndex* pIndexRef;
-        if (!cntrBlock.RetrieveIndex(hashBlockRef, &pIndexRef))
-        {
-            StdLog("CBlockChain", "VerifyRepeatBlock: RetrieveIndex fail, hashBlockRef: %s, block: %s",
-                   hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
-            return false;
-        }
-        if (block.IsSubsidiary())
-        {
-            if (block.GetBlockTime() != pIndexRef->GetBlockTime())
-            {
-                StdLog("CBlockChain", "VerifyRepeatBlock: Subsidiary block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
-                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        else
-        {
-            if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-                || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING)
-            {
-                StdLog("CBlockChain", "VerifyRepeatBlock: Extended block time error, block time: %ld, ref block time: %ld, hashBlockRef: %s, block: %s",
-                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        nRefTimeStamp = pIndexRef->nTimeStamp;
-    }
-    return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo, block.nType, block.nTimeStamp, nRefTimeStamp, EXTENDED_BLOCK_SPACING);
+    return cntrBlock.VerifyRepeatBlock(hashFork, block.GetBlockHeight(), block.txMint.sendTo);
 }
 
 // bool CBlockChain::GetBlockDelegateVote(const uint256& hashBlock, map<CDestination, int64>& mapVote)
@@ -1359,14 +1328,14 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         // }
         // else
         // {
-            //if (agreement.IsProofOfWork())
-            //{
+        //if (agreement.IsProofOfWork())
+        //{
         return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
-            //}
-            //else
-            //{
-              //  return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
-            //}
+        //}
+        //else
+        //{
+        //  return pCoreProtocol->VerifyDelegatedProofOfStake(block, pIndexPrev, agreement);
+        //}
         //}
     }
     // else if (!block.IsVacant())
@@ -1423,8 +1392,8 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     //     return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     // }
     else
-    { 
-       return OK;
+    {
+        return OK;
     }
 
     //return OK;

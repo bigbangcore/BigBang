@@ -177,14 +177,6 @@ bool CSchedule::RemoveInv(const network::CInv& inv, set<uint64>& setKnownPeer)
         }
         if ((*it).second.IsReceived())
         {
-            if (inv.nType == network::CInv::MSG_BLOCK)
-            {
-                CBlock& block = boost::get<CBlock>((*it).second.objReceived);
-                if (block.IsPrimary() && block.IsProofOfWork())
-                {
-                    RemoveHeightBlock(block.GetBlockHeight(), inv.nHash);
-                }
-            }
             RemoveOrphan(inv);
         }
         setMissPrevTxInv.erase(inv);
@@ -208,10 +200,6 @@ bool CSchedule::ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBloc
             state.nClearObjTime = GetTime() + MAX_OBJ_WAIT_TIME;
             setSchedPeer.insert(state.setKnownPeer.begin(), state.setKnownPeer.end());
             mapPeer[nPeerNonce].Completed((*it).first);
-            if (block.IsPrimary() && block.IsProofOfWork())
-            {
-                mapHeightBlock[block.GetBlockHeight()].push_back(make_pair(hash, 1));
-            }
             return true;
         }
     }
@@ -484,36 +472,6 @@ bool CSchedule::IsRepeatBlock(const uint256& hash)
     return false;
 }
 
-void CSchedule::AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashBlock)
-{
-    mapRefBlock.insert(make_pair(hashRefBlock, make_pair(hashFork, hashBlock)));
-}
-
-void CSchedule::RemoveRefBlock(const uint256& hash)
-{
-    multimap<uint256, pair<uint256, uint256>>::iterator it = mapRefBlock.begin();
-    while (it != mapRefBlock.end())
-    {
-        if (it->second.second == hash)
-        {
-            mapRefBlock.erase(it++);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-}
-
-void CSchedule::GetNextRefBlock(const uint256& hashRefBlock, vector<pair<uint256, uint256>>& vNext)
-{
-    for (multimap<uint256, pair<uint256, uint256>>::iterator it = mapRefBlock.lower_bound(hashRefBlock);
-         it != mapRefBlock.upper_bound(hashRefBlock); ++it)
-    {
-        vNext.push_back(it->second);
-    }
-}
-
 bool CSchedule::SetDelayedClear(const network::CInv& inv, int64 nDelayedTime)
 {
     map<network::CInv, CInvState>::iterator it = mapState.find(inv);
@@ -525,168 +483,6 @@ bool CSchedule::SetDelayedClear(const network::CInv& inv, int64 nDelayedTime)
     return false;
 }
 
-void CSchedule::GetSubmitCachePowBlock(const CConsensusParam& consParam, std::vector<std::pair<uint256, int>>& vPowBlockHash)
-{
-    for (auto it = mapHeightBlock.begin(); it != mapHeightBlock.end(); ++it)
-    {
-        if (it->first <= consParam.nPrevHeight)
-        {
-            for (auto& chash : it->second)
-            {
-                vPowBlockHash.push_back(chash);
-            }
-        }
-        else if (consParam.ret && it->first == consParam.nPrevHeight + 1)
-        {
-            if (consParam.fPow || (consParam.nWaitTime < 0 && std::abs(consParam.nWaitTime) > MAX_SUBMIT_POW_TIMEOUT))
-            {
-                for (auto& chash : it->second)
-                {
-                    vPowBlockHash.push_back(chash);
-                }
-            }
-        }
-    }
-}
-
-bool CSchedule::GetFirstCachePowBlock(int nHeight, uint256& hashFirstBlock)
-{
-    auto it = mapHeightBlock.find(nHeight);
-    if (it != mapHeightBlock.end() && it->second.size() > 0)
-    {
-        hashFirstBlock = it->second[0].first;
-        return true;
-    }
-    return false;
-}
-
-bool CSchedule::AddCacheLocalPowBlock(const CBlock& block, bool& fFirst)
-{
-    int nHeight = block.GetBlockHeight();
-
-    auto mt = mapKcPowBlock.begin();
-    while (mt != mapKcPowBlock.end())
-    {
-        if (mt->first > nHeight - 32)
-        {
-            break;
-        }
-        RemoveHeightBlock(mt->first, mt->second.GetHash());
-        mapKcPowBlock.erase(mt++);
-    }
-
-    auto it = mapKcPowBlock.find(nHeight);
-    if (it == mapKcPowBlock.end())
-    {
-        mapKcPowBlock.insert(make_pair(nHeight, block));
-        auto& vb = mapHeightBlock[nHeight];
-        fFirst = (vb.size() == 0);
-        vb.push_back(make_pair(block.GetHash(), 0));
-        return true;
-    }
-    return false;
-}
-
-bool CSchedule::CheckCacheLocalPowBlock(int nHeight)
-{
-    if (mapKcPowBlock.find(nHeight) != mapKcPowBlock.end())
-    {
-        return true;
-    }
-    return false;
-}
-
-bool CSchedule::GetCacheLocalPowBlock(const uint256& hash, CBlock& block)
-{
-    auto it = mapKcPowBlock.find(CBlock::GetBlockHeightByHash(hash));
-    if (it != mapKcPowBlock.end() && it->second.GetHash() == hash)
-    {
-        block = it->second;
-        return true;
-    }
-    return false;
-}
-
-void CSchedule::RemoveCacheLocalPowBlock(const uint256& hash)
-{
-    auto it = mapKcPowBlock.find(CBlock::GetBlockHeightByHash(hash));
-    if (it != mapKcPowBlock.end() && it->second.GetHash() == hash)
-    {
-        RemoveHeightBlock(it->first, it->second.GetHash());
-        mapKcPowBlock.erase(it);
-    }
-}
-
-bool CSchedule::GetCachePowBlock(const uint256& hash, CBlock& block)
-{
-    auto it = mapHeightBlock.find(CBlock::GetBlockHeightByHash(hash));
-    if (it != mapHeightBlock.end())
-    {
-        if (it->second.size() > 0)
-        {
-            auto& chash = it->second[0];
-            if (chash.second == 1)
-            {
-                if (chash.first == hash)
-                {
-                    uint64 nNonceSender = 0;
-                    CBlock* pBlock = GetBlock(hash, nNonceSender);
-                    if (pBlock)
-                    {
-                        block = *pBlock;
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                return GetCacheLocalPowBlock(hash, block);
-            }
-        }
-    }
-    return false;
-}
-
-void CSchedule::RemoveHeightBlock(int nHeight, const uint256& hash)
-{
-    auto it = mapHeightBlock.find(nHeight);
-    if (it != mapHeightBlock.end())
-    {
-        for (int i = it->second.size() - 1; i >= 0; i--)
-        {
-            auto& chash = it->second[i];
-            if (chash.first == hash)
-            {
-                it->second.erase(it->second.begin() + i);
-            }
-        }
-        if (it->second.empty())
-        {
-            mapHeightBlock.erase(it);
-        }
-    }
-}
-
-bool CSchedule::GetPowBlockState(const uint256& hash, bool& fVerifyPowBlockOut)
-{
-    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
-    if (it != mapState.end() && it->second.IsReceived())
-    {
-        fVerifyPowBlockOut = it->second.fVerifyPowBlock;
-        return true;
-    }
-    return false;
-}
-
-void CSchedule::SetPowBlockVerifyState(const uint256& hash, bool fVerifyPowBlockIn)
-{
-    map<network::CInv, CInvState>::iterator it = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hash));
-    if (it != mapState.end() && it->second.IsReceived())
-    {
-        it->second.fVerifyPowBlock = fVerifyPowBlockIn;
-    }
-}
-
 void CSchedule::RemoveOrphan(const network::CInv& inv)
 {
     if (inv.nType == network::CInv::MSG_TX)
@@ -696,7 +492,6 @@ void CSchedule::RemoveOrphan(const network::CInv& inv)
     else if (inv.nType == network::CInv::MSG_BLOCK)
     {
         orphanBlock.Remove(inv.nHash);
-        RemoveRefBlock(inv.nHash);
     }
 }
 

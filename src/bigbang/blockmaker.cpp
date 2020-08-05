@@ -398,7 +398,6 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
 //         // dispatch DPoS primary block
 //         if (DispatchBlock(block))
 //         {
-//             pDispatcher->SetConsensus(consParam);
 
 //             // create sub fork blocks
 //             ProcessSubFork(profile, consParam.agreement, block.GetHash(), block.GetBlockTime(), consParam.nPrevHeight, consParam.nPrevMintType);
@@ -719,7 +718,6 @@ void CBlockMaker::BlockMakerThreadFunc()
             // {
             //     ProcessDelegatedProofOfStake(consParam);
             // }
-            pDispatcher->SetConsensus(consParam);
         }
         catch (exception& e)
         {
