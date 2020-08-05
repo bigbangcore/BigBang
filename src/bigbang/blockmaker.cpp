@@ -320,7 +320,7 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
     block.nType = CBlock::BLOCK_PRIMARY;
     block.hashPrev = hashPrev;
     CProofOfSecretShare proof;
-    proof.nWeight = agreement.nWeight;
+    //proof.nWeight = agreement.nWeight;
     proof.nAgreement = agreement.nAgreement;
     proof.Save(block.vchProof);
     if (agreement.nAgreement != 0)

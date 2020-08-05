@@ -357,14 +357,15 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     uint32 nBits = 0;
     int64 nReward = 0;
-    if (!GetProofOfWorkTarget(pIndexPrev, proof.nAlgo, nBits, nReward))
+    uint8 nAlgo = 0;
+    if (!GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "get target fail.");
     }
 
-    if (nBits != proof.nBits || proof.nAlgo != CM_CRYPTONIGHT)
+    if (nBits != proof.nBits /*|| proof.nAlgo != CM_CRYPTONIGHT*/)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.", proof.nAlgo, proof.nBits, block.vchProof.size());
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "algo or bits error, nAlgo: %d, nBits: %d, vchProof size: %ld.", nAlgo, proof.nBits, block.vchProof.size());
     }
 
     bool fNegative;
@@ -723,28 +724,13 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
         }
         else if (pIndexPrev != nullptr)
         {
-            // if (!IsDposHeight(block.GetBlockHeight()))
-            // {
-            //     StdError("CCoreProtocol", "GetBlockTrust: not dpos height, height: %d", block.GetBlockHeight());
-            //     return false;
-            // }
-
             // Get the last PoW block nAlgo
-            int nAlgo;
+            int nAlgo = 0;
             const CBlockIndex* pIndex = pIndexPrev;
             while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
             {
                 pIndex = pIndex->pPrev;
             }
-            if (!pIndex->IsProofOfWork())
-            {
-                nAlgo = CM_CRYPTONIGHT;
-            }
-            else
-            {
-                nAlgo = pIndex->nProofAlgo;
-            }
-
             uint32_t nBits;
             int64 nReward;
             if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
@@ -805,11 +791,6 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
 
 bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward)
 {
-    if (nAlgo <= 0 || nAlgo >= CM_MAX)
-    {
-        StdLog("CCoreProtocol", "GetProofOfWorkTarget: nAlgo error, nAlgo: %d", nAlgo);
-        return false;
-    }
     nReward = GetPrimaryMintWorkReward(pIndexPrev);
 
     if (pIndexPrev->GetBlockHeight() == 0)

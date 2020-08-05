@@ -253,7 +253,7 @@ public:
     uint64 nRandBeacon;
     uint256 nChainTrust;
     int64 nMoneySupply;
-    uint8 nProofAlgo;
+    //uint8 nProofAlgo;
     uint32 nProofBits;
     uint32 nFile;
     uint32 nOffset;
@@ -274,7 +274,7 @@ public:
         nChainTrust = uint64(0);
         nRandBeacon = 0;
         nMoneySupply = 0;
-        nProofAlgo = 0;
+        //nProofAlgo = 0;
         nProofBits = 0;
         nFile = 0;
         nOffset = 0;
@@ -298,12 +298,10 @@ public:
         {
             CProofOfHashWorkCompact proof;
             proof.Load(block.vchProof);
-            nProofAlgo = proof.nAlgo;
             nProofBits = proof.nBits;
         }
         else
         {
-            nProofAlgo = 0;
             nProofBits = 0;
         }
         nFile = nFileIn;
@@ -444,7 +442,6 @@ protected:
         s.Serialize(nRandBeacon, opt);
         s.Serialize(nChainTrust, opt);
         s.Serialize(nMoneySupply, opt);
-        s.Serialize(nProofAlgo, opt);
         s.Serialize(nProofBits, opt);
         s.Serialize(nFile, opt);
         s.Serialize(nOffset, opt);

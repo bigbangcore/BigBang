@@ -277,7 +277,7 @@ public:
     int64 nBlockTime;
     int nBlockHeight;
     uint256 nAgreement;
-    std::size_t nWeight;
+    //std::size_t nWeight;
     uint16 nMintType;
 };
 

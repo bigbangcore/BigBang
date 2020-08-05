@@ -955,9 +955,9 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         {
             // remove block tx;
             StdTrace("BlockBase",
-                     "Chain rollback attempt[removed block]: height: %u hash: %s time: %u supply: %u algo: %u bits: %u trust: %s",
+                     "Chain rollback attempt[removed block]: height: %u hash: %s time: %u supply: %u bits: %u trust: %s",
                      p->nHeight, p->GetBlockHash().ToString().c_str(), p->nTimeStamp,
-                     p->nMoneySupply, p->nProofAlgo, p->nProofBits, p->nChainTrust.ToString().c_str());
+                     p->nMoneySupply, p->nProofBits, p->nChainTrust.ToString().c_str());
             ++nBlockRemoved;
             CBlockEx block;
             if (!tsBlock.Read(block, p->nFile, p->nOffset))
@@ -998,9 +998,9 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         {
             // add block tx;
             StdTrace("BlockBase",
-                     "Chain rollback attempt[added block]: height: %u hash: %s time: %u supply: %u algo: %u bits: %u trust: %s",
+                     "Chain rollback attempt[added block]: height: %u hash: %s time: %u supply: %u bits: %u trust: %s",
                      vPath[i]->nHeight, vPath[i]->GetBlockHash().ToString().c_str(),
-                     vPath[i]->nTimeStamp, vPath[i]->nMoneySupply, vPath[i]->nProofAlgo,
+                     vPath[i]->nTimeStamp, vPath[i]->nMoneySupply,
                      vPath[i]->nProofBits, vPath[i]->nChainTrust.ToString().c_str());
             ++nBlockAdded;
             CBlockEx block;

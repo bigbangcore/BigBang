@@ -742,9 +742,9 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     }
 
     CProofOfHashWork proof;
-    proof.nWeight = 0;
+    //proof.nWeight = 0;
     proof.nAgreement = 0;
-    proof.nAlgo = nAlgo;
+    //proof.nAlgo = nAlgo;
     proof.nBits = nBits;
     proof.nNonce = 0;
     proof.Save(block.vchProof);
@@ -787,11 +787,12 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     {
         ss >> block.nVersion >> block.nType >> block.nTimeStamp >> block.hashPrev >> block.hashMerkle >> block.vchProof;
         proof.Load(block.vchProof);
+        /*
         if (proof.nAlgo != CM_CRYPTONIGHT)
         {
             StdError("CService", "SubmitWork: nAlgo error");
             return ERR_BLOCK_PROOF_OF_WORK_INVALID;
-        }
+        }*/
     }
     catch (exception& e)
     {
@@ -800,7 +801,8 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     }
     uint32 nBits;
     int64 nReward;
-    if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, proof.nAlgo, nBits, nReward))
+    uint8 nAlgo = 0;
+    if (!pBlockChain->GetProofOfWorkTarget(block.hashPrev, nAlgo, nBits, nReward))
     {
         StdError("CService", "SubmitWork: GetProofOfWorkTarget fail");
         return FAILED;

@@ -353,7 +353,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pBlockMakerUpdate->data.nBlockTime = updateBlockChain.nLastBlockTime;
         pBlockMakerUpdate->data.nBlockHeight = updateBlockChain.nLastBlockHeight;
         pBlockMakerUpdate->data.nAgreement = proof.nAgreement;
-        pBlockMakerUpdate->data.nWeight = proof.nWeight;
+        //pBlockMakerUpdate->data.nWeight = proof.nWeight;
         pBlockMakerUpdate->data.nMintType = block.txMint.nType;
         pBlockMaker->PostEvent(pBlockMakerUpdate);
     }
