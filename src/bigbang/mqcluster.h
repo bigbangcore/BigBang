@@ -213,8 +213,6 @@ private:
 
     boost::mutex mtxCluster;
     std::map<string, storage::CSuperNode> mapActiveMQForkNode; //only for dpos node
-    boost::mutex mtxReply;
-    std::map<std::string, std::pair<int32, uint256>> mapReplied;
     boost::mutex mtxOuter;
     std::map<uint32, storage::CSuperNode> mapOuterNode;       //for dpos/fork node
     std::map<std::string, std::string> mapBizForkUpdateTopic; //only for dpos node

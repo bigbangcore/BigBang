@@ -590,6 +590,7 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
         boost::unique_lock<boost::mutex> lock(mtxSend);
         deqSendBuff.emplace_back(make_pair(topic, payload));
         Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
+        Log("CMQCluster::AppendSendQueue(): there has/have been left [%d] message(s)", deqSendBuff.size());
     }
     condSend.notify_one();
 
@@ -663,7 +664,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 FetchBlock(false, -1);
                 return;
             }
-
+            /*
             if (-2 == resp.height)
             { //when missing rollback will come here
                 if (nReqBlkTimerID != 0)
@@ -674,7 +675,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 PostBlockRequest(0); //todo: using checkpoint is better
                 return;
             }
-
+*/
             //notify to add new block
             Errno err = pDispatcher->AddNewBlock(resp.block);
             if (err != OK)
@@ -944,20 +945,7 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
             Error("CMQCluster::OnReceiveMessage(): failed to unpack request msg");
             return;
         }
-        /*
-        {
-            boost::unique_lock<boost::mutex> lock(mtxReply);
-            auto it = mapReplied.find(req.forkNodeId);
-            if (it != mapReplied.end())
-            {
-                if (req.lastHeight < it->second.first)
-                {
-                    Log("%s: has replied this height[%d]", __PRETTY_FUNCTION__, req.lastHeight);
-                    return;
-                }
-            }
-        }
-*/
+
         //check if requesting fork node has been enrolled
         {
             boost::unique_lock<boost::mutex> lock(mtxCluster);
@@ -1019,17 +1007,17 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
                 return;
             }
             if (hash != req.lastHash)
-            { //cause maybe rollback not in time
+            { //cause maybe rollback not in time or in process
                 Log("CMQCluster::OnReceiveMessage(): height and hash do not match hash[%s] vs. req.lastHash[%s] "
                     "at height of [%d] with fork node [%s]",
                     hash.ToString().c_str(),
                     req.lastHash.ToString().c_str(), req.lastHeight, req.forkNodeId.c_str());
-                resp.height = -2;
+                /*                resp.height = -2;
                 resp.hash = uint256();
                 resp.isBest = 0;
                 resp.block = CBlock();
-                resp.blockSize = xengine::GetSerializeSize(resp.block);
-                // return;
+                resp.blockSize = xengine::GetSerializeSize(resp.block);*/
+                return;
             }
             else
             {
@@ -1065,11 +1053,6 @@ void CMQCluster::OnReceiveMessage(const std::string& topic, CBufStream& payload)
         *spSS.get() << resp;
         string topicRsp = prefixTopic + req.forkNodeId + vecSuffixTopic[TOPIC_SUFFIX_RESP_BLOCK];
         AppendSendQueue(topicRsp, spSS);
-
-        {
-            boost::unique_lock<boost::mutex> lock(mtxReply);
-            mapReplied[req.forkNodeId] = std::make_pair(resp.height, resp.hash);
-        }
 
         break;
     }
@@ -1348,6 +1331,7 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 {
                     Log("CMQCluster::ClientAgent(): pop front of sending deque");
                     deqSendBuff.pop_front();
+                    Log("CMQCluster::ClientAgent(): there has/have been left [%d] message(s)", deqSendBuff.size());
                     return 0;
                 }
                 else

@@ -410,7 +410,7 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
         if (pMqChainUpdate != nullptr)
         {
-            pMqChainUpdate->data.actRollBackLen = updateBlockChain.vBlockAddNew.size();
+            pMqChainUpdate->data.actRollBackLen = updateBlockChain.vBlockRemove.size();
             pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
             for (const auto& rb : updateBlockChain.vBlockRemove)
             {
