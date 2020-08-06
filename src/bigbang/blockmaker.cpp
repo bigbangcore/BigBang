@@ -278,7 +278,7 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     {
         boost::unique_lock<boost::mutex> lock(mutex);
 
-        CBlockMakerUpdate& data = eventUpdate.data;
+        const CBlockMakerUpdate& data = eventUpdate.data;
         lastStatus.hashLastBlock = data.hashBlock;
         lastStatus.nLastBlockTime = data.nBlockTime;
         lastStatus.nLastBlockHeight = data.nBlockHeight;
@@ -422,7 +422,7 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
             }
             Log("...after generated primary-dpos");
         }
-/*
+        /*
         if (NODE_CAT_FORKNODE == nNodeCat)
         {
             Log("before generating subsidiary-dpos and extended...");
@@ -485,7 +485,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                 uint256 hashLastBlock;
                 int64 nLastTime;
 
-//                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                //                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
                 int64 nettime = GetNetTime();
                 bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (nettime - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
                 Log("subfork: nPrevMintType[%d], nettime[%ld] - nRefBlockTime[%ld] = [%d], fInWaitTime[%d]",
@@ -747,7 +747,7 @@ void CBlockMaker::BlockMakerThreadFunc()
             continue;
         }
         StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, "
-                 "target height: %d, consensus[%s], wait time: %ld, last height: %d, prev block: %s",
+                               "target height: %d, consensus[%s], wait time: %ld, last height: %d, prev block: %s",
                  consParam.nPrevHeight + 1, consParam.agreement.IsProofOfWork() ? "POW" : "DPOS",
                  consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
@@ -807,22 +807,9 @@ void CBlockMaker::BizForkThreadFunc()
         {
             break;
         }
-/*
-        CAgreementBlock consParam;
-        if (!pConsensus->GetNextConsensus(consParam))
-        {
-            Log("BizMaker: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                     consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-//            continue;
-        }
-        Log("BizMaker: target height: %d, consensus[%s], wait time: %ld, last height: %d, prev block: %s",
-                 consParam.nPrevHeight + 1, consParam.agreement.IsProofOfWork() ? "POW" : "DPOS",
-                 consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-*/
+
         try
         {
-//            ProcessDelegatedProofOfStake(consParam);
-
             CForkStatus status;
             {
                 boost::unique_lock<boost::mutex> lock(mutex);
@@ -857,8 +844,16 @@ void CBlockMaker::BizForkThreadFunc()
                     }
                     if (hashLastBlock != status.hashLastBlock)
                     {
-                        throw runtime_error("blocks are mismatched: notify[" + status.hashLastBlock.ToString()
-                                            + "] vs. last[" + hashLastBlock.ToString() + "]");
+                        Log("BizMaker: blocks are mismatched: notify[%s] vs. last[%s]", status.hashLastBlock.ToString().c_str(),
+                            hashLastBlock.ToString().c_str());
+                        {
+                            boost::unique_lock<boost::mutex> lock(mutex);
+                            status = lastStatus;
+                        }
+                        if (hashLastBlock != status.hashLastBlock)
+                        {
+                            continue;
+                        }
                     }
                     Log("BizMaker: hashLastBlock[%s], nLastHeight[%d], nLastTime[%ld], nLastMintType[%d]",
                         hashLastBlock.ToString().c_str(), nLastHeight, nLastTime, nLastMintType);
@@ -877,13 +872,10 @@ void CBlockMaker::BizForkThreadFunc()
                     Log("BizMaker: after dealing with subfork");
                 }
             }
-
-
-//            pDispatcher->SetConsensus(consParam);
         }
         catch (exception& e)
         {
-            Error("Biz fork block maker error: %s ... ignormally exited biz fork block maker thread",
+            Error("Biz fork block maker error: %s ... abnormally exited biz fork block maker thread",
                   e.what());
             return;
         }
