@@ -198,9 +198,10 @@ bool CMiner::HandleEvent(CEventHttpGetRsp& event)
                         workCurrent.nPrevBlockHeight = spResult->work.nPrevblockheight;
                         workCurrent.nPrevTime = spResult->work.nPrevblocktime;
                         workCurrent.nAlgo = spResult->work.nAlgo;
-                        workCurrent.nBits = spResult->work.nBits;
+                        uint256 target;
+                        target.SetHex(spResult->work.strBits);
+                        workCurrent.nBits = target.GetCompact();
                         workCurrent.vchWorkData = ParseHexString(spResult->work.strData);
-
                         nMinerStatus = MINER_RESET;
                     }
                     condMiner.notify_all();

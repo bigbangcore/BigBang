@@ -3205,7 +3205,7 @@
                             "desc": "algo"
                         },
                         "bits": {
-                            "type": "uint",
+                            "type": "string",
                             "desc": "bits"
                         },
                         "data": {
