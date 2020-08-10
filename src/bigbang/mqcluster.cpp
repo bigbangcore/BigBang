@@ -588,8 +588,15 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
     Log("CMQCluster::AppendSendQueue(): appending msg[%s] to sending queue", topic.c_str());
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
-        deqSendBuff.emplace_back(make_pair(topic, payload));
-        Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
+        if (topic == arrTopic[TOPIC_SUFFIX_REQ_BLOCK])
+        {
+            Log("CMQCluster::AppendSendQueue(): flow control for msg[%s] to sending queue", topic.c_str());
+        }
+        else
+        {
+            deqSendBuff.emplace_back(make_pair(topic, payload));
+            Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
+        }
         Log("CMQCluster::AppendSendQueue(): there has/have been left [%d] message(s)", deqSendBuff.size());
     }
     condSend.notify_one();
@@ -1336,8 +1343,8 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                 }
                 else
                 {
-                    Error("CMQCluster::ClientAgent(): it should not be empty here");
-                    return -2;
+                    Log("CMQCluster::ClientAgent(): error: it should not be empty here normally, maybe rollback thread clean up sending queue");
+                    return 0;
                 }
             }
 
