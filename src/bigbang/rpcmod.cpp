@@ -1660,7 +1660,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }
@@ -1805,7 +1805,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }
@@ -2238,11 +2238,11 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     int nForkHeight = pService->GetForkHeight(hashParent);
     if (nForkHeight < nJointHeight + MIN_CREATE_FORK_INTERVAL_HEIGHT)
     {
-        throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
+        throw CRPCException(RPC_INVALID_PARAMETER, string("The minimum confirmed height of the previous block is ") + to_string(MIN_CREATE_FORK_INTERVAL_HEIGHT));
     }
     if ((int64)nForkHeight > (int64)nJointHeight + MAX_JOINT_FORK_INTERVAL_HEIGHT)
     {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Maximum fork spacing height is 1440");
+        throw CRPCException(RPC_INVALID_PARAMETER, string("Maximum fork spacing height is ") + to_string(MAX_JOINT_FORK_INTERVAL_HEIGHT));
     }
 
     uint256 hashBlockRef;

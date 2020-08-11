@@ -600,7 +600,7 @@ bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToD
     if (hashFork == pCoreProtocol->GetGenesisBlockHash() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.sendTo != destIn)
     {
         vector<CForkContext> vForkCtxt;
-        if (!pBlockChain->VerifyBlockForkTx(hashLastBlock, tx, vForkCtxt))
+        if (!pBlockChain->VerifyBlockForkTx(hashLastBlock, tx, vForkCtxt) || vForkCtxt.empty())
         {
             StdError("CService", "SignTransaction: Verify block fork tx fail, txid: %s", tx.GetHash().GetHex().c_str());
             return false;
@@ -737,6 +737,7 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
                  tx.GetHash().GetHex().c_str(), tx.hashAnchor.GetHex().c_str());
         return FAILED;
     }
+
     vector<CTxOut> vUnspent;
     if (!pTxPool->FetchInputs(hashFork, tx, vUnspent) || vUnspent.empty())
     {
@@ -746,8 +747,26 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
         return FAILED;
     }
 
-    int32 nForkHeight = GetForkHeight(hashFork);
     const CDestination& destIn = vUnspent[0].destTo;
+    int32 nForkHeight;
+    uint256 hashLastBlock;
+    if (!GetForkLastBlock(hashFork, nForkHeight, hashLastBlock))
+    {
+        StdError("CService", "SendOfflineSignedTransaction: GetForkLastBlock fail, txid: %s", tx.GetHash().GetHex().c_str());
+        return FAILED;
+    }
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.sendTo != destIn)
+    {
+        vector<CForkContext> vForkCtxt;
+        if (!pBlockChain->VerifyBlockForkTx(hashLastBlock, tx, vForkCtxt) || vForkCtxt.empty())
+        {
+            StdError("CService", "SendOfflineSignedTransaction: Verify block fork tx fail, txid: %s", tx.GetHash().GetHex().c_str());
+            return FAILED;
+        }
+    }
+
+    //int32 nForkHeight = GetForkHeight(hashFork);
+    //const CDestination& destIn = vUnspent[0].destTo;
     if (OK != pCoreProtocol->VerifyTransaction(tx, vUnspent, nForkHeight, hashFork))
     {
         StdError("CService", "SendOfflineSignedTransaction: ValidateTransaction fail,"
