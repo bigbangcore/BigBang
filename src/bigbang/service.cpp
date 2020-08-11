@@ -121,6 +121,11 @@ void CService::NotifyBlockChainUpdate(const CBlockChainUpdate& update)
         if (it == mapForkStatus.end())
         {
             it = mapForkStatus.insert(make_pair(update.hashFork, CForkStatus(update.hashFork, update.hashParent, update.nOriginHeight))).first;
+            if (it == mapForkStatus.end())
+            {
+                StdError("CService", "NotifyBlockChainUpdate: Insert fork status fail, fork: %s", update.hashFork.GetHex().c_str());
+                return;
+            }
             if (update.hashParent != 0)
             {
                 mapForkStatus[update.hashParent].mapSubline.insert(make_pair(update.nOriginHeight, update.hashFork));

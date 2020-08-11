@@ -96,8 +96,9 @@ public:
                          const std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId, std::vector<uint256>& vActive) override;
     void SetPrimaryLastBlock(const uint256& hashPrimaryLastBlockIn) override;
     bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) override;
-    bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
-                        bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork) override;
+    bool AddValidForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                             bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork) override;
+    void RemoveValidForkContext(const uint256& hashBlock) override;
     void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) override;
     void GetValidForkList(std::map<uint256, bool>& mapFork) override;
     bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const override;

@@ -52,8 +52,6 @@ bool CBlockChain::HandleInitialize()
         return false;
     }
 
-    InitCheckPoints();
-
     return true;
 }
 
@@ -150,6 +148,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
             mi = mapForkStatus.insert(make_pair(hashFork, CForkStatus(hashFork, hashParent, nForkHeight))).first;
             if (mi == mapForkStatus.end())
             {
+                StdError("BlockChain", "Get fork status: insert fail, fork: %s", hashFork.ToString().c_str());
                 continue;
             }
         }
@@ -162,7 +161,7 @@ void CBlockChain::GetForkStatus(map<uint256, CForkStatus>& mapForkStatus)
     }
 }
 
-void CBlockChain::GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus)
+void CBlockChain::GetValidForkStatus(map<uint256, CForkStatus>& mapForkStatus)
 {
     map<uint256, bool> mapValidFork;
     pForkManager->GetValidForkList(mapValidFork);
@@ -564,13 +563,10 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     }
     Log("AddNew Block : %s", pIndexNew->ToString().c_str());
 
-    if (pIndexNew->IsPrimary())
+    if (pIndexNew->IsPrimary() && !AddBlockForkContext(blockex))
     {
-        if (!AddBlockForkContext(blockex))
-        {
-            Log("AddNewBlock add block fork fail, block: %s", hash.ToString().c_str());
-            return err;
-        }
+        Log("AddNewBlock add block fork fail, block: %s", hash.ToString().c_str());
+        return ERR_BLOCK_TRANSACTIONS_INVALID;
     }
 
     if (!pIndexNew->IsPrimary() && (!pIndexNew->IsVacant() || pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight())) && pIndexRef
@@ -1256,7 +1252,8 @@ bool CBlockChain::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction&
         {
             if (vd.hashFork == hashNewFork || vd.strName == profile.strName)
             {
-                Log("Verify block fork tx: fork exist, tx: %s", tx.GetHash().ToString().c_str());
+                Log("Verify block fork tx: fork existed or name repeated, tx: %s, new fork: %s, name: %s",
+                    tx.GetHash().ToString().c_str(), hashNewFork.GetHex().c_str(), vd.strName.c_str());
                 fCheckRet = false;
                 break;
             }
@@ -1267,6 +1264,7 @@ bool CBlockChain::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction&
         }
 
         vForkCtxt.push_back(CForkContext(block.GetHash(), block.hashPrev, tx.GetHash(), profile));
+        Log("Verify block fork tx success: valid fork: %s, tx: %s", hashNewFork.GetHex().c_str(), tx.GetHash().ToString().c_str());
     } while (0);
 
     return true;
@@ -1950,15 +1948,16 @@ bool CBlockChain::AddBlockForkContext(const CBlockEx& blockex)
 
     uint256 hashRefFdBlock;
     map<uint256, int> mapValidFork;
-    if (!pForkManager->AddForkContext(blockex.hashPrev, hashBlock, vForkCtxt, fCheckPointBlock, hashRefFdBlock, mapValidFork))
+    if (!pForkManager->AddValidForkContext(blockex.hashPrev, hashBlock, vForkCtxt, fCheckPointBlock, hashRefFdBlock, mapValidFork))
     {
-        StdLog("CBlockChain", "AddBlockForkContext: AddForkContext fail, block: %s", hashBlock.ToString().c_str());
+        StdLog("CBlockChain", "AddBlockForkContext: AddValidForkContext fail, block: %s", hashBlock.ToString().c_str());
         return false;
     }
 
     if (!cntrBlock.AddValidForkHash(hashBlock, hashRefFdBlock, mapValidFork))
     {
         StdLog("CBlockChain", "AddBlockForkContext: AddValidForkHash fail, block: %s", hashBlock.ToString().c_str());
+        pForkManager->RemoveValidForkContext(hashBlock);
         return false;
     }
     return true;

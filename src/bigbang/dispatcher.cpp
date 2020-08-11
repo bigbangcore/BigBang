@@ -249,7 +249,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
             ActivateFork(hashFork, nNonce);
         }
 
-        for (const uint256 hashFork : vDeactive)
+        for (const uint256& hashFork : vDeactive)
         {
             pNetChannel->UnsubscribeFork(hashFork);
         }

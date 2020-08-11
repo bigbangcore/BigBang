@@ -169,7 +169,7 @@ public:
 
 public:
     uint256 hashRefFdBlock;
-    std::map<uint256, int> mapForkId;
+    std::map<uint256, int> mapForkId; // key: forkid, value: fork created height
 
 protected:
     template <typename O>

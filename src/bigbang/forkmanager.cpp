@@ -150,6 +150,7 @@ bool CForkManager::VerifyFork(const uint256& hashPrevBlock, const uint256& hashF
     {
         if (mapValidFork.count(hashFork) > 0)
         {
+            StdLog("ForkManager", "VerifyFork: Fork existed, fork: %s", hashFork.GetHex().c_str());
             return false;
         }
         for (const auto& vd : mapValidFork)
@@ -157,6 +158,8 @@ bool CForkManager::VerifyFork(const uint256& hashPrevBlock, const uint256& hashF
             const auto mt = mapForkSched.find(vd.first);
             if (mt != mapForkSched.end() && mt->second.ctxtFork.strName == strForkName)
             {
+                StdLog("ForkManager", "VerifyFork: Fork name repeated, new fork: %s, valid fork: %s, name: %s",
+                       hashFork.GetHex().c_str(), vd.first.GetHex().c_str(), strForkName.c_str());
                 return false;
             }
         }
@@ -164,8 +167,8 @@ bool CForkManager::VerifyFork(const uint256& hashPrevBlock, const uint256& hashF
     return true;
 }
 
-bool CForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
-                                  bool fCheckPointBlock, uint256& hashRefFdBlock, map<uint256, int>& mapValidFork)
+bool CForkManager::AddValidForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                                       bool fCheckPointBlock, uint256& hashRefFdBlock, map<uint256, int>& mapValidFork)
 {
     CValidFdForkId& fd = mapBlockValidFork[hashNewBlock];
     if (fCheckPointBlock)
@@ -175,6 +178,7 @@ bool CForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& h
         {
             if (!GetValidFdForkId(hashPrevBlock, fd.mapForkId))
             {
+                StdError("ForkManager", "Add fork context: Get prev valid block fail, prev: %s", hashPrevBlock.GetHex().c_str());
                 mapBlockValidFork.erase(hashNewBlock);
                 return false;
             }
@@ -186,6 +190,7 @@ bool CForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& h
         const auto it = mapBlockValidFork.find(hashPrevBlock);
         if (it == mapBlockValidFork.end())
         {
+            StdError("ForkManager", "Add fork context: Find prev valid block fail, prev: %s", hashPrevBlock.GetHex().c_str());
             mapBlockValidFork.erase(hashNewBlock);
             return false;
         }
@@ -201,25 +206,30 @@ bool CForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& h
             fd.hashRefFdBlock = prevfd.hashRefFdBlock;
         }
     }
+
     for (const CForkContext& ctxt : vForkCtxt)
     {
-        if (mapForkSched.find(ctxt.hashFork) == mapForkSched.end())
-        {
-            CForkSchedule& sched = mapForkSched[ctxt.hashFork];
-            sched.ctxtFork = ctxt;
-            sched.fAllowed = IsAllowedFork(ctxt.hashFork, ctxt.hashParent);
+        CForkSchedule& sched = mapForkSched[ctxt.hashFork];
 
-            if (ctxt.hashParent != 0)
-            {
-                mapForkSched[ctxt.hashParent].AddNewJoint(ctxt.hashJoint, ctxt.hashFork);
-            }
+        sched.ctxtFork = ctxt;
+        sched.fAllowed = IsAllowedFork(ctxt.hashFork, ctxt.hashParent);
+        if (ctxt.hashParent != 0)
+        {
+            mapForkSched[ctxt.hashParent].AddNewJoint(ctxt.hashJoint, ctxt.hashFork);
         }
+
         fd.mapForkId.insert(make_pair(ctxt.hashFork, CBlock::GetBlockHeightByHash(hashNewBlock)));
     }
+
     hashRefFdBlock = fd.hashRefFdBlock;
     mapValidFork.clear();
     mapValidFork.insert(fd.mapForkId.begin(), fd.mapForkId.end());
     return true;
+}
+
+void CForkManager::RemoveValidForkContext(const uint256& hashBlock)
+{
+    mapBlockValidFork.erase(hashBlock);
 }
 
 void CForkManager::ForkUpdate(const CBlockChainUpdate& update, vector<uint256>& vActive, vector<uint256>& vDeactive)

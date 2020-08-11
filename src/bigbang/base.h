@@ -218,9 +218,10 @@ public:
         = 0;
     virtual void SetPrimaryLastBlock(const uint256& hashPrimaryLastBlockIn) = 0;
     virtual bool VerifyFork(const uint256& hashPrevBlock, const uint256& hashFork, const std::string& strForkName) = 0;
-    virtual bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
-                                bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork)
+    virtual bool AddValidForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                                     bool fCheckPointBlock, uint256& hashRefFdBlock, std::map<uint256, int>& mapValidFork)
         = 0;
+    virtual void RemoveValidForkContext(const uint256& hashBlock) = 0;
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     virtual void GetValidForkList(std::map<uint256, bool>& mapFork) = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
