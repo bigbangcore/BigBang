@@ -588,10 +588,18 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
     Log("CMQCluster::AppendSendQueue(): appending msg[%s] to sending queue", topic.c_str());
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
-        const auto& b = deqSendBuff.back();
-        if (topic == b.first)
+        if (!deqSendBuff.empty())
         {
-            Log("CMQCluster::AppendSendQueue(): flow control for msg[%s] to sending queue", topic.c_str());
+            const auto& b = deqSendBuff.back();
+            if (topic == b.first)
+            {
+                Log("CMQCluster::AppendSendQueue(): flow control for msg[%s] to sending queue", topic.c_str());
+            }
+            else
+            {
+                deqSendBuff.emplace_back(make_pair(topic, payload));
+                Log("CMQCluster::AppendSendQueue(): appended msg[%s] to sending queue", topic.c_str());
+            }
         }
         else
         {
