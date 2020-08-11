@@ -588,7 +588,8 @@ bool CMQCluster::AppendSendQueue(const std::string& topic, CBufferPtr payload)
     Log("CMQCluster::AppendSendQueue(): appending msg[%s] to sending queue", topic.c_str());
     {
         boost::unique_lock<boost::mutex> lock(mtxSend);
-        if (topic == arrTopic[TOPIC_SUFFIX_REQ_BLOCK])
+        const auto& b = deqSendBuff.back();
+        if (topic == b.first)
         {
             Log("CMQCluster::AppendSendQueue(): flow control for msg[%s] to sending queue", topic.c_str());
         }
@@ -1291,11 +1292,11 @@ int CMQCluster::ClientAgent(MQ_CLI_ACTION action)
                     return 0;
                 }
                 buf = deqSendBuff.front();
+                Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
             }
 
             //            while (!deqSendBuff.empty())
             {
-                Log("CMQCluster::ClientAgent(): there is/are [%d] message(s) waiting to send", deqSendBuff.size());
                 //                pair<string, CBufferPtr> buf = deqSendBuff.front();
                 cout << "\nSending message to [" << buf.first << "]..." << endl;
                 //                buf.second->Dump();
