@@ -664,8 +664,7 @@ bool CSchedule::CheckCachePowBlockState(const uint256& hash)
                 if (vd.first == hash)
                 {
                     uint64 nNonceSender = 0;
-                    CBlock* pBlock = GetBlock(hash, nNonceSender);
-                    if (pBlock)
+                    if (GetBlock(hash, nNonceSender))
                     {
                         return true;
                     }
@@ -673,7 +672,10 @@ bool CSchedule::CheckCachePowBlockState(const uint256& hash)
             }
             else
             {
-                return true;
+                if (vd.first == hash)
+                {
+                    return true;
+                }
             }
         }
     }
