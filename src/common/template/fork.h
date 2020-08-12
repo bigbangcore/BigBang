@@ -11,6 +11,7 @@ class CTemplateFork : virtual public CTemplate, virtual public CLockedCoinTempla
 {
 public:
     static int64 CreatedCoin();
+    static int64 LockedCoin(const int32 nHeight);
 
 public:
     CTemplateFork(const CDestination& destRedeemIn = CDestination(), const uint256& hashForkIn = uint256());
@@ -19,6 +20,7 @@ public:
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
     virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const;
+    virtual void GetForkParam(CDestination& destRedeemOut, uint256& hashForkOut);
 
 protected:
     virtual bool ValidateParam() const;

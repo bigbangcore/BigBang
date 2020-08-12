@@ -19,6 +19,7 @@ public:
     virtual void GetGenesisBlock(CBlock& block) override;
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
+    virtual Errno VerifyForkTx(const CTransaction& tx) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 
     virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
@@ -40,6 +41,7 @@ public:
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual bool GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork) override;
     virtual bool IsRefVacantHeight(uint32 nBlockHeight) override;
     virtual int GetRefVacantHeight() override;
 
@@ -62,6 +64,7 @@ protected:
     int64 nProofOfWorkUpperTargetOfDpos;
     int64 nProofOfWorkLowerTargetOfDpos;
     IBlockChain* pBlockChain;
+    IForkManager* pForkManager;
 };
 
 class CTestNetCoreProtocol : public CCoreProtocol
@@ -88,6 +91,7 @@ public:
     int64 nDelegateProofOfStakeEnrollMinimumAmount;
     int64 nDelegateProofOfStakeEnrollMaximumAmount;
     uint32 nDelegateProofOfStakeHeight;
+    uint256 hashGenesisBlock;
 
 public:
     bool IsDposHeight(int height);

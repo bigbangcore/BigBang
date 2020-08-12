@@ -14,6 +14,7 @@ using boost::asio::ip::tcp;
 
 #define PUSHTX_TIMEOUT (1000)
 #define SYNTXINV_TIMEOUT (1000 * 60)
+#define FORKUPDATE_TIMEOUT (1000 * 120)
 
 namespace bigbang
 {
@@ -140,6 +141,10 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pForkManager = nullptr;
+
+    nTimerPushTx = 0;
+    nTimerForkUpdate = 0;
     fStartIdlePushTxTimer = false;
 }
 
@@ -187,7 +192,13 @@ bool CNetChannel::HandleInitialize()
 
     if (!GetObject("consensus", pConsensus))
     {
-        Error("Failed to request consensus\n");
+        Error("Failed to request consensus");
+        return false;
+    }
+
+    if (!GetObject("forkmanager", pForkManager))
+    {
+        Error("Failed to request forkmanager");
         return false;
     }
 
@@ -203,6 +214,7 @@ void CNetChannel::HandleDeinitialize()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pForkManager = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()
@@ -211,6 +223,12 @@ bool CNetChannel::HandleInvoke()
         boost::unique_lock<boost::mutex> lock(mtxPushTx);
         nTimerPushTx = 0;
         fStartIdlePushTxTimer = false;
+    }
+    nTimerForkUpdate = SetTimer(FORKUPDATE_TIMEOUT, boost::bind(&CNetChannel::ForkUpdateTimerFunc, this, _1));
+    if (nTimerForkUpdate == 0)
+    {
+        StdError("NetChannel", "HandleInvoke: ForkUpdate SetTimer fail");
+        return false;
     }
     return network::INetChannel::HandleInvoke();
 }
@@ -226,6 +244,12 @@ void CNetChannel::HandleHalt()
             fStartIdlePushTxTimer = false;
         }
         setPushTxFork.clear();
+    }
+
+    if (nTimerForkUpdate != 0)
+    {
+        CancelTimer(nTimerForkUpdate);
+        nTimerForkUpdate = 0;
     }
 
     network::INetChannel::HandleHalt();
@@ -313,6 +337,10 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        if (mapSched.count(hashFork) > 0)
+        {
+            return;
+        }
         if (!mapSched.insert(make_pair(hashFork, CSchedule())).second)
         {
             StdLog("NetChannel", "SubscribeFork: mapSched insert fail, hashFork: %s", hashFork.GetHex().c_str());
@@ -348,6 +376,10 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
 {
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        if (mapSched.count(hashFork) == 0)
+        {
+            return;
+        }
         if (!mapSched.erase(hashFork))
         {
             StdLog("NetChannel", "UnsubscribeFork: mapSched erase fail, hashFork: %s", hashFork.GetHex().c_str());
@@ -1946,6 +1978,62 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
         }
     }
     return fCompleted;
+}
+
+void CNetChannel::ForkUpdateTimerFunc(uint32 nTimerId)
+{
+    if (nTimerForkUpdate == nTimerId)
+    {
+        nTimerForkUpdate = SetTimer(FORKUPDATE_TIMEOUT, boost::bind(&CNetChannel::ForkUpdateTimerFunc, this, _1));
+
+        map<uint256, bool> mapValidFork;
+        pForkManager->GetValidForkList(mapValidFork);
+
+        set<uint256> setValidFork;
+        for (auto& vd : mapValidFork)
+        {
+            if (vd.second)
+            {
+                setValidFork.insert(vd.first);
+            }
+        }
+
+        if (!setValidFork.empty())
+        {
+            UpdateValidFork(setValidFork);
+        }
+    }
+}
+
+void CNetChannel::UpdateValidFork(const set<uint256>& setValidFork)
+{
+    vector<uint256> vSubscribeFork;
+    vector<uint256> vUnsubscribeFork;
+    {
+        boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+        for (auto& vd : mapSched)
+        {
+            if (setValidFork.count(vd.first) == 0)
+            {
+                vUnsubscribeFork.push_back(vd.first);
+            }
+        }
+        for (const uint256& hashFork : setValidFork)
+        {
+            if (mapSched.find(hashFork) == mapSched.end())
+            {
+                vSubscribeFork.push_back(hashFork);
+            }
+        }
+    }
+    for (const uint256& hashFork : vUnsubscribeFork)
+    {
+        UnsubscribeFork(hashFork);
+    }
+    for (const uint256& hashFork : vSubscribeFork)
+    {
+        SubscribeFork(hashFork, 0);
+    }
 }
 
 const string CNetChannel::GetPeerAddressInfo(uint64 nNonce)

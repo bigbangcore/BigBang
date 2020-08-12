@@ -4,6 +4,8 @@
 
 #include "checkrepair.h"
 
+#include "param.h"
+
 using namespace std;
 using namespace xengine;
 using namespace boost::filesystem;
@@ -101,20 +103,93 @@ bool CCheckForkUnspentWalker::CheckForkUnspent(map<CTxOutPoint, CCheckTxOut>& ma
 /////////////////////////////////////////////////////////////////////////
 // CCheckForkManager
 
-bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
+CCheckForkManager::~CCheckForkManager()
 {
-    CForkDB dbFork;
+    dbFork.Deinitialize();
+}
+
+bool CCheckForkManager::SetParam(const string& strDataPathIn, bool fTestnetIn, bool fOnlyCheckIn, const uint256& hashGenesisBlockIn)
+{
+    strDataPath = strDataPathIn;
+    fTestnet = fTestnetIn;
+    fOnlyCheck = fOnlyCheckIn;
+    hashGenesisBlock = hashGenesisBlockIn;
+
+#ifdef BIGBANG_TESTNET
+    mapCheckPoints.insert(make_pair(0, hashGenesisBlockIn));
+#else
+    for (const auto& vd : vCheckPoints)
+    {
+        mapCheckPoints.insert(make_pair(vd.first, vd.second));
+    }
+#endif
+
     if (!dbFork.Initialize(path(strDataPath)))
     {
-        StdError("check", "Fetch fork status: Initialize fail");
+        StdError("check", "Fork manager set param: Initialize fail");
         return false;
+    }
+    return true;
+}
+
+bool CCheckForkManager::FetchForkStatus()
+{
+    uint256 hashGetGenesisBlock;
+    if (!dbFork.GetGenesisBlockHash(hashGetGenesisBlock) || hashGetGenesisBlock != hashGenesisBlock)
+    {
+        StdError("check", "Fetch fork status: Get genesis block hash fail");
+        if (fOnlyCheck)
+        {
+            return false;
+        }
+        if (!dbFork.WriteGenesisBlockHash(hashGenesisBlock))
+        {
+            StdError("check", "Fetch fork status: Write genesis block hash fail");
+            return false;
+        }
+    }
+
+    bool fCheckGenesisRet = true;
+    uint256 hashRefFdBlock;
+    map<uint256, int> mapValidFork;
+    if (!dbFork.RetrieveValidForkHash(hashGenesisBlock, hashRefFdBlock, mapValidFork))
+    {
+        fCheckGenesisRet = false;
+    }
+    else
+    {
+        if (hashRefFdBlock != 0)
+        {
+            fCheckGenesisRet = false;
+        }
+        else
+        {
+            const auto it = mapValidFork.find(hashGenesisBlock);
+            if (it == mapValidFork.end() || it->second != 0)
+            {
+                fCheckGenesisRet = false;
+            }
+        }
+    }
+    if (!fCheckGenesisRet)
+    {
+        StdError("check", "Fetch fork status: Check GenesisBlock valid fork fail");
+        if (fOnlyCheck)
+        {
+            return false;
+        }
+        mapValidFork.insert(make_pair(hashGenesisBlock, 0));
+        if (!dbFork.AddValidForkHash(hashGenesisBlock, uint256(), mapValidFork))
+        {
+            StdError("check", "Fetch fork status: Add valid fork fail");
+            return false;
+        }
     }
 
     vector<pair<uint256, uint256>> vFork;
     if (!dbFork.ListFork(vFork))
     {
         StdError("check", "Fetch fork status: ListFork fail");
-        dbFork.Deinitialize();
         return false;
     }
     StdLog("check", "Fetch fork status: fork size: %lu", vFork.size());
@@ -129,7 +204,6 @@ bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
         if (!dbFork.RetrieveForkContext(hashFork, status.ctxt))
         {
             StdError("check", "Fetch fork status: RetrieveForkContext fail");
-            dbFork.Deinitialize();
             return false;
         }
 
@@ -139,17 +213,16 @@ bool CCheckForkManager::FetchForkStatus(const string& strDataPath)
         }
     }
 
-    dbFork.Deinitialize();
     return true;
 }
 
-void CCheckForkManager::GetForkList(const uint256& hashGenesis, vector<uint256>& vForkList)
+void CCheckForkManager::GetForkList(vector<uint256>& vForkList)
 {
     set<uint256> setFork;
 
     vForkList.clear();
-    vForkList.push_back(hashGenesis);
-    setFork.insert(hashGenesis);
+    vForkList.push_back(hashGenesisBlock);
+    setFork.insert(hashGenesisBlock);
 
     for (int i = 0; i < vForkList.size(); i++)
     {
@@ -208,25 +281,454 @@ void CCheckForkManager::GetTxFork(const uint256& hashFork, int nHeight, vector<u
     }
 }
 
-bool CCheckForkManager::UpdateForkLast(const string& strDataPath, const vector<pair<uint256, uint256>>& vForkLast)
+bool CCheckForkManager::AddBlockForkContext(const CBlockEx& blockex)
 {
-    CForkDB dbFork;
-    if (!dbFork.Initialize(path(strDataPath)))
+    uint256 hashBlock = blockex.GetHash();
+    if (hashBlock == hashGenesisBlock)
     {
-        StdError("check", "Update fork last: Initialize fail");
+        uint256 hashRefFdBlock;
+        map<uint256, int> mapValidFork;
+        vector<CForkContext> vForkCtxt;
+
+        CProfile profile;
+        if (!profile.Load(blockex.vchProof))
+        {
+            StdTrace("check", "Load genesis %s block Proof failed", hashGenesisBlock.ToString().c_str());
+            return false;
+        }
+        vForkCtxt.push_back(CForkContext(hashGenesisBlock, uint64(0), uint64(0), profile));
+
+        mapValidFork.insert(make_pair(hashGenesisBlock, 0));
+        if (!AddForkContext(uint256(), hashGenesisBlock, vForkCtxt, true, hashRefFdBlock, mapValidFork))
+        {
+            StdLog("check", "AddBlockForkContext: AddForkContext fail, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+        return true;
+    }
+
+    vector<CForkContext> vForkCtxt;
+    for (int i = 0; i < blockex.vtx.size(); i++)
+    {
+        const CTransaction& tx = blockex.vtx[i];
+        const CTxContxt& txContxt = blockex.vTxContxt[i];
+        if (tx.sendTo != txContxt.destIn)
+        {
+            if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
+            {
+                if (!VerifyBlockForkTx(blockex.hashPrev, tx, vForkCtxt))
+                {
+                    StdLog("check", "AddBlockForkContext: VerifyBlockForkTx fail, block: %s", hashBlock.ToString().c_str());
+                    return false;
+                }
+            }
+            if (txContxt.destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
+            {
+                CDestination destRedeem;
+                uint256 hashFork;
+                if (!GetTxForkRedeemParam(tx, txContxt.destIn, destRedeem, hashFork))
+                {
+                    StdLog("check", "AddBlockForkContext: Get redeem param fail, block: %s, dest: %s",
+                           hashBlock.ToString().c_str(), CAddress(txContxt.destIn).ToString().c_str());
+                    return false;
+                }
+                auto it = vForkCtxt.begin();
+                while (it != vForkCtxt.end())
+                {
+                    if (it->hashFork == hashFork)
+                    {
+                        StdLog("check", "AddBlockForkContext: cancel fork, block: %s, fork: %s, dest: %s",
+                               hashBlock.ToString().c_str(), it->hashFork.ToString().c_str(),
+                               CAddress(txContxt.destIn).ToString().c_str());
+                        vForkCtxt.erase(it++);
+                    }
+                    else
+                    {
+                        ++it;
+                    }
+                }
+            }
+        }
+    }
+
+    bool fCheckPointBlock = false;
+    const auto it = mapCheckPoints.find(CBlock::GetBlockHeightByHash(hashBlock));
+    if (it != mapCheckPoints.end() && it->second == hashBlock)
+    {
+        fCheckPointBlock = true;
+    }
+
+    uint256 hashRefFdBlock;
+    map<uint256, int> mapValidFork;
+    if (!AddForkContext(blockex.hashPrev, hashBlock, vForkCtxt, fCheckPointBlock, hashRefFdBlock, mapValidFork))
+    {
+        StdLog("check", "AddBlockForkContext: AddForkContext fail, block: %s", hashBlock.ToString().c_str());
         return false;
     }
-    for (const auto& data : vForkLast)
+
+    if (!CheckDbValidFork(hashBlock, hashRefFdBlock, mapValidFork))
     {
-        if (!dbFork.UpdateFork(data.first, data.second))
+        StdLog("check", "AddBlockForkContext: Check db valid fork fail, block: %s", hashBlock.ToString().c_str());
+        if (fOnlyCheck)
         {
-            StdError("check", "Update fork last: update fail, fork: %s, last: %s",
-                     data.first.GetHex().c_str(), data.second.GetHex().c_str());
-            dbFork.Deinitialize();
+            return false;
+        }
+        if (!AddDbValidForkHash(hashBlock, hashRefFdBlock, mapValidFork))
+        {
+            StdLog("check", "AddBlockForkContext: Add db valid fork fail, block: %s", hashBlock.ToString().c_str());
             return false;
         }
     }
-    dbFork.Deinitialize();
+    return true;
+}
+
+bool CCheckForkManager::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, vector<CForkContext>& vForkCtxt)
+{
+    if (tx.vchData.empty())
+    {
+        StdLog("check", "Verify block fork tx: invalid vchData, tx: %s", tx.GetHash().ToString().c_str());
+        return false;
+    }
+
+    CBlock block;
+    CProfile profile;
+    try
+    {
+        CBufStream ss;
+        ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+        ss >> block;
+        if (!block.IsOrigin() || block.IsPrimary())
+        {
+            StdLog("check", "Verify block fork tx: invalid block, tx: %s", tx.GetHash().ToString().c_str());
+            return false;
+        }
+        if (!profile.Load(block.vchProof))
+        {
+            StdLog("check", "Verify block fork tx: invalid profile, tx: %s", tx.GetHash().ToString().c_str());
+            return false;
+        }
+    }
+    catch (...)
+    {
+        StdLog("check", "Verify block fork tx: invalid vchData, tx: %s", tx.GetHash().ToString().c_str());
+        return false;
+    }
+    uint256 hashNewFork = block.GetHash();
+
+    do
+    {
+        CForkContext ctxtParent;
+        if (!GetForkContext(profile.hashParent, ctxtParent))
+        {
+            bool fFindParent = false;
+            for (const auto& vd : vForkCtxt)
+            {
+                if (vd.hashFork == profile.hashParent)
+                {
+                    ctxtParent = vd;
+                    fFindParent = true;
+                    break;
+                }
+            }
+            if (!fFindParent)
+            {
+                StdLog("check", "Verify block fork tx: Retrieve parent context, tx: %s", tx.GetHash().ToString().c_str());
+                break;
+            }
+        }
+
+        CProfile forkProfile;
+        if (!ValidateOrigin(block, ctxtParent.GetProfile(), forkProfile))
+        {
+            StdLog("check", "Verify block fork tx: Validate origin, tx: %s", tx.GetHash().ToString().c_str());
+            break;
+        }
+
+        if (!VerifyValidFork(hashPrev, hashNewFork, profile.strName))
+        {
+            StdLog("check", "Verify block fork tx: verify fork fail, tx: %s", tx.GetHash().ToString().c_str());
+            break;
+        }
+        bool fCheckRet = true;
+        for (const auto& vd : vForkCtxt)
+        {
+            if (vd.hashFork == hashNewFork || vd.strName == profile.strName)
+            {
+                StdLog("check", "Verify block fork tx: fork exist, tx: %s", tx.GetHash().ToString().c_str());
+                fCheckRet = false;
+                break;
+            }
+        }
+        if (!fCheckRet)
+        {
+            break;
+        }
+
+        vForkCtxt.push_back(CForkContext(block.GetHash(), block.hashPrev, tx.GetHash(), profile));
+    } while (0);
+
+    return true;
+}
+
+bool CCheckForkManager::GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork)
+{
+    if (destIn.GetTemplateId().GetType() != TEMPLATE_FORK)
+    {
+        StdError("check", "Get fork redeem param: Template type error, type: %d, tx: %s",
+                 destIn.GetTemplateId().GetType(), tx.GetHash().GetHex().c_str());
+        return false;
+    }
+    vector<uint8> vchSig;
+    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        CDestination sendToDelegateTemplate;
+        CDestination sendToOwner;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSig))
+        {
+            StdError("check", "Get fork redeem param: ParseDest fail, tx: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
+    auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_FORK, vchSig);
+    if (templatePtr == nullptr || templatePtr->GetTemplateId() != destIn.GetTemplateId())
+    {
+        StdError("check", "Get fork redeem param: CreateTemplatePtr fail, tx: %s", tx.GetHash().GetHex().c_str());
+        return false;
+    }
+    boost::dynamic_pointer_cast<CTemplateFork>(templatePtr)->GetForkParam(destRedeem, hashFork);
+    return true;
+}
+
+bool CCheckForkManager::AddForkContext(const uint256& hashPrevBlock, const uint256& hashNewBlock, const vector<CForkContext>& vForkCtxt,
+                                       bool fCheckPointBlock, uint256& hashRefFdBlock, map<uint256, int>& mapValidFork)
+{
+    CCheckValidFdForkId& fd = mapBlockValidFork[hashNewBlock];
+    if (fCheckPointBlock)
+    {
+        fd.mapForkId.clear();
+        if (hashPrevBlock != 0)
+        {
+            if (!GetValidFdForkId(hashPrevBlock, fd.mapForkId))
+            {
+                StdError("check", "Add fork context: Get Valid forkid fail, prev: %s", hashPrevBlock.GetHex().c_str());
+                mapBlockValidFork.erase(hashNewBlock);
+                return false;
+            }
+        }
+        fd.hashRefFdBlock = uint256();
+    }
+    else
+    {
+        const auto it = mapBlockValidFork.find(hashPrevBlock);
+        if (it == mapBlockValidFork.end())
+        {
+            StdError("check", "Add fork context: Find Valid forkid fail, prev: %s", hashPrevBlock.GetHex().c_str());
+            mapBlockValidFork.erase(hashNewBlock);
+            return false;
+        }
+        const CCheckValidFdForkId& prevfd = it->second;
+        fd.mapForkId.clear();
+        if (prevfd.hashRefFdBlock == 0)
+        {
+            fd.hashRefFdBlock = hashPrevBlock;
+        }
+        else
+        {
+            fd.mapForkId.insert(prevfd.mapForkId.begin(), prevfd.mapForkId.end());
+            fd.hashRefFdBlock = prevfd.hashRefFdBlock;
+        }
+    }
+    for (const CForkContext& ctxt : vForkCtxt)
+    {
+        mapForkSched[ctxt.hashFork].ctxtFork = ctxt;
+        if (ctxt.hashParent != 0)
+        {
+            mapForkSched[ctxt.hashParent].AddNewJoint(ctxt.hashJoint, ctxt.hashFork);
+        }
+        fd.mapForkId.insert(make_pair(ctxt.hashFork, CBlock::GetBlockHeightByHash(hashNewBlock)));
+    }
+    hashRefFdBlock = fd.hashRefFdBlock;
+    mapValidFork.clear();
+    mapValidFork.insert(fd.mapForkId.begin(), fd.mapForkId.end());
+    return true;
+}
+
+bool CCheckForkManager::GetForkContext(const uint256& hashFork, CForkContext& ctxt)
+{
+    const auto it = mapForkSched.find(hashFork);
+    if (it != mapForkSched.end())
+    {
+        ctxt = it->second.ctxtFork;
+        return true;
+    }
+    return false;
+}
+
+bool CCheckForkManager::ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile)
+{
+    if (!forkProfile.Load(block.vchProof))
+    {
+        StdLog("check", "Validate origin: load profile error");
+        return false;
+    }
+    if (forkProfile.IsNull())
+    {
+        StdLog("check", "Validate origin: invalid profile");
+        return false;
+    }
+    if (!MoneyRange(forkProfile.nAmount))
+    {
+        StdLog("check", "Validate origin: invalid fork amount");
+        return false;
+    }
+    if (!RewardRange(forkProfile.nMintReward))
+    {
+        StdLog("check", "Validate origin: invalid fork reward");
+        return false;
+    }
+    if (block.txMint.sendTo != forkProfile.destOwner)
+    {
+        StdLog("check", "Validate origin: invalid fork sendTo");
+        return false;
+    }
+    if (parentProfile.IsPrivate())
+    {
+        if (!forkProfile.IsPrivate() || parentProfile.destOwner != forkProfile.destOwner)
+        {
+            StdLog("check", "Validate origin: permission denied");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CCheckForkManager::VerifyValidFork(const uint256& hashPrevBlock, const uint256& hashFork, const string& strForkName)
+{
+    map<uint256, int> mapValidFork;
+    if (GetValidFdForkId(hashPrevBlock, mapValidFork))
+    {
+        if (mapValidFork.count(hashFork) > 0)
+        {
+            StdLog("check", "Verify valid fork: Fork existed, fork: %s", hashFork.GetHex().c_str());
+            return false;
+        }
+        for (const auto& vd : mapValidFork)
+        {
+            const auto mt = mapForkSched.find(vd.first);
+            if (mt != mapForkSched.end() && mt->second.ctxtFork.strName == strForkName)
+            {
+                StdLog("check", "Verify valid fork: Fork name repeated, new fork: %s, valid fork: %s, name: %s",
+                       hashFork.GetHex().c_str(), vd.first.GetHex().c_str(), strForkName.c_str());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool CCheckForkManager::GetValidFdForkId(const uint256& hashBlock, map<uint256, int>& mapFdForkIdOut)
+{
+    const auto it = mapBlockValidFork.find(hashBlock);
+    if (it != mapBlockValidFork.end())
+    {
+        if (it->second.hashRefFdBlock != 0)
+        {
+            const auto mt = mapBlockValidFork.find(it->second.hashRefFdBlock);
+            if (mt != mapBlockValidFork.end() && !mt->second.mapForkId.empty())
+            {
+                mapFdForkIdOut.insert(mt->second.mapForkId.begin(), mt->second.mapForkId.end());
+            }
+        }
+        if (!it->second.mapForkId.empty())
+        {
+            mapFdForkIdOut.insert(it->second.mapForkId.begin(), it->second.mapForkId.end());
+        }
+        return true;
+    }
+    return false;
+}
+
+int CCheckForkManager::GetValidForkCreatedHeight(const uint256& hashBlock, const uint256& hashFork)
+{
+    const auto it = mapBlockValidFork.find(hashBlock);
+    if (it != mapBlockValidFork.end())
+    {
+        int nCreaatedHeight = it->second.GetCreatedHeight(hashFork);
+        if (nCreaatedHeight >= 0)
+        {
+            return nCreaatedHeight;
+        }
+        if (it->second.hashRefFdBlock != 0)
+        {
+            const auto mt = mapBlockValidFork.find(it->second.hashRefFdBlock);
+            if (mt != mapBlockValidFork.end())
+            {
+                return mt->second.GetCreatedHeight(hashFork);
+            }
+        }
+    }
+    return -1;
+}
+
+bool CCheckForkManager::CheckDbValidFork(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork)
+{
+    uint256 hashRefFdBlockGet;
+    map<uint256, int> mapValidForkGet;
+    if (!dbFork.RetrieveValidForkHash(hashBlock, hashRefFdBlockGet, mapValidForkGet))
+    {
+        StdLog("check", "CheckDbValidFork: RetrieveValidForkHash fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (hashRefFdBlockGet != hashRefFdBlock || mapValidForkGet.size() != mapValidFork.size())
+    {
+        StdLog("check", "CheckDbValidFork: hashRefFdBlock or mapValidFork error, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    for (const auto vd : mapValidForkGet)
+    {
+        const auto it = mapValidFork.find(vd.first);
+        if (it == mapValidFork.end() || it->second != vd.second)
+        {
+            StdLog("check", "CheckDbValidFork: mapValidFork error, block: %s", hashBlock.GetHex().c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CCheckForkManager::AddDbValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork)
+{
+    return dbFork.AddValidForkHash(hashBlock, hashRefFdBlock, mapValidFork);
+}
+
+bool CCheckForkManager::AddDbForkContext(const CForkContext& ctxt)
+{
+    return dbFork.AddNewForkContext(ctxt);
+}
+
+bool CCheckForkManager::UpdateDbForkLast(const uint256& hashFork, const uint256& hashLastBlock)
+{
+    return dbFork.UpdateFork(hashFork, hashLastBlock);
+}
+
+bool CCheckForkManager::GetValidForkContext(const uint256& hashPrimaryLastBlock, const uint256& hashFork, CForkContext& ctxt)
+{
+    if (GetValidForkCreatedHeight(hashPrimaryLastBlock, hashFork) < 0)
+    {
+        StdLog("check", "GetValidForkContext: find valid fork fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    const auto it = mapForkSched.find(hashFork);
+    if (it == mapForkSched.end())
+    {
+        StdLog("check", "GetValidForkContext: find fork context fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    ctxt = it->second.ctxtFork;
     return true;
 }
 
@@ -552,9 +1054,9 @@ CCheckWalletTx* CCheckWalletTxWalker::GetWalletTx(const uint256& hashFork, const
 
 bool CCheckWalletTxWalker::AddWalletTx(const CWalletTx& wtx)
 {
-    if (pForkManager == nullptr)
+    if (pCheckForkManager == nullptr)
     {
-        StdError("check", "Wallet add tx: pForkManager is null.");
+        StdError("check", "Wallet add tx: pCheckForkManager is null.");
         return false;
     }
     if (wtx.hashFork == 0)
@@ -564,7 +1066,7 @@ bool CCheckWalletTxWalker::AddWalletTx(const CWalletTx& wtx)
     }
 
     vector<uint256> vFork;
-    pForkManager->GetTxFork(wtx.hashFork, wtx.nBlockHeight, vFork);
+    pCheckForkManager->GetTxFork(wtx.hashFork, wtx.nBlockHeight, vFork);
     for (const uint256& hashFork : vFork)
     {
         map<uint256, CCheckWalletForkUnspent>::iterator it = mapWalletFork.find(hashFork);
@@ -597,7 +1099,7 @@ void CCheckWalletTxWalker::RemoveWalletTx(const uint256& hashFork, int nHeight, 
     }
 
     vector<uint256> vFork;
-    pForkManager->GetTxFork(hashFork, nHeight, vFork);
+    pCheckForkManager->GetTxFork(hashFork, nHeight, vFork);
     for (const uint256& hash : vFork)
     {
         map<uint256, CCheckWalletForkUnspent>::iterator it = mapWalletFork.find(hash);
@@ -945,8 +1447,9 @@ CCheckBlockWalker::~CCheckBlockWalker()
     dbBlockIndex.Deinitialize();
 }
 
-bool CCheckBlockWalker::Initialize(const string& strPath)
+bool CCheckBlockWalker::Initialize(const string& strPath, CCheckForkManager* pForkMn)
 {
+    pCheckForkManager = pForkMn;
     if (!objDelegateDB.Initialize(path(strPath)))
     {
         StdError("check", "Block walker: Delegate db initialize fail, path: %s.", strPath.c_str());
@@ -1007,16 +1510,24 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
     }
     CBlockEx& checkBlock = mt->second;
 
-    if (block.IsPrimary() && !objDelegateDB.CheckDelegate(hashBlock))
+    if (block.IsPrimary())
     {
-        StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
-        if (!fOnlyCheck)
+        if (!objDelegateDB.CheckDelegate(hashBlock))
         {
-            if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
+            StdError("check", "Block walk: Check delegate vote fail, block: %s", hashBlock.GetHex().c_str());
+            if (!fOnlyCheck)
             {
-                StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
-                return false;
+                if (!objDelegateDB.UpdateDelegate(hashBlock, checkBlock, nFile, nOffset))
+                {
+                    StdError("check", "Block walk: Update delegate fail, block: %s.", hashBlock.GetHex().c_str());
+                    return false;
+                }
             }
+        }
+        if (!pCheckForkManager->AddBlockForkContext(checkBlock))
+        {
+            StdError("check", "Block walk: Add block fork fail, block: %s", hashBlock.GetHex().c_str());
+            return false;
         }
     }
 
@@ -1110,10 +1621,10 @@ bool CCheckBlockWalker::Walk(const CBlockEx& block, uint32 nFile, uint32 nOffset
 
     if (block.IsGenesis())
     {
-        if (hashGenesis != 0)
+        if (block.GetHash() != objProofParam.hashGenesisBlock)
         {
-            StdError("check", "Block walk: more genesis block, block hash: %s, hashGenesis: %s.",
-                     hashBlock.GetHex().c_str(), hashGenesis.GetHex().c_str());
+            StdError("check", "Block walk: genesis block error, block hash: %s, genesis hash: %s.",
+                     hashBlock.GetHex().c_str(), objProofParam.hashGenesisBlock.GetHex().c_str());
             return false;
         }
         hashGenesis = hashBlock;
@@ -1458,7 +1969,108 @@ bool CCheckBlockWalker::UpdateBlockNext()
     return true;
 }
 
-bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
+bool CCheckBlockWalker::CheckRepairFork()
+{
+    if (hashGenesis == 0)
+    {
+        StdLog("check", "Check Repair Fork: hashGenesis is 0");
+        return false;
+    }
+    const auto gt = mapCheckFork.find(hashGenesis);
+    if (gt == mapCheckFork.end())
+    {
+        StdLog("check", "Check Repair Fork: find genesis fork fail");
+        return false;
+    }
+    if (gt->second.pLast == nullptr)
+    {
+        StdLog("check", "Check Repair Fork: genesis fork pLast is null");
+        return false;
+    }
+    uint256 hashPrimaryLastBlock = gt->second.pLast->GetBlockHash();
+
+    map<uint256, CCheckBlockFork>::iterator it = mapCheckFork.begin();
+    while (it != mapCheckFork.end())
+    {
+        const uint256& hashFork = it->first;
+        CCheckBlockFork& checkFork = it->second;
+        if (checkFork.pLast == nullptr)
+        {
+            StdLog("check", "Check Repair Fork: pLast is null, fork: %s", hashFork.GetHex().c_str());
+            return false;
+        }
+        uint256 hashLastBlock = checkFork.pLast->GetBlockHash();
+
+        CForkContext ctxt;
+        if (!pCheckForkManager->GetValidForkContext(hashPrimaryLastBlock, hashFork, ctxt))
+        {
+            StdLog("check", "Check Repair Fork: GetValidForkContext fail, fork: %s", hashFork.GetHex().c_str());
+            mapCheckFork.erase(it++);
+            continue;
+        }
+
+        auto mt = pCheckForkManager->mapForkStatus.find(hashFork);
+        if (mt == pCheckForkManager->mapForkStatus.end())
+        {
+            StdLog("check", "Check Repair Fork: find fork fail, fork: %s", hashFork.GetHex().c_str());
+            if (fOnlyCheck)
+            {
+                return false;
+            }
+
+            mt = pCheckForkManager->mapForkStatus.insert(make_pair(hashFork, CCheckForkStatus())).first;
+            if (mt == pCheckForkManager->mapForkStatus.end())
+            {
+                StdLog("check", "Check Repair Fork: insert fail, fork: %s", hashFork.GetHex().c_str());
+                return false;
+            }
+            mt->second.ctxt = ctxt;
+
+            if (!pCheckForkManager->AddDbForkContext(mt->second.ctxt))
+            {
+                StdLog("check", "Check Repair Fork: Add db fork context fail, fork: %s", hashFork.GetHex().c_str());
+                return false;
+            }
+        }
+        if (mt->second.hashLastBlock != hashLastBlock)
+        {
+            StdLog("check", "Check Repair Fork: last block error, fork: %s, fork last: %s, block last: %s",
+                   hashFork.GetHex().c_str(), mt->second.hashLastBlock.GetHex().c_str(), hashLastBlock.GetHex().c_str());
+            if (fOnlyCheck)
+            {
+                return false;
+            }
+            mt->second.hashLastBlock = hashLastBlock;
+
+            if (!pCheckForkManager->UpdateDbForkLast(hashFork, hashLastBlock))
+            {
+                StdLog("check", "Check Repair Fork: Update db fork last fail, fork: %s", hashFork.GetHex().c_str());
+                return false;
+            }
+        }
+
+        ++it;
+    }
+
+    auto ht = pCheckForkManager->mapForkStatus.begin();
+    while (ht != pCheckForkManager->mapForkStatus.end())
+    {
+        if (ht->second.ctxt.hashParent != 0)
+        {
+            auto mt = pCheckForkManager->mapForkStatus.find(ht->second.ctxt.hashParent);
+            if (mt == pCheckForkManager->mapForkStatus.end())
+            {
+                StdLog("check", "Check Repair Fork: find parent fork fail, parent fork: %s", ht->second.ctxt.hashParent.GetHex().c_str());
+                return false;
+            }
+            mt->second.InsertSubline(ht->second.ctxt.nJointHeight, ht->first);
+        }
+        ++ht;
+    }
+    return true;
+}
+
+bool CCheckBlockWalker::UpdateBlockTx()
 {
     if (hashGenesis == 0)
     {
@@ -1467,7 +2079,7 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
     }
 
     vector<uint256> vForkList;
-    objForkMn.GetForkList(hashGenesis, vForkList);
+    pCheckForkManager->GetForkList(vForkList);
 
     for (const uint256& hashFork : vForkList)
     {
@@ -1493,7 +2105,7 @@ bool CCheckBlockWalker::UpdateBlockTx(CCheckForkManager& objForkMn)
                 if (!block.IsNull() && (!block.IsVacant() || !block.txMint.sendTo.IsNull()))
                 {
                     vector<uint256> vFork;
-                    objForkMn.GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
+                    pCheckForkManager->GetTxFork(hashFork, pIndex->GetBlockHeight(), vFork);
 
                     CBufStream ss;
                     CTxContxt txContxt;
@@ -1851,7 +2463,7 @@ bool CCheckRepairData::FetchBlockData()
         return false;
     }
 
-    if (!objBlockWalker.Initialize(strDataPath))
+    if (!objBlockWalker.Initialize(strDataPath, &objForkManager))
     {
         StdError("check", "objBlockWalker Initialize fail");
         return false;
@@ -1884,6 +2496,14 @@ bool CCheckRepairData::FetchBlockData()
         }
         StdLog("check", "Update blockchain success, main chain height: %d.", objBlockWalker.nMainChainHeight);
 
+        StdLog("check", "Check repair fork......");
+        if (!objBlockWalker.CheckRepairFork())
+        {
+            StdError("check", "Fetch block and tx, check repair fork");
+            return false;
+        }
+        StdLog("check", "Check repair fork success.");
+
         StdLog("check", "Check refblock......");
         if (!objBlockWalker.CheckRefBlock())
         {
@@ -1893,7 +2513,7 @@ bool CCheckRepairData::FetchBlockData()
         StdLog("check", "Check refblock success, main chain height: %d.", objBlockWalker.nMainChainHeight);
 
         StdLog("check", "Update block tx......");
-        if (!objBlockWalker.UpdateBlockTx(objForkManager))
+        if (!objBlockWalker.UpdateBlockTx())
         {
             StdError("check", "Fetch block and tx, update block tx fail");
             return false;
@@ -1981,32 +2601,6 @@ bool CCheckRepairData::FetchWalletTx()
         return false;
     }
     dbWallet.Deinitialize();
-    return true;
-}
-
-bool CCheckRepairData::CheckRepairFork()
-{
-    vector<pair<uint256, uint256>> vForkUpdate;
-    map<uint256, CCheckForkStatus>::iterator it = objForkManager.mapForkStatus.begin();
-    for (; it != objForkManager.mapForkStatus.end(); ++it)
-    {
-        map<uint256, CCheckBlockFork>::iterator mt = objBlockWalker.mapCheckFork.find(it->first);
-        if (mt != objBlockWalker.mapCheckFork.end() && mt->second.pLast != nullptr)
-        {
-            if (it->second.hashLastBlock != mt->second.pLast->GetBlockHash())
-            {
-                StdLog("check", "Check fork last: last block error, fork: %s, fork last: %s, block last: %s",
-                       it->first.GetHex().c_str(),
-                       it->second.hashLastBlock.GetHex().c_str(),
-                       mt->second.pLast->GetBlockHash().GetHex().c_str());
-                vForkUpdate.push_back(make_pair(it->first, mt->second.pLast->GetBlockHash()));
-            }
-        }
-    }
-    if (!fOnlyCheck && !vForkUpdate.empty())
-    {
-        return objForkManager.UpdateForkLast(strDataPath, vForkUpdate);
-    }
     return true;
 }
 
@@ -2427,7 +3021,12 @@ bool CCheckRepairData::CheckRepairData()
 
     objWalletTxWalker.SetForkManager(&objForkManager);
 
-    if (!objForkManager.FetchForkStatus(strDataPath))
+    if (!objForkManager.SetParam(strDataPath, fTestnet, fOnlyCheck, objProofOfWorkParam.hashGenesisBlock))
+    {
+        StdLog("check", "Fork manager set param fail");
+        return false;
+    }
+    if (!objForkManager.FetchForkStatus())
     {
         StdLog("check", "Fetch fork status fail");
         return false;
@@ -2475,13 +3074,6 @@ bool CCheckRepairData::CheckRepairData()
         return false;
     }
     StdLog("check", "Fetch wallet tx success, wallet tx count: %ld", objWalletTxWalker.nWalletTxCount);
-
-    if (!CheckRepairFork())
-    {
-        StdLog("check", "Fetch wallet tx fail");
-        return false;
-    }
-    StdLog("check", "Check and repair fork success");
 
     StdLog("check", "Check block unspent starting");
     if (!CheckBlockUnspent())

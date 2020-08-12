@@ -11,6 +11,7 @@
 #include "../common/template/payment.h"
 #include "../common/template/vote.h"
 #include "address.h"
+#include "param.h"
 #include "wallet.h"
 
 using namespace std;
@@ -131,6 +132,7 @@ CCoreProtocol::CCoreProtocol()
     nProofOfWorkUpperTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_UPPER;
     nProofOfWorkLowerTargetOfDpos = PROOF_OF_WORK_TARGET_OF_DPOS_LOWER;
     pBlockChain = nullptr;
+    pForkManager = nullptr;
 }
 
 CCoreProtocol::~CCoreProtocol()
@@ -143,6 +145,10 @@ bool CCoreProtocol::HandleInitialize()
     GetGenesisBlock(block);
     hashGenesisBlock = block.GetHash();
     if (!GetObject("blockchain", pBlockChain))
+    {
+        return false;
+    }
+    if (!GetObject("forkmanager", pForkManager))
     {
         return false;
     }
@@ -403,6 +409,58 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     return OK;
 }
 
+Errno CCoreProtocol::VerifyForkTx(const CTransaction& tx)
+{
+    if (tx.vchData.empty() || tx.nAmount < CTemplateFork::CreatedCoin())
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid vchData or nAmount");
+    }
+
+    CBlock block;
+    CProfile profile;
+    try
+    {
+        CBufStream ss;
+        ss.Write((const char*)&tx.vchData[0], tx.vchData.size());
+        ss >> block;
+        if (!block.IsOrigin() || block.IsPrimary())
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid block");
+        }
+        if (!profile.Load(block.vchProof))
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
+        }
+    }
+    catch (...)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork vchData");
+    }
+
+    if (profile.IsNull())
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
+    }
+    if (!MoneyRange(profile.nAmount))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork amount");
+    }
+    if (!RewardRange(profile.nMintReward))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork reward");
+    }
+    if (block.txMint.sendTo != profile.destOwner)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork sendTo");
+    }
+
+    if (ValidateBlock(block) != OK)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid block");
+    }
+    return OK;
+}
+
 Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile)
 {
     if (!forkProfile.Load(block.vchProof))
@@ -420,6 +478,10 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     if (!RewardRange(forkProfile.nMintReward))
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork reward");
+    }
+    if (block.txMint.sendTo != forkProfile.destOwner)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork sendTo");
     }
     if (parentProfile.IsPrivate())
     {
@@ -567,22 +629,22 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         if (inctxt.nTxTime > tx.nTimeStamp)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx");
         }
         if (inctxt.IsLocked(pIndexPrev->GetBlockHeight()))
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked");
         }
         nValueIn += inctxt.nAmount;
     }
 
     if (!MoneyRange(nValueIn))
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld", nValueIn);
     }
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
     if (tx.nType == CTransaction::TX_CERT)
@@ -601,31 +663,18 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         }
     }
 
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
-
     vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
+    if (!VerifyDestRecorded(tx, vchSig))
     {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination");
     }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
+
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, vchSig);
         if (templatePtr == nullptr)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
         }
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
@@ -635,49 +684,67 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
             CProofOfSecretShare dpos;
             if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
             {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err");
             }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
             }
         }
         else
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
         }
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if (CTemplate::IsLockedCoin(destIn))
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
+        if (fork != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork");
+        }
+        if (tx.sendTo != destIn)
+        {
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
+            if (!ptr)
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination");
+            }
+            CDestination destRedeemLocked;
+            uint256 hashForkLocked;
+            boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
+            int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, pIndexPrev->GetBlockHash());
+            if (nLockedCoin < 0)
+            {
+                nLockedCoin = 0;
+            }
+            if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
+            {
+                return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
+            }
+        }
     }
 
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
+    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
-    }
-
-    if (!VerifyDestRecorded(tx, vchSig))
-    {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
+        if (fork != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork");
+        }
+        if (tx.sendTo != destIn)
+        {
+            Errno err = VerifyForkTx(tx);
+            if (err != OK)
+            {
+                return err;
+            }
+        }
     }
 
     if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
     }
 
     return OK;
@@ -729,42 +796,19 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         }
     }
 
-    // v1.0 function
-    /*if (!tx.vchData.empty())
-    {
-        return DEBUG(ERR_TRANSACTION_INVALID, "vchData not empty\n");
-    }*/
-
     // record destIn in vchSig
     vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
     if (!VerifyDestRecorded(tx, vchSig))
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-    }
-
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
-    {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination");
     }
 
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, vchSig);
         if (templatePtr == nullptr)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
         }
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
@@ -774,39 +818,90 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
             CProofOfSecretShare dpos;
             if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
             {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err");
             }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
             }
         }
         else
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
         }
     }
 
     // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if (CTemplate::IsLockedCoin(destIn))
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
+        if (fork != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork");
+        }
+        if (tx.sendTo != destIn)
+        {
+            uint256 hashPrimaryLastBlock;
+            int nTempHeight;
+            int64 nTempTime;
+            uint16 nTempMintType;
+            if (!pBlockChain->GetLastBlock(GetGenesisBlockHash(), hashPrimaryLastBlock, nTempHeight, nTempTime, nTempMintType))
+            {
+                return DEBUG(ERR_TRANSACTION_INVALID, "Failed to get last block");
+            }
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
+            if (!ptr)
+            {
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination");
+            }
+            CDestination destRedeemLocked;
+            uint256 hashForkLocked;
+            boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->GetForkParam(destRedeemLocked, hashForkLocked);
+            int64 nLockedCoin = pForkManager->ForkLockedCoin(hashForkLocked, hashPrimaryLastBlock);
+            if (nLockedCoin < 0)
+            {
+                bool fTxAtTxPool = false;
+                for (int i = 0; i < tx.vInput.size(); i++)
+                {
+                    uint256 hashFork;
+                    int nHeight;
+                    if (!pBlockChain->GetTxLocation(tx.vInput[i].prevout.hash, hashFork, nHeight))
+                    {
+                        fTxAtTxPool = true;
+                        break;
+                    }
+                }
+                nLockedCoin = CTemplateFork::CreatedCoin();
+                if (!fTxAtTxPool)
+                {
+                    nLockedCoin = 0;
+                }
+            }
+            if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
+            {
+                return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
+            }
+        }
     }
 
-    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK && tx.nAmount < CTemplateFork::CreatedCoin())
+    if (tx.sendTo.GetTemplateId().GetType() == TEMPLATE_FORK)
     {
-        throw DEBUG(ERR_TRANSACTION_INPUT_INVALID, "creating fork nAmount must be at least %ld", CTemplateFork::CreatedCoin());
+        if (fork != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid fork");
+        }
+        if (tx.sendTo != destIn)
+        {
+            Errno err = VerifyForkTx(tx);
+            if (err != OK)
+            {
+                return err;
+            }
+        }
+    }
+
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, tx.hashAnchor, tx.sendTo, vchSig, nForkHeight, fork))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
     }
 
     return OK;
@@ -1112,6 +1207,35 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
+bool CCoreProtocol::GetTxForkRedeemParam(const CTransaction& tx, const CDestination& destIn, CDestination& destRedeem, uint256& hashFork)
+{
+    if (destIn.GetTemplateId().GetType() != TEMPLATE_FORK)
+    {
+        return false;
+    }
+    vector<uint8> vchSig;
+    if (CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        CDestination sendToDelegateTemplate;
+        CDestination sendToOwner;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSig))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
+    auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_FORK, vchSig);
+    if (templatePtr == nullptr || templatePtr->GetTemplateId() != destIn.GetTemplateId())
+    {
+        return false;
+    }
+    boost::dynamic_pointer_cast<CTemplateFork>(templatePtr)->GetForkParam(destRedeem, hashFork);
+    return true;
+}
+
 bool CCoreProtocol::IsRefVacantHeight(uint32 nBlockHeight)
 {
     if (nBlockHeight < REF_VACANT_HEIGHT)
@@ -1304,6 +1428,21 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
     nDelegateProofOfStakeEnrollMinimumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT;
     nDelegateProofOfStakeEnrollMaximumAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
     nDelegateProofOfStakeHeight = DELEGATE_PROOF_OF_STAKE_HEIGHT;
+
+    CBlock block;
+    if (fTestnet)
+    {
+        CTestNetCoreProtocol* pCore = new CTestNetCoreProtocol();
+        pCore->GetGenesisBlock(block);
+        delete pCore;
+    }
+    else
+    {
+        CCoreProtocol* pCore = new CCoreProtocol();
+        pCore->GetGenesisBlock(block);
+        delete pCore;
+    }
+    hashGenesisBlock = block.GetHash();
 }
 
 bool CProofOfWorkParam::IsDposHeight(int height)
