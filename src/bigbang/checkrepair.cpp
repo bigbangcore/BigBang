@@ -474,6 +474,8 @@ bool CCheckForkManager::GetTxForkRedeemParam(const CTransaction& tx, const CDest
 {
     if (destIn.GetTemplateId().GetType() != TEMPLATE_FORK)
     {
+        StdError("check", "Get fork redeem param: Template type error, type: %d, tx: %s",
+                 destIn.GetTemplateId().GetType(), tx.GetHash().GetHex().c_str());
         return false;
     }
     vector<uint8> vchSig;
@@ -483,6 +485,7 @@ bool CCheckForkManager::GetTxForkRedeemParam(const CTransaction& tx, const CDest
         CDestination sendToOwner;
         if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSig))
         {
+            StdError("check", "Get fork redeem param: ParseDest fail, tx: %s", tx.GetHash().GetHex().c_str());
             return false;
         }
     }
@@ -493,6 +496,7 @@ bool CCheckForkManager::GetTxForkRedeemParam(const CTransaction& tx, const CDest
     auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_FORK, vchSig);
     if (templatePtr == nullptr || templatePtr->GetTemplateId() != destIn.GetTemplateId())
     {
+        StdError("check", "Get fork redeem param: CreateTemplatePtr fail, tx: %s", tx.GetHash().GetHex().c_str());
         return false;
     }
     boost::dynamic_pointer_cast<CTemplateFork>(templatePtr)->GetForkParam(destRedeem, hashFork);
@@ -510,6 +514,7 @@ bool CCheckForkManager::AddForkContext(const uint256& hashPrevBlock, const uint2
         {
             if (!GetValidFdForkId(hashPrevBlock, fd.mapForkId))
             {
+                StdError("check", "Add fork context: Get Valid forkid fail, prev: %s", hashPrevBlock.GetHex().c_str());
                 mapBlockValidFork.erase(hashNewBlock);
                 return false;
             }
@@ -521,6 +526,7 @@ bool CCheckForkManager::AddForkContext(const uint256& hashPrevBlock, const uint2
         const auto it = mapBlockValidFork.find(hashPrevBlock);
         if (it == mapBlockValidFork.end())
         {
+            StdError("check", "Add fork context: Find Valid forkid fail, prev: %s", hashPrevBlock.GetHex().c_str());
             mapBlockValidFork.erase(hashNewBlock);
             return false;
         }
@@ -607,6 +613,7 @@ bool CCheckForkManager::VerifyValidFork(const uint256& hashPrevBlock, const uint
     {
         if (mapValidFork.count(hashFork) > 0)
         {
+            StdLog("check", "Verify valid fork: Fork existed, fork: %s", hashFork.GetHex().c_str());
             return false;
         }
         for (const auto& vd : mapValidFork)
@@ -614,6 +621,8 @@ bool CCheckForkManager::VerifyValidFork(const uint256& hashPrevBlock, const uint
             const auto mt = mapForkSched.find(vd.first);
             if (mt != mapForkSched.end() && mt->second.ctxtFork.strName == strForkName)
             {
+                StdLog("check", "Verify valid fork: Fork name repeated, new fork: %s, valid fork: %s, name: %s",
+                       hashFork.GetHex().c_str(), vd.first.GetHex().c_str(), strForkName.c_str());
                 return false;
             }
         }
