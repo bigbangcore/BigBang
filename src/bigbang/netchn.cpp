@@ -388,7 +388,7 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
         {
             CSchedule& sched = GetSchedule(hashFork); // Resolve unsubscribefork errors
             const uint256& hashBlock = chash.first;
-            if (chash.second == 1)
+            if (chash.second == CSchedule::CACHE_POW_BLOCK_TYPE_REMOTE)
             {
                 uint64 nNonceSender = 0;
                 CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
