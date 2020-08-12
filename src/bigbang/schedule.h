@@ -218,6 +218,7 @@ class CSchedule
         int nGetDataCount;
         bool fRepeatMintBlock;
         bool fVerifyPowBlock;
+        uint256 hashRefBlock;
     };
 
 public:
@@ -235,6 +236,12 @@ public:
         MAX_CERTTX_DELAYED_TIME = 180,
         MAX_SUBMIT_POW_TIMEOUT = 10,
         MAX_MINTTX_DELAYED_TIME = 180
+    };
+
+    enum
+    {
+        CACHE_POW_BLOCK_TYPE_LOCAL = 0,
+        CACHE_POW_BLOCK_TYPE_REMOTE = 1
     };
 
 public:

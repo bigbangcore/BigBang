@@ -209,7 +209,7 @@ bool CSchedule::ReceiveBlock(uint64 nPeerNonce, const uint256& hash, const CBloc
             mapPeer[nPeerNonce].Completed((*it).first);
             if (block.IsPrimary() && block.IsProofOfWork())
             {
-                mapHeightBlock[block.GetBlockHeight()].push_back(make_pair(hash, 1));
+                mapHeightBlock[block.GetBlockHeight()].push_back(make_pair(hash, CACHE_POW_BLOCK_TYPE_REMOTE));
             }
             return true;
         }
@@ -461,6 +461,13 @@ bool CSchedule::IsRepeatBlock(const uint256& hash)
 
 void CSchedule::AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashBlock)
 {
+    if (hashRefBlock == 0)
+    {
+        StdError("Schedule", "AddRefBlock: hashRefBlock error, fork: %s, block: %s",
+                 hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
+        return;
+    }
+
     auto& md = mapRefBlock[hashRefBlock];
     auto it = md.find(hashBlock);
     if (it == md.end())
@@ -476,25 +483,43 @@ void CSchedule::AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork
             it->second = hashFork;
         }
     }
+
+    auto nt = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
+    if (nt != mapState.end())
+    {
+        nt->second.hashRefBlock = hashRefBlock;
+    }
 }
 
 void CSchedule::RemoveRefBlock(const uint256& hashForkBlock)
 {
-    auto it = mapRefBlock.begin();
-    while (it != mapRefBlock.end())
+    auto nt = mapState.find(network::CInv(network::CInv::MSG_BLOCK, hashForkBlock));
+    if (nt != mapState.end() && nt->second.hashRefBlock != 0)
     {
-        auto mt = it->second.find(hashForkBlock);
-        if (mt != it->second.end())
+        auto it = mapRefBlock.find(nt->second.hashRefBlock);
+        if (it != mapRefBlock.end())
         {
-            it->second.erase(mt);
+            it->second.erase(hashForkBlock);
+            if (it->second.empty())
+            {
+                mapRefBlock.erase(it);
+            }
         }
-        if (it->second.empty())
+    }
+    else
+    {
+        auto it = mapRefBlock.begin();
+        while (it != mapRefBlock.end())
         {
-            mapRefBlock.erase(it++);
-        }
-        else
-        {
-            ++it;
+            it->second.erase(hashForkBlock);
+            if (it->second.empty())
+            {
+                mapRefBlock.erase(it++);
+            }
+            else
+            {
+                ++it;
+            }
         }
     }
 }
@@ -588,7 +613,7 @@ bool CSchedule::AddCacheLocalPowBlock(const CBlock& block, bool& fFirst)
         mapKcPowBlock.insert(make_pair(nHeight, block));
         auto& vb = mapHeightBlock[nHeight];
         fFirst = (vb.size() == 0);
-        vb.push_back(make_pair(block.GetHash(), 0));
+        vb.push_back(make_pair(block.GetHash(), CACHE_POW_BLOCK_TYPE_LOCAL));
         return true;
     }
     return false;
@@ -632,7 +657,7 @@ bool CSchedule::GetCachePowBlock(const uint256& hash, CBlock& block)
         if (it->second.size() > 0)
         {
             auto& chash = it->second[0];
-            if (chash.second == 1)
+            if (chash.second == CACHE_POW_BLOCK_TYPE_REMOTE)
             {
                 if (chash.first == hash)
                 {
@@ -661,7 +686,7 @@ bool CSchedule::CheckCachePowBlockState(const uint256& hash)
     {
         for (const auto& vd : it->second)
         {
-            if (vd.second == 1)
+            if (vd.second == CACHE_POW_BLOCK_TYPE_REMOTE)
             {
                 if (vd.first == hash)
                 {
