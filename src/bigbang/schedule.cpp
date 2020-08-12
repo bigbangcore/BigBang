@@ -471,6 +471,8 @@ void CSchedule::AddRefBlock(const uint256& hashRefBlock, const uint256& hashFork
     {
         if (it->second != hashFork)
         {
+            StdError("Schedule", "AddRefBlock: forkid error, old fork: %s, new fork: %s, block: %s",
+                     it->second.GetHex().c_str(), hashFork.GetHex().c_str(), hashBlock.GetHex().c_str());
             it->second = hashFork;
         }
     }
@@ -664,8 +666,7 @@ bool CSchedule::CheckCachePowBlockState(const uint256& hash)
                 if (vd.first == hash)
                 {
                     uint64 nNonceSender = 0;
-                    CBlock* pBlock = GetBlock(hash, nNonceSender);
-                    if (pBlock)
+                    if (GetBlock(hash, nNonceSender))
                     {
                         return true;
                     }
@@ -673,7 +674,10 @@ bool CSchedule::CheckCachePowBlockState(const uint256& hash)
             }
             else
             {
-                return true;
+                if (vd.first == hash)
+                {
+                    return true;
+                }
             }
         }
     }
