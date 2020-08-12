@@ -538,15 +538,10 @@ bool CCheckForkManager::AddForkContext(const uint256& hashPrevBlock, const uint2
     }
     for (const CForkContext& ctxt : vForkCtxt)
     {
-        if (mapForkSched.find(ctxt.hashFork) == mapForkSched.end())
+        mapForkSched[ctxt.hashFork].ctxtFork = ctxt;
+        if (ctxt.hashParent != 0)
         {
-            CCheckForkSchedule& sched = mapForkSched[ctxt.hashFork];
-            sched.ctxtFork = ctxt;
-
-            if (ctxt.hashParent != 0)
-            {
-                mapForkSched[ctxt.hashParent].AddNewJoint(ctxt.hashJoint, ctxt.hashFork);
-            }
+            mapForkSched[ctxt.hashParent].AddNewJoint(ctxt.hashJoint, ctxt.hashFork);
         }
         fd.mapForkId.insert(make_pair(ctxt.hashFork, CBlock::GetBlockHeightByHash(hashNewBlock)));
     }
