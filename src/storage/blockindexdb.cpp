@@ -8,7 +8,9 @@
 
 using namespace std;
 using namespace xengine;
+#if BOOST_VERSION >= 106000
 using namespace boost::placeholders;
+#endif
 
 namespace bigbang
 {

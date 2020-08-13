@@ -12,7 +12,9 @@
 #define HTTPGET_CONNET_TIMEOUT 10
 
 using namespace std;
+#if BOOST_VERSION >= 106000
 using namespace boost::placeholders;
+#endif
 using boost::asio::ip::tcp;
 
 namespace xengine

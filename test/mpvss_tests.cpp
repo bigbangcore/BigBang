@@ -20,6 +20,12 @@
 using namespace bigbang::crypto;
 using namespace std;
 
+#if BOOST_VERSION >= 106000
+#define EXPORT_BITS(src, dest, size) boost::multiprecision::export_bits(src, dest, 8, false)
+#else
+#define EXPORT_BITS(src, dest, size) memcpy(dest, &src, size)
+#endif
+
 BOOST_FIXTURE_TEST_SUITE(mpvss_tests, BasicUtfSetup)
 
 void RandGeneretor(uint8_t* p, size_t size = 32)
@@ -392,13 +398,13 @@ BOOST_AUTO_TEST_CASE(base25519)
         typedef boost::random::independent_bits_engine<boost::random::mt19937, 256, boost::multiprecision::uint256_t> generator_type;
         generator_type gen;
         boost::multiprecision::uint256_t m1 = gen();
-        boost::multiprecision::export_bits(m1, n1, 8, false);
+        EXPORT_BITS(m1, n1, 32);
 
         boost::multiprecision::uint256_t m2 = gen();
-        boost::multiprecision::export_bits(m2, n2, 8, false);
+        EXPORT_BITS(m2, n2, 32);
 
         boost::multiprecision::uint256_t m = m1 + m2;
-        boost::multiprecision::export_bits(m, answer, 8, false);
+        EXPORT_BITS(m, answer, 32);
 
         curve25519::Add32(output, n1, n2);
         BOOST_CHECK(memcmp(output, answer, 32) == 0);
@@ -415,13 +421,13 @@ BOOST_AUTO_TEST_CASE(base25519)
         typedef boost::random::independent_bits_engine<boost::random::mt19937, 256, boost::multiprecision::uint256_t> generator_type;
         generator_type gen;
         boost::multiprecision::uint256_t m1 = gen();
-        boost::multiprecision::export_bits(m1, n1, 8, false);
+        EXPORT_BITS(m1, n1, 32);
 
         boost::multiprecision::uint256_t m2 = gen();
-        boost::multiprecision::export_bits(m2, n2, 8, false);
+        EXPORT_BITS(m2, n2, 32);
 
         boost::multiprecision::uint256_t m = m1 - m2;
-        boost::multiprecision::export_bits(m, answer, 8, false);
+        EXPORT_BITS(m, answer, 32);
 
         curve25519::Sub32(output, n1, n2);
         BOOST_CHECK(memcmp(output, answer, 32) == 0);
@@ -449,7 +455,7 @@ BOOST_AUTO_TEST_CASE(base25519)
         memcpy(n2, &m2, 8);
 
         boost::multiprecision::uint128_t m = boost::multiprecision::uint128_t(m1) * m2;
-        boost::multiprecision::export_bits(m, answer, 8, false);
+        EXPORT_BITS(m, answer, 16);
 
         curve25519::Multiply8_8(output, n1, n2);
         BOOST_CHECK(memcmp(output, answer, 16) == 0);
@@ -466,14 +472,14 @@ BOOST_AUTO_TEST_CASE(base25519)
         typedef boost::random::independent_bits_engine<boost::random::mt19937, 256, boost::multiprecision::uint128_t> generator_type;
         generator_type gen;
         boost::multiprecision::uint128_t m1 = gen();
-        boost::multiprecision::export_bits(m1, n1, 8, false);
+        EXPORT_BITS(m1, n1, 16);
 
         uint64_t m2;
         RandGeneretor((uint8_t*)&m2, 8);
         memcpy(n2, &m2, 8);
 
         boost::multiprecision::uint256_t m = (boost::multiprecision::uint256_t)m1 * m2;
-        boost::multiprecision::export_bits(m, answer, 8, false);
+        EXPORT_BITS(m, answer, 24);
 
         curve25519::Multiply16_8(output, n1, n2);
         BOOST_CHECK(memcmp(output, answer, 32) == 0);
@@ -490,13 +496,13 @@ BOOST_AUTO_TEST_CASE(base25519)
         typedef boost::random::independent_bits_engine<boost::random::mt19937, 256, boost::multiprecision::uint256_t> generator_type;
         generator_type gen;
         boost::multiprecision::uint256_t m1 = gen();
-        boost::multiprecision::export_bits(m1, n1, 8, false);
+        EXPORT_BITS(m1, n1, 32);
 
         boost::multiprecision::uint256_t m2 = gen();
-        boost::multiprecision::export_bits(m2, n2, 8, false);
+        EXPORT_BITS(m2, n2, 32);
 
         boost::multiprecision::uint512_t m = (boost::multiprecision::uint512_t)m1 * m2;
-        boost::multiprecision::export_bits(m, answer, 8, false);
+        EXPORT_BITS(m, answer, 64);
 
         curve25519::Multiply32_32(output, n1, n2);
         BOOST_CHECK(memcmp(output, answer, 64) == 0);
@@ -807,3 +813,4 @@ BOOST_AUTO_TEST_CASE(mpvss)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
