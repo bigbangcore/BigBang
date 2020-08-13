@@ -7,12 +7,12 @@ cd %~dp0
 REM create build directory
 if not exist build (
 	mkdir build
-	if "%errorlevel%"=="1" goto end
+	if "%errorlevel%" NEQ "0" goto end
 )
 
 REM go to build
 cd build
-if "%errorlevel%"=="1" goto end
+if "%errorlevel%" NEQ "0" goto end
 
 REM cmake
 set flagdebug="off"
@@ -35,11 +35,11 @@ if %flagtestnet%=="on" (
 
 echo 'cmake .. -G "Ninja" %flagdebug% %flagtestnet%'
 cmake .. -G "Ninja" %flagdebug% %flagtestnet%
-if "%errorlevel%"=="1" goto end
+if "%errorlevel%" NEQ "0" goto end
 
 REM make
 ninja
-if "%errorlevel%"=="1" goto end
+if "%errorlevel%" NEQ "0" goto end
 
 REM install
 mkdir bin
