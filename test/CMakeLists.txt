@@ -21,6 +21,7 @@ set(sources
     delegate_tests.cpp
     storage_tests.cpp
     txpool_tests.cpp
+    util_tests.cpp
 )
 
 #set(lib_src ../src/common/destination.h ../src/common/destination.cpp)

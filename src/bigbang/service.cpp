@@ -595,10 +595,16 @@ CTemplatePtr CService::GetTemplate(const CTemplateId& tid)
 
 bool CService::GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance)
 {
-    int nForkHeight = GetForkHeight(hashFork);
-    if (nForkHeight <= 0)
+    int nForkHeight = 0;
     {
-        return false;
+        boost::shared_lock<boost::shared_mutex> rlock(rwForkStatus);
+        map<uint256, CForkStatus>::iterator it = mapForkStatus.find(hashFork);
+        if (it == mapForkStatus.end())
+        {
+            StdError("CService", "GetBalance: Find fork fail, fork: %s", hashFork.GetHex().c_str());
+            return false;
+        }
+        nForkHeight = it->second.nLastBlockHeight;
     }
     return pWallet->GetBalance(dest, hashFork, nForkHeight, balance);
 }
@@ -641,7 +647,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
     txNew.nTxFee = nTxFee;
     txNew.vchData = vchData;
 
-    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew) ? boost::optional<std::string>{} : std::string("CWallet::ArrangeInputs failed.");
+    return pWallet->ArrangeInputs(destFrom, hashFork, nForkHeight, txNew) ? boost::optional<std::string>{} : std::string("CWallet::ArrangeInputs failed");
 }
 
 bool CService::SynchronizeWalletTx(const CDestination& destNew)
@@ -738,7 +744,8 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
         }
     }
 
-    if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1))
+    bool fIsDpos = false;
+    if (pNetChannel->IsLocalCachePowBlock(nPrevBlockHeight + 1, fIsDpos))
     {
         StdTrace("CService", "GetWork: IsLocalCachePowBlock pow exist");
         return false;
@@ -762,6 +769,11 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     proof.Save(block.vchProof);
 
     block.GetSerializedProofOfWorkData(vchWorkData);
+
+    if (fIsDpos)
+    {
+        nAlgo = CM_MPVSS;
+    }
     return true;
 }
 

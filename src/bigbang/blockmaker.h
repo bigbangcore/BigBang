@@ -88,8 +88,12 @@ protected:
     bool CreateProofOfWork();
     void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
                           int64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
-    bool CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+    void CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                         const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
+    bool CreateVacant(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
+                      const uint256& hashRefBlock, const uint256& hashFork, const uint256& hashLastBlock, int64 nTime);
+    bool ReplenishSubForkVacant(const uint256& hashFork, int nLastBlockHeight, uint256& hashLastBlock, const CBlockMakerProfile& profile,
+                                const CDelegateAgreement& agreement, const uint256& hashRefBlock, const int32 nPrevHeight);
 
 private:
     void BlockMakerThreadFunc();

@@ -252,7 +252,7 @@ public:
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
     bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
-    bool IsLocalCachePowBlock(int nHeight) override;
+    bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
 
 protected:
@@ -320,6 +320,7 @@ protected:
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
     void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
     void InnerSubmitCachePowBlock();
+    void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
 
     const CBasicConfig* Config()
     {

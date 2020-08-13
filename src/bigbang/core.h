@@ -40,6 +40,8 @@ public:
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual bool IsRefVacantHeight(uint32 nBlockHeight) override;
+    virtual int GetRefVacantHeight() override;
 
 protected:
     bool HandleInitialize() override;
@@ -90,6 +92,7 @@ public:
 public:
     bool IsDposHeight(int height);
     bool DPoSConsensusCheckRepeated(int height);
+    bool IsRefVacantHeight(int height);
 };
 
 } // namespace bigbang
