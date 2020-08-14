@@ -624,7 +624,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
             if (!pMQCluster->GetForkNodeFork(eventGetBiz.data))
             {
                 StdError("NetChannel", "CEventPeerActive: GetForkNodeFork failed");
-                return false;
+                return true;
             }
         } // deliberately provide no break in order to fall down sharing operations
         case NODE_CAT_BBCNODE:
@@ -880,7 +880,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
     if (!pBlockChain->AddOuterNodes(nodes, NODE_CAT_BBCNODE != nNodeCat))
     {
         StdError("NetChannel", "CEventPeerBizForks: AddOuterNodes failed with sum of [%d]", nodes.size());
-        return false;
+        return true;
     }
     StdLog("NetChannel", "CEventPeerBizForks: AddOuterNodes succeeded with sum of [%d]", nodes.size());
 
@@ -945,7 +945,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
     {
         StdTrace("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing biz chains from a dpos node",
                  GetPeerAddressInfo(nNonce).c_str());
-        // return false;
+        // return true;
     }
 
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
@@ -963,17 +963,20 @@ bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
                         StdError("NetChannel", "CEventPeerSubscribe: peer[%ld] is subscribing a main chain "
                                                "from a fork node, just ignore it",
                                  nNonce);
-                        return false;
+                        continue;
                     }
                     StdTrace("NetChannel", "CEventPeerSubscribe: note peer[%d] as subscribed to fork[%s]",
                              nNonce, hash.ToString().c_str());
                     (*it).second.Subscribe(hash);
-                    mapUnsync[hash].insert(nNonce);
+                    if (NODE_CAT_DPOSNODE != nNodeCat)
+                    {
+                        mapUnsync[hash].insert(nNonce);
+                    }
                     vDispatchHash.push_back(hash);
                 }
             }
         }
-        if (!vDispatchHash.empty())
+        if (!vDispatchHash.empty() && NODE_CAT_DPOSNODE != nNodeCat)
         {
             boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
             for (const uint256& hash : vDispatchHash)
@@ -1022,12 +1025,15 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
                     StdError("NetChannel", "CEventPeerUnsubscribe: peer[%ld] is unsubscribing a main chain "
                                            "from a fork node, just ignore it",
                              nNonce);
-                    return false;
+                    continue;
                 }
                 StdTrace("NetChannel", "CEventPeerUnsubscribe: note peer[%d] as unsubscribed to fork[%s]",
                          nNonce, hash.ToString().c_str());
                 (*it).second.Unsubscribe(hash);
-                mapUnsync[hash].erase(nNonce);
+                if (NODE_CAT_DPOSNODE != nNodeCat)
+                {
+                    mapUnsync[hash].erase(nNonce);
+                }
             }
         }
     }
