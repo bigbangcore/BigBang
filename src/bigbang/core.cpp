@@ -93,7 +93,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.SetNull();
 
-    block.nVersion = 1;
+    block.nVersion = CBlock::BLOCK_VERSION;
     block.nType = CBlock::BLOCK_GENESIS;
     block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
@@ -903,7 +903,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.SetNull();
 
-    block.nVersion = 1;
+    block.nVersion = CBlock::BLOCK_VERSION;
     block.nType = CBlock::BLOCK_GENESIS;
     block.nTimeStamp = 1575043200;
     block.hashPrev = 0;
