@@ -23,16 +23,7 @@ namespace bigbang
 
 inline int64 CalcMinTxFee(const CTransaction& tx, const uint32 MIN_TX_FEE)
 {
-    xengine::CBufStream ss;
-    try
-    {
-        ss << tx;
-    }
-    catch (const std::exception& e)
-    {
-        throw "tx err";
-    }
-    return ss.size() * 100;
+    return (tx.vchSig.size() + tx.vchData.size()) * 100;
 }
 
 // Status
