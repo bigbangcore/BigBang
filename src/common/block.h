@@ -44,7 +44,7 @@ public:
     }
     void SetNull()
     {
-        nVersion = 1;
+        nVersion = 2;
         nType = 0;
         nTimeStamp = 0;
         hashPrev = 0;
