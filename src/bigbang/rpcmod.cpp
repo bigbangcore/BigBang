@@ -2195,7 +2195,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 
     CBlock block;
-    block.nVersion = 1;
+    block.nVersion = CBlock::BLOCK_VERSION;
     block.nType = CBlock::BLOCK_ORIGIN;
     block.nTimeStamp = nTimeRef;
     block.hashPrev = hashPrev;

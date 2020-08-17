@@ -111,6 +111,10 @@ public:
         //TX_STAKE = 0x0200,   // DPoS mint tx 512
         TX_WORK = 0x0300 // PoW mint tx 768
     };
+    enum
+    {
+        TRANSACTION_VERSION = 2
+    };
     CTransaction()
     {
         SetNull();
@@ -118,7 +122,7 @@ public:
     virtual ~CTransaction() = default;
     virtual void SetNull()
     {
-        nVersion = 1;
+        nVersion = TRANSACTION_VERSION;
         nType = 0;
         nTimeStamp = 0;
         nLockUntil = 0;

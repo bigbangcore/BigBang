@@ -36,6 +36,10 @@ public:
         BLOCK_EXTENDED = 0x0004,
         BLOCK_VACANT = 0x0008,
     };
+    enum
+    {
+        BLOCK_VERSION = 2
+    };
 
 public:
     CBlock()
@@ -44,7 +48,7 @@ public:
     }
     void SetNull()
     {
-        nVersion = 2;
+        nVersion = BLOCK_VERSION;
         nType = 0;
         nTimeStamp = 0;
         hashPrev = 0;
