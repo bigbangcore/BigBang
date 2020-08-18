@@ -36,7 +36,9 @@ bool CNetwork::HandleInitialize()
         return false;
     }
 
-    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION, network::NODE_NETWORK | network::NODE_DELEGATED,
+    uint8 nodeCat = dynamic_cast<const CBasicConfig*>(xengine::IBase::Config())->nCatOfNode;
+    Configure(NetworkConfig()->nMagicNum, PROTO_VERSION,
+              network::NODE_NETWORK | network::NODE_DELEGATED | (nodeCat == 1 ? network::NODE_SUPERNODE : 0),
               FormatSubVersion(), !NetworkConfig()->vConnectTo.empty(), pCoreProtocol->GetGenesisBlockHash());
 
     CPeerNetConfig config;

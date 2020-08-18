@@ -24,6 +24,7 @@ namespace bigbang
 
 CMQCluster::CMQCluster(int catNodeIn)
   : thrMqttClient("mqttcli", boost::bind(&CMQCluster::MqttThreadFunc, this)),
+    thrPostAddBizNode("postaddbiz", boost::bind(&CMQCluster::NodeThreadFunc, this)),
     pCoreProtocol(nullptr),
     pBlockChain(nullptr),
     pService(nullptr),
@@ -52,12 +53,6 @@ CMQCluster::CMQCluster(int catNodeIn)
 
 bool CMQCluster::HandleInitialize()
 {
-    if (NODE_CATEGORY::BBCNODE == catNode)
-    {
-        Log("CMQCluster::HandleInitialize(): bbc node so bypass");
-        return true;
-    }
-
     if (!GetObject("coreprotocol", pCoreProtocol))
     {
         Error("Failed to request coreprotocol");
@@ -88,6 +83,12 @@ bool CMQCluster::HandleInitialize()
         return false;
     }
 
+    if (NODE_CATEGORY::BBCNODE == catNode)
+    {
+        Log("CMQCluster::HandleInitialize(): bbc node so bypass");
+        return true;
+    }
+
     addrBroker = dynamic_cast<const CBasicConfig*>(Config())->strMQBrokerURI;
     if (NODE_CATEGORY::FORKNODE == catNode)
     {
@@ -116,8 +117,20 @@ bool CMQCluster::HandleInvoke()
 {
     if (NODE_CATEGORY::BBCNODE == catNode)
     {
+        if (!ThreadDelayStart(thrPostAddBizNode))
+        {
+            return false;
+        }
+
         Log("CMQCluster::HandleInvoke(): bbc node so bypass");
         return true;
+    }
+    if (NODE_CATEGORY::FORKNODE == catNode)
+    {
+        if (!ThreadDelayStart(thrPostAddBizNode))
+        {
+            return false;
+        }
     }
 
     uint8 mask = 0;
@@ -255,7 +268,7 @@ void CMQCluster::HandleHalt()
 {
     if (NODE_CATEGORY::BBCNODE == catNode)
     {
-        Log("CMQCluster::HandleHalt(): bbc node so go passby");
+        Log("CMQCluster::HandleHalt(): bbc node so bypass");
         return;
     }
 
@@ -1501,6 +1514,45 @@ bool CMQCluster::PoolAddBizForkNode(const std::vector<storage::CSuperNode>& oute
     Log("CMQCluster::PoolAddBizForkNode(): there is no outer node for pooling");
 
     return true;
+}
+
+bool CMQCluster::PostAddNode()
+{
+    vector<storage::CSuperNode> nodes;
+    if (NODE_CATEGORY::DPOSNODE != catNode && !pBlockChain->FetchSuperNode(nodes, 1 << 0))
+    {
+        Error("CMQCluster::PostAddNode(): bbc/fork node failed to fetch outer nodes");
+        return false;
+    }
+    if (nodes.empty())
+    {
+        Log("CMQCluster::PostAddNode(): bbc/fork node has not had outer nodes yet");
+        return true;
+    }
+
+    vector<uint32> ips;
+    for (const auto& node : nodes)
+    {
+        ips.push_back(node.ipAddr);
+    }
+    if (!ips.empty() && !pService->AddBizForkNodes(ips))
+    {
+        Error("CMQCluster::PostAddNode(): bbc/fork node failed to add outer node for supernode");
+        return false;
+    }
+    return true;
+}
+
+void CMQCluster::NodeThreadFunc()
+{
+    if (PostAddNode())
+    {
+        Log("CMQCluster::NodeThreadFunc(): bbc/fork node has posted add p2p connection");
+    }
+    else
+    {
+        Error("CMQCluster::NodeThreadFunc(): bbc/fork node failed to add p2p connection");
+    }
 }
 
 } // namespace bigbang

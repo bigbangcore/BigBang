@@ -622,6 +622,17 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
                     peer.strServices = peer.strServices + ",NODE_DELEGATED";
                 }
             }
+            if (info.nService & network::NODE_SUPERNODE)
+            {
+                if (peer.strServices.empty())
+                {
+                    peer.strServices = "NODE_SUPERNODE";
+                }
+                else
+                {
+                    peer.strServices = peer.strServices + ",NODE_SUPERNODE";
+                }
+            }
             if (peer.strServices.empty())
             {
                 peer.strServices = string("OTHER:") + to_string(info.nService);

@@ -152,7 +152,10 @@ public:
     CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary)
       : nService(nServiceIn), addressRemote(addr)
     {
-        mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        if (hashPrimary != uint256())
+        {
+            mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        }
 
         boost::asio::ip::tcp::endpoint ep;
         addressRemote.ssEndpoint.GetEndpoint(ep);

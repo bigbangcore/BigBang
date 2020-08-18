@@ -167,6 +167,7 @@ protected:
     boost::mutex mutex;
     boost::condition_variable condMQ;
     xengine::CThread thrMqttClient;
+    xengine::CThread thrPostAddBizNode;
 
 private:
     bool PostBlockRequest(int syncHeight = -1);
@@ -177,7 +178,9 @@ private:
     void OnReceiveMessage(const std::string& topic, CBufStream& payload);
     int ClientAgent(MQ_CLI_ACTION action);
     void MqttThreadFunc();
+    void NodeThreadFunc();
     bool PoolAddBizForkNode(const std::vector<storage::CSuperNode>& outers = std::vector<storage::CSuperNode>());
+    bool PostAddNode();
 
     bool fAbort;
     std::string addrBroker;

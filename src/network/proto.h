@@ -19,6 +19,7 @@ enum
 {
     NODE_NETWORK = (1 << 0),
     NODE_DELEGATED = (1 << 1),
+    NODE_SUPERNODE = (1 << 2),
 };
 
 enum
@@ -138,7 +139,8 @@ class CBizFork
 
 public:
     CBizFork() {}
-    CBizFork(const std::map<uint256, std::vector<uint32>>& rForkIn) : mapFork(rForkIn){}
+    CBizFork(const std::map<uint256, std::vector<uint32>>& rForkIn)
+      : mapFork(rForkIn) {}
 
 protected:
     template <typename O>

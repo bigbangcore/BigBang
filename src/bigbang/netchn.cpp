@@ -578,8 +578,15 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
     uint64 nNonce = eventActive.nNonce;
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
-        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+        if (eventActive.data.nService & network::NODE_SUPERNODE || NODE_CAT_FORKNODE == nNodeCat)
+        {
+            mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, uint256());
+        }
+        else
+        {
+            mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
+            mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+        }
     }
     StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
@@ -2324,7 +2331,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
     {
         vector<uint256> vTxPool;
         pTxPool->ListTx(hashFork, vTxPool);
-        if (!vTxPool.empty() && !mapPeer.empty())
+        if (!vTxPool.empty())
         {
             boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
             for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
