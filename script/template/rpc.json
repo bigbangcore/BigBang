@@ -2746,6 +2746,14 @@
                     "type": "double",
                     "desc": "mint reward"
                 },
+                "forktype": {
+                    "type": "string",
+                    "desc": "fork type: [defi | ...]"
+                },
+                "forkparams": {
+                    "type": "string",
+                    "desc": "fork params, a json object string"
+                },
                 "halvecycle": {
                     "type": "uint",
                     "desc": "halve cycle: 0: fixed reward, >0: blocks of halve cycle"
