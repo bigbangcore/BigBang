@@ -24,7 +24,7 @@ enum
 enum
 {
     PROTO_CHN_NETWORK = 0,
-    PROTO_CHN_DELEGATE = 1,
+    //PROTO_CHN_DELEGATE = 1,
     PROTO_CHN_DATA = 2,
     PROTO_CHN_USER = 3,
 };
@@ -50,14 +50,6 @@ enum
     PROTO_CMD_BLOCK = 7,
     PROTO_CMD_GETFAIL = 8,
     PROTO_CMD_MSGRSP = 9,
-};
-
-enum
-{
-    PROTO_CMD_BULLETIN = 1,
-    PROTO_CMD_GETDELEGATED = 2,
-    PROTO_CMD_DISTRIBUTE = 3,
-    PROTO_CMD_PUBLISH = 4,
 };
 
 #define MESSAGE_HEADER_SIZE 16
@@ -165,9 +157,7 @@ public:
     {
         MSG_ERROR = 0,
         MSG_TX,
-        MSG_BLOCK,
-        MSG_DISTRIBUTE,
-        MSG_PUBLISH,
+        MSG_BLOCK
     };
     enum
     {

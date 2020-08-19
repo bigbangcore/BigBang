@@ -27,19 +27,6 @@ public:
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
 };
 
-class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
-{
-public:
-    IDelegatedChannel()
-      : IIOModule("delegatedchannel") {}
-    virtual void PrimaryUpdate(int nStartHeight,
-                               const std::vector<std::pair<uint256, std::map<CDestination, size_t>>>& vEnrolledWeight,
-                               const std::vector<std::pair<uint256, std::map<CDestination, std::vector<unsigned char>>>>& vDistributeData,
-                               const std::map<CDestination, std::vector<unsigned char>>& mapPublishData,
-                               const uint256& hashDistributeOfPublish)
-        = 0;
-};
-
 class CBbPeerNet : public xengine::CPeerNet, virtual public CBbPeerEventListener
 {
 public:
@@ -65,16 +52,11 @@ protected:
     bool HandleEvent(CEventPeerBlock& eventBlock) override;
     bool HandleEvent(CEventPeerGetFail& eventGetFail) override;
     bool HandleEvent(CEventPeerMsgRsp& eventMsgRsp) override;
-    bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
-    bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
-    bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
-    bool HandleEvent(CEventPeerPublish& eventPublish) override;
     xengine::CPeer* CreatePeer(xengine::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
     void DestroyPeer(xengine::CPeer* pPeer) override;
     xengine::CPeerInfo* GetPeerInfo(xengine::CPeer* pPeer, xengine::CPeerInfo* pInfo) override;
     CAddress GetGateWayAddress(const CNetHost& gateWayAddr);
     bool SendDataMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
-    bool SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload);
     bool SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
     virtual void ProcessAskFor(xengine::CPeer* pPeer);
     void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn,
@@ -92,7 +74,6 @@ protected:
 
 protected:
     INetChannel* pNetChannel;
-    IDelegatedChannel* pDelegatedChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

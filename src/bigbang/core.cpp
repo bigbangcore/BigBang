@@ -192,12 +192,6 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
     }
 
-    // validate vacant block
-    if (block.nType == CBlock::BLOCK_VACANT)
-    {
-        return ValidateVacantBlock(block);
-    }
-
     // Validate mint tx
     if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
@@ -278,25 +272,12 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
         return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "vchProof size error.");
     }
 
-    // if (IsDposHeight(block.GetBlockHeight()))
-    // {
-    //     uint32 nNextTimestamp = GetNextBlockTimeStamp(pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.txMint.nType, block.GetBlockHeight());
-    //     if (block.GetBlockTime() < nNextTimestamp)
-    //     {
-    //         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Verify proof work: Timestamp out of range 2, height: %d, block time: %d, next time: %d, prev minttype: 0x%x, prev time: %d, block: %s.",
-    //                      block.GetBlockHeight(), block.GetBlockTime(), nNextTimestamp,
-    //                      pIndexPrev->nMintType, pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
-    //     }
-    // }
-    // else
-    // {
     if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range 1, height: %d, block time: %d, prev time: %d, block: %s.",
                      block.GetBlockHeight(), block.GetBlockTime(),
                      pIndexPrev->GetBlockTime(), block.GetHash().GetHex().c_str());
     }
-    //    }
 
     CProofOfHashWorkCompact proof;
     proof.Load(block.vchProof);
@@ -337,62 +318,6 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
     return OK;
 }
 
-Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
-                                                 const CDelegateAgreement& agreement)
-{
-    uint32 nTime = DPoSTimestamp(pIndexPrev);
-    if (block.GetBlockTime() != nTime)
-    {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u", block.GetBlockTime(), nTime);
-    }
-
-    if (block.txMint.sendTo != agreement.vBallot[0])
-    {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
-    }
-    return OK;
-}
-
-Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
-                                      const CDelegateAgreement& agreement)
-{
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
-    {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
-    }
-
-    if (!block.IsExtended())
-    {
-        if (block.GetBlockTime() != pIndexRef->GetBlockTime())
-        {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
-        }
-    }
-    else
-    {
-        if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
-            || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
-            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
-        {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
-        }
-    }
-
-    if (block.txMint.sendTo != agreement.GetBallot(0))
-    {
-        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
-    }
-
-    return OK;
-}
-
-Errno CCoreProtocol::VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev)
-{
-    (void)block;
-    (void)pIndexPrev;
-    return OK;
-}
-
 Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork)
 {
     const CDestination& destIn = txContxt.destIn;
@@ -419,19 +344,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
         auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
@@ -442,17 +354,6 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
         {
-            //CBlock block;
-            //std::multimap<int64, CDestination> mapVotes;
-            //CProofOfSecretShare dpos;
-            // if (!pBlockChain->ListDelegatePayment(payment->m_height_exec, block, mapVotes) || !dpos.Load(block.vchProof))
-            // {
-            //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vote err\n");
-            // }
-            //if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
-            //{
-            //    return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
-            //}
             return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
         }
         else
@@ -461,29 +362,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         }
     }
 
-    // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if (CTemplate::IsLockedCoin(destIn))
-    {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
-    }
-
-    if (!VerifyDestRecorded(tx, vchSig))
-    {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-    }
-
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, tx.vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
     }
@@ -521,26 +400,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    // record destIn in vchSig
-    vector<uint8> vchSig;
-    /*if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination recordedDestIn;
-        if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, recordedDestIn, vchSig) || recordedDestIn != destIn)
-        {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }*/
-    if (!VerifyDestRecorded(tx, vchSig))
-    {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid recoreded destination\n");
-    }
-
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, tx.vchSig, nForkHeight, fork))
     {
         return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
     }
@@ -573,110 +433,29 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
         }
     }
 
-    // locked coin template: nValueIn >= tx.nAmount + tx.nTxFee + nLockedCoin
-    if (CTemplate::IsLockedCoin(destIn))
-    {
-        // TODO: No redemption temporarily
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid locked coin template destination\n");
-        // CTemplatePtr ptr = CTemplate::CreateTemplatePtr(destIn.GetTemplateId(), vchSig);
-        // if (!ptr)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid locked coin template destination\n");
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-        // if (nValueIn < tx.nAmount + tx.nTxFee + nLockedCoin)
-        // {
-        //     return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough to locked coin (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee + nLockedCoin);
-        // }
-    }
     return OK;
 }
 
-bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev, const CDelegateAgreement& agreement, const CBlockIndex* pIndexRef, size_t nEnrollTrust)
+bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust)
 {
-    if (block.IsGenesis())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if (block.IsVacant())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if (block.IsPrimary())
-    {
-        if (block.IsProofOfWork())
-        {
-            CProofOfHashWorkCompact proof;
-            proof.Load(block.vchProof);
-            uint256 nTarget;
-            nTarget.SetCompact(proof.nBits);
-            // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
-            nChainTrust = (~nTarget / (nTarget + 1)) + 1;
-        }
-        else if (pIndexPrev != nullptr)
-        {
-            // Get the last PoW block nAlgo
-            int nAlgo = 0;
-            const CBlockIndex* pIndex = pIndexPrev;
-            while (!pIndex->IsProofOfWork() && (pIndex->pPrev != nullptr))
-            {
-                pIndex = pIndex->pPrev;
-            }
-            uint32_t nBits;
-            int64 nReward;
-            if (GetProofOfWorkTarget(pIndexPrev, nAlgo, nBits, nReward))
-            {
-                if (agreement.nWeight == 0 || nBits <= 0)
-                {
-                    StdError("CCoreProtocol", "GetBlockTrust: nWeight or nBits error, nWeight: %lu, nBits: %d", agreement.nWeight, nBits);
-                    return false;
-                }
-                if (nEnrollTrust <= 0)
-                {
-                    StdError("CCoreProtocol", "GetBlockTrust: nEnrollTrust error, nEnrollTrust: %lu", nEnrollTrust);
-                    return false;
-                }
-                uint256 nTarget;
-                nTarget.SetCompact(nBits);
-                // nChainTrust = nEnrollTrust * (2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1)
-                nChainTrust = (~nTarget / (nTarget + 1)) + 1;
-                nChainTrust *= uint256((uint64)nEnrollTrust);
-            }
-            else
-            {
-                StdError("CCoreProtocol", "GetBlockTrust: GetProofOfWorkTarget fail");
-                return false;
-            }
-        }
-        else
-        {
-            StdError("CCoreProtocol", "GetBlockTrust: Primary pIndexPrev is null");
-            return false;
-        }
-    }
-    else if (block.IsOrigin())
-    {
-        nChainTrust = uint64(0);
-    }
-    else if (block.IsSubsidiary() || block.IsExtended())
-    {
-        if (pIndexRef == nullptr)
-        {
-            StdError("CCoreProtocol", "GetBlockTrust: pIndexRef is null, block: %s", block.GetHash().GetHex().c_str());
-            return false;
-        }
-        if (pIndexRef->pPrev == nullptr)
-        {
-            StdError("CCoreProtocol", "GetBlockTrust: Subsidiary or Extended block pPrev is null, block: %s", block.GetHash().GetHex().c_str());
-            return false;
-        }
-        nChainTrust = pIndexRef->nChainTrust - pIndexRef->pPrev->nChainTrust;
-    }
-    else
+    if (!block.IsPrimary())
     {
         StdError("CCoreProtocol", "GetBlockTrust: block type error");
         return false;
     }
+
+    if (!block.IsProofOfWork())
+    {
+        StdError("CCoreProtocol", "GetBlockTrust: IsProofOfWork fail");
+        return false;
+    }
+
+    CProofOfHashWorkCompact proof;
+    proof.Load(block.vchProof);
+    uint256 nTarget;
+    nTarget.SetCompact(proof.nBits);
+    // nChainTrust = 2**256 / (nTarget+1) = ~nTarget / (nTarget+1) + 1
+    nChainTrust = (~nTarget / (nTarget + 1)) + 1;
     return true;
 }
 
@@ -762,42 +541,9 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
     return true;
 }
 
-bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
-{
-    return true;
-}
-
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
     return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-}
-
-void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, size_t nWeight, const map<CDestination, size_t>& mapBallot,
-                                       const vector<pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, vector<CDestination>& vBallot, size_t& nEnrollTrust, int nBlockHeight)
-{
-}
-
-int64 CCoreProtocol::MinEnrollAmount()
-{
-    return 0;
-}
-
-uint32 CCoreProtocol::DPoSTimestamp(const CBlockIndex* pIndexPrev)
-{
-    if (pIndexPrev == nullptr || !pIndexPrev->IsPrimary())
-    {
-        return 0;
-    }
-    return pIndexPrev->GetBlockTime() + BLOCK_TARGET_SPACING;
-}
-
-uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight)
-{
-    if (nPrevMintType == CTransaction::TX_WORK || nPrevMintType == CTransaction::TX_GENESIS)
-    {
-        return nPrevTimeStamp + PROOF_OF_WORK_BLOCK_SPACING;
-    }
-    return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
@@ -807,74 +553,6 @@ bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
         return block.txMint.sendTo.VerifyBlockSignature(block.GetHash(), block.vchSig);
     }
     return true;
-}
-
-Errno CCoreProtocol::ValidateVacantBlock(const CBlock& block)
-{
-    if (block.hashMerkle != 0 || block.txMint != CTransaction() || !block.vtx.empty())
-    {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "vacant block tx is not empty.");
-    }
-
-    if (!block.vchProof.empty() || !block.vchSig.empty())
-    {
-        return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "vacant block proof or signature is not empty.");
-    }
-
-    return OK;
-}
-
-bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut)
-{
-    if (CTemplate::IsDestInRecorded(tx.sendTo))
-    {
-        CDestination sendToDelegateTemplate;
-        CDestination sendToOwner;
-        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTemplate, sendToOwner, vchSigOut))
-        {
-            StdError("Core", "Verify dest recorded: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
-            return false;
-        }
-        if (sendToDelegateTemplate.IsNull() || sendToOwner.IsNull())
-        {
-            StdError("Core", "Verify dest recorded: sendTo dest is null, txid: %s", tx.GetHash().GetHex().c_str());
-            return false;
-        }
-    }
-    else
-    {
-        vchSigOut = tx.vchSig;
-    }
-    return true;
-}
-
-Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
-{
-    // CERT transaction must be on the main chain
-    if (fork != GetGenesisBlockHash())
-    {
-        Log("VerifyCertTx CERT tx is not on the main chain, fork: %s", fork.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    // the `from` address must be equal to the `to` address of cert tx
-    if (destIn != tx.sendTo)
-    {
-        Log("VerifyCertTx the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
-            CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    return OK;
-}
-
-Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
-{
-    // VOTE transaction must be on the main chain
-    if (fork != GetGenesisBlockHash())
-    {
-        Log("VerifyVoteTx from or to vote template address tx is not on the main chain, fork: %s", fork.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    return OK;
 }
 
 ///////////////////////////////
@@ -966,11 +644,6 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
 bool CProofOfWorkParam::IsDposHeight(int height)
 {
     return false;
-}
-
-bool CProofOfWorkParam::DPoSConsensusCheckRepeated(int height)
-{
-    return true;
 }
 
 } // namespace bigbang

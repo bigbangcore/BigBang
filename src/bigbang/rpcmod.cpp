@@ -199,10 +199,6 @@ CRPCMod::CRPCMod()
         ("sendtransaction", &CRPCMod::RPCSendTransaction)
         //
         ("getforkheight", &CRPCMod::RPCGetForkHeight)
-        //
-        ("getvotes", &CRPCMod::RPCGetVotes)
-        //
-        ("listdelegate", &CRPCMod::RPCListDelegate)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
         //
@@ -249,8 +245,6 @@ CRPCMod::CRPCMod()
         ("exportwallet", &CRPCMod::RPCExportWallet)
         //
         ("importwallet", &CRPCMod::RPCImportWallet)
-        //
-        ("makeorigin", &CRPCMod::RPCMakeOrigin)
         //
         ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
         //
@@ -990,47 +984,6 @@ CRPCResultPtr CRPCMod::RPCGetForkHeight(CRPCParamPtr param)
     }
 
     return MakeCGetForkHeightResultPtr(pService->GetForkHeight(hashFork));
-}
-
-CRPCResultPtr CRPCMod::RPCGetVotes(CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CGetVotesParam>(param);
-
-    CAddress destDelegate(spParam->strAddress);
-    if (destDelegate.IsNull())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
-    }
-
-    int64 nVotesToken;
-    string strFailCause;
-    if (!pService->GetVotes(destDelegate, nVotesToken, strFailCause))
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, strFailCause);
-    }
-
-    return MakeCGetVotesResultPtr(ValueFromAmount(nVotesToken));
-}
-
-CRPCResultPtr CRPCMod::RPCListDelegate(CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CListDelegateParam>(param);
-
-    std::multimap<int64, CDestination> mapVotes;
-    if (!pService->ListDelegate(spParam->nCount, mapVotes))
-    {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Query fail");
-    }
-
-    auto spResult = MakeCListDelegateResultPtr();
-    for (const auto& d : boost::adaptors::reverse(mapVotes))
-    {
-        CListDelegateResult::CDelegate delegateData;
-        delegateData.strAddress = CAddress(d.second).ToString();
-        delegateData.dVotes = ValueFromAmount(d.first);
-        spResult->vecDelegate.push_back(delegateData);
-    }
-    return spResult;
 }
 
 /* Wallet */
@@ -2127,123 +2080,6 @@ CRPCResultPtr CRPCMod::RPCImportWallet(CRPCParamPtr param)
 
     return MakeCImportWalletResultPtr(string("Imported ") + std::to_string(nKey)
                                       + string(" keys and ") + std::to_string(nTemp) + string(" templates."));
-}
-
-CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CMakeOriginParam>(param);
-
-    //makeorigin <"prev"> <"owner"> <$amount$> <"name"> <"symbol"> <$reward$> <halvecycle> (-i|-noi*isolated*) (-p|-nop*private*) (-e|-noe*enclosed*)
-    uint256 hashPrev;
-    hashPrev.SetHex(spParam->strPrev);
-
-    CDestination destOwner = static_cast<CDestination>(CAddress(spParam->strOwner));
-    if (destOwner.IsNull())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
-    }
-
-    int64 nAmount = AmountFromValue(spParam->dAmount);
-    int64 nMintReward = AmountFromValue(spParam->dReward);
-    if (!RewardRange(nMintReward))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
-    }
-
-    if (spParam->strName.empty() || spParam->strName.size() > 128
-        || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid name or symbol");
-    }
-
-    CBlock blockPrev;
-    uint256 hashParent;
-    int nJointHeight;
-    if (!pService->GetBlock(hashPrev, blockPrev, hashParent, nJointHeight))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown prev block");
-    }
-
-    if (blockPrev.IsExtended() || blockPrev.IsVacant())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Prev block should not be extended/vacant block");
-    }
-
-    int nForkHeight = pService->GetForkHeight(hashParent);
-    if (nForkHeight < nJointHeight + MIN_CREATE_FORK_INTERVAL_HEIGHT)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
-    }
-
-    uint256 hashBlockRef;
-    int64 nTimeRef;
-    if (!pService->GetLastBlockOfHeight(pCoreProtocol->GetGenesisBlockHash(), nJointHeight + 1, hashBlockRef, nTimeRef))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Failed to query main chain reference block");
-    }
-
-    CProfile profile;
-    profile.strName = spParam->strName;
-    profile.strSymbol = spParam->strSymbol;
-    profile.destOwner = destOwner;
-    profile.hashParent = hashParent;
-    profile.nJointHeight = nJointHeight;
-    profile.nAmount = nAmount;
-    profile.nMintReward = nMintReward;
-    profile.nMinTxFee = MIN_TX_FEE;
-    profile.nHalveCycle = spParam->nHalvecycle;
-    profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
-
-    CBlock block;
-    block.nVersion = CBlock::BLOCK_VERSION;
-    block.nType = CBlock::BLOCK_ORIGIN;
-    block.nTimeStamp = nTimeRef;
-    block.hashPrev = hashPrev;
-    profile.Save(block.vchProof);
-
-    CTransaction& tx = block.txMint;
-    tx.nType = CTransaction::TX_GENESIS;
-    tx.nTimeStamp = block.nTimeStamp;
-    tx.sendTo = destOwner;
-    tx.nAmount = nAmount;
-    tx.vchData.assign(profile.strName.begin(), profile.strName.end());
-
-    crypto::CPubKey pubkey;
-    if (!destOwner.GetPubKey(pubkey))
-    {
-        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Owner' address should be pubkey address");
-    }
-
-    int nVersion;
-    bool fLocked, fPublic;
-    int64 nAutoLockTime;
-    if (!pService->GetKeyStatus(pubkey, nVersion, fLocked, nAutoLockTime, fPublic))
-    {
-        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown key");
-    }
-    if (fPublic)
-    {
-        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Can't sign origin block by public key");
-    }
-    if (fLocked)
-    {
-        throw CRPCException(RPC_WALLET_UNLOCK_NEEDED, "Key is locked");
-    }
-
-    uint256 hashBlock = block.GetHash();
-    if (!pService->SignSignature(pubkey, hashBlock, block.vchSig))
-    {
-        throw CRPCException(RPC_WALLET_ERROR, "Failed to sign message");
-    }
-
-    CBufStream ss;
-    ss << block;
-
-    auto spResult = MakeCMakeOriginResultPtr();
-    spResult->strHash = hashBlock.GetHex();
-    spResult->strHex = ToHexString((const unsigned char*)ss.GetData(), ss.GetSize());
-
-    return spResult;
 }
 
 CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(CRPCParamPtr param)

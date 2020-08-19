@@ -139,7 +139,6 @@ CNetChannel::CNetChannel()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
-    pConsensus = nullptr;
     fStartIdlePushTxTimer = false;
 }
 
@@ -185,12 +184,6 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
-    // if (!GetObject("consensus", pConsensus))
-    // {
-    //     Error("Failed to request consensus\n");
-    //     return false;
-    // }
-
     return true;
 }
 
@@ -202,7 +195,6 @@ void CNetChannel::HandleDeinitialize()
     pTxPool = nullptr;
     pService = nullptr;
     pDispatcher = nullptr;
-    pConsensus = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()

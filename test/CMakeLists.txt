@@ -15,10 +15,8 @@ set(sources
     uint256_tests.cpp
     rpc_tests.cpp
     version_tests.cpp
-    #mpvss_tests.cpp
     ipv6_tests.cpp
     crypto_tests.cpp
-    #delegate_tests.cpp
     storage_tests.cpp
     txpool_tests.cpp
 )

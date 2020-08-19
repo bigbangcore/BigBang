@@ -389,7 +389,7 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
                 CConfig config;
 
                 char* argv[vCommand.size() + 1];
-                argv[0] = const_cast<char*>("bigbang-cli");
+                argv[0] = const_cast<char*>("mkf-cli");
                 for (int i = 0; i < vCommand.size(); ++i)
                 {
                     argv[i + 1] = const_cast<char*>(vCommand[i].c_str());

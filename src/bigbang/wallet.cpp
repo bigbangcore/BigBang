@@ -539,26 +539,6 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
         }
     }
 
-    // locked coin template
-    if (CTemplate::IsLockedCoin(dest))
-    {
-        // TODO: No redemption temporarily
-        // CTemplatePtr ptr = GetTemplate(dest.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     return false;
-        // }
-        // int64 nLockedCoin = boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(CDestination(), nForkHeight);
-        // if (balance.nLocked < nLockedCoin)
-        // {
-        //     balance.nLocked = nLockedCoin;
-        // }
-        // if (balance.nLocked > coins.nTotalValue)
-        // {
-        //     balance.nLocked = coins.nTotalValue;
-        // }
-        balance.nLocked = coins.nTotalValue;
-    }
     balance.nAvailable = coins.nTotalValue - balance.nLocked;
     return true;
 }
@@ -670,20 +650,6 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     tx.vInput.clear();
     //int nMaxInput = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
     int64 nTargetValue = tx.nAmount + tx.nTxFee;
-
-    // locked coin template
-    if (CTemplate::IsLockedCoin(destIn))
-    {
-        // TODO: No redemption temporarily
-        return false;
-        // CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
-        // if (!ptr)
-        // {
-        //     StdError("CWallet", "ArrangeInputs: GetTemplate fail, destIn: %s", destIn.ToString().c_str());
-        //     return false;
-        // }
-        // nTargetValue += boost::dynamic_pointer_cast<CLockedCoinTemplate>(ptr)->LockedCoin(tx.sendTo, nForkHeight);
-    }
 
     vector<CTxOutPoint> vCoins;
     {

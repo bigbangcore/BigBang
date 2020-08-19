@@ -21,11 +21,7 @@ namespace bigbang
 enum
 {
     EVENT_BASE = network::EVENT_PEER_MAX,
-    EVENT_BLOCKMAKER_UPDATE,
-    EVENT_BLOCKMAKER_ENROLL,
-    EVENT_BLOCKMAKER_DISTRIBUTE,
-    EVENT_BLOCKMAKER_PUBLISH,
-    EVENT_BLOCKMAKER_AGREE
+    EVENT_BLOCKMAKER_UPDATE
 };
 
 class CBlockMakerEventListener;
@@ -33,14 +29,12 @@ class CBlockMakerEventListener;
     xengine::CEventCategory<type, CBlockMakerEventListener, body, CNil>
 
 typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_UPDATE, CBlockMakerUpdate) CEventBlockMakerUpdate;
-typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREE, CDelegateAgreement) CEventBlockMakerAgree;
 
 class CBlockMakerEventListener : virtual public xengine::CEventListener
 {
 public:
     virtual ~CBlockMakerEventListener() {}
     DECLARE_EVENTHANDLER(CEventBlockMakerUpdate);
-    DECLARE_EVENTHANDLER(CEventBlockMakerAgree);
 };
 
 } // namespace bigbang

@@ -53,15 +53,10 @@ bool CBlockMakerProfile::BuildTemplate()
 // CBlockMaker
 
 CBlockMaker::CBlockMaker()
-  : thrMaker("blockmaker", boost::bind(&CBlockMaker::BlockMakerThreadFunc, this)),
-    thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this))
+  : thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this))
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pForkManager = nullptr;
-    pTxPool = nullptr;
-    pDispatcher = nullptr;
-    pConsensus = nullptr;
     pService = nullptr;
     mapHashAlgo[CM_CRYPTONIGHT] = new CHashAlgo_Cryptonight(INITIAL_HASH_RATE);
 }
@@ -88,30 +83,6 @@ bool CBlockMaker::HandleInitialize()
         Error("Failed to request blockchain\n");
         return false;
     }
-
-    if (!GetObject("forkmanager", pForkManager))
-    {
-        Error("Failed to request forkmanager\n");
-        return false;
-    }
-
-    if (!GetObject("txpool", pTxPool))
-    {
-        Error("Failed to request txpool\n");
-        return false;
-    }
-
-    if (!GetObject("dispatcher", pDispatcher))
-    {
-        Error("Failed to request dispatcher\n");
-        return false;
-    }
-
-    // if (!GetObject("consensus", pConsensus))
-    // {
-    //     Error("Failed to request consensus\n");
-    //     return false;
-    // }
 
     if (!GetObject("service", pService))
     {
@@ -147,10 +118,6 @@ void CBlockMaker::HandleDeinitialize()
 {
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
-    pForkManager = nullptr;
-    pTxPool = nullptr;
-    pDispatcher = nullptr;
-    pConsensus = nullptr;
     pService = nullptr;
 
     mapWorkProfile.clear();
@@ -163,25 +130,14 @@ bool CBlockMaker::HandleInvoke()
         return false;
     }
 
-    fExit = false;
-    if (!ThreadDelayStart(thrMaker))
-    {
-        return false;
-    }
-
+    fExit = true;
     if (!mapWorkProfile.empty())
     {
         if (!ThreadDelayStart(thrPow))
         {
             return false;
         }
-    }
-
-    if (!fExit)
-    {
-        boost::unique_lock<boost::mutex> lock(mutex);
-        pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), lastStatus.hashLastBlock,
-                                  lastStatus.nLastBlockHeight, lastStatus.nLastBlockTime, lastStatus.nMintType);
+        fExit = false;
     }
     return true;
 }
@@ -190,10 +146,6 @@ void CBlockMaker::HandleHalt()
 {
     fExit = true;
     condExit.notify_all();
-    condBlock.notify_all();
-
-    thrMaker.Interrupt();
-    ThreadExit(thrMaker);
 
     thrPow.Interrupt();
     ThreadExit(thrPow);
@@ -203,53 +155,13 @@ void CBlockMaker::HandleHalt()
 
 bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
 {
-    if (fExit)
-    {
-        return true;
-    }
-
-    {
-        uint256 nAgreement;
-        //size_t nWeight;
-        vector<CDestination> vBallot;
-        //pConsensus->GetAgreement(eventUpdate.data.nBlockHeight, nAgreement, nWeight, vBallot);
-
-        string strMintType = "dpos";
-        if (eventUpdate.data.nMintType == CTransaction::TX_WORK)
-        {
-            strMintType = "pow";
-        }
-
-        if (vBallot.size() == 0)
-        {
-            Log("MakerUpdate: height: %d, consensus: pow, block type: %s, block: %s",
-                eventUpdate.data.nBlockHeight, strMintType.c_str(), eventUpdate.data.hashBlock.GetHex().c_str());
-        }
-        else
-        {
-            Log("MakerUpdate: height: %d, consensus: dpos, block type: %s, block: %s, ballot address: %s",
-                eventUpdate.data.nBlockHeight, strMintType.c_str(), eventUpdate.data.hashBlock.GetHex().c_str(), CAddress(vBallot[0]).ToString().c_str());
-        }
-    }
-
-    {
-        boost::unique_lock<boost::mutex> lock(mutex);
-
-        CBlockMakerUpdate& data = eventUpdate.data;
-        lastStatus.hashLastBlock = data.hashBlock;
-        lastStatus.nLastBlockTime = data.nBlockTime;
-        lastStatus.nLastBlockHeight = data.nBlockHeight;
-        lastStatus.nMintType = data.nMintType;
-
-        condBlock.notify_all();
-    }
     return true;
 }
 
 bool CBlockMaker::InterruptedPoW(const uint256& hashPrimary)
 {
     boost::unique_lock<boost::mutex> lock(mutex);
-    return fExit || (hashPrimary != lastStatus.hashLastBlock);
+    return fExit;
 }
 
 bool CBlockMaker::WaitExit(const long nSeconds)
@@ -268,77 +180,6 @@ bool CBlockMaker::WaitExit(const long nSeconds)
         }
     }
     return !fExit;
-}
-
-bool CBlockMaker::WaitUpdateEvent(const long nSeconds)
-{
-    boost::system_time const timeout = boost::get_system_time() + boost::posix_time::seconds(nSeconds);
-    boost::unique_lock<boost::mutex> lock(mutex);
-    while (!fExit)
-    {
-        if (!condBlock.timed_wait(lock, timeout))
-        {
-            break;
-        }
-    }
-    return !fExit;
-}
-
-void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64& nPrevTime,
-                               const uint32& nPrevHeight, const CDelegateAgreement& agreement)
-{
-    block.SetNull();
-    block.nType = CBlock::BLOCK_PRIMARY;
-    block.hashPrev = hashPrev;
-    CProofOfSecretShare proof;
-    //proof.nWeight = agreement.nWeight;
-    proof.nAgreement = agreement.nAgreement;
-    proof.Save(block.vchProof);
-    if (agreement.nAgreement != 0)
-    {
-        // pConsensus->GetProof(nPrevHeight + 1, block.vchProof);
-    }
-}
-
-void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
-{
-    // size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-    int64 nTotalTxFee = 0;
-    if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), /*nMaxTxSize, */ block.vtx, nTotalTxFee))
-    {
-        Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
-    }
-    block.hashMerkle = block.CalcMerkleTreeRoot();
-    block.txMint.nAmount += nTotalTxFee;
-}
-
-bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
-{
-    uint256 hashSig = block.GetHash();
-    vector<unsigned char> vchMintSig;
-    if (!profile.keyMint.Sign(hashSig, vchMintSig))
-    {
-        StdTrace("blockmaker", "keyMint Sign failed. hashSig: %s", hashSig.ToString().c_str());
-        return false;
-    }
-    return profile.templMint->BuildBlockSignature(hashSig, vchMintSig, block.vchSig);
-}
-
-bool CBlockMaker::DispatchBlock(const CBlock& block)
-{
-    Debug("Dispatching block: %s, type: %u", block.GetHash().ToString().c_str(), block.nType);
-    int nWait = block.nTimeStamp - GetNetTime();
-    if (nWait > 0 && !WaitExit(nWait))
-    {
-        return false;
-    }
-    Errno err = pDispatcher->AddNewBlock(block);
-    if (err != OK)
-    {
-        Error("Dispatch new block failed (%d) : %s\n", err, ErrorString(err));
-        return false;
-    }
-    return true;
 }
 
 bool CBlockMaker::CreateProofOfWork()
@@ -425,51 +266,6 @@ bool CBlockMaker::CreateProofOfWork()
     }
     Log("Proof-of-work: target height: %d, compute interrupted.", nPrevBlockHeight + 1);
     return false;
-}
-
-void CBlockMaker::BlockMakerThreadFunc()
-{
-    uint256 hashCachePrev;
-    bool fCachePow = false;
-    int64 nWaitTime = 1;
-    while (!fExit)
-    {
-        if (nWaitTime < 1)
-        {
-            nWaitTime = 1;
-        }
-        if (!WaitUpdateEvent(nWaitTime))
-        {
-            break;
-        }
-
-        CAgreementBlock consParam;
-        // if (!pConsensus->GetNextConsensus(consParam))
-        // {
-        //     StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus fail, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-        //              consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-        //     nWaitTime = consParam.nWaitTime;
-        //     continue;
-        // }
-        // StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-        //          consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
-        nWaitTime = consParam.nWaitTime;
-
-        if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())
-        {
-            hashCachePrev = consParam.hashPrev;
-            fCachePow = consParam.agreement.IsProofOfWork();
-            if (consParam.agreement.IsProofOfWork())
-            {
-                Log("GetAgreement: height: %d, consensus: pow", consParam.nPrevHeight + 1);
-            }
-            else
-            {
-                Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", consParam.nPrevHeight + 1, CAddress(consParam.agreement.vBallot[0]).ToString().c_str());
-            }
-        }
-    }
-    Log("Block maker exited");
 }
 
 void CBlockMaker::PowThreadFunc()

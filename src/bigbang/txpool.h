@@ -273,13 +273,11 @@ public:
         }
     }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
-    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
-                        std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
+    void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize);
 
 private:
     void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink);
-    bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
-                           std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
+    bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize, std::set<uint256>& setUnTx, CPooledTx* ptx);
 
 public:
     CPooledTxLinkSet setTxLinkIndex;

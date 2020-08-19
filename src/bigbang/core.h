@@ -21,34 +21,18 @@ public:
     virtual Errno ValidateBlock(const CBlock& block) override;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) override;
 
-    virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) override;
     virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork) override;
     virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork) override;
 
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) override;
-    virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
-                                              const CDelegateAgreement& agreement) override;
-    virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
-                                   const CDelegateAgreement& agreement) override;
-    virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) override;
+    virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) override;
-    //virtual bool IsDposHeight(int height) override;
-    virtual bool DPoSConsensusCheckRepeated(int height) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
-                                    const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight) override;
-    virtual int64 MinEnrollAmount() override;
-    virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
-    virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
 
 protected:
     bool HandleInitialize() override;
     Errno Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...);
     bool CheckBlockSignature(const CBlock& block);
-    Errno ValidateVacantBlock(const CBlock& block);
-    bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
-    Errno VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
-    Errno VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
 
 protected:
     uint256 hashGenesisBlock;
@@ -56,10 +40,6 @@ protected:
     uint256 nProofOfWorkUpperLimit;
     uint256 nProofOfWorkInit;
     uint32 nProofOfWorkDifficultyInterval;
-    // int64 nProofOfWorkUpperTarget;
-    // int64 nProofOfWorkLowerTarget;
-    // int64 nProofOfWorkUpperTargetOfDpos;
-    // int64 nProofOfWorkLowerTargetOfDpos;
     IBlockChain* pBlockChain;
 };
 
@@ -81,18 +61,12 @@ public:
     uint256 nProofOfWorkUpperLimit;
     uint256 nProofOfWorkInit;
     uint32 nProofOfWorkDifficultyInterval;
-    // int64 nProofOfWorkUpperTarget;
-    // int64 nProofOfWorkLowerTarget;
-    // int64 nProofOfWorkUpperTargetOfDpos;
-    // int64 nProofOfWorkLowerTargetOfDpos;
-    // int nProofOfWorkAdjustCount;
     int64 nDelegateProofOfStakeEnrollMinimumAmount;
     int64 nDelegateProofOfStakeEnrollMaximumAmount;
     uint32 nDelegateProofOfStakeHeight;
 
 public:
     bool IsDposHeight(int height);
-    bool DPoSConsensusCheckRepeated(int height);
 };
 
 } // namespace bigbang

@@ -283,8 +283,8 @@ void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLi
     }
 }
 
-bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, size_t& nTotalSize,
-                                    map<CDestination, int>& mapVoteCert, set<uint256>& setUnTx, CPooledTx* ptx, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight)
+bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize,
+                                    size_t& nTotalSize, set<uint256>& setUnTx, CPooledTx* ptx)
 {
     if (ptx->GetTxTime() <= nBlockTime)
     {
@@ -320,55 +320,20 @@ bool CTxPoolView::AddArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFe
     return true;
 }
 
-void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize, map<CDestination, int>& mapVoteCert, map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight)
+void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, size_t nMaxSize)
 {
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
-    CPooledCertTxLinkSet setCertRelativesIndex;
     std::vector<CPooledTxLink> prevLinks;
     nTotalTxFee = 0;
-
-    // Collect all cert related tx
-    //const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
-    //const auto iterBegin = idxTxLinkType.lower_bound((uint16)(CTransaction::TX_CERT));
-    //const auto iterEnd = idxTxLinkType.upper_bound((uint16)(CTransaction::TX_CERT));
-    //for (auto iter = iterBegin; iter != iterEnd; ++iter)
-    //{
-    //    if (iter->ptx && iter->nType == CTransaction::TX_CERT)
-    //    {
-    //         GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
-    //         setCertRelativesIndex.insert(*iter);
-    //     }
-    //}
-
-    // process all cert related tx by seqnum
-    const CPooledCertTxLinkSetBySequenceNumber& idxCertTxLinkSeq = setCertRelativesIndex.get<1>();
-    for (auto& i : idxCertTxLinkSeq)
-    {
-        if (i.ptx)
-        {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, fIsDposHeight))
-            {
-                return;
-            }
-        }
-    }
 
     // process all tx in tx pool by seqnum
     const CPooledTxLinkSetBySequenceNumber& idxTxLinkSeq = setTxLinkIndex.get<1>();
     for (auto& i : idxTxLinkSeq)
     {
-        // skip cert related tx
-        if (setCertRelativesIndex.find(i.hashTX) != setCertRelativesIndex.end())
+        if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, setUnTx, i.ptx))
         {
-            continue;
-        }
-        if (i.ptx)
-        {
-            if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, fIsDposHeight))
-            {
-                return;
-            }
+            return;
         }
     }
 }
@@ -768,32 +733,7 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                              std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight)
 {
-    map<CDestination, int> mapVoteCert;
-    std::map<CDestination, int64> mapVote;
-    int64 nMinEnrollAmount = 0;
-    // if (hashFork == pCoreProtocol->GetGenesisBlockHash())
-    //{
-    // if (!pBlockChain->GetDelegateCertTxCount(hashBlock, mapVoteCert))
-    // {
-    //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateCertTxCount fail");
-    //     return;
-    // }
-
-    // if (!pBlockChain->GetBlockDelegateVote(hashBlock, mapVote))
-    // {
-    //     StdError("CTxPool", "ArrangeBlockTx: GetBlockDelegateVote fail");
-    //     return;
-    // }
-
-    // nMinEnrollAmount = pBlockChain->GetDelegateMinEnrollAmount(hashBlock);
-    // if (nMinEnrollAmount < 0)
-    // {
-    //     StdError("CTxPool", "ArrangeBlockTx: GetDelegateMinEnrollAmount fail");
-    //     return;
-    // }
-    //}
-
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, mapVoteCert, mapVote, nMinEnrollAmount, false);
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)

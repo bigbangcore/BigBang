@@ -32,10 +32,6 @@ enum
     EVENT_PEER_BLOCK,
     EVENT_PEER_GETFAIL,
     EVENT_PEER_MSGRSP,
-    EVENT_PEER_BULLETIN,
-    EVENT_PEER_GETDELEGATED,
-    EVENT_PEER_DISTRIBUTE,
-    EVENT_PEER_PUBLISH,
     EVENT_PEER_MAX,
 };
 
@@ -78,124 +74,6 @@ public:
     D data;
 };
 
-template <int type, typename L, typename D>
-class CEventPeerDelegated : public xengine::CEvent
-{
-    friend class xengine::CStream;
-
-public:
-    CEventPeerDelegated(uint64 nNonceIn, const uint256& hashAnchorIn)
-      : CEvent(nNonceIn, type), hashAnchor(hashAnchorIn) {}
-    virtual ~CEventPeerDelegated() {}
-    virtual bool Handle(xengine::CEventListener& listener)
-    {
-        try
-        {
-            return (dynamic_cast<L&>(listener)).HandleEvent(*this);
-        }
-        catch (std::bad_cast&)
-        {
-            return listener.HandleEvent(*this);
-        }
-        catch (std::exception& e)
-        {
-            StdError(__PRETTY_FUNCTION__, e.what());
-        }
-        return false;
-    }
-
-protected:
-    template <typename O>
-    void Serialize(xengine::CStream& s, O& opt)
-    {
-        s.Serialize(hashAnchor, opt);
-        s.Serialize(data, opt);
-    }
-
-public:
-    uint256 hashAnchor;
-    D data;
-};
-
-class CEventPeerDelegatedBulletin
-{
-    friend class xengine::CStream;
-
-public:
-    class CDelegatedBitmap
-    {
-    public:
-        CDelegatedBitmap(const uint256& hashAnchorIn = uint64(0), uint64 bitmapIn = 0)
-          : hashAnchor(hashAnchorIn), bitmap(bitmapIn)
-        {
-        }
-        template <typename O>
-        void Serialize(xengine::CStream& s, O& opt)
-        {
-            s.Serialize(hashAnchor, opt);
-            s.Serialize(bitmap, opt);
-        }
-
-    public:
-        uint256 hashAnchor;
-        uint64 bitmap;
-    };
-
-public:
-    void AddBitmap(const uint256& hash, uint64 bitmap)
-    {
-        vBitmap.push_back(CDelegatedBitmap(hash, bitmap));
-    }
-
-protected:
-    template <typename O>
-    void Serialize(xengine::CStream& s, O& opt)
-    {
-        s.Serialize(bmDistribute, opt);
-        s.Serialize(bmPublish, opt);
-        s.Serialize(vBitmap, opt);
-    }
-
-public:
-    uint64 bmDistribute;
-    uint64 bmPublish;
-    std::vector<CDelegatedBitmap> vBitmap;
-};
-
-class CEventPeerDelegatedGetData
-{
-    friend class xengine::CStream;
-
-protected:
-    template <typename O>
-    void Serialize(xengine::CStream& s, O& opt)
-    {
-        s.Serialize(nInvType, opt);
-        s.Serialize(destDelegate, opt);
-    }
-
-public:
-    uint32 nInvType;
-    CDestination destDelegate;
-};
-
-class CEventPeerDelegatedData
-{
-    friend class xengine::CStream;
-
-protected:
-    template <typename O>
-    void Serialize(xengine::CStream& s, O& opt)
-    {
-        s.Serialize(destDelegate, opt);
-        s.Serialize(vchData, opt);
-    }
-
-public:
-    CDestination destDelegate;
-    std::vector<unsigned char> vchData;
-};
-
 class CBbPeerEventListener;
 
 #define TYPE_PEEREVENT(type, body) \
@@ -219,11 +97,6 @@ typedef TYPE_PEERDATAEVENT(EVENT_PEER_BLOCK, CBlock) CEventPeerBlock;
 typedef TYPE_PEERDATAEVENT(EVENT_PEER_GETFAIL, std::vector<CInv>) CEventPeerGetFail;
 typedef TYPE_PEERDATAEVENT(EVENT_PEER_MSGRSP, CMsgRsp) CEventPeerMsgRsp;
 
-typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_BULLETIN, CEventPeerDelegatedBulletin) CEventPeerBulletin;
-typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_GETDELEGATED, CEventPeerDelegatedGetData) CEventPeerGetDelegated;
-typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_DISTRIBUTE, CEventPeerDelegatedData) CEventPeerDistribute;
-typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_PUBLISH, CEventPeerDelegatedData) CEventPeerPublish;
-
 class CBbPeerEventListener : virtual public xengine::CEventListener
 {
 public:
@@ -239,10 +112,6 @@ public:
     DECLARE_EVENTHANDLER(CEventPeerBlock);
     DECLARE_EVENTHANDLER(CEventPeerGetFail);
     DECLARE_EVENTHANDLER(CEventPeerMsgRsp);
-    DECLARE_EVENTHANDLER(CEventPeerBulletin);
-    DECLARE_EVENTHANDLER(CEventPeerGetDelegated);
-    DECLARE_EVENTHANDLER(CEventPeerDistribute);
-    DECLARE_EVENTHANDLER(CEventPeerPublish);
 };
 
 } // namespace network

@@ -128,9 +128,6 @@ public:
     // Return delegate address.
     static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
 
-    // Return dest limits coin on transaction or not.
-    static bool IsLockedCoin(const CDestination& dest);
-
 public:
     // Deconstructor
     virtual ~CTemplate(){};
