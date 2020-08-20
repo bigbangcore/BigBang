@@ -23,7 +23,49 @@ enum
     PROFILE_OWNER = 8,
     PROFILE_PARENT = 9,
     PROFILE_JOINTHEIGHT = 10,
+    PROFILE_FORKTYPE = 11,
+    PROFILE_DEFI = 12,
     PROFILE_MAX,
+};
+
+enum
+{
+    FORK_TYPE_COMMON = 0,
+    FORK_TYPE_DEFI = 1,
+};
+
+class CDeFiProfile
+{
+public:
+    uint32 nDecayCycle;                              // coinbase decay cycle in height
+    uint8 nDecayPercent;                             // coinbase decay ratio, [0 - 100] means [0% - 100%]
+    uint32 nRewardCycle;                             // generate reward cycle in height
+    uint8 nStakeRewardPercent;                       // stake reward ratio, [0 - 100] means [0% - 100%]
+    uint8 nPromotionRewardPercent;                   // promotion reward ratio, [0 - 100] means [0% - 100%]
+    uint64 nStakeMinToken;                           // the minimum token on address can participate stake reward
+    std::map<uint64, uint32> mapPromotionTokenTimes; // In promotion computation, less than [key] amount should multiply [value].
+
+    CDeFiProfile()
+    {
+        SetNull();
+    }
+    virtual void SetNull()
+    {
+        nDecayCycle = 0;
+        nDecayPercent = 0;
+        nRewardCycle = 0;
+        nStakeRewardPercent = 0;
+        nPromotionRewardPercent = 0;
+        nStakeMinToken = 0;
+        mapPromotionTokenTimes.clear();
+    }
+    bool IsNull() const
+    {
+        return nRewardCycle == 0;
+    }
+
+    void Save(std::vector<unsigned char>& vchProfile);
+    void Load(const std::vector<unsigned char>& vchProfile);
 };
 
 class CProfile
@@ -40,6 +82,9 @@ public:
     CDestination destOwner;
     uint256 hashParent;
     int nJointHeight;
+
+    int nForkType;
+    CDeFiProfile defi;
 
 public:
     enum
