@@ -12,6 +12,21 @@ using namespace std;
 using namespace xengine;
 
 //////////////////////////////
+// CDeFiProfile
+
+void CDeFiProfile::Save(std::vector<unsigned char>& vchProfile)
+{
+    CODataStream os(vchProfile);
+    os << nDecayCycle << nDecayPercent << nRewardCycle << nStakeRewardPercent << nPromotionRewardPercent << nStakeMinToken << mapPromotionTokenTimes;
+}
+
+void CDeFiProfile::Load(const std::vector<unsigned char>& vchProfile)
+{
+    CIDataStream is(vchProfile);
+    is >> nDecayCycle >> nDecayPercent >> nRewardCycle >> nStakeRewardPercent >> nPromotionRewardPercent >> nStakeMinToken >> mapPromotionTokenTimes;
+}
+
+//////////////////////////////
 // CProfile
 
 bool CProfile::Save(std::vector<unsigned char>& vchProfile)
@@ -44,6 +59,18 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         {
             encoder.Push(PROFILE_PARENT, hashParent);
             encoder.Push(PROFILE_JOINTHEIGHT, nJointHeight);
+        }
+
+        if (nForkType != FORK_TYPE_COMMON)
+        {
+            encoder.Push(PROFILE_FORKTYPE, nForkType);
+
+            if (nForkType == FORK_TYPE_DEFI)
+            {
+                vector<unsigned char> vchDeFi;
+                defi.Save(vchDeFi);
+                encoder.Push(PROFILE_DEFI, vchDeFi);
+            }
         }
 
         encoder.Encode(vchProfile);
@@ -128,6 +155,22 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
         {
             CIDataStream is(vchDestOwner);
             is >> destOwner.prefix >> destOwner.data;
+        }
+
+        if (decoder.Get(PROFILE_FORKTYPE, nForkType))
+        {
+            if (nForkType == FORK_TYPE_DEFI)
+            {
+                vector<unsigned char> vchDeFi;
+                if (decoder.Get(PROFILE_DEFI, vchDeFi))
+                {
+                    defi.Load(vchDeFi);
+                }
+            }
+        }
+        else
+        {
+            nForkType = FORK_TYPE_COMMON;
         }
     }
     catch (exception& e)

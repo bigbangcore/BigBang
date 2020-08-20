@@ -1965,4 +1965,9 @@ bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
     return block.GetHash() == bestChainBlockHash;
 }
 
+map<CDestination, pair<int64, bool>> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
+{
+    return map<CDestination, pair<int64, bool>>();
+}
+
 } // namespace bigbang
