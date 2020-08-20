@@ -351,6 +351,14 @@ public:
     uint64 nSynSendTxTPS;
 };
 
+struct CDeFiReward
+{
+    int64 nReward;
+    int64 nStakeReward;
+    int64 nPromotionReward;
+    bool fRewarded;
+};
+
 } // namespace bigbang
 
 #endif // BIGBANG_STRUCT_H

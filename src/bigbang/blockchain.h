@@ -15,25 +15,8 @@ namespace bigbang
 {
 
 // defi reward cache
-class CDeFiReward
-{
-public:
-    typedef std::map<CDestination, std::pair<int64, bool>> MapAddrReward;
-    typedef std::map<uint32, MapAddrReward> MapHeightReward;
-
-    struct CForkReward
-    {
-        MapHeightReward reward;
-        CDeFiProfile profile;
-    };
-    typedef std::map<uint256, CForkReward> MapForkReward;
-
-    MapForkReward forkReward;
-};
-
 class CBlockChain : public IBlockChain
 {
-
 public:
     CBlockChain();
     ~CBlockChain();
@@ -100,7 +83,7 @@ public:
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
     // defi
-    std::map<CDestination, std::pair<int64, bool>> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
+    std::map<CDestination, CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
 
 protected:
     bool HandleInitialize() override;
@@ -134,6 +117,27 @@ protected:
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
     std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
+
+protected:
+    class CReward
+    {
+    public:
+        typedef std::map<CDestination, CDeFiReward> MapAddrReward;
+        typedef std::map<uint256, MapAddrReward> MapBlockReward;
+
+        struct CForkReward
+        {
+            MapBlockReward reward;
+            CDeFiProfile profile;
+        };
+        typedef std::map<uint256, CForkReward> MapForkReward;
+
+        bool ExistFork(const uint256& forkid) const;
+        void AddFork(const uint256& forkid, const CDeFiProfile& profile);
+    
+    protected:
+        MapForkReward forkReward;
+    };
 
     CDeFiReward defiReward;
 };

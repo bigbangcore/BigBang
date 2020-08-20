@@ -17,6 +17,21 @@ namespace bigbang
 {
 
 //////////////////////////////
+// CDeFiReward
+
+bool CBlockChain::CReward::ExistFork(const uint256& forkid) const
+{
+    return forkReward.count(forkid);
+}
+
+void CBlockChain::CReward::AddFork(const uint256& forkid, const CDeFiProfile& profile)
+{
+    CForkReward fr;
+    fr.profile = profile;
+    forkReward.insert(std::make_pair(forkid, fr));
+}
+
+//////////////////////////////
 // CBlockChain
 
 CBlockChain::CBlockChain()
@@ -1965,9 +1980,9 @@ bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
     return block.GetHash() == bestChainBlockHash;
 }
 
-map<CDestination, pair<int64, bool>> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
+map<CDestination, CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
 {
-    return map<CDestination, pair<int64, bool>>();
+    return map<CDestination, CDeFiReward>();
 }
 
 } // namespace bigbang
