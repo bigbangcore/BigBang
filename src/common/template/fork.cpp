@@ -13,8 +13,12 @@ using namespace std;
 using namespace xengine;
 
 static const int64 COIN = 1000000;
-const int64 MORTGAGE_BASE = 100000 * COIN;  // initial mortgage
-const int32 MORTGAGE_DECAY_CYCLE = 525600;  // decay cycle
+const int64 MORTGAGE_BASE = 100000 * COIN; // initial mortgage
+#ifndef BIGBANG_TESTNET
+const int32 MORTGAGE_DECAY_CYCLE = 60 * 24 * 90; // decay cycle
+#else
+const int32 MORTGAGE_DECAY_CYCLE = 20;
+#endif
 const double MORTGAGE_DECAY_QUANTITY = 0.5; // decay quantity
 
 //////////////////////////////
@@ -54,9 +58,20 @@ int64 CTemplateFork::CreatedCoin()
     return MORTGAGE_BASE;
 }
 
+int64 CTemplateFork::LockedCoin(const int32 nHeight)
+{
+    return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, nHeight / MORTGAGE_DECAY_CYCLE));
+}
+
 int64 CTemplateFork::LockedCoin(const CDestination& destTo, const int32 nForkHeight) const
 {
     return (int64)(MORTGAGE_BASE * pow(MORTGAGE_DECAY_QUANTITY, nForkHeight / MORTGAGE_DECAY_CYCLE));
+}
+
+void CTemplateFork::GetForkParam(CDestination& destRedeemOut, uint256& hashForkOut)
+{
+    destRedeemOut = destRedeem;
+    hashForkOut = hashFork;
 }
 
 bool CTemplateFork::ValidateParam() const

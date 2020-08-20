@@ -148,4 +148,36 @@ protected:
     }
 };
 
+class CValidForkId
+{
+    friend class xengine::CStream;
+
+public:
+    CValidForkId() {}
+    CValidForkId(const uint256& hashRefFdBlockIn, const std::map<uint256, int>& mapForkIdIn)
+    {
+        hashRefFdBlock = hashRefFdBlockIn;
+        mapForkId.clear();
+        mapForkId.insert(mapForkIdIn.begin(), mapForkIdIn.end());
+    }
+    void GetForkId(std::pair<uint256, std::map<uint256, int>>& outForkId)
+    {
+        outForkId.first = hashRefFdBlock;
+        outForkId.second.clear();
+        outForkId.second.insert(mapForkId.begin(), mapForkId.end());
+    }
+
+public:
+    uint256 hashRefFdBlock;
+    std::map<uint256, int> mapForkId; // key: forkid, value: fork created height
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(hashRefFdBlock, opt);
+        s.Serialize(mapForkId, opt);
+    }
+};
+
 #endif //COMMON_FORKCONTEXT_H
