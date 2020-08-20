@@ -128,12 +128,12 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
             return false;
         }
 
-        if(decoder.Get(PROFILE_FORKTYPE, nForkType) && nForkType != (uint8)ForkType::PROFILE_FORK_NULL)
+        if(decoder.Get(PROFILE_FORKTYPE, nForkType) && nForkType == FORK_TYPE_DEFI)
         {
-            if(!decoder.Get(PROFILE_FORKPARAMS, strForkParams))
-            {
-                return false;
-            }
+            // if(!decoder.Get(PROFILE_FORKPARAMS, strForkParams))
+            // {
+            //     return false;
+            // }
         }
 
         if (!decoder.Get(PROFILE_PARENT, hashParent))

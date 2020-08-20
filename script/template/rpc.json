@@ -39,6 +39,57 @@
             }
         }
     },
+    "forkparams": {
+        "type": "class",
+        "name": "ForkParams",
+        "content": {
+            "type": {
+                "type": "string",
+                "desc": "fork type"
+            },
+            "defi": {
+                "type": "object",
+                "desc": "Fork DeFi Parameters",
+                "condition": "type=defi",
+                "content": {
+                    "decaycycle": {
+                        "type": "uint",
+                        "desc": "coinbase decay cycle in height"
+                    },
+                    "decaypercent": {
+                        "type": "uint",
+                        "desc": "coinbase decay ratio, [0 - 100] means [0% - 100%]"
+                    },
+                    "rewardcycle": {
+                        "type": "uint",
+                        "desc": "generate reward cycle in height"
+                    },
+                    "stakerewardpercent": {
+                        "type": "uint",
+                        "desc": "stake reward ratio, [0 - 100] means [0% - 100%]"
+                    },
+                    "promotionrewardpercent": {
+                        "type": "uint",
+                        "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]"
+                    },
+                    "stakemintoken": {
+                        "type": "uint",
+                        "desc": "the minimum token on address can participate stake reward"
+                    },
+                    "mappromotiontokentimes": {
+                        "type": "array",
+                        "content": {
+                            "key": {
+                                "type": "string",
+                                "desc": "key value"
+                            }
+                        },
+                        "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [key0,value0,key1,value1,...,keyN, valueN]"
+                    }
+                }
+            }
+        }
+    },
     "templaterequest": {
         "type": "class",
         "name": "TemplateRequest",
@@ -2746,17 +2797,14 @@
                     "type": "double",
                     "desc": "mint reward"
                 },
-                "forktype": {
-                    "type": "string",
-                    "desc": "fork type: [defi | ...]"
-                },
-                "forkparams": {
-                    "type": "string",
-                    "desc": "fork params, a json object string"
-                },
                 "halvecycle": {
                     "type": "uint",
                     "desc": "halve cycle: 0: fixed reward, >0: blocks of halve cycle"
+                },
+                "params": {
+                    "type": "forkparams",
+                    "desc": "fork params, a json object",
+                    "required": false
                 },
                 "isolated": {
                     "type": "bool",
