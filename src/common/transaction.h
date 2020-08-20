@@ -105,11 +105,13 @@ public:
     std::vector<uint8> vchSig;
     enum
     {
-        TX_TOKEN = 0x0000,   // normal Tx 0
-        TX_CERT = 0xff00,    // Enroll Tx 65280
-        TX_GENESIS = 0x0100, // 256
-        TX_STAKE = 0x0200,   // DPoS mint tx 512
-        TX_WORK = 0x0300     // PoW mint tx 768
+        TX_TOKEN = 0x0000,        // normal Tx 0
+        TX_CERT = 0xff00,         // Enroll Tx 65280
+        TX_GENESIS = 0x0100,      // 256
+        TX_STAKE = 0x0200,        // DPoS mint tx 512
+        TX_WORK = 0x0300,         // PoW mint tx 768
+        TX_DEFI_REWARD = 0x0401,  // DeFi reward tx
+        TX_DEFI_RELATION = 0x0402 // DeFi bind relation tx
     };
     CTransaction()
     {

@@ -165,7 +165,7 @@ public:
     virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     // defi
-    virtual std::map<CDestination, std::pair<int64, bool>> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) = 0;
+    virtual std::multimap<CDestination, CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) = 0;
 
     const CBasicConfig* Config()
     {

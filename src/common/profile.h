@@ -85,6 +85,9 @@ public:
     int nForkType;
     CDeFiProfile defi;
 
+    int nForkType;
+    CDeFiProfile defi;
+
 public:
     enum
     {
