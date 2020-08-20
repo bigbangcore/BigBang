@@ -51,11 +51,17 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData)
         return false;
     }
 
+    if (!dbAddress.Initialize(pathData))
+    {
+        return false;
+    }
+
     return LoadFork();
 }
 
 void CBlockDB::Deinitialize()
 {
+    dbAddress.Deinitialize();
     dbDelegate.Deinitialize();
     dbUnspent.Deinitialize();
     dbTxIndex.Deinitialize();
@@ -65,6 +71,7 @@ void CBlockDB::Deinitialize()
 
 bool CBlockDB::RemoveAll()
 {
+    dbAddress.Clear();
     dbDelegate.Clear();
     dbUnspent.Clear();
     dbTxIndex.Clear();
@@ -110,12 +117,23 @@ bool CBlockDB::AddNewFork(const uint256& hash)
         return false;
     }
 
+    if (!dbAddress.AddNewFork(hash))
+    {
+        dbFork.RemoveFork(hash);
+        return false;
+    }
+
     return true;
 }
 
 bool CBlockDB::RemoveFork(const uint256& hash)
 {
     if (!dbUnspent.RemoveFork(hash))
+    {
+        return false;
+    }
+
+    if (!dbAddress.RemoveFork(hash))
     {
         return false;
     }
@@ -183,6 +201,12 @@ bool CBlockDB::UpdateDelegateContext(const uint256& hash, const CDelegateContext
     return dbDelegate.AddNew(hash, ctxtDelegate);
 }
 
+bool CBlockDB::UpdateAddressInfo(const uint256& hashFork, const std::vector<std::pair<CDestination, CAddrInfo>>& vNewAddress,
+                                 std::vector<std::pair<CDestination, CAddrInfo>>& vRemoveAddress)
+{
+    return true;
+}
+
 bool CBlockDB::WalkThroughBlock(CBlockDBWalker& walker)
 {
     return dbBlockIndex.WalkThroughBlock(walker);
@@ -208,6 +232,11 @@ bool CBlockDB::RetrieveTxUnspent(const uint256& fork, const CTxOutPoint& out, CT
 bool CBlockDB::WalkThroughUnspent(const uint256& hashFork, CForkUnspentDBWalker& walker)
 {
     return dbUnspent.WalkThrough(hashFork, walker);
+}
+
+bool CBlockDB::WalkThroughAddress(const uint256& hashFork, CForkAddressDBWalker& walker)
+{
+    return dbAddress.WalkThrough(hashFork, walker);
 }
 
 bool CBlockDB::RetrieveDelegate(const uint256& hash, map<CDestination, int64>& mapDelegate)
@@ -242,6 +271,11 @@ bool CBlockDB::LoadFork()
         }
 
         if (!dbUnspent.AddNewFork(vFork[i].first))
+        {
+            return false;
+        }
+
+        if (!dbAddress.AddNewFork(vFork[i].first))
         {
             return false;
         }

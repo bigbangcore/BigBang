@@ -4,6 +4,7 @@
 
 #include "blockbase.h"
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/timer/timer.hpp>
 #include <cstdio>
 
@@ -1859,6 +1860,147 @@ bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std:
 {
     CListUnspentBatchWalker walker(hashFork, mapUnspent, nMax);
     dbBlock.WalkThroughUnspent(hashFork, walker);
+    return true;
+}
+
+bool CBlockBase::ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount)
+{
+    CListAddressUnspentWalker walker;
+    if (!dbBlock.WalkThroughUnspent(hashFork, walker))
+    {
+        return false;
+    }
+
+    std::vector<CTxUnspent> vAddNew;
+    std::vector<CTxOutPoint> vRemove;
+    view.GetUnspentChanges(vAddNew, vRemove);
+
+    for (const CTxUnspent& unspent : vAddNew)
+    {
+        walker.mapUnspent[static_cast<const CTxOutPoint&>(unspent)] = unspent.output;
+    }
+    for (const CTxOutPoint& txout : vRemove)
+    {
+        walker.mapUnspent[txout].SetNull();
+    }
+
+    for (auto it = walker.mapUnspent.begin(); it != walker.mapUnspent.end(); ++it)
+    {
+        if (!it->second.IsNull())
+        {
+            mapAddressAmount[it->second.destTo] += it->second.nAmount;
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
+{
+    vector<pair<CDestination, CAddrInfo>> vNewAddress;
+    vector<pair<CDestination, CAddrInfo>> vRemoveAddress;
+
+    vector<CBlockEx> vAdd;
+    vector<CBlockEx> vRemove;
+    view.GetBlockChanges(vAdd, vRemove);
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vRemove))
+    {
+        for (int i = block.vtx.size() - 1; i >= 0; --i)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            uint256 txid = tx.GetHash();
+            if (tx.IsMintTx())
+            {
+                vRemoveAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+            }
+        }
+    }
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vAdd))
+    {
+        for (std::size_t i = 0; i < block.vtx.size(); i++)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            uint256 txid = tx.GetHash();
+            if (tx.IsMintTx())
+            {
+                vNewAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+            }
+        }
+    }
+
+    return dbBlock.UpdateAddressInfo(hashFork, vNewAddress, vRemoveAddress);
+}
+
+bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view, std::map<CDestination, CForkAddressInvite>& mapAddressInvite)
+{
+    CListAddressWalker walker;
+    if (!dbBlock.WalkThroughAddress(hashFork, walker))
+    {
+        return false;
+    }
+
+    vector<CBlockEx> vAdd;
+    vector<CBlockEx> vRemove;
+    view.GetBlockChanges(vAdd, vRemove);
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vRemove))
+    {
+        for (int i = block.vtx.size() - 1; i >= 0; --i)
+        {
+            const CTransaction& tx = block.vtx[i];
+            uint256 txid = tx.GetHash();
+            if (tx.IsMintTx())
+            {
+                auto it = walker.mapAddress.find(tx.sendTo);
+                if (it != walker.mapAddress.end() && it->second.hashTxInvite == txid)
+                {
+                    walker.mapAddress.erase(it);
+                }
+            }
+        }
+    }
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vAdd))
+    {
+        for (std::size_t i = 0; i < block.vtx.size(); i++)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            uint256 txid = tx.GetHash();
+            if (tx.IsMintTx())
+            {
+                auto it = walker.mapAddress.find(tx.sendTo);
+                if (it == walker.mapAddress.end())
+                {
+                    walker.mapAddress.insert(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+                }
+            }
+        }
+    }
+
+    for (const auto& vd : walker.mapAddress)
+    {
+        auto it = mapAddressInvite.find(vd.first);
+        if (it == mapAddressInvite.end())
+        {
+            it = mapAddressInvite.insert(make_pair(vd.first, CForkAddressInvite())).first;
+            if (it == mapAddressInvite.end())
+            {
+                return false;
+            }
+            it->second.pSelfDest = &(it->first);
+        }
+        auto mt = mapAddressInvite.find(vd.second.destInviteParent);
+        if (mt != mapAddressInvite.end())
+        {
+            return false;
+        }
+        it->second.pParent = &(mt->second);
+        mt->second.vSubline.push_back(&(it->second));
+    }
     return true;
 }
 

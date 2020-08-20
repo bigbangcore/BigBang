@@ -135,6 +135,26 @@ public:
     std::map<CDestination, uint8> mapCount;
 };
 
+//////////////////////////////
+// CGetAddressUnspentWalker
+
+class CListAddressUnspentWalker : public CForkUnspentDBWalker
+{
+public:
+    CListAddressUnspentWalker() {}
+    bool Walk(const CTxOutPoint& txout, const CTxOut& output) override
+    {
+        mapUnspent.insert(std::make_pair(txout, output));
+        return true; //continue walk through processing
+    }
+
+public:
+    std::map<CTxOutPoint, CTxOut> mapUnspent;
+};
+
+//////////////////////////////
+// CForkUnspentDB
+
 class CForkUnspentDB : public xengine::CKVDB
 {
     typedef std::map<CTxOutPoint, CTxOut> MapType;
