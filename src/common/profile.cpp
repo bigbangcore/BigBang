@@ -46,7 +46,7 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         if(nForkType == FORK_TYPE_DEFI)
         {
             encoder.Push(PROFILE_FORKTYPE, nForkType);
-           // encoder.Push(PROFILE_FORKPARAMS, strForkParams);
+            encoder.Push(PROFILE_DEFI, defi);
         }
         
 
@@ -130,10 +130,10 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
 
         if(decoder.Get(PROFILE_FORKTYPE, nForkType) && nForkType == FORK_TYPE_DEFI)
         {
-            // if(!decoder.Get(PROFILE_FORKPARAMS, strForkParams))
-            // {
-            //     return false;
-            // }
+            if(!decoder.Get(PROFILE_DEFI, defi))
+            {
+                return false;
+            }
         }
 
         if (!decoder.Get(PROFILE_PARENT, hashParent))
