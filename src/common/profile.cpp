@@ -27,6 +27,8 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         encoder.Push(PROFILE_MINTREWARD, nMintReward);
         encoder.Push(PROFILE_MINTXFEE, nMinTxFee);
         encoder.Push(PROFILE_HALVECYCLE, nHalveCycle);
+        encoder.Push(PROFILE_FORKTYPE, strForkType);
+        encoder.Push(PROFILE_FORKPARAMS, strForkParams);
 
         vector<unsigned char> vchDestOwner;
         CODataStream os(vchDestOwner);
@@ -90,6 +92,14 @@ bool CProfile::Load(const vector<unsigned char>& vchProfile)
             return false;
         }
         if (!decoder.Get(PROFILE_HALVECYCLE, nHalveCycle))
+        {
+            return false;
+        }
+        if(!decoder.Get(PROFILE_FORKTYPE, strForkType))
+        {
+            return false;
+        }
+        if(!decoder.Get(PROFILE_FORKPARAMS, strForkParams))
         {
             return false;
         }

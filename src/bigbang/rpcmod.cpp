@@ -2268,6 +2268,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nMintReward = nMintReward;
     profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
+    profile.strForkType = spParam->strForktype;
+    profile.strForkParams = spParam->strForkparams;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
 
     CBlock block;

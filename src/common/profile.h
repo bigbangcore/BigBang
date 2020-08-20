@@ -23,6 +23,8 @@ enum
     PROFILE_OWNER = 8,
     PROFILE_PARENT = 9,
     PROFILE_JOINTHEIGHT = 10,
+    PROFILE_FORKTYPE = 11,
+    PROFILE_FORKPARAMS = 12,
     PROFILE_MAX,
 };
 
@@ -40,7 +42,8 @@ public:
     CDestination destOwner;
     uint256 hashParent;
     int nJointHeight;
-
+    std::string strForkType;
+    std::string strForkParams;
 public:
     enum
     {
