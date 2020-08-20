@@ -79,8 +79,6 @@ public:
     int64 nMintReward;
     int64 nMinTxFee;
     uint32 nHalveCycle;
-    uint8 nForkType;
-    std::string strForkParams;
     CDestination destOwner;
     uint256 hashParent;
     int nJointHeight;
@@ -93,11 +91,6 @@ public:
         PROFILE_FLAG_ISOLATED = 1,
         PROFILE_FLAG_PRIVATE = 2,
         PROFILE_FLAG_ENCLOSED = 4
-    };
-    enum class ForkType : uint8
-    {
-        PROFILE_FORK_DEFI = 5,
-        PROFILE_FORK_NULL = 255
     };
     CProfile()
     {
@@ -116,8 +109,8 @@ public:
         destOwner.SetNull();
         strName.clear();
         strSymbol.clear();
-        nForkType = (uint8)ForkType::PROFILE_FORK_NULL;
-        strForkParams.clear();
+        nForkType = FORK_TYPE_COMMON;
+        defi.SetNull();
     }
     bool IsNull() const
     {

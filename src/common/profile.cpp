@@ -43,10 +43,10 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         encoder.Push(PROFILE_MINTXFEE, nMinTxFee);
         encoder.Push(PROFILE_HALVECYCLE, nHalveCycle);
         
-        if(nForkType != (uint8)ForkType::PROFILE_FORK_NULL)
+        if(nForkType == FORK_TYPE_DEFI)
         {
             encoder.Push(PROFILE_FORKTYPE, nForkType);
-            encoder.Push(PROFILE_FORKPARAMS, strForkParams);
+           // encoder.Push(PROFILE_FORKPARAMS, strForkParams);
         }
         
 
