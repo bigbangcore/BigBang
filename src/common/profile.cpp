@@ -42,6 +42,7 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         encoder.Push(PROFILE_MINTREWARD, nMintReward);
         encoder.Push(PROFILE_MINTXFEE, nMinTxFee);
         encoder.Push(PROFILE_HALVECYCLE, nHalveCycle);
+        
 
         vector<unsigned char> vchDestOwner;
         CODataStream os(vchDestOwner);

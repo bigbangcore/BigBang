@@ -82,6 +82,8 @@ public:
     CDestination destOwner;
     uint256 hashParent;
     int nJointHeight;
+    int nForkType;
+    CDeFiProfile defi;
 
     int nForkType;
     CDeFiProfile defi;
@@ -110,6 +112,8 @@ public:
         destOwner.SetNull();
         strName.clear();
         strSymbol.clear();
+        nForkType = FORK_TYPE_COMMON;
+        defi.SetNull();
     }
     bool IsNull() const
     {
