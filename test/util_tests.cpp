@@ -4,6 +4,7 @@
 
 #include "util.h"
 #include "profile.h"
+#include "forkcontext.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -61,6 +62,19 @@ BOOST_AUTO_TEST_CASE(common_profile)
     BOOST_CHECK(profileLoad.nMinTxFee == profile.nMinTxFee);
     BOOST_CHECK(profileLoad.nMintReward == profile.nMintReward);
     BOOST_CHECK(profileLoad.nAmount == profile.nAmount);
+
+    CForkContext forkContextWrite(uint256(), uint256(), uint256(), profile);
+    CBufStream ss;
+    ss << forkContextWrite;
+    CForkContext forkContextRead;
+    ss >> forkContextRead;
+
+    BOOST_CHECK(forkContextRead.GetProfile().strName == profile.strName);
+    BOOST_CHECK(forkContextRead.GetProfile().strSymbol == profile.strSymbol);
+    BOOST_CHECK(forkContextRead.GetProfile().nVersion == profile.nVersion);
+    BOOST_CHECK(forkContextRead.GetProfile().nMinTxFee == profile.nMinTxFee);
+    BOOST_CHECK(forkContextRead.GetProfile().nMintReward == profile.nMintReward);
+    BOOST_CHECK(forkContextRead.GetProfile().nAmount == profile.nAmount);
 }
 
 BOOST_AUTO_TEST_CASE(defil_profile)
