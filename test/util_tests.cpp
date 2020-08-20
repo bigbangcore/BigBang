@@ -39,7 +39,6 @@ BOOST_AUTO_TEST_CASE(common_profile)
     profile.nVersion = 1;
     profile.nMinTxFee = 100;
     profile.nMintReward = 1000;
-    profile.nJointHeight = 5;
     profile.nAmount = 100000;
     
     std::vector<uint8> vchProfile;
@@ -61,7 +60,6 @@ BOOST_AUTO_TEST_CASE(common_profile)
     BOOST_CHECK(profileLoad.nVersion == profile.nVersion);
     BOOST_CHECK(profileLoad.nMinTxFee == profile.nMinTxFee);
     BOOST_CHECK(profileLoad.nMintReward == profile.nMintReward);
-    BOOST_CHECK(profileLoad.nJointHeight == profile.nJointHeight);
     BOOST_CHECK(profileLoad.nAmount == profile.nAmount);
 }
 
@@ -73,7 +71,6 @@ BOOST_AUTO_TEST_CASE(defil_profile)
     profile.nVersion = 1;
     profile.nMinTxFee = 100;
     profile.nMintReward = 1000;
-    profile.nJointHeight = 5;
     profile.nAmount = 100000;
     profile.nForkType = FORK_TYPE_DEFI;
     profile.defi.nDecayCycle = 10;
@@ -104,7 +101,6 @@ BOOST_AUTO_TEST_CASE(defil_profile)
     BOOST_CHECK(profileLoad.nVersion == profile.nVersion);
     BOOST_CHECK(profileLoad.nMinTxFee == profile.nMinTxFee);
     BOOST_CHECK(profileLoad.nMintReward == profile.nMintReward);
-    BOOST_CHECK(profileLoad.nJointHeight == profile.nJointHeight);
     BOOST_CHECK(profileLoad.nAmount == profile.nAmount);
 
     BOOST_CHECK(profileLoad.nForkType == profile.nForkType);
