@@ -83,7 +83,7 @@ public:
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
     // defi
-    std::map<CDestination, CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
+    std::multimap<CDestination, CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
 
 protected:
     bool HandleInitialize() override;

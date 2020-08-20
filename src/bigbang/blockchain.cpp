@@ -1980,9 +1980,9 @@ bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
     return block.GetHash() == bestChainBlockHash;
 }
 
-map<CDestination, CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
+multimap<CDestination, CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
 {
-    return map<CDestination, CDeFiReward>();
+    return multimap<CDestination, CDeFiReward>();
 }
 
 } // namespace bigbang
