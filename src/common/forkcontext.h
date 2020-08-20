@@ -64,7 +64,7 @@ public:
         nForkType = profile.nForkType;
         if(nForkType == FORK_TYPE_DEFI)
         {
-            profile.defi.Save(vchDeFi)
+            profile.defi.Save(vchDeFi);
         }
     }
     virtual ~CForkContext() = default;
