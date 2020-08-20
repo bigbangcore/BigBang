@@ -332,8 +332,10 @@ CBlockBase::~CBlockBase()
     tsBlock.Deinitialize();
 }
 
-bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
+bool CBlockBase::Initialize(const path& pathDataLocation, const uint256& hashGenesisBlockIn, bool fDebug, bool fRenewDB)
 {
+    hashGenesisBlock = hashGenesisBlockIn;
+
     if (!SetupLog(pathDataLocation, fDebug))
     {
         return false;
@@ -352,6 +354,12 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         dbBlock.Deinitialize();
         Error("B", "Failed to initialize block tsfile");
         return false;
+    }
+
+    uint256 hashDbGenesisBlockHash;
+    if (!dbBlock.GetGenesisBlockHash(hashDbGenesisBlockHash) || hashDbGenesisBlockHash != hashGenesisBlockIn)
+    {
+        dbBlock.WriteGenesisBlockHash(hashGenesisBlockIn);
     }
 
     if (fRenewDB)
@@ -474,6 +482,39 @@ bool CBlockBase::Initiate(const uint256& hashGenesis, const CBlock& blockGenesis
             return false;
         }
 
+        bool fCheckValidForkResult = true;
+        uint256 hashRefFdBlock;
+        map<uint256, int> mapValidFork;
+        if (!dbBlock.RetrieveValidForkHash(hashGenesisBlock, hashRefFdBlock, mapValidFork))
+        {
+            fCheckValidForkResult = false;
+        }
+        else
+        {
+            if (hashRefFdBlock != 0)
+            {
+                fCheckValidForkResult = false;
+            }
+            else
+            {
+                const auto it = mapValidFork.find(hashGenesisBlock);
+                if (it == mapValidFork.end() || it->second != 0)
+                {
+                    fCheckValidForkResult = false;
+                }
+            }
+        }
+        if (!fCheckValidForkResult)
+        {
+            map<uint256, int> mapValidFork;
+            mapValidFork.insert(make_pair(hashGenesis, 0));
+            if (!dbBlock.AddValidForkHash(hashGenesis, uint256(), mapValidFork))
+            {
+                StdTrace("BlockBase", "Add valid genesis fork fail");
+                return false;
+            }
+        }
+
         if (!dbBlock.AddNewFork(hashGenesis))
         {
             StdTrace("BlockBase", "Add New Fork %s  failed", hashGenesis.ToString().c_str());
@@ -575,6 +616,11 @@ bool CBlockBase::AddNewForkContext(const CForkContext& ctxt)
     }
     Log("F", "AddNew forkcontext,hash=%s", ctxt.hashFork.GetHex().c_str());
     return true;
+}
+
+bool CBlockBase::AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const map<uint256, int>& mapValidFork)
+{
+    return dbBlock.AddValidForkHash(hashBlock, hashRefFdBlock, mapValidFork);
 }
 
 bool CBlockBase::Retrieve(const uint256& hash, CBlock& block)
@@ -1300,9 +1346,9 @@ bool CBlockBase::FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter
     return true;
 }
 
-bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt)
+bool CBlockBase::ListForkContext(std::vector<CForkContext>& vForkCtxt, map<uint256, pair<uint256, map<uint256, int>>>& mapValidForkId)
 {
-    return dbBlock.ListForkContext(vForkCtxt);
+    return dbBlock.ListForkContext(vForkCtxt, mapValidForkId);
 }
 
 bool CBlockBase::GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep)

@@ -20,6 +20,7 @@ public:
     CBlockChain();
     ~CBlockChain();
     void GetForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
+    void GetValidForkStatus(std::map<uint256, CForkStatus>& mapForkStatus) override;
     bool GetForkProfile(const uint256& hashFork, CProfile& profile) override;
     bool GetForkContext(const uint256& hashFork, CForkContext& ctxt) override;
     bool GetForkAncestry(const uint256& hashFork, std::vector<std::pair<uint256, uint256>> vAncestry) override;
@@ -43,8 +44,7 @@ public:
                       std::vector<CTxOut>& vOutput) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter) override;
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt) override;
-    Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
+    bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId) override;
     Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
@@ -64,6 +64,7 @@ public:
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, std::vector<CForkContext>& vForkCtxt) override;
     bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) override;
     bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) override;
     bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) override;
@@ -100,7 +101,8 @@ protected:
     bool VerifyBlockCertTx(const CBlock& block);
 
     void InitCheckPoints();
-    void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
+    bool AddBlockForkContext(const CBlockEx& blockex);
+    void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPointsIn);
 
 protected:
     boost::shared_mutex rwAccess;

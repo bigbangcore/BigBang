@@ -234,7 +234,7 @@ class CBlockBase
 public:
     CBlockBase();
     ~CBlockBase();
-    bool Initialize(const boost::filesystem::path& pathDataLocation, bool fDebug, bool fRenewDB = false);
+    bool Initialize(const boost::filesystem::path& pathDataLocation, const uint256& hashGenesisBlockIn, bool fDebug, bool fRenewDB = false);
     void Deinitialize();
     void Clear();
     bool IsEmpty() const;
@@ -243,6 +243,7 @@ public:
     bool Initiate(const uint256& hashGenesis, const CBlock& blockGenesis, const uint256& nChainTrust);
     bool AddNew(const uint256& hash, CBlockEx& block, CBlockIndex** ppIndexNew, const uint256& nChainTrust, int64 nMinEnrollAmount);
     bool AddNewForkContext(const CForkContext& ctxt);
+    bool AddValidForkHash(const uint256& hashBlock, const uint256& hashRefFdBlock, const std::map<uint256, int>& mapValidFork);
     bool Retrieve(const uint256& hash, CBlock& block);
     bool Retrieve(const CBlockIndex* pIndex, CBlock& block);
     bool Retrieve(const uint256& hash, CBlockEx& block);
@@ -272,7 +273,7 @@ public:
     bool LoadTx(CTransaction& tx, uint32 nTxFile, uint32 nTxOffset, uint256& hashFork);
     bool FilterTx(const uint256& hashFork, CTxFilter& filter);
     bool FilterTx(const uint256& hashFork, int nDepth, CTxFilter& filter);
-    bool ListForkContext(std::vector<CForkContext>& vForkCtxt);
+    bool ListForkContext(std::vector<CForkContext>& vForkCtxt, std::map<uint256, std::pair<uint256, std::map<uint256, int>>>& mapValidForkId);
     bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
@@ -353,6 +354,7 @@ protected:
 protected:
     mutable xengine::CRWAccess rwAccess;
     xengine::CLog log;
+    uint256 hashGenesisBlock;
     bool fDebugLog;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;
