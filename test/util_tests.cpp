@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "util.h"
+#include "profile.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -28,6 +29,32 @@ BOOST_AUTO_TEST_CASE(util)
 
     a = 0.1234567, b = 0.1234567;
     BOOST_CHECK(IsDoubleEqual(a, b));
+}
+
+BOOST_AUTO_TEST_CASE(profile)
+{
+    CProfile profile;
+    profile.strName = "BBC Test";
+    profile.strSymbol = "BBCA";
+    profile.nVersion = 2;
+    profile.nMinTxFee = 100;
+    profile.nMintReward = 1000;
+    profile.nJointHeight = 5;
+    profile.nAmount = 100000;
+    
+    std::vector<uint8> vchProfile;
+    BOOST_CHECK(profile.Save(vchProfile));
+
+    CProfile profileLoad;
+    BOOST_CHECK(profileLoad.Load(vchProfile));
+
+    BOOST_CHECK(profileLoad.strName == profile.strName);
+    BOOST_CHECK(profileLoad.strSymbol == profile.strSymbol);
+    BOOST_CHECK(profileLoad.nVersion == profile.nVersion);
+    BOOST_CHECK(profileLoad.nMinTxFee == profile.nMinTxFee);
+    BOOST_CHECK(profileLoad.nMintReward = profile.nMintReward);
+    BOOST_CHECK(profileLoad.nJointHeight = profile.nJointHeight);
+    BOOST_CHECK(profileLoad.nAmount = profile.nAmount);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
