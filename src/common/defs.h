@@ -10,8 +10,11 @@ static const unsigned int HEIGHT_HASH_MULTI_SIGNER_MAINNET = 78256;
 static const unsigned int HEIGHT_HASH_MULTI_SIGNER_TESTNET = 20;
 extern unsigned int HEIGHT_HASH_MULTI_SIGNER;
 
-
+#ifdef BIGBANG_TESTNET
+static const unsigned int HEIGHT_HASH_TX_DATA_MAINNET = 106247;
+#else
 static const unsigned int HEIGHT_HASH_TX_DATA_MAINNET = 133060;
+#endif
 static const unsigned int HEIGHT_HASH_TX_DATA_TESTNET = 40;
 extern unsigned int HEIGHT_HASH_TX_DATA;
 
