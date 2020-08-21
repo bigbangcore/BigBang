@@ -40,6 +40,7 @@ public:
     uint32 nDecayCycle;                              // coinbase decay cycle in height
     uint8 nDecayPercent;                             // coinbase decay ratio, [0 - 100] means [0% - 100%]
     uint32 nRewardCycle;                             // generate reward cycle in height
+    uint32 nSupplyCycle;
     uint8 nStakeRewardPercent;                       // stake reward ratio, [0 - 100] means [0% - 100%]
     uint8 nPromotionRewardPercent;                   // promotion reward ratio, [0 - 100] means [0% - 100%]
     uint64 nStakeMinToken;                           // the minimum token on address can participate stake reward
@@ -54,6 +55,7 @@ public:
         nDecayCycle = 0;
         nDecayPercent = 0;
         nRewardCycle = 0;
+        nSupplyCycle = 0;
         nStakeRewardPercent = 0;
         nPromotionRewardPercent = 0;
         nStakeMinToken = 0;
