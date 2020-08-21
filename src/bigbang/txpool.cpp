@@ -244,26 +244,40 @@ void CTxPoolView::InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvol
     }
 }
 
-void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks)
+void CTxPoolView::GetAllPrevTxLink(const CPooledTxLink& link, vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink)
 {
-    std::deque<CPooledTxLink> queueBFS;
-    queueBFS.push_back(link);
-
-    while (!queueBFS.empty())
+    CPooledTxLinkSetByTxHash& idxTx = setTxLinkIndex.get<0>();
+    CPooledCertTxLinkSetByTxHash& idxCertTx = setCertTxLink.get<0>();
+    if (prevLinks.capacity() == 0)
     {
-        const CPooledTxLink& tempLink = queueBFS.front();
-        for (int i = 0; i < tempLink.ptx->vInput.size(); ++i)
+        size_t nSize = setTxLinkIndex.size();
+        if (nSize > 1024)
         {
-            const CTxIn& txin = tempLink.ptx->vInput[i];
-            const uint256& prevHash = txin.prevout.hash;
-            auto iter = setTxLinkIndex.find(prevHash);
-            if (iter != setTxLinkIndex.end())
+            nSize = 1024;
+        }
+        prevLinks.reserve(nSize);
+    }
+    prevLinks.clear();
+    prevLinks.push_back(link);
+    for (int n = 0; n < prevLinks.size(); ++n)
+    {
+        const CPooledTxLink& curLink = prevLinks[n];
+        if (curLink.ptx != nullptr)
+        {
+            for (int i = 0; i < curLink.ptx->vInput.size(); ++i)
             {
-                prevLinks.push_back(*iter);
-                queueBFS.push_back(*iter);
+                const uint256& prevTxid = curLink.ptx->vInput[i].prevout.hash;
+                if (idxCertTx.find(prevTxid) == idxCertTx.end())
+                {
+                    auto iter = idxTx.find(prevTxid);
+                    if (iter != idxTx.end())
+                    {
+                        prevLinks.push_back(*iter);
+                        setCertTxLink.insert(*iter);
+                    }
+                }
             }
         }
-        queueBFS.pop_front();
     }
 }
 
@@ -356,6 +370,7 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     size_t nTotalSize = 0;
     set<uint256> setUnTx;
     CPooledCertTxLinkSet setCertRelativesIndex;
+    std::vector<CPooledTxLink> prevLinks;
     nTotalTxFee = 0;
 
     // Collect all cert related tx
@@ -366,11 +381,8 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (iter->ptx && iter->nType == CTransaction::TX_CERT)
         {
+            GetAllPrevTxLink(*iter, prevLinks, setCertRelativesIndex);
             setCertRelativesIndex.insert(*iter);
-
-            std::vector<CPooledTxLink> prevLinks;
-            GetAllPrevTxLink(*iter, prevLinks);
-            setCertRelativesIndex.insert(prevLinks.begin(), prevLinks.end());
         }
     }
 
@@ -380,7 +392,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     {
         if (i.ptx)
         {
-            StdDebug("CTxPoolView", "Cert tx related tx, tx seqnum: %llu, type: %d, tx hash: %s", i.nSequenceNumber, i.ptx->nType, i.hashTX.ToString().c_str());
             if (!AddArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize, nTotalSize, mapVoteCert, setUnTx, i.ptx, mapVote, nMinEnrollAmount, fIsDposHeight))
             {
                 return;
@@ -645,6 +656,18 @@ bool CTxPool::Get(const uint256& txid, CTransaction& tx) const
     return false;
 }
 
+bool CTxPool::Get(const uint256& txid, CAssembledTx& tx) const
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    map<uint256, CPooledTx>::const_iterator it = mapTx.find(txid);
+    if (it != mapTx.end())
+    {
+        tx = (*it).second;
+        return true;
+    }
+    return false;
+}
+
 void CTxPool::ListTx(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
@@ -671,6 +694,67 @@ void CTxPool::ListTx(const uint256& hashFork, vector<uint256>& vTxPool)
             vTxPool.push_back((*mi).hashTX);
         }
     }
+}
+
+bool CTxPool::ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent)
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
+    if (it != mapPoolView.end())
+    {
+        const CTxPoolView& txPoolView = it->second;
+        ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, vUnspent);
+        return true;
+    }
+
+    return false;
+}
+
+bool CTxPool::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const std::map<CDestination, std::vector<CTxUnspent>>& mapUnspentOnChain, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent)
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwAccess);
+    map<uint256, CTxPoolView>::const_iterator it = mapPoolView.find(hashFork);
+    if (it != mapPoolView.end())
+    {
+        const CTxPoolView& txPoolView = it->second;
+        for (const auto& kv : mapUnspentOnChain)
+        {
+            const CDestination& dest = kv.first;
+            const std::vector<CTxUnspent>& vUnspentOnChain = kv.second;
+            ListUnspent(txPoolView, dest, nMax, vUnspentOnChain, mapUnspent[dest]);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+void CTxPool::ListUnspent(const CTxPoolView& txPoolView, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent)
+{
+    uint32 nCount = 0;
+    std::set<CTxUnspent> setTxUnspent;
+    for (size_t i = 0; i < vUnspentOnChain.size(); i++)
+    {
+        const CTxUnspent& unspentOnChain = vUnspentOnChain[i];
+        CTxOutPoint outpoint(unspentOnChain.hash, unspentOnChain.n);
+
+        if (nMax != 0 && nCount >= nMax)
+        {
+            return;
+        }
+
+        if (!txPoolView.IsSpent(outpoint))
+        {
+            vUnspent.push_back(unspentOnChain);
+            setTxUnspent.insert(unspentOnChain);
+            nCount++;
+        }
+    }
+
+    std::vector<CTxUnspent> vTxPoolUnspent;
+    txPoolView.ListUnspent(dest, setTxUnspent, (nMax != 0) ? (nMax - nCount) : nMax, vTxPoolUnspent);
+    vUnspent.insert(vUnspent.end(), vTxPoolUnspent.begin(), vTxPoolUnspent.end());
 }
 
 bool CTxPool::FilterTx(const uint256& hashFork, CTxFilter& filter)
@@ -836,13 +920,12 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
     CTxPoolView viewInvolvedTx;
     CTxPoolView& txView = mapPoolView[update.hashFork];
 
-    //int nHeight = update.nLastBlockHeight - update.vBlockAddNew.size() + 1;
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockAddNew))
     {
         int nBlockHeight = block.GetBlockHeight();
         if (block.txMint.nAmount != 0)
         {
-            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight /*nHeight*/));
+            change.vTxAddNew.push_back(CAssembledTx(block.txMint, nBlockHeight));
         }
         for (std::size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -867,21 +950,17 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
                     {
                         txView.InvalidateSpent(txin.prevout, viewInvolvedTx);
                     }
-                    change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight /*nHeight*/, txContxt.destIn, txContxt.GetValueIn()));
+                    change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight, txContxt.destIn, txContxt.GetValueIn()));
                 }
             }
             else
             {
-                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight /*nHeight*/));
+                change.mapTxUpdate.insert(make_pair(txid, nBlockHeight));
             }
         }
-        //nHeight++;
     }
 
     vector<pair<uint256, vector<CTxIn>>> vTxRemove;
-    //std::vector<CBlockEx> vBlockRemove = update.vBlockRemove;
-    //std::reverse(vBlockRemove.begin(), vBlockRemove.end());
-    //for (const CBlockEx& block : vBlockRemove)
     for (const CBlockEx& block : boost::adaptors::reverse(update.vBlockRemove))
     {
         for (int i = 0; i < block.vtx.size(); ++i)
@@ -946,13 +1025,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
 
     std::vector<CTransaction> vtx;
     int64 nTotalFee = 0;
-    const CBlockEx& lastBlockEx = update.vBlockAddNew[0];
-    ArrangeBlockTx(update.hashFork, lastBlockEx.GetBlockTime(), lastBlockEx.GetHash(), MAX_BLOCK_SIZE, vtx, nTotalFee, lastBlockEx.GetBlockHeight() + 1);
+    ArrangeBlockTx(update.hashFork, update.nLastBlockTime, update.hashLastBlock, MAX_BLOCK_SIZE, vtx, nTotalFee, update.nLastBlockHeight + 1);
 
     auto& cache = mapTxCache[update.hashFork];
-    cache.AddNew(lastBlockEx.GetHash(), vtx);
+    cache.AddNew(update.hashLastBlock, vtx);
 
-    mapPoolView[update.hashFork].SetLastBlock(lastBlockEx.GetHash(), lastBlockEx.GetBlockTime());
+    mapPoolView[update.hashFork].SetLastBlock(update.hashLastBlock, update.nLastBlockTime);
+
     return true;
 }
 

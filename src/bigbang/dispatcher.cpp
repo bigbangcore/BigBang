@@ -180,7 +180,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
     if (!block.IsOrigin())
     {
         err = pBlockChain->AddNewBlock(block, updateBlockChain);
-        if (err == OK && !block.IsVacant())
+        if (err == OK)
         {
             if (!nNonce)
             {
@@ -224,7 +224,7 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
         return ERR_SYS_DATABASE_ERROR;
     }
 
-    if (!block.IsOrigin() && !block.IsVacant())
+    if (!block.IsOrigin() && (!block.IsVacant() || pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight())))
     {
         pNetChannel->BroadcastBlockInv(updateBlockChain.hashFork, block.GetHash());
         pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
@@ -337,6 +337,20 @@ void CDispatcher::SetConsensus(const CAgreementBlock& agreeBlock)
     pNetChannel->SubmitCachePowBlock(consParam);
 }
 
+void CDispatcher::CheckAllSubForkLastBlock()
+{
+    map<uint256, CForkStatus> mapForkStatus;
+    pBlockChain->GetForkStatus(mapForkStatus);
+    for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
+    {
+        const uint256& hashFork = it->first;
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash() && pForkManager->IsAllowed(hashFork))
+        {
+            CheckSubForkLastBlock(hashFork);
+        }
+    }
+}
+
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const CTxSetChange& changeTxSet, const uint64& nNonce)
 {
     if (!strCmd.empty())
@@ -403,7 +417,10 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         pBlockMaker->PostEvent(pBlockMakerUpdate);
     }
 
-    SyncForkHeight(updateBlockChain.nLastBlockHeight);
+    if (!pCoreProtocol->IsRefVacantHeight(updateBlockChain.nLastBlockHeight - 1))
+    {
+        SyncForkHeight(updateBlockChain.nLastBlockHeight);
+    }
 
     if (NODE_CAT_DPOSNODE == nNodeCat && !updateBlockChain.vBlockRemove.empty())
     {
@@ -494,6 +511,46 @@ bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
     return true;
 }
 
+void CDispatcher::CheckSubForkLastBlock(const uint256& hashFork)
+{
+    CBlockChainUpdate updateBlockChain;
+    if (pBlockChain->CheckForkValidLast(hashFork, updateBlockChain) && !updateBlockChain.IsNull())
+    {
+        CTxSetChange changeTxSet;
+        if (!pTxPool->SynchronizeBlockChain(updateBlockChain, changeTxSet))
+        {
+            StdError("CDispatcher", "CheckSubForkLastBlock: TxPool SynchronizeBlockChain fail, last block: %s", updateBlockChain.hashLastBlock.GetHex().c_str());
+        }
+
+        if (!pWallet->SynchronizeTxSet(changeTxSet))
+        {
+            StdError("CDispatcher", "CheckSubForkLastBlock: Wallet SynchronizeTxSet fail, last block: %s", updateBlockChain.hashLastBlock.GetHex().c_str());
+        }
+
+        for (auto& block : updateBlockChain.vBlockAddNew)
+        {
+            if (!block.IsOrigin() && (!block.IsVacant() || pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight())))
+            {
+                pNetChannel->BroadcastBlockInv(updateBlockChain.hashFork, block.GetHash());
+                pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
+            }
+        }
+
+        pService->NotifyBlockChainUpdate(updateBlockChain);
+
+        vector<uint256> vActive, vDeactive;
+        pForkManager->ForkUpdate(updateBlockChain, vActive, vDeactive);
+        for (const uint256 hashFork : vActive)
+        {
+            ActivateFork(hashFork, 0);
+        }
+        for (const uint256 hashFork : vDeactive)
+        {
+            pNetChannel->UnsubscribeFork(hashFork);
+        }
+    }
+}
+
 void CDispatcher::SyncForkHeight(int nPrimaryHeight)
 {
     map<uint256, CForkStatus> mapForkStatus;
@@ -528,10 +585,12 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
                 block.nType = CBlock::BLOCK_VACANT;
                 block.hashPrev = hashPrev;
                 block.nTimeStamp = vTimeStamp[nPrimaryHeight - nHeight];
-                if (AddNewBlock(block) != OK)
+
+                Errno err = AddNewBlock(block);
+                if (err != OK && err != ERR_ALREADY_HAVE)
                 {
-                    Log("subfork: add vacant failed fork[%s] on height[%d] lastheight[%d]",
-                        hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
+                    Log("subfork: add vacant failed errno[%d] err[%s] fork[%s] on height[%d] lastheight[%d]",
+                        err, ErrorString(err), hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
                     break;
                 }
                 Log("subfork: add vacant succeeded fork[%s] on height[%d] with lastheight[%d]",

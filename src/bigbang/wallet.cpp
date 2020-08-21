@@ -202,11 +202,11 @@ bool CWallet::HandleInvoke()
         return false;
     }
 
-    if (!InspectWalletTx(StorageConfig()->nCheckDepth))
+    /*if (!InspectWalletTx(StorageConfig()->nCheckDepth))
     {
         Log("Failed to inspect wallet transactions");
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -637,7 +637,16 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     }
     if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
     {
-        CTemplatePtr tempPtr = GetTemplate(tid);
+        CTemplatePtr tempPtr = nullptr;
+        if (!vchSendToData.empty())
+        {
+            tempPtr = CTemplate::Import(vchSendToData);
+        }
+        if (tempPtr == nullptr || tempPtr->GetTemplateId() != tid)
+        {
+            tempPtr = GetTemplate(tid);
+        }
+
         if (tempPtr != nullptr)
         {
             auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(tempPtr);
@@ -655,14 +664,46 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     {
         vchSig = move(tx.vchSig);
     }
+    /*bool fDestInRecorded = CTemplate::IsDestInRecorded(tx.sendTo);
+    if (!tx.vchSig.empty())
+    {
+        if (fDestInRecorded)
+        {
+            CDestination preDestIn;
+            if (!CSendToRecordedTemplate::ParseDestIn(tx.vchSig, preDestIn, vchSig) || preDestIn != destIn)
+            {
+                StdError("CWallet", "SignTransaction: ParseDestIn fail, destIn: %s, txid: %s",
+                         destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+        }
+        else
+        {
+            vchSig = move(tx.vchSig);
+        }
+    }*/
+    if (fDestInRecorded && !tx.vchSig.empty())
+    {
+        CDestination sendToDelegateTmp;
+        CDestination sendToOwnerTmp;
+        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTmp, sendToOwnerTmp, vchSig))
+        {
+            Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
 
     set<crypto::CPubKey> setSignedKey;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
         if (!SignDestination(destIn, tx, tx.GetSignatureHash(), vchSig, nForkHeight, setSignedKey, fCompleted))
         {
-            StdError("CWallet", "SignTransaction: SignDestination fail, destIn: %s, txid: %s",
-                     destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
+            Error("SignTransaction: SignDestination fail, destIn: %s, txid: %s",
+                  destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
             return false;
         }
     }
@@ -672,7 +713,6 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     if (fDestInRecorded)
     {
         CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
-        //CSendToRecordedTemplate::RecordDestIn(destDelegate, destOwner, vchSig, tx.vchSig);
     }
     else
     {
@@ -691,6 +731,7 @@ bool CWallet::ArrangeInputs(const CDestination& destIn, const uint256& hashFork,
     if (CTemplate::IsLockedCoin(destIn))
     {
         // TODO: No redemption temporarily
+
         return false;
         // CTemplatePtr ptr = GetTemplate(destIn.GetTemplateId());
         // if (!ptr)
@@ -885,7 +926,7 @@ bool CWallet::UpdateTx(const uint256& hashFork, const CAssembledTx& tx)
 
 bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
 {
-    StdTrace("CWallet", "LoadTxUnspent: txid: %s", wtx.txid.GetHex().c_str());
+    //StdTrace("CWallet", "LoadTxUnspent: txid: %s", wtx.txid.GetHex().c_str());
     std::shared_ptr<CWalletTx> spWalletTx(new CWalletTx(wtx));
     mapWalletTx.insert(make_pair(wtx.txid, spWalletTx));
 
@@ -921,7 +962,7 @@ bool CWallet::LoadTxUnspent(const CWalletTx& wtx)
 
 bool CWallet::LoadTxSpent(const CWalletTx& wtx)
 {
-    StdTrace("CWallet", "LoadTxSpent: txid: %s", wtx.txid.GetHex().c_str());
+    //StdTrace("CWallet", "LoadTxSpent: txid: %s", wtx.txid.GetHex().c_str());
     vector<uint256> vFork;
     GetWalletTxFork(wtx.hashFork, wtx.nBlockHeight, vFork);
     if (wtx.IsFromMe())

@@ -48,6 +48,7 @@ set(src
     forkmanager.cpp     forkmanager.h
     mqcluster.cpp       mqcluster.h
     datastat.cpp        datastat.h
+    recovery.cpp        recovery.h
     checkrepair.cpp     checkrepair.h
     event.h
     base.h

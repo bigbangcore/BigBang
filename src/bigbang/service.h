@@ -46,7 +46,7 @@ public:
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) override;
     bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) override;
     void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
-    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
+    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight, uint256& hashBlock, CDestination& destIn) override;
     Errno SendTransaction(CTransaction& tx) override;
     bool RemovePendingTx(const uint256& txid) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
@@ -87,7 +87,6 @@ public:
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                      crypto::CKey& keyMint, uint256& hashBlock) override;
     /* Util */
-    bool GetTxSender(const CTransaction& tx, CAddress& sender) override;
     bool AddSuperNode(const storage::CSuperNode& node) override;
     bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) override;
 
@@ -96,9 +95,6 @@ protected:
     void HandleDeinitialize() override;
     bool HandleInvoke() override;
     void HandleHalt() override;
-
-private:
-    CAddress GetBackSender(const CTransaction& tx);
 
 protected:
     ICoreProtocol* pCoreProtocol;

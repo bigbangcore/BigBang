@@ -259,7 +259,7 @@ public:
     void SubscribeFork(const uint256& hashFork, const uint64& nNonce) override;
     void UnsubscribeFork(const uint256& hashFork) override;
     bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
-    bool IsLocalCachePowBlock(int nHeight) override;
+    bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
     void DispatchGetBizForksEvent(const vector<uint256>& bizForks) override;
     void BroadcastBizForks(const uint32& nIP, const vector<uint256>& bizForks) override;
@@ -269,7 +269,8 @@ protected:
     {
         MAX_GETBLOCKS_COUNT = 128,
         GET_BLOCKS_INTERVAL_DEF_TIME = 120,
-        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600
+        GET_BLOCKS_INTERVAL_EQUAL_TIME = 600,
+        MAX_TXINV_INTERVAL_TIME = 180
     };
     enum
     {
@@ -322,8 +323,7 @@ protected:
     void AddNewTx(const uint256& hashFork, const uint256& txid, CSchedule& sched,
                   std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void AddRefNextBlock(const std::vector<std::pair<uint256, uint256>>& vRefNextBlock);
-    void PostAddNew(const uint256& hashFork, CSchedule& sched,
-                    std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
+    void PostAddNew(const uint256& hashFork, std::set<uint64>& setSchedPeer, std::set<uint64>& setMisbehavePeer);
     void SetPeerSyncStatus(uint64 nNonce, const uint256& hashFork, bool fSync);
     void PushTxTimerFunc(uint32 nTimerId);
     bool PushTxInv(const uint256& hashFork);
@@ -331,6 +331,7 @@ protected:
     bool CheckPrevBlock(const uint256& hash, CSchedule& sched, uint256& hashFirst, uint256& hashPrev);
     void InnerBroadcastBlockInv(const uint256& hashFork, const uint256& hashBlock);
     void InnerSubmitCachePowBlock();
+    void GetNextRefBlock(const uint256& hashRefBlock, std::vector<std::pair<uint256, uint256>>& vNext);
 
     const CBasicConfig* Config()
     {

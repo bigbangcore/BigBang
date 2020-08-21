@@ -54,6 +54,7 @@ public:
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool IsDposHeight(int height) = 0;
+    virtual bool DPoSConsensusCheckRepeated(int height) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight)
@@ -61,6 +62,8 @@ public:
     virtual int64 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) = 0;
+    virtual bool IsRefVacantHeight(uint32 nBlockHeight) = 0;
+    virtual int GetRefVacantHeight() = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -86,6 +89,10 @@ public:
             nHeight = point.nHeight;
             nBlockHash = point.nBlockHash;
             return *this;
+        }
+        bool IsNull() const
+        {
+            return (nHeight == -1 || !nBlockHash);
         }
 
     public:
@@ -114,6 +121,7 @@ public:
     virtual bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) = 0;
     virtual bool Exists(const uint256& hashBlock) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx) = 0;
+    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,
                               std::vector<CTxOut>& vOutput)
@@ -136,12 +144,14 @@ public:
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
 
     /////////////    CheckPoints    /////////////////////
-    virtual bool HasCheckPoints() const = 0;
-    virtual bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) = 0;
-    virtual std::vector<CCheckPoint> CheckPoints() const = 0;
-    virtual CCheckPoint LatestCheckPoint() const = 0;
-    virtual bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) = 0;
-    virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
+    virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
+    virtual bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) = 0;
+    virtual std::vector<CCheckPoint> CheckPoints(const uint256& hashFork) const = 0;
+    virtual CCheckPoint LatestCheckPoint(const uint256& hashFork) const = 0;
+    virtual CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const = 0;
+    virtual bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) = 0;
+    virtual bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) = 0;
+    virtual bool IsSameBranch(const uint256& hashFork, const CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
@@ -156,6 +166,10 @@ public:
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
     virtual bool ListActiveFork(std::vector<uint256>& forks) = 0;
+    virtual bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) = 0;
+    virtual bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) = 0;
+    virtual bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) = 0;
+    virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     const CBasicConfig* Config()
     {
@@ -178,8 +192,11 @@ public:
     virtual Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) = 0;
     virtual void Pop(const uint256& txid) = 0;
     virtual bool Get(const uint256& txid, CTransaction& tx) const = 0;
+    virtual bool Get(const uint256& txid, CAssembledTx& tx) const = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) = 0;
+    virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnpsentOnChain, std::vector<CTxUnspent>& vUnspent) = 0;
+    virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const std::map<CDestination, std::vector<CTxUnspent>>& mapUnspentOnChain, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool FilterTx(const uint256& hashFork, CTxFilter& filter) = 0;
     virtual bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                                 std::vector<CTransaction>& vtx, int64& nTotalTxFee)
@@ -306,6 +323,7 @@ public:
                                const std::vector<unsigned char>& vchPublish)
         = 0;
     virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
+    virtual void CheckAllSubForkLastBlock() = 0;
 };
 
 class IService : public xengine::IBase
@@ -341,7 +359,7 @@ public:
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block, uint256& hashFork, int& nHeight) = 0;
     virtual bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, int64& nTime) = 0;
     virtual void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
-    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
+    virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight, uint256& hashBlock, CDestination& destIn) = 0;
     virtual Errno SendTransaction(CTransaction& tx) = 0;
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
@@ -387,7 +405,6 @@ public:
                              crypto::CKey& keyMint, uint256& hashBlock)
         = 0;
     /* Util */
-    virtual bool GetTxSender(const CTransaction& tx, CAddress& sender) = 0;
     virtual bool AddSuperNode(const storage::CSuperNode& node) = 0;
     virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
 };
@@ -403,6 +420,17 @@ public:
     virtual bool AddP2pSynTxSynStatData(const uint256& hashFork, bool fRecv) = 0;
     virtual bool GetBlockMakerStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemBlockMaker>& vStatData) = 0;
     virtual bool GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemP2pSyn>& vStatData) = 0;
+};
+
+class IRecovery : public xengine::IBase
+{
+public:
+    IRecovery()
+      : IBase("recovery") {}
+    const CStorageConfig* StorageConfig()
+    {
+        return dynamic_cast<const CStorageConfig*>(xengine::IBase::Config());
+    }
 };
 
 } // namespace bigbang

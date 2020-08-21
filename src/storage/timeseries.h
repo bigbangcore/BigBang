@@ -350,6 +350,35 @@ public:
         }
         return true;
     }
+    size_t GetSize(const uint32 nFile = -1)
+    {
+        uint32 nFileNo = (nFile == -1) ? 1 : nFile;
+        size_t nOffset = 0;
+        std::string pathFile;
+        while (GetFilePath(nFileNo, pathFile))
+        {
+            try
+            {
+                xengine::CFileStream fs(pathFile.c_str());
+                nOffset += fs.GetSize();
+            }
+            catch (std::exception& e)
+            {
+                xengine::StdError("TimeSeriesCached", "GetSize: catch error, nFile: %d, msg: %s", nFile, e.what());
+                break;
+            }
+
+            if (nFile == -1)
+            {
+                nFileNo++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return nOffset;
+    }
 
 protected:
     void ResetCache();

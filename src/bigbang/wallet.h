@@ -31,18 +31,7 @@ public:
             {
                 nTotalValue += out.GetAmount();
                 out.AddRef();
-                StdTrace("CWalletCoins", "Push: insert success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
             }
-            else
-            {
-                StdTrace("CWalletCoins", "Push: insert fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
-            }
-        }
-        else
-        {
-            StdTrace("CWalletCoins", "Push: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
     void Pop(const CWalletTxOut& out)
@@ -53,18 +42,7 @@ public:
             {
                 nTotalValue -= out.GetAmount();
                 out.Release();
-                StdTrace("CWalletCoins", "Pop: erase success, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
             }
-            else
-            {
-                StdTrace("CWalletCoins", "Pop: erase fail, TotalValue: %ld, RefCount: %d, utxo: [%d] %s",
-                         nTotalValue, out.spWalletTx->GetRefCount(), out.n, out.spWalletTx->txid.GetHex().c_str());
-            }
-        }
-        else
-        {
-            StdTrace("CWalletCoins", "Pop: out is null, utxo: [%d] %s", out.n, out.spWalletTx->txid.GetHex().c_str());
         }
     }
 

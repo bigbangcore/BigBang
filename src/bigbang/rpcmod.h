@@ -128,6 +128,7 @@ private:
     rpc::CRPCResultPtr RPCGetTemplateAddress(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetTxFee(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCListUnspent(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCEnrollSuperNode(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCListEnrollment(rpc::CRPCParamPtr param);

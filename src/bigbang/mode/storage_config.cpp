@@ -28,6 +28,12 @@ bool CStorageConfig::PostLoad()
         return true;
     }
 
+    if (boost::filesystem::path(strRecoveryDir) == pathRoot / "block")
+    {
+        printf("recoverydir must be not equal datadir/block!\n");
+        return false;
+    }
+
     return true;
 }
 

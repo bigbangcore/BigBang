@@ -33,12 +33,15 @@ public:
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, int& nBits, int64& nReward) override;
     virtual bool IsDposHeight(int height) override;
+    virtual bool DPoSConsensusCheckRepeated(int height) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
     virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
                                     const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight) override;
     virtual int64 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) override;
+    virtual bool IsRefVacantHeight(uint32 nBlockHeight) override;
+    virtual int GetRefVacantHeight() override;
 
 protected:
     bool HandleInitialize() override;
@@ -46,6 +49,8 @@ protected:
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
     bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
+    Errno VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
+    Errno VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
 
 protected:
     uint256 hashGenesisBlock;
@@ -86,6 +91,8 @@ public:
 
 public:
     bool IsDposHeight(int height);
+    bool DPoSConsensusCheckRepeated(int height);
+    bool IsRefVacantHeight(int height);
 };
 
 } // namespace bigbang

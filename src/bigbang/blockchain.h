@@ -7,6 +7,7 @@
 
 #include <map>
 #include <uint256.h>
+#include <utility>
 
 #include "base.h"
 #include "blockbase.h"
@@ -36,6 +37,7 @@ public:
     bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) override;
     bool Exists(const uint256& hashBlock) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx) override;
+    bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
     bool ExistsTx(const uint256& txid) override;
     bool GetTxLocation(const uint256& txid, uint256& hashFork, int& nHeight) override;
     bool GetTxUnspent(const uint256& hashFork, const std::vector<CTxIn>& vInput,
@@ -68,14 +70,22 @@ public:
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
     bool ListActiveFork(std::vector<uint256>& forks) override;
+    bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) override;
+    bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) override;
+    bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) override;
+    bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) override;
 
     /////////////    CheckPoints    /////////////////////
-    bool HasCheckPoints() const override;
-    bool GetCheckPointByHeight(int nHeight, CCheckPoint& point) override;
-    std::vector<CCheckPoint> CheckPoints() const override;
-    CCheckPoint LatestCheckPoint() const override;
-    bool VerifyCheckPoint(int nHeight, const uint256& nBlockHash) override;
-    bool FindPreviousCheckPointBlock(CBlock& block) override;
+    typedef std::map<int, CCheckPoint> MapCheckPointsType;
+
+    bool HasCheckPoints(const uint256& hashFork) const override;
+    bool GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point) override;
+    std::vector<IBlockChain::CCheckPoint> CheckPoints(const uint256& hashFork) const override;
+    CCheckPoint LatestCheckPoint(const uint256& hashFork) const override;
+    CCheckPoint UpperBoundCheckPoint(const uint256& hashFork, int nHeight) const override;
+    bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) override;
+    bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
+    bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
 protected:
     bool HandleInitialize() override;
@@ -96,17 +106,19 @@ protected:
     bool VerifyBlockCertTx(const CBlock& block);
 
     void InitCheckPoints();
+    void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
 
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
     ITxPool* pTxPool;
+    IForkManager* pForkManager;
+
     storage::CBlockBase cntrBlock;
     xengine::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
-    std::map<int, CCheckPoint> mapCheckPoints;
-    std::vector<CCheckPoint> vecCheckPoints;
+    std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
 };
 
 } // namespace bigbang

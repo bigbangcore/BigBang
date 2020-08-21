@@ -14,6 +14,9 @@
 
 namespace xengine
 {
+
+//#define BIGBANG_TESTNET
+
 extern bool STD_DEBUG;
 
 void SetThreadName(const char* name);
@@ -27,6 +30,11 @@ inline int64 GetTime()
     using namespace boost::posix_time;
     static ptime epoch(boost::gregorian::date(1970, 1, 1));
     return int64((second_clock::universal_time() - epoch).total_seconds());
+}
+
+inline bool IsDoubleEqual(double a, double b)
+{
+    return std::abs(a - b) < std::abs(std::min(a, b)) * std::numeric_limits<double>::epsilon();
 }
 
 inline int64 GetLocalTimeSeconds()

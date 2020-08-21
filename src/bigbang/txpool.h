@@ -249,12 +249,35 @@ public:
         hashLastBlock = hash;
         nLastBlockTime = nTime;
     }
+    void ListUnspent(const CDestination& dest, const std::set<CTxUnspent>& setTxUnspent, uint32 nMax, std::vector<CTxUnspent>& vTxUnspent) const
+    {
+        uint32 nCount = 0;
+        for (const auto& kv : mapSpent)
+        {
+            const CTxOutPoint& outpoint = kv.first;
+            const CSpent& spent = kv.second;
+            CTxOut out;
+            if (nMax != 0 && nCount >= nMax)
+            {
+                break;
+            }
+            if (!spent.IsSpent() && GetUnspent(outpoint, out) && out.destTo == dest)
+            {
+                CTxUnspent txUnSpent(outpoint, out);
+                if (setTxUnspent.count(txUnSpent) == 0)
+                {
+                    vTxUnspent.push_back(txUnSpent);
+                    nCount++;
+                }
+            }
+        }
+    }
     void InvalidateSpent(const CTxOutPoint& out, CTxPoolView& viewInvolvedTx);
     void ArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::map<CDestination, int>& mapVoteCert,
                         std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
 private:
-    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks);
+    void GetAllPrevTxLink(const CPooledTxLink& link, std::vector<CPooledTxLink>& prevLinks, CPooledCertTxLinkSet& setCertTxLink);
     bool AddArrangeBlockTx(std::vector<CTransaction>& vtx, int64& nTotalTxFee, int64 nBlockTime, std::size_t nMaxSize, std::size_t& nTotalSize,
                            std::map<CDestination, int>& mapVoteCert, std::set<uint256>& setUnTx, CPooledTx* ptx, std::map<CDestination, int64>& mapVote, int64 nMinEnrollAmount, bool fIsDposHeight);
 
@@ -274,7 +297,7 @@ public:
       : nHeightInterval(cache.nHeightInterval), mapCache(cache.mapCache) {}
     CTxCache& operator=(const CTxCache& cache)
     {
-        if(this != &cache)
+        if (this != &cache)
         {
             this->nHeightInterval = cache.nHeightInterval;
             this->mapCache = cache.mapCache;
@@ -366,8 +389,11 @@ public:
     Errno Push(const CTransaction& tx, uint256& hashFork, CDestination& destIn, int64& nValueIn) override;
     void Pop(const uint256& txid) override;
     bool Get(const uint256& txid, CTransaction& tx) const override;
+    bool Get(const uint256& txid, CAssembledTx& tx) const override;
     void ListTx(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) override;
     void ListTx(const uint256& hashFork, std::vector<uint256>& vTxPool) override;
+    bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent) override;
+    bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, const std::map<CDestination, std::vector<CTxUnspent>>& mapUnspentOnChain, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
     bool FilterTx(const uint256& hashFork, CTxFilter& filter) override;
     bool ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, int64 nBlockTime, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee) override;
@@ -394,6 +420,8 @@ protected:
     }
     void ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                         std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight);
+
+    void ListUnspent(const CTxPoolView& txPoolView, const CDestination& dest, uint32 nMax, const std::vector<CTxUnspent>& vUnspentOnChain, std::vector<CTxUnspent>& vUnspent);
 
 protected:
     storage::CTxPoolData datTxPool;

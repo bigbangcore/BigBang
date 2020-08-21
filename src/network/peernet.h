@@ -26,7 +26,7 @@ public:
     virtual void SubscribeFork(const uint256& hashFork, const uint64& nNonce) = 0;
     virtual void UnsubscribeFork(const uint256& hashFork) = 0;
     virtual bool SubmitCachePowBlock(const CConsensusParam& consParam) = 0;
-    virtual bool IsLocalCachePowBlock(int nHeight) = 0;
+    virtual bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) = 0;
     virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
     virtual void DispatchGetBizForksEvent(const std::vector<uint256>& bizForks) = 0;
     virtual void BroadcastBizForks(const uint32& nIP, const std::vector<uint256>& bizForks) = 0;

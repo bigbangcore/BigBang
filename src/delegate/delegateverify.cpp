@@ -22,7 +22,7 @@ CDelegateVerify::CDelegateVerify(const map<CDestination, size_t>& mapWeight,
 }
 
 bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,
-                                  size_t& nWeight, map<CDestination, size_t>& mapBallot)
+                                  size_t& nWeight, map<CDestination, size_t>& mapBallot, bool fCheckRepeated)
 {
     uint256 nAgreementParse;
     try
@@ -39,8 +39,7 @@ bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256
         for (int i = 0; i < vPublish.size(); i++)
         {
             const CDelegateData& delegateData = vPublish[i];
-            if (!witness.IsCollectCompleted()
-                && (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare)))
+            if (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated))
             {
                 return false;
             }

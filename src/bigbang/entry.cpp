@@ -4,6 +4,9 @@
 
 #include "entry.h"
 
+#if !defined(WIN32) && !defined(__APPLE__)
+#include <malloc.h>
+#endif
 #include <map>
 #include <string>
 
@@ -21,6 +24,7 @@
 #include "netchn.h"
 #include "network.h"
 #include "purger.h"
+#include "recovery.h"
 #include "rpcclient.h"
 #include "rpcmod.h"
 #include "service.h"
@@ -192,6 +196,10 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         StdLog("Bigbang", "Check and repair data complete.");
     }
 
+#if !defined(WIN32) && !defined(__APPLE__)
+    StdLog("Bigbang", "malloc_trim: %d.", malloc_trim(0));
+#endif
+
     // docker
     if (!docker.Initialize(config.GetConfig(), &log))
     {
@@ -199,6 +207,18 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         return false;
     }
     StdLog("BigbangStartup", "Initialize: bigbang version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
+
+    // hard fork version
+    if (config.GetConfig()->fTestNet)
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_TESTNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_TESTNET;
+    }
+    else
+    {
+        HEIGHT_HASH_MULTI_SIGNER = HEIGHT_HASH_MULTI_SIGNER_MAINNET;
+        HEIGHT_HASH_TX_DATA = HEIGHT_HASH_TX_DATA_MAINNET;
+    }
 
     // modules
     return InitializeModules(config.GetModeType());
@@ -397,6 +417,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         case EModuleType::MQCLUSTER:
         {
             if (!AttachModule(new CMQCluster(config.GetConfig()->nCatOfNode)))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::RECOVERY:
+        {
+            if (!AttachModule(new CRecovery()))
             {
                 return false;
             }

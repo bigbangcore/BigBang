@@ -25,9 +25,10 @@ static const int64 MAX_CLOCK_DRIFT = 80;
 static const int PROOF_OF_WORK_BITS_LOWER_LIMIT = 8;
 static const int PROOF_OF_WORK_BITS_UPPER_LIMIT = 200;
 #ifndef BBCP_SET_TOKEN_DISTRIBUTION
-    static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
+//#ifdef BIGBANG_TESTNET
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 10;
 #else
-    static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
+static const int PROOF_OF_WORK_BITS_INIT_MAINNET = 32;
 #endif
 static const int PROOF_OF_WORK_BITS_INIT_TESTNET = 10;
 static const int PROOF_OF_WORK_ADJUST_COUNT = 8;
@@ -38,14 +39,29 @@ static const int PROOF_OF_WORK_TARGET_OF_DPOS_LOWER = 40;
 
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 10000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
+#ifdef BIGBANG_TESTNET
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 300000000 * COIN;
+#else
+static const int64 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT = 30000000 * COIN;
+#endif
 static const int64 DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT = 690000000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = 1000 * COIN;
 static const int64 DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES = 1000000 * COIN;
 
 // dpos begin height
+#ifdef BIGBANG_TESTNET
 static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 1;
+#else
+static const uint32 DELEGATE_PROOF_OF_STAKE_HEIGHT = 243800;
+#endif
 
-#ifndef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
+static const uint32 REF_VACANT_HEIGHT = 20;
+#else
+static const uint32 REF_VACANT_HEIGHT = 368638;
+#endif
+
+#ifdef BIGBANG_TESTNET
 static const int64 BBCP_TOKEN_INIT = 300000000;
 static const int64 BBCP_BASE_REWARD_TOKEN = 20;
 static const int64 BBCP_INIT_REWARD_TOKEN = 20;
@@ -95,6 +111,13 @@ static const int64 BBCP_REWARD_TOKEN[BBCP_TOKEN_SET_COUNT] = {
     73
 };
 static const int64 BBCP_INIT_REWARD_TOKEN = BBCP_REWARD_TOKEN[0];
+#endif
+
+// Fix mpvss bug begin height
+#ifdef BIGBANG_TESTNET
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 0;
+#else
+static const int32 DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED = 340935;
 #endif
 
 namespace bigbang
@@ -322,13 +345,27 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     // validate vacant block
     if (block.nType == CBlock::BLOCK_VACANT)
     {
-        return ValidateVacantBlock(block);
+        if (!IsRefVacantHeight(block.GetBlockHeight()))
+        {
+            return ValidateVacantBlock(block);
+        }
+        if (block.txMint.nAmount != 0 || block.txMint.nTxFee != 0 || block.txMint.nType != CTransaction::TX_STAKE
+            || block.txMint.nTimeStamp == 0 || block.txMint.sendTo.IsNull())
+        {
+            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx, nAmount: %lu, nTxFee: %lu, nType: %d, nTimeStamp: %d, sendTo: %s",
+                         block.txMint.nAmount, block.txMint.nTxFee, block.txMint.nType, block.txMint.nTimeStamp,
+                         (block.txMint.sendTo.IsNull() ? "null" : CAddress(block.txMint.sendTo).ToString().c_str()));
+        }
+        if (block.hashMerkle != 0 || !block.vtx.empty())
+        {
+            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "vacant block vtx is not empty");
+        }
     }
 
     // Validate mint tx
     if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
+        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx, tx type: %d", block.txMint.nType);
     }
 
     size_t nBlockSize = GetSerializeSize(block);
@@ -452,7 +489,8 @@ Errno CCoreProtocol::VerifyProofOfWork(const CBlock& block, const CBlockIndex* p
 
     if (hash > hashTarget)
     {
-        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error.");
+        return DEBUG(ERR_BLOCK_PROOF_OF_WORK_INVALID, "hash error: proof[%s] vs. target[%s] with bits[%d]",
+                     hash.ToString().c_str(), hashTarget.ToString().c_str(), nBits);
     }
 
     return OK;
@@ -466,10 +504,13 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range. block time %d is not equal %u", block.GetBlockTime(), nTime);
     }
-
     if (block.txMint.sendTo != agreement.vBallot[0])
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
+    }
+    if (block.txMint.nTimeStamp != block.GetBlockTime())
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint timestamp error.");
     }
     return OK;
 }
@@ -477,25 +518,29 @@ Errno CCoreProtocol::VerifyDelegatedProofOfStake(const CBlock& block, const CBlo
 Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
                                       const CDelegateAgreement& agreement)
 {
-    if (block.GetBlockTime() < pIndexPrev->GetBlockTime())
+    if (block.GetBlockTime() <= pIndexPrev->GetBlockTime())
     {
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
     }
 
-    if (!block.IsExtended())
+    if (block.IsSubsidiary())
     {
         if (block.GetBlockTime() != pIndexRef->GetBlockTime())
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Subsidiary timestamp out of range.");
         }
     }
     else
     {
         if (block.GetBlockTime() <= pIndexRef->GetBlockTime()
             || block.GetBlockTime() >= pIndexRef->GetBlockTime() + BLOCK_TARGET_SPACING
-            || block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING)
+            /*|| block.GetBlockTime() != pIndexPrev->GetBlockTime() + EXTENDED_BLOCK_SPACING*/)
         {
-            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Timestamp out of range.");
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Extended timestamp out of range.");
+        }
+        if (((block.GetBlockTime() - pIndexPrev->GetBlockTime()) % EXTENDED_BLOCK_SPACING) != 0)
+        {
+            return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "Extended timestamp error.");
         }
     }
 
@@ -504,6 +549,10 @@ Errno CCoreProtocol::VerifySubsidiary(const CBlock& block, const CBlockIndex* pI
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint sendTo error.");
     }
 
+    if (block.txMint.nTimeStamp != block.GetBlockTime())
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "txMint timestamp error.");
+    }
     return OK;
 }
 
@@ -538,6 +587,22 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        if (VerifyCertTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
+        }
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
+        }
     }
 
     // v1.0 function
@@ -650,6 +715,22 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    if (tx.nType == CTransaction::TX_CERT)
+    {
+        if (VerifyCertTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid cert tx");
+        }
+    }
+
+    if (destIn.GetTemplateId().GetType() == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+    {
+        if (VerifyVoteTx(tx, destIn, fork) != OK)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid vote tx");
+        }
     }
 
     // v1.0 function
@@ -917,9 +998,16 @@ bool CCoreProtocol::IsDposHeight(int height)
     return true;
 }
 
+bool CCoreProtocol::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+}
+
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
-#ifdef BBCP_SET_TOKEN_DISTRIBUTION
+#ifdef BIGBANG_TESTNET
+    return BBCP_BASE_REWARD_TOKEN * COIN;
+#else
     int nBlockHeight = pIndexPrev->GetBlockHeight() + 1;
     for (int i = 0; i < BBCP_TOKEN_SET_COUNT; i++)
     {
@@ -929,8 +1017,6 @@ int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
         }
     }
     return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
-#else
-    return BBCP_BASE_REWARD_TOKEN * COIN;
 #endif
 }
 
@@ -1030,6 +1116,20 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
+bool CCoreProtocol::IsRefVacantHeight(uint32 nBlockHeight)
+{
+    if (nBlockHeight < REF_VACANT_HEIGHT)
+    {
+        return false;
+    }
+    return true;
+}
+
+int CCoreProtocol::GetRefVacantHeight()
+{
+    return REF_VACANT_HEIGHT;
+}
+
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
@@ -1094,9 +1194,46 @@ bool CCoreProtocol::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vc
     }
     else
     {
-        vchSigOut = move(tx.vchSig);
+        vchSigOut = tx.vchSig;
     }
     return true;
+}
+
+Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // CERT transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyCertTx CERT tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `from` address must be equal to the `to` address of cert tx
+    if (destIn != tx.sendTo)
+    {
+        Log("VerifyCertTx the `from` address is not equal the `to` address of CERT tx, from: %s, to: %s\n",
+            CAddress(destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+    // the `to` address must be delegate template address
+    if (tx.sendTo.GetTemplateId().GetType() != TEMPLATE_DELEGATE)
+    {
+        Log("VerifyCertTx the `to` address of CERT tx is not a delegate template address, to: %s\n", CAddress(tx.sendTo).ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
+}
+
+Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork)
+{
+    // VOTE transaction must be on the main chain
+    if (fork != GetGenesisBlockHash())
+    {
+        Log("VerifyVoteTx from or to vote template address tx is not on the main chain, fork: %s", fork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    return OK;
 }
 
 ///////////////////////////////
@@ -1176,6 +1313,20 @@ CProofOfWorkParam::CProofOfWorkParam(bool fTestnet)
 bool CProofOfWorkParam::IsDposHeight(int height)
 {
     if (height < nDelegateProofOfStakeHeight)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool CProofOfWorkParam::DPoSConsensusCheckRepeated(int height)
+{
+    return height >= DELEGATE_PROOF_OF_STAKE_CONSENSUS_CHECK_REPEATED;
+}
+
+bool CProofOfWorkParam::IsRefVacantHeight(int height)
+{
+    if (height < REF_VACANT_HEIGHT)
     {
         return false;
     }
