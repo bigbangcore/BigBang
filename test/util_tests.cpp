@@ -4,6 +4,7 @@
 
 #include "util.h"
 #include "profile.h"
+#include "forkcontext.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -61,9 +62,22 @@ BOOST_AUTO_TEST_CASE(common_profile)
     BOOST_CHECK(profileLoad.nMinTxFee == profile.nMinTxFee);
     BOOST_CHECK(profileLoad.nMintReward == profile.nMintReward);
     BOOST_CHECK(profileLoad.nAmount == profile.nAmount);
+
+    CForkContext forkContextWrite(uint256(), uint256(), uint256(), profile);
+    CBufStream ss;
+    ss << forkContextWrite;
+    CForkContext forkContextRead;
+    ss >> forkContextRead;
+
+    BOOST_CHECK(forkContextRead.GetProfile().strName == profile.strName);
+    BOOST_CHECK(forkContextRead.GetProfile().strSymbol == profile.strSymbol);
+    BOOST_CHECK(forkContextRead.GetProfile().nVersion == profile.nVersion);
+    BOOST_CHECK(forkContextRead.GetProfile().nMinTxFee == profile.nMinTxFee);
+    BOOST_CHECK(forkContextRead.GetProfile().nMintReward == profile.nMintReward);
+    BOOST_CHECK(forkContextRead.GetProfile().nAmount == profile.nAmount);
 }
 
-BOOST_AUTO_TEST_CASE(defil_profile)
+BOOST_AUTO_TEST_CASE(defi_profile)
 {
     CProfile profile;
     profile.strName = "BBC Test";
@@ -111,6 +125,28 @@ BOOST_AUTO_TEST_CASE(defil_profile)
     BOOST_CHECK(profileLoad.defi.nStakeMinToken == profile.defi.nStakeMinToken);
     BOOST_CHECK(profileLoad.defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
     BOOST_CHECK(profileLoad.defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
+
+    CForkContext forkContextWrite(uint256(), uint256(), uint256(), profile);
+    CBufStream ss;
+    ss << forkContextWrite;
+    CForkContext forkContextRead;
+    ss >> forkContextRead;
+
+    BOOST_CHECK(forkContextRead.GetProfile().strName == profile.strName);
+    BOOST_CHECK(forkContextRead.GetProfile().strSymbol == profile.strSymbol);
+    BOOST_CHECK(forkContextRead.GetProfile().nVersion == profile.nVersion);
+    BOOST_CHECK(forkContextRead.GetProfile().nMinTxFee == profile.nMinTxFee);
+    BOOST_CHECK(forkContextRead.GetProfile().nMintReward == profile.nMintReward);
+    BOOST_CHECK(forkContextRead.GetProfile().nAmount == profile.nAmount);
+
+    BOOST_CHECK(forkContextRead.GetProfile().nForkType == profile.nForkType);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayCycle == profile.defi.nDecayCycle);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayPercent == profile.defi.nDecayPercent);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nRewardCycle == profile.defi.nRewardCycle);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeMinToken == profile.defi.nStakeMinToken);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

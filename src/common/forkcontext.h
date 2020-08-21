@@ -31,7 +31,8 @@ public:
     uint32 nHalveCycle;
     int nJointHeight;
     CDestination destOwner;
-
+    int nForkType;
+    std::vector<unsigned char> vchDeFi;
 public:
     enum
     {
@@ -60,6 +61,11 @@ public:
         nHalveCycle = profile.nHalveCycle;
         destOwner = profile.destOwner;
         nJointHeight = profile.nJointHeight;
+        nForkType = profile.nForkType;
+        if(nForkType == FORK_TYPE_DEFI)
+        {
+            profile.defi.Save(vchDeFi);
+        }
     }
     virtual ~CForkContext() = default;
     virtual void SetNull()
@@ -78,6 +84,8 @@ public:
         strName.clear();
         strSymbol.clear();
         destOwner.SetNull();
+        nForkType = FORK_TYPE_COMMON;
+        vchDeFi.clear();
     }
     bool IsNull() const
     {
@@ -124,6 +132,14 @@ public:
         profile.nHalveCycle = nHalveCycle;
         profile.destOwner = destOwner;
         profile.nJointHeight = nJointHeight;
+        profile.nForkType = nForkType;
+        if(profile.nForkType == FORK_TYPE_DEFI)
+        {
+            CDeFiProfile defi;
+            defi.Load(vchDeFi);
+            profile.defi = defi;
+        }
+       
         return profile;
     }
 
@@ -145,6 +161,11 @@ protected:
         s.Serialize(nHalveCycle, opt);
         s.Serialize(nJointHeight, opt);
         s.Serialize(destOwner, opt);
+        s.Serialize(nForkType, opt);
+        if(nForkType == FORK_TYPE_DEFI)
+        {
+            s.Serialize(vchDeFi, opt);
+        }
     }
 };
 

@@ -64,7 +64,7 @@ public:
         return nRewardCycle == 0;
     }
 
-    void Save(std::vector<unsigned char>& vchProfile);
+    void Save(std::vector<unsigned char>& vchProfile) const;
     void Load(const std::vector<unsigned char>& vchProfile);
 };
 
@@ -82,9 +82,6 @@ public:
     CDestination destOwner;
     uint256 hashParent;
     int nJointHeight;
-    int nForkType;
-    CDeFiProfile defi;
-
     int nForkType;
     CDeFiProfile defi;
 
