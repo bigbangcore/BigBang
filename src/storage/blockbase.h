@@ -227,15 +227,33 @@ protected:
     std::map<uint32, std::map<uint256, CBlockHeightIndex>> mapHeightIndex;
 };
 
+class CInviteAddress
+{
+public:
+    CInviteAddress() {}
+    CInviteAddress(const CDestination& destIn, const CDestination& parentIn, const uint256& hashTxInviteIn)
+      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn) {}
+
+public:
+    CDestination dest;
+    CDestination parent;
+    uint256 hashTxInvite;
+    CInviteAddress* pParent;
+    std::map<CDestination, CInviteAddress*> mapSubline;
+};
+
 class CForkAddressInvite
 {
 public:
     CForkAddressInvite() {}
+    ~CForkAddressInvite();
+
+    bool UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite);
+    void UpdateParent();
 
 public:
-    const CDestination* pSelfDest;
-    CForkAddressInvite* pParent;
-    std::vector<CForkAddressInvite*> vSubline;
+    std::map<CDestination, CInviteAddress*> mapInviteAddress;
+    std::vector<CDestination> vRoot;
 };
 
 class CBlockBase
@@ -292,7 +310,7 @@ public:
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount);
     bool AddForkAddressInvite(const uint256& hashFork, CBlockView& view);
-    bool ListForkAddressInvite(const uint256& hashFork, CBlockView& view, std::map<CDestination, CForkAddressInvite>& mapAddressInvite);
+    bool ListForkAddressInvite(const uint256& hashFork, CBlockView& view, CForkAddressInvite& addrInvite);
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
     bool GetDelegatePaymentList(const uint256& block_hash, std::multimap<int64, CDestination>& mapVotes);
