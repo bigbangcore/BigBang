@@ -422,16 +422,6 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
             }
             Log("...after generated primary-dpos");
         }
-        /*
-        if (NODE_CAT_FORKNODE == nNodeCat)
-        {
-            Log("before generating subsidiary-dpos and extended...");
-
-            // create sub fork blocks
-            ProcessSubFork(profile, consParam.agreement, consParam.hashPrev, consParam.nPrevTime,
-                           consParam.nPrevHeight, consParam.nPrevMintType);
-            Log("...after generated subsidiary-dpos and extended");
-        }*/
     }
 }
 
