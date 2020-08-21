@@ -2803,8 +2803,7 @@
                 },
                 "params": {
                     "type": "forkparams",
-                    "desc": "fork params, a json object",
-                    "required": false
+                    "desc": "fork params, a json object"
                 },
                 "isolated": {
                     "type": "bool",
