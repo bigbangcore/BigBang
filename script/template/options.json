@@ -22,7 +22,7 @@
             "opt": "version",
             "default": false,
             "format": "-version",
-            "desc": "Get bigbang version"
+            "desc": "Get mkf version"
         },
         {
             "name": "fPurge",

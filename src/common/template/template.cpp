@@ -216,20 +216,6 @@ bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination
     return true;
 }
 
-bool CTemplate::IsLockedCoin(const CDestination& dest)
-{
-    if (dest.IsTemplate())
-    {
-        uint16 nType = dest.GetTemplateId().GetType();
-        const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
-        if (pTypeInfo)
-        {
-            return (dynamic_cast<CLockedCoinTemplate*>(pTypeInfo->ptr) != nullptr);
-        }
-    }
-    return false;
-}
-
 const uint16& CTemplate::GetTemplateType() const
 {
     return nType;

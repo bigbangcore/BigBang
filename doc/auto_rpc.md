@@ -78,14 +78,14 @@ CBasicConfig* CreateConfig(const std::string& cmd)
     },
     "example": [
         {
-            "request": "bigbang-cli encryptkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123",
+            "request": "mkf-cli encryptkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123",
             "response": "Encrypt key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882"
         },
         {
             "request": "{\"id\":64,\"method\":\"encryptkey\",\"jsonrpc\":\"2.0\",\"params\":{\"pubkey\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"passphrase\":\"123\"}}",
             "response": "{\"id\":64,\"jsonrpc\":\"2.0\",\"result\":\"Encrypt key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\"}"
         },
-        "bigbang-cli encryptkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 456 123"
+        "mkf-cli encryptkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 456 123"
     ],
     "error": [
         "{\"code\":-4,\"message\":\"Unknown key\"}",
@@ -131,11 +131,11 @@ CBasicConfig* CreateConfig(const std::string& cmd)
     "example": [
         // use object. Key is "request" or "response", means this example is a request or response
         {
-            "request": "bigbang-cli addnewtemplate mint '{\"mint\": \"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\", \"spent\": \"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}'",
+            "request": "mkf-cli addnewtemplate mint '{\"mint\": \"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9\", \"spent\": \"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1\"}'",
             "response": "20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25"
         },
         // use string. Means this example is a request
-        "bigbang-cli addnewtemplate delegate '{\"delegate\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"owner\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\"}'",
+        "mkf-cli addnewtemplate delegate '{\"delegate\":\"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882\",\"owner\":\"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq\"}'",
     ],
     ```
     - **error** in `commmand`, optional. Showing on help information. Format is similar to **desc**
@@ -314,11 +314,11 @@ One param is a object, key is name and value is attributes.
     + **opt**, optional. A string used for command line option.  
         In overview, "serialized"-"opt" = "s" and "type" = "bool", means in command line:
         ```shell
-        bigbang-cli COMMAND -s
+        mkf-cli COMMAND -s
         ```
         If "type" != "bool", means:
         ```shell
-        bigbang-cli COMMAND -s=value
+        mkf-cli COMMAND -s=value
         ```
         **NOTICE: Don't repeat with other options**
     + **default**, optional. Used for command line, if not specify this param, use **default** value to send JSON-RPC.

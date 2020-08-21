@@ -41,26 +41,11 @@ public:
     virtual Errno ValidateBlock(const CBlock& block) = 0;
     virtual Errno ValidateOrigin(const CBlock& block, const CProfile& parentProfile, CProfile& forkProfile) = 0;
     virtual Errno VerifyProofOfWork(const CBlock& block, const CBlockIndex* pIndexPrev) = 0;
-    virtual Errno VerifyDelegatedProofOfStake(const CBlock& block, const CBlockIndex* pIndexPrev,
-                                              const CDelegateAgreement& agreement)
-        = 0;
-    virtual Errno VerifySubsidiary(const CBlock& block, const CBlockIndex* pIndexPrev, const CBlockIndex* pIndexRef,
-                                   const CDelegateAgreement& agreement)
-        = 0;
-    virtual Errno VerifyBlock(const CBlock& block, CBlockIndex* pIndexPrev) = 0;
     virtual Errno VerifyBlockTx(const CTransaction& tx, const CTxContxt& txContxt, CBlockIndex* pIndexPrev, int nForkHeight, const uint256& fork) = 0;
     virtual Errno VerifyTransaction(const CTransaction& tx, const std::vector<CTxOut>& vPrevOutput, int nForkHeight, const uint256& fork) = 0;
-    virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust, const CBlockIndex* pIndexPrev = nullptr, const CDelegateAgreement& agreement = CDelegateAgreement(), const CBlockIndex* pIndexRef = nullptr, std::size_t nEnrollTrust = 0) = 0;
+    virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) = 0;
-    // virtual bool IsDposHeight(int height) = 0;
-    virtual bool DPoSConsensusCheckRepeated(int height) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
-    virtual void GetDelegatedBallot(const uint256& nAgreement, std::size_t nWeight, const std::map<CDestination, size_t>& mapBallot,
-                                    const std::vector<std::pair<CDestination, int64>>& vecAmount, int64 nMoneySupply, std::vector<CDestination>& vBallot, std::size_t& nEnrollTrust, int nBlockHeight)
-        = 0;
-    virtual int64 MinEnrollAmount() = 0;
-    virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
-    virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType, int nTargetHeight) = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -124,7 +109,6 @@ public:
     virtual bool ListForkContext(std::vector<CForkContext>& vForkCtxt) = 0;
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
-    virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, uint32_t& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
@@ -140,17 +124,8 @@ public:
     virtual bool FindPreviousCheckPointBlock(CBlock& block) = 0;
 
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
-    //virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes) = 0;
-    //virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) = 0;
-    //virtual bool GetBlockDelegateVote(const uint256& hashBlock, std::map<CDestination, int64>& mapVote) = 0;
-    //virtual int64 GetDelegateMinEnrollAmount(const uint256& hashBlock) = 0;
-    //virtual bool GetDelegateCertTxCount(const uint256& hashLastBlock, std::map<CDestination, int>& mapVoteCert) = 0;
-    //virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
-    //virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
-    //virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
-    virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
 
     const CBasicConfig* Config()
     {
@@ -207,25 +182,6 @@ public:
     {
         return dynamic_cast<const CForkConfig*>(xengine::IBase::Config());
     }
-};
-
-class IConsensus : public xengine::IBase
-{
-public:
-    IConsensus()
-      : IBase("consensus") {}
-    const CMintConfig* MintConfig()
-    {
-        return dynamic_cast<const CMintConfig*>(xengine::IBase::Config());
-    }
-    virtual void PrimaryUpdate(const CBlockChainUpdate& update, const CTxSetChange& change, CDelegateRoutine& routine) = 0;
-    virtual void AddNewTx(const CAssembledTx& tx) = 0;
-    virtual bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
-    virtual bool AddNewPublish(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchPublish) = 0;
-    virtual void GetAgreement(int nTargetHeight, uint256& nAgreement, std::size_t& nWeight, std::vector<CDestination>& vBallot) = 0;
-    virtual void GetProof(int nTargetHeight, std::vector<unsigned char>& vchProof) = 0;
-    virtual bool GetNextConsensus(CAgreementBlock& consParam) = 0;
-    virtual bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) = 0;
 };
 
 class IBlockMaker : public xengine::CEventProc
@@ -295,12 +251,6 @@ public:
       : IBase("dispatcher") {}
     virtual Errno AddNewBlock(const CBlock& block, uint64 nNonce = 0) = 0;
     virtual Errno AddNewTx(const CTransaction& tx, uint64 nNonce = 0) = 0;
-    virtual bool AddNewDistribute(const uint256& hashAnchor, const CDestination& dest,
-                                  const std::vector<unsigned char>& vchDistribute)
-        = 0;
-    virtual bool AddNewPublish(const uint256& hashAnchor, const CDestination& dest,
-                               const std::vector<unsigned char>& vchPublish)
-        = 0;
 };
 
 class IService : public xengine::IBase
@@ -340,8 +290,6 @@ public:
     virtual bool RemovePendingTx(const uint256& txid) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
-    virtual bool GetVotes(const CDestination& destDelegate, int64& nVotes, string& strFailCause) = 0;
-    virtual bool ListDelegate(uint32 nCount, std::multimap<int64, CDestination>& mapVotes) = 0;
 
     /* Wallet */
     virtual bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) = 0;

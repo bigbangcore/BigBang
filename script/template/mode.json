@@ -1,14 +1,14 @@
 {
     "EModeType::SERVER": {
-        "usage": "bigbang-server (OPTIONS)",
-        "desc": "Run bigbang server"
+        "usage": "mkf-server (OPTIONS)",
+        "desc": "Run mkf server"
     },
     "EModeType::CONSOLE": {
-        "usage": "bigbang-cli (OPTIONS) COMMAND",
-        "desc": "Run bigbang RPC client"
+        "usage": "mkf-cli (OPTIONS) COMMAND",
+        "desc": "Run mkf RPC client"
     },
     "EModeType::MINER": {
-        "usage": "bigbang-miner (OPTIONS)",
-        "desc": "Run bigbang miner"
+        "usage": "mkf-miner (OPTIONS)",
+        "desc": "Run mkf miner"
     }
 }

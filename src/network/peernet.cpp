@@ -9,11 +9,9 @@
 
 #include "peer.h"
 
-#define HANDSHAKE_TIMEOUT (30)            //(5)
-#define RESPONSE_TX_TIMEOUT (120)         //(15)
-#define RESPONSE_BLOCK_TIMEOUT (600)      //(120)
-#define RESPONSE_DISTRIBUTE_TIMEOUT (120) //(5)
-#define RESPONSE_PUBLISH_TIMEOUT (120)    //(10)
+#define HANDSHAKE_TIMEOUT (30)       //(5)
+#define RESPONSE_TX_TIMEOUT (120)    //(15)
+#define RESPONSE_BLOCK_TIMEOUT (600) //(120)
 #define NODE_ACTIVE_TIME (3 * 60 * 60)
 
 #define NODE_DEFAULT_GATEWAY "0.0.0.0"
@@ -38,7 +36,6 @@ CBbPeerNet::CBbPeerNet()
     nService = 0;
     fEnclosed = false;
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
     nSeqCreate = (GetTimeMillis() << 32) | (GetTime() & 0xFFFFFFFF);
 }
 
@@ -53,13 +50,6 @@ bool CBbPeerNet::HandleInitialize()
         Error("Failed to request peer net datachannel\n");
         return false;
     }
-
-    // if (!GetObject("delegatedchannel", pDelegatedChannel))
-    // {
-    //     Error("Failed to request delegated datachannel\n");
-    //     return false;
-    // }
-
     return true;
 }
 
@@ -67,7 +57,6 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
-    pDelegatedChannel = nullptr;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)
@@ -143,47 +132,6 @@ bool CBbPeerNet::HandleEvent(CEventPeerMsgRsp& eventMsgRsp)
     return SendDataMessage(eventMsgRsp.nNonce, PROTO_CMD_MSGRSP, ssPayload);
 }
 
-bool CBbPeerNet::HandleEvent(CEventPeerBulletin& eventBulletin)
-{
-    CBufStream ssPayload;
-    ssPayload << eventBulletin;
-    return SendDelegatedMessage(eventBulletin.nNonce, PROTO_CMD_BULLETIN, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerGetDelegated& eventGetDelegated)
-{
-    CBufStream ssPayload;
-    ssPayload << eventGetDelegated;
-    if (!SendDelegatedMessage(eventGetDelegated.nNonce, PROTO_CMD_GETDELEGATED, ssPayload))
-    {
-        return false;
-    }
-
-    CBufStream ss;
-    ss << eventGetDelegated.hashAnchor << eventGetDelegated.data.destDelegate;
-    uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-
-    vector<CInv> vInv;
-    vInv.push_back(CInv(eventGetDelegated.data.nInvType, hash));
-
-    SetInvTimer(eventGetDelegated.nNonce, vInv);
-    return true;
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerDistribute& eventDistribute)
-{
-    CBufStream ssPayload;
-    ssPayload << eventDistribute;
-    return SendDelegatedMessage(eventDistribute.nNonce, PROTO_CMD_DISTRIBUTE, ssPayload);
-}
-
-bool CBbPeerNet::HandleEvent(CEventPeerPublish& eventPublish)
-{
-    CBufStream ssPayload;
-    ssPayload << eventPublish;
-    return SendDelegatedMessage(eventPublish.nNonce, PROTO_CMD_PUBLISH, ssPayload);
-}
-
 CPeer* CBbPeerNet::CreatePeer(CIOClient* pClient, uint64 nNonce, bool fInBound)
 {
     uint32_t nTimerId = SetTimer(nNonce, HANDSHAKE_TIMEOUT, "Handshake Timer");
@@ -205,14 +153,7 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
         {
             pEventDeactive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
 
-            CEventPeerDeactive* pEventDeactiveDelegated = new CEventPeerDeactive(*pEventDeactive);
-
             pNetChannel->PostEvent(pEventDeactive);
-
-            if (pEventDeactiveDelegated != nullptr)
-            {
-                //pDelegatedChannel->PostEvent(pEventDeactiveDelegated);
-            }
         }
     }
     CPeerNet::DestroyPeer(pPeer);
@@ -262,27 +203,16 @@ bool CBbPeerNet::SendDataMessage(uint64 nNonce, int nCommand, CBufStream& ssPayl
     return pBbPeer->SendMessage(PROTO_CHN_DATA, nCommand, ssPayload);
 }
 
-bool CBbPeerNet::SendDelegatedMessage(uint64 nNonce, int nCommand, xengine::CBufStream& ssPayload)
-{
-    CBbPeer* pBbPeer = static_cast<CBbPeer*>(GetPeer(nNonce));
-    if (pBbPeer == nullptr)
-    {
-        return false;
-    }
-    return pBbPeer->SendMessage(PROTO_CHN_DELEGATE, nCommand, ssPayload);
-}
-
 bool CBbPeerNet::SetInvTimer(uint64 nNonce, vector<CInv>& vInv)
 {
-    const int64 nTimeout[] = { 0, RESPONSE_TX_TIMEOUT, RESPONSE_BLOCK_TIMEOUT,
-                               RESPONSE_DISTRIBUTE_TIMEOUT, RESPONSE_PUBLISH_TIMEOUT };
+    const int64 nTimeout[] = { 0, RESPONSE_TX_TIMEOUT, RESPONSE_BLOCK_TIMEOUT };
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(GetPeer(nNonce));
     if (pBbPeer != nullptr)
     {
         int64 nElapse = 0;
         for (const CInv& inv : vInv)
         {
-            if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_PUBLISH)
+            if (inv.nType >= CInv::MSG_TX && inv.nType <= CInv::MSG_BLOCK)
             {
                 nElapse += nTimeout[inv.nType];
                 string strFunc = string("InvTimer: nNonce: ") + to_string(nNonce) + ", Inv: [" + to_string(inv.nType) + "] " + inv.nHash.GetHex();
@@ -379,13 +309,7 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         }
 
         pEventActive->data = CAddress(pBbPeer->nService, pBbPeer->GetRemote());
-        //CEventPeerActive* pEventActiveDelegated = new CEventPeerActive(*pEventActive);
-
         pNetChannel->PostEvent(pEventActive);
-        //if (pEventActiveDelegated != nullptr)
-        //{
-           // pDelegatedChannel->PostEvent(pEventActiveDelegated);
-        //}
 
         pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
     }
@@ -608,75 +532,6 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             {
                 ssPayload >> pEvent->data;
                 pNetChannel->PostEvent(pEvent);
-                return true;
-            }
-        }
-        break;
-        default:
-            break;
-        }
-    }
-    else if (nChannel == PROTO_CHN_DELEGATE)
-    {
-        uint256 hashAnchor;
-        ssPayload >> hashAnchor;
-        switch (nCommand)
-        {
-        case PROTO_CMD_BULLETIN:
-        {
-            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-                // pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_GETDELEGATED:
-        {
-            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-                //pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_DISTRIBUTE:
-        {
-            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_DISTRIBUTE, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                //pDelegatedChannel->PostEvent(pEvent);
-
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_PUBLISH:
-        {
-            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_PUBLISH, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                //pDelegatedChannel->PostEvent(pEvent);
                 return true;
             }
         }

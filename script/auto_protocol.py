@@ -1128,7 +1128,7 @@ def RPCHelp_cpp(w):
             w.write(indent + 'if (subCmd.empty())\n')
             indent = brace_begin(w, indent)
 
-            # options is not empty, output options. It's bigbang-cli -help
+            # options is not empty, output options. It's mkf-cli -help
             w.write(indent + 'if (!options.empty())\n')
             indent = brace_begin(w, indent)
             write_usage(usage, w, indent)

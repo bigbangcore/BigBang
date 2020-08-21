@@ -9,7 +9,7 @@ import os
 import re
 
 # root = os.path.dirname(__file__)
-bigbang_cli = 'bigbang-cli'
+bigbang_cli = 'mkf-cli'
 
 simple_help = bigbang_cli + ' -help'
 detail_help = bigbang_cli + ' all -help'
