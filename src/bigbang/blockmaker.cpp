@@ -331,8 +331,24 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-    int64 nTotalTxFee = 0;
+    
+    CForkContext forkCtxt;
+    bool isDeFi = false;
+    if(pBlockChain->GetForkContext(hashFork, forkCtxt))
+    {
+        isDeFi = (forkCtxt.GetProfile().nForkType == FORK_TYPE_DEFI) ? true : false;
+    }
+
+    size_t rewardTxSize = 0;
+    int64 nRTewardTxTotalFee = 0;
+    if(isDeFi)
+    {
+        multimap<CDestination, CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, uint256());
+        
+    }
+
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize() - rewardTxSize;
+    int64 nTotalTxFee = nRTewardTxTotalFee;
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
@@ -447,6 +463,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         bool fCreateExtendedTask = false;
         uint256 hashExtendedPrevBlock;
         int64 nExtendedPrevTime = 0;
+
         if (block.IsSubsidiary())
         {
             // query previous last extended block

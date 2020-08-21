@@ -371,7 +371,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     set<uint256> setUnTx;
     CPooledCertTxLinkSet setCertRelativesIndex;
     std::vector<CPooledTxLink> prevLinks;
-    nTotalTxFee = 0;
 
     // Collect all cert related tx
     const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
@@ -813,7 +812,6 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
     else
     {
-        nTotalTxFee = 0;
         size_t currentSize = 0;
         for (const auto& tx : vCacheTx)
         {
