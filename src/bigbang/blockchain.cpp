@@ -31,18 +31,56 @@ void CBlockChain::CReward::AddFork(const uint256& forkid, const CProfile& profil
     forkReward.insert(std::make_pair(forkid, fr));
 }
 
+CProfile CBlockChain::CReward::GetForkProfile(const uint256& forkid)
+{
+    auto it = forkReward.find(forkid);
+    return (it == forkReward.end()) ? CProfile() : it->second.profile;
+}
+
 int32 CBlockChain::CReward::PrevRewardHeight(const uint256& forkid, const int32 nHeight)
 {
     auto it = forkReward.find(forkid);
     if (it != forkReward.end())
     {
         CProfile& profile = it->second.profile;
-        if (!profile.defi.IsNull() && nHeight > profile.nJointHeight && profile.defi.nRewardCycle > 0)
+        uint32 nJointHeight = profile.nJointHeight;
+        uint32 nRewardCycle = profile.defi.nRewardCycle;
+        if (!profile.defi.IsNull() && nHeight > nJointHeight + 1 && nRewardCycle > 0)
         {
-            return ((nHeight - profile.nJointHeight - 1) / profile.defi.nRewardCycle) * profile.defi.nRewardCycle + profile.nJointHeight;
+            return ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1;
         }
     }
     return -1;
+}
+
+int64 CBlockChain::CReward::ComputeSectionMintReward(const uint256& forkid, const uint256& hash)
+{
+    int64 reward = 0;
+    CProfile profile = GetForkProfile(forkid);
+    if (profile.IsNull())
+    {
+        return reward;
+    }
+
+    int32 nEndHeight = CBlock::GetBlockHeightByHash(hash);
+    int32 nBeginHeight = PrevRewardHeight(forkid, nEndHeight) + 1;
+
+    // the next block of origin
+    if (nBeginHeight <= profile.nJointHeight + 1)
+    {
+        nBeginHeight = profile.nJointHeight + 2;
+    }
+
+    int64 nMint = 0;
+    int32 nNextDecayHeight = 0;
+    if (GetDecayMint(profile, nBeginHeight, nMint, nNextDecayHeight))
+    {
+        while (nBeginHeight <= nEndHeight)
+        {
+        }
+    }
+
+    return reward;
 }
 
 bool CBlockChain::CReward::ExistForkSection(const uint256& forkid, const uint256& section)
@@ -67,6 +105,46 @@ const CDeFiRewardSet& CBlockChain::CReward::GetForkSection(const uint256& forkid
         }
     }
     return null;
+}
+
+void CBlockChain::CReward::AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward)
+{
+    auto it = forkReward.find(forkid);
+    if (it != forkReward.end())
+    {
+        it->second.reward[hash] = std::move(reward);
+    }
+}
+
+bool CBlockChain::CReward::GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nMint, int32& nNextHeight)
+{
+    if (nHeight <= profile.nJointHeight + 1)
+    {
+        return false;
+    }
+
+    // uint32 nJointHeight = profile.nJointHeight;
+    // uint32 nDecayCycle = profile.defi.nDecayCycle;
+    // uint32 nSupplyCycle = profile.defi.nSupplyCycle;
+    // int32 nSupplyCount = nDecayCycle / nSupplyCycle;
+
+    // // for example:
+    // // [2] nJoint height
+    // // [3] origin height
+    // // [4, 5, 6] the first supply cycle of the first decay cycle
+    // // [7, 8, 9] the second sypply cycle of the first decay cycle
+    // // [10, 11, 12] the first supply cycle of the second decay cycle
+    // // [13, 14, 15] the second supply cycle of the second decay cycle
+    // int32 nDecayCount = (nHeight - nJointHeight - 2) / nDecayCycle;
+    // int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
+    // int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
+    // nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nDecayHeight;
+
+    // // supply = init * (1 + )
+    // int32 nSupplyCount = (nHeight - profile.nJointHeight - 1) / profile.defi.nSupplyCycle;
+    // int32 nNextSupplyHeight = (nSupplyCount + 1) * profile.defi.nSupplyCycle + profile.nJointHeight + 1;
+    // nMint = pow((double)nDecayPercent / 100, nDecayCount)
+    return true;
 }
 
 //////////////////////////////
@@ -533,6 +611,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+    uint256 forkid = pIndexPrev->GetOriginHash();
 
     int64 nReward = 0;
     CDelegateAgreement agreement;
@@ -565,7 +644,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             nNewChainTrust += pIndexPrev->nChainTrust;
 
             CBlockIndex* pIndexForkLast = nullptr;
-            if (cntrBlock.RetrieveFork(pIndexPrev->GetOriginHash(), &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
+            if (cntrBlock.RetrieveFork(forkid, &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
             {
                 fGetBranchBlock = false;
                 break;
@@ -604,6 +683,15 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
+    // defi
+    list<CDeFiReward> listDeFiReward;
+    bool fCheckDeFi = (!block.vtx.empty()) && (block.vtx.front().nType == CTransaction::TX_DEFI_REWARD) && (defiReward.ExistFork(forkid));
+    if (fCheckDeFi)
+    {
+        listDeFiReward = GetDeFiReward(forkid, pIndexPrev->GetBlockHash(), block.vtx.size());
+    }
+    list<CDeFiReward>::const_iterator itListDeFi = listDeFiReward.begin();
+
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -614,9 +702,27 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
+
+        // defi tx must be next to each other from the beginning
+        if (tx.nType == CTransaction::TX_DEFI_REWARD)
+        {
+            // TODO: check stake and promotion in vchData or ?
+            if (!fCheckDeFi || (itListDeFi == listDeFiReward.end())
+                || (itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount))
+            {
+                Log("AddNewBlock Check defi reward tx Error");
+                return ERR_TRANSACTION_INVALID;
+            }
+            itListDeFi++;
+        }
+        else
+        {
+            fCheckDeFi = false;
+        }
+
         if (!pTxPool->Exists(txid))
         {
-            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, forkid);
             if (err != OK)
             {
                 Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
@@ -2047,7 +2153,7 @@ bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
     return block.GetHash() == bestChainBlockHash;
 }
 
-list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev)
+list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nMax)
 {
     list<CDeFiReward> listReward;
     if (!defiReward.ExistFork(forkid))
@@ -2092,7 +2198,7 @@ list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint25
                 }
             }
 
-            for (; it != idxByReward.end(); it++)
+            for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
             {
                 listReward.push_back(*it);
             }
@@ -2108,6 +2214,11 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
 
     // find the last non-vacant block
     int32 prevHeight = defiReward.PrevRewardHeight(forkid, pIndexPrev->GetBlockHeight() + 1);
+    if (prevHeight <= 0)
+    {
+        return listSection;
+    }
+
     const CBlockIndex* pIndexLast = pIndexPrev;
     while (pIndexLast->IsVacant())
     {
@@ -2156,11 +2267,86 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
             if (!defiReward.ExistForkSection(forkid, section))
             {
                 // generate section
+                CDeFiRewardSet s = ComputeDeFiSection(forkid, section);
+                defiReward.AddForkSection(forkid, section, std::move(s));
             }
         }
     }
 
     return listSection;
+}
+
+CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint256& hash)
+{
+    CDeFiRewardSet s;
+
+    map<CDestination, int64> stakeReward = ComputeStakeReward(forkid, hash);
+    map<CDestination, int64> promotionReward = ComputeStakeReward(forkid, hash);
+
+    for (auto& stake : stakeReward)
+    {
+        CDeFiReward reward;
+        reward.dest = stake.first;
+        reward.nReward = stake.second;
+        reward.nStakeReward = stake.second;
+        reward.nPromotionReward = 0;
+
+        auto it = promotionReward.find(stake.first);
+        if (it != promotionReward.end())
+        {
+            reward.nReward += it->second;
+            reward.nPromotionReward = it->second;
+            promotionReward.erase(it);
+        }
+
+        s.insert(move(reward));
+    }
+
+    for (auto& promotion : promotionReward)
+    {
+        CDeFiReward reward;
+        reward.dest = promotion.first;
+        reward.nReward = promotion.second;
+        reward.nStakeReward = 0;
+        reward.nPromotionReward = promotion.second;
+        s.insert(move(reward));
+    }
+
+    return s;
+}
+
+map<CDestination, int64> CBlockChain::ComputeStakeReward(const uint256& forkid, const uint256& hash)
+{
+    map<CDestination, int64> reward;
+
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hash, &pIndex))
+    {
+        Error("ComputeStakeReward retrieve block index error, hash: %s", hash.ToString().c_str());
+        return reward;
+    }
+
+    storage::CBlockView view;
+    if (!cntrBlock.GetBlockView(hash, view))
+    {
+        Error("ComputeStakeReward get block view error, hash: %s", hash.ToString().c_str());
+        return reward;
+    }
+
+    map<CDestination, int64> mapAddressAmount;
+    if (!cntrBlock.ListForkAllAddressAmount(forkid, view, mapAddressAmount))
+    {
+        Error("ComputeStakeReward ListForkAllAddressAmount error, hash: %s", hash.ToString().c_str());
+        return reward;
+    }
+
+    return map<CDestination, int64>();
+}
+
+map<CDestination, int64> CBlockChain::ComputePromotionReward(const uint256& forkid, const uint256& hash)
+{
+    // TODO
+    return map<CDestination, int64>();
 }
 
 } // namespace bigbang

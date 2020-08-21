@@ -84,7 +84,7 @@ public:
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
     // defi
-    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
+    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nMax = -1) override;
 
 protected:
     bool HandleInitialize() override;
@@ -109,6 +109,9 @@ protected:
 
     // defi
     std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
+    CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash);
+    std::map<CDestination, int64> ComputeStakeReward(const uint256& forkid, const uint256& hash);
+    std::map<CDestination, int64> ComputePromotionReward(const uint256& forkid, const uint256& hash);
 
 protected:
     boost::shared_mutex rwAccess;
@@ -137,12 +140,18 @@ protected:
 
         bool ExistFork(const uint256& forkid) const;
         void AddFork(const uint256& forkid, const CProfile& profile);
+        CProfile GetForkProfile(const uint256& forkid);
 
         int32 PrevRewardHeight(const uint256& forkid, const int32 nHeight);
+        int64 ComputeSectionMintReward(const uint256& forkid, const uint256& hash);
 
         bool ExistForkSection(const uint256& forkid, const uint256& section);
         const CDeFiRewardSet& GetForkSection(const uint256& forkid, const uint256& section);
+        void AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward);
     
+    protected:
+        bool GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nMint, int32& nNextHeight);
+
     protected:
         MapForkReward forkReward;
         CDeFiRewardSet null;
