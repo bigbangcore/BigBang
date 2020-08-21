@@ -23,6 +23,7 @@ class CAddrInfo
     friend class xengine::CStream;
 
 public:
+    CDestination destInviteRoot;
     CDestination destInviteParent;
     uint256 hashTxInvite;
 
@@ -31,22 +32,24 @@ public:
     {
         SetNull();
     }
-    CAddrInfo(const CDestination& destInviteParentIn, const uint256& hashTxInviteIn)
-      : destInviteParent(destInviteParentIn), hashTxInvite(hashTxInviteIn) {}
+    CAddrInfo(const CDestination& destInviteRootIn, const CDestination& destInviteParentIn, const uint256& hashTxInviteIn)
+      : destInviteRoot(destInviteRootIn), destInviteParent(destInviteParentIn), hashTxInvite(hashTxInviteIn) {}
     void SetNull()
     {
+        destInviteRoot.SetNull();
         destInviteParent.SetNull();
         hashTxInvite = 0;
     }
     bool IsNull() const
     {
-        return (destInviteParent.IsNull() || hashTxInvite == 0);
+        return (destInviteRoot.IsNull() || destInviteParent.IsNull() || hashTxInvite == 0);
     }
 
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
+        s.Serialize(destInviteRoot, opt);
         s.Serialize(destInviteParent, opt);
         s.Serialize(hashTxInvite, opt);
     }
@@ -119,7 +122,7 @@ public:
     CForkAddressDB(const boost::filesystem::path& pathDB);
     ~CForkAddressDB();
     bool RemoveAll();
-    bool UpdateAddress(const std::vector<std::pair<CDestination, CAddrInfo>>& vAddNew, const std::vector<CDestination>& vRemove);
+    bool UpdateAddress(const std::vector<std::pair<CDestination, CAddrInfo>>& vAddNew, const std::vector<std::pair<CDestination, CAddrInfo>>& vRemove);
     bool RepairAddress(const std::vector<std::pair<CDestination, CAddrInfo>>& vAddUpdate, const std::vector<CDestination>& vRemove);
     bool WriteAddress(const CDestination& dest, const CAddrInfo& addrInfo);
     bool ReadAddress(const CDestination& dest, CAddrInfo& addrInfo);
@@ -136,6 +139,7 @@ protected:
                     CForkAddressDB& dbAddress);
     bool LoadWalker(xengine::CBufStream& ssKey, xengine::CBufStream& ssValue,
                     CForkAddressDBWalker& walker, const MapType& mapUpper, const MapType& mapLower);
+    bool GetAddress(const CDestination& dest, CAddrInfo& addrInfo);
 
 protected:
     xengine::CRWAccess rwUpper;
@@ -157,7 +161,7 @@ public:
     bool RemoveFork(const uint256& hashFork);
     void Clear();
     bool Update(const uint256& hashFork,
-                const std::vector<std::pair<CDestination, CAddrInfo>>& vAddNew, const std::vector<CDestination>& vRemove);
+                const std::vector<std::pair<CDestination, CAddrInfo>>& vAddNew, const std::vector<std::pair<CDestination, CAddrInfo>>& vRemove);
     bool RepairAddress(const uint256& hashFork, const std::vector<std::pair<CDestination, CAddrInfo>>& vAddUpdate, const std::vector<CDestination>& vRemove);
     bool Retrieve(const uint256& hashFork, const CDestination& dest, CAddrInfo& addrInfo);
     bool Copy(const uint256& srcFork, const uint256& destFork);

@@ -201,10 +201,10 @@ bool CBlockDB::UpdateDelegateContext(const uint256& hash, const CDelegateContext
     return dbDelegate.AddNew(hash, ctxtDelegate);
 }
 
-bool CBlockDB::UpdateAddressInfo(const uint256& hashFork, const std::vector<std::pair<CDestination, CAddrInfo>>& vNewAddress,
-                                 std::vector<std::pair<CDestination, CAddrInfo>>& vRemoveAddress)
+bool CBlockDB::UpdateAddressInfo(const uint256& hashFork, const vector<pair<CDestination, CAddrInfo>>& vNewAddress,
+                                 const vector<pair<CDestination, CAddrInfo>>& vRemoveAddress)
 {
-    return true;
+    return dbAddress.Update(hashFork, vNewAddress, vRemoveAddress);
 }
 
 bool CBlockDB::WalkThroughBlock(CBlockDBWalker& walker)
