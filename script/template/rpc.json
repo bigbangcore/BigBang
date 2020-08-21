@@ -2764,9 +2764,13 @@
                             "type": "uint",
                             "desc": "coinbase decay cycle in height"
                         },
-                        "decaypercent": {
+                        "coinbasedecaypercent": {
                             "type": "uint",
-                            "desc": "coinbase decay ratio, [0 - 100] means [0% - 100%]"
+                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%"
+                        },
+                        "initcoinbasepercent": {
+                            "type": "uint",
+                            "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
                         },
                         "rewardcycle": {
                             "type": "uint",
@@ -2774,7 +2778,7 @@
                         },
                         "supplycycle": {
                             "type": "uint",
-                            "desc": "the supply cycle"
+                            "desc": "supplyment changing cycle in height"
                         },
                         "stakerewardpercent": {
                             "type": "uint",

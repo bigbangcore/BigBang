@@ -38,11 +38,12 @@ class CDeFiProfile
 {
 public:
     uint32 nDecayCycle;                              // coinbase decay cycle in height
-    uint8 nDecayPercent;                             // coinbase decay ratio, [0 - 100] means [0% - 100%]
+    uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), [0 - 100] means decay to [0% - 100%]
+    uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization
     uint32 nRewardCycle;                             // generate reward cycle in height
-    uint32 nSupplyCycle;
-    uint8 nStakeRewardPercent;                       // stake reward ratio, [0 - 100] means [0% - 100%]
-    uint8 nPromotionRewardPercent;                   // promotion reward ratio, [0 - 100] means [0% - 100%]
+    uint32 nSupplyCycle;                             // supplyment changing cycle in height
+    uint8 nStakeRewardPercent;                       // stake reward ratio(%), [0 - 100] means [0% - 100%]
+    uint8 nPromotionRewardPercent;                   // promotion reward ratio(%), [0 - 100] means [0% - 100%]
     uint64 nStakeMinToken;                           // the minimum token on address can participate stake reward
     std::map<uint64, uint32> mapPromotionTokenTimes; // In promotion computation, less than [key] amount should multiply [value].
 
@@ -53,7 +54,8 @@ public:
     virtual void SetNull()
     {
         nDecayCycle = 0;
-        nDecayPercent = 0;
+        nCoinbaseDecayPercent = 0;
+        nInitCoinbasePercent = 0;
         nRewardCycle = 0;
         nSupplyCycle = 0;
         nStakeRewardPercent = 0;

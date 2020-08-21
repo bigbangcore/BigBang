@@ -55,14 +55,14 @@ int32 CBlockChain::CReward::PrevRewardHeight(const uint256& forkid, const int32 
 
 int64 CBlockChain::CReward::ComputeSectionMintReward(const uint256& forkid, const uint256& hash)
 {
-    int64 reward = 0;
+    int64 nReward = 0;
     CProfile profile = GetForkProfile(forkid);
     if (profile.IsNull())
     {
-        return reward;
+        return nReward;
     }
 
-    int32 nEndHeight = CBlock::GetBlockHeightByHash(hash);
+    int32 nEndHeight = CBlock::GetBlockHeightByHash(hash) + 1;
     int32 nBeginHeight = PrevRewardHeight(forkid, nEndHeight) + 1;
 
     // the next block of origin
@@ -71,16 +71,19 @@ int64 CBlockChain::CReward::ComputeSectionMintReward(const uint256& forkid, cons
         nBeginHeight = profile.nJointHeight + 2;
     }
 
-    int64 nMint = 0;
-    int32 nNextDecayHeight = 0;
-    if (GetDecayMint(profile, nBeginHeight, nMint, nNextDecayHeight))
+    int64 nCoinbase = 0;
+    uint32 nNextHeight = 0;
+    while (nBeginHeight < nEndHeight)
     {
-        while (nBeginHeight <= nEndHeight)
+        if (GetDecayMint(profile, nBeginHeight, nCoinbase, nNextHeight))
         {
+            uint32 nHeight = min(nEndHeight, nNextHeight) - nBeginHeight;
+            nReward += nCoinbase * nHeight;
+            nBeginHeight += nHeight;
         }
     }
 
-    return reward;
+    return nReward;
 }
 
 bool CBlockChain::CReward::ExistForkSection(const uint256& forkid, const uint256& section)
@@ -116,34 +119,46 @@ void CBlockChain::CReward::AddForkSection(const uint256& forkid, const uint256& 
     }
 }
 
-bool CBlockChain::CReward::GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nMint, int32& nNextHeight)
+bool CBlockChain::CReward::GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nCoinbase, uint32& nNextHeight)
 {
     if (nHeight <= profile.nJointHeight + 1)
     {
         return false;
     }
 
-    // uint32 nJointHeight = profile.nJointHeight;
-    // uint32 nDecayCycle = profile.defi.nDecayCycle;
-    // uint32 nSupplyCycle = profile.defi.nSupplyCycle;
-    // int32 nSupplyCount = nDecayCycle / nSupplyCycle;
+    uint32 nJointHeight = profile.nJointHeight;
+    uint32 nDecayCycle = profile.defi.nDecayCycle;
+    uint32 nSupplyCycle = profile.defi.nSupplyCycle;
+    uint8 nCoinbaseDecayPercent = profile.defi.nCoinbaseDecayPercent;
+    uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
+    int32 nSupplyCount = nDecayCycle / nSupplyCycle;
 
-    // // for example:
-    // // [2] nJoint height
-    // // [3] origin height
-    // // [4, 5, 6] the first supply cycle of the first decay cycle
-    // // [7, 8, 9] the second sypply cycle of the first decay cycle
-    // // [10, 11, 12] the first supply cycle of the second decay cycle
-    // // [13, 14, 15] the second supply cycle of the second decay cycle
-    // int32 nDecayCount = (nHeight - nJointHeight - 2) / nDecayCycle;
-    // int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
-    // int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
-    // nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nDecayHeight;
+    // for example:
+    // [2] nJoint height
+    // [3] origin height
+    // [4, 5, 6] the first supply cycle of the first decay cycle
+    // [7, 8, 9] the second sypply cycle of the first decay cycle
+    // [10, 11, 12] the first supply cycle of the second decay cycle
+    // [13, 14, 15] the second supply cycle of the second decay cycle
+    int32 nDecayCount = (nHeight - nJointHeight - 2) / nDecayCycle;
+    int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
+    int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
 
-    // // supply = init * (1 + )
-    // int32 nSupplyCount = (nHeight - profile.nJointHeight - 1) / profile.defi.nSupplyCycle;
-    // int32 nNextSupplyHeight = (nSupplyCount + 1) * profile.defi.nSupplyCycle + profile.nJointHeight + 1;
-    // nMint = pow((double)nDecayPercent / 100, nDecayCount)
+    // supply = init * (1 + nInitCoinbasePercent) ^ nSupplyCount * (1 + nInitCoinbasePercent * nCoinbaseDecayPercent) ^ nCurSupplyCount
+    int64 nSupply = profile.nAmount;
+    double fCoinbaseIncreasing = (double)nInitCoinbasePercent / 100;
+    for (int i = 0; i <= nDecayCount; i++)
+    {
+        uint32 count = (i == nDecayCount) ? nCurSupplyCount : nSupplyCount;
+        supply *= pow(1 + fCoinbaseIncreasing, count);
+        if (i < nDecayCount || nCurSupplyCount == nSupplyCount)
+        {
+            fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;;
+        }
+    }
+
+    nCoinbase = supply * fCoinbaseIncreasing / nSupplyCount;
+    nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle;
     return true;
 }
 
@@ -2280,8 +2295,14 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
 {
     CDeFiRewardSet s;
 
-    map<CDestination, int64> stakeReward = ComputeStakeReward(forkid, hash);
-    map<CDestination, int64> promotionReward = ComputeStakeReward(forkid, hash);
+    int64 nReward = defiReward.ComputeSectionMintReward(forkid, hash);
+    if (nReward <= 0)
+    {
+        return s;
+    }
+
+    map<CDestination, int64> stakeReward = ComputeStakeReward(forkid, hash, nReward);
+    map<CDestination, int64> promotionReward = ComputeStakeReward(forkid, hash, nReward);
 
     for (auto& stake : stakeReward)
     {
@@ -2315,7 +2336,7 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
     return s;
 }
 
-map<CDestination, int64> CBlockChain::ComputeStakeReward(const uint256& forkid, const uint256& hash)
+map<CDestination, int64> CBlockChain::ComputeStakeReward(const uint256& forkid, const uint256& hash, const int64 nReward)
 {
     map<CDestination, int64> reward;
 
@@ -2343,7 +2364,7 @@ map<CDestination, int64> CBlockChain::ComputeStakeReward(const uint256& forkid, 
     return map<CDestination, int64>();
 }
 
-map<CDestination, int64> CBlockChain::ComputePromotionReward(const uint256& forkid, const uint256& hash)
+map<CDestination, int64> CBlockChain::ComputePromotionReward(const uint256& forkid, const uint256& hash, const int64 nReward)
 {
     // TODO
     return map<CDestination, int64>();

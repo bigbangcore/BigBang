@@ -110,8 +110,8 @@ protected:
     // defi
     std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
     CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash);
-    std::map<CDestination, int64> ComputeStakeReward(const uint256& forkid, const uint256& hash);
-    std::map<CDestination, int64> ComputePromotionReward(const uint256& forkid, const uint256& hash);
+    std::map<CDestination, int64> ComputeStakeReward(const uint256& forkid, const uint256& hash, const int64 nReward);
+    std::map<CDestination, int64> ComputePromotionReward(const uint256& forkid, const uint256& hash, const int64 nReward);
 
 protected:
     boost::shared_mutex rwAccess;
@@ -150,7 +150,7 @@ protected:
         void AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward);
     
     protected:
-        bool GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nMint, int32& nNextHeight);
+        bool GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nCoinbase, uint32& nNextHeight);
 
     protected:
         MapForkReward forkReward;
