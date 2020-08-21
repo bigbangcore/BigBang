@@ -340,15 +340,38 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     }
 
     size_t rewardTxSize = 0;
-    int64 nRTewardTxTotalFee = 0;
+    int64 nRewardTxTotalFee = 0;
     if(isDeFi)
     {
         multimap<CDestination, CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, uint256());
-        
+        for(const auto& rewardKV : rewards)
+        {
+            const CDestination& destTo = rewardKV.first;
+            const CDeFiReward& reward = rewardKV.second;
+
+            if(!reward.fRewarded)
+            {
+                CTransaction txNew;
+                txNew.SetNull();
+                txNew.hashAnchor = hashFork;
+            
+                txNew.nType = CTransaction::TX_DEFI_REWARD;
+                txNew.nTimeStamp = GetNetTime();
+                txNew.nLockUntil = 0;
+                txNew.sendTo = destTo;
+                txNew.nAmount = reward.nReward;
+                txNew.nTxFee = CalcMinTxFee(0, NEW_MIN_TX_FEE);
+                //txNew.vchData = vchData;
+                block.vtx.push_back(txNew);
+                
+                nRewardTxTotalFee += txNew.nTxFee;
+                rewardTxSize += GetSerializeSize(txNew);
+            }
+        }
     }
 
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize() - rewardTxSize;
-    int64 nTotalTxFee = nRTewardTxTotalFee;
+    int64 nTotalTxFee = nRewardTxTotalFee;
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
