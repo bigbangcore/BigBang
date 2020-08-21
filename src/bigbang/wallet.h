@@ -159,7 +159,6 @@ public:
     bool SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted) override;
     bool ArrangeInputs(const CDestination& destIn, const uint256& hashFork, int nForkHeight, CTransaction& tx) override;
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) override;
-    bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, const int32 nForkHeight, bool& fCompleted) override;
     /* Update */
     bool SynchronizeTxSet(const CTxSetChange& change) override;
     bool AddNewTx(const uint256& hashFork, const CAssembledTx& tx) override;
@@ -316,11 +315,6 @@ public:
     }
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest,
                                  uint32 nMax, std::vector<CTxUnspent>& vUnspent) override
-    {
-        return false;
-    }
-    virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx,
-                                        const int32 nForkHeight, bool& fCompleted) override
     {
         return false;
     }
