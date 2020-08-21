@@ -343,7 +343,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     int64 nRewardTxTotalFee = 0;
     if(isDeFi)
     {
-        multimap<CDestination, CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, uint256());
+        multimap<CDestination, CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev);
         for(const auto& rewardKV : rewards)
         {
             const CDestination& destTo = rewardKV.first;
