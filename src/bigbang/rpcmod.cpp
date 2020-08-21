@@ -2269,33 +2269,28 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     
-    if(spParam->params.strType == "DeFi")
+    if(spParam->strForktype == "DeFi")
     {
         profile.nForkType = FORK_TYPE_DEFI;
-        profile.defi.nDecayCycle = spParam->params.defi.nDecaycycle;
-        profile.defi.nDecayPercent = spParam->params.defi.nDecaypercent;
-        profile.defi.nRewardCycle = spParam->params.defi.nRewardcycle;
-        profile.defi.nStakeRewardPercent = spParam->params.defi.nStakerewardpercent;
-        profile.defi.nPromotionRewardPercent = spParam->params.defi.nPromotionrewardpercent;
-        profile.defi.nStakeMinToken = spParam->params.defi.nStakemintoken;
+        profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
+        profile.defi.nDecayPercent = spParam->defi.nDecaypercent;
+        profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
+        profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
+        profile.defi.nPromotionRewardPercent = spParam->defi.nPromotionrewardpercent;
+        profile.defi.nStakeMinToken = spParam->defi.nStakemintoken;
         
-        if(spParam->params.defi.vecMappromotiontokentimes.size() % 2 != 0)
+        if(spParam->defi.vecMappromotiontokentimes.size() % 2 != 0)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "vecMappromotiontokentimes size must be size() % 2 == 0");
         }
 
-        if(spParam->params.defi.vecMappromotiontokentimes.size() >= 2)
+        if(spParam->defi.vecMappromotiontokentimes.size() >= 2)
         {
-            for(int i = 0; i < spParam->params.defi.vecMappromotiontokentimes.size(); i += 2)
+            for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i += 2)
             {
-                const std::string& key = spParam->params.defi.vecMappromotiontokentimes.at(i);
-                const std::string& value = spParam->params.defi.vecMappromotiontokentimes.at(i + 1);
-                if(!IsNumber(key) || !IsNumber(value))
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "Mappromotiontokentimes element type must be positive number");
-                }
-                
-                profile.defi.mapPromotionTokenTimes.insert(std::make_pair(std::stoull(key), std::stoull(value)));
+                const uint64 key = spParam->defi.vecMappromotiontokentimes.at(i);
+                const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
+                profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
             }
         }
     }
