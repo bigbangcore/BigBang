@@ -319,6 +319,77 @@ map<uint256, CBlockHeightIndex>* CForkHeightIndex::GetBlockMintList(uint32 nHeig
 }
 
 //////////////////////////////
+// CForkAddressInvite
+
+CForkAddressInvite::~CForkAddressInvite()
+{
+    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
+    {
+        if (it->second)
+        {
+            delete it->second;
+            it->second = nullptr;
+        }
+    }
+}
+
+bool CForkAddressInvite::UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite)
+{
+    if (dest.IsNull() || parent.IsNull() || txInvite == 0)
+    {
+        return false;
+    }
+    auto it = mapInviteAddress.find(dest);
+    if (it == mapInviteAddress.end())
+    {
+        CInviteAddress* pNewAddr = new CInviteAddress(dest, parent, txInvite);
+        if (pNewAddr == nullptr)
+        {
+            return false;
+        }
+        it = mapInviteAddress.insert(make_pair(dest, pNewAddr)).first;
+        if (it == mapInviteAddress.end())
+        {
+            delete pNewAddr;
+            return false;
+        }
+    }
+    else
+    {
+        if (it->second == nullptr)
+        {
+            return false;
+        }
+        it->second->parent = parent;
+        it->second->hashTxInvite = txInvite;
+    }
+    return true;
+}
+
+void CForkAddressInvite::UpdateParent()
+{
+    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
+    {
+        if (it->second)
+        {
+            auto mt = mapInviteAddress.find(it->second->parent);
+            if (mt != mapInviteAddress.end() && mt->second)
+            {
+                it->second->pParent = mt->second;
+                mt->second->mapSubline[it->first] = it->second;
+            }
+        }
+    }
+    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
+    {
+        if (it->second && it->second->pParent == nullptr)
+        {
+            vRoot.push_back(it->first);
+        }
+    }
+}
+
+//////////////////////////////
 // CBlockBase
 
 CBlockBase::CBlockBase()
@@ -1127,6 +1198,12 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
     spFork->UpdateLast(pIndexNew);
 
+    if (!AddForkAddressInvite(hashFork, view))
+    {
+        StdTrace("BlockBase", "CommitBlockView: AddForkAddressInvite fail, fork: %s", hashFork.ToString().c_str());
+        return false;
+    }
+
     Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(),
         pIndexNew->GetBlockHash().ToString().c_str());
     return true;
@@ -1910,9 +1987,9 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.IsMintTx())
+            if (tx.nAmount >= 10000)
             {
-                vRemoveAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+                vRemoveAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
             }
         }
     }
@@ -1924,9 +2001,9 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.IsMintTx())
+            if (tx.nAmount >= 10000)
             {
-                vNewAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+                vNewAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
             }
         }
     }
@@ -1934,7 +2011,7 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
     return dbBlock.UpdateAddressInfo(hashFork, vNewAddress, vRemoveAddress);
 }
 
-bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view, std::map<CDestination, CForkAddressInvite>& mapAddressInvite)
+bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view, CForkAddressInvite& addrInvite)
 {
     CListAddressWalker walker;
     if (!dbBlock.WalkThroughAddress(hashFork, walker))
@@ -1952,7 +2029,7 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
         {
             const CTransaction& tx = block.vtx[i];
             uint256 txid = tx.GetHash();
-            if (tx.IsMintTx())
+            if (tx.nAmount >= 10000)
             {
                 auto it = walker.mapAddress.find(tx.sendTo);
                 if (it != walker.mapAddress.end() && it->second.hashTxInvite == txid)
@@ -1970,12 +2047,12 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.IsMintTx())
+            if (tx.nAmount >= 10000)
             {
                 auto it = walker.mapAddress.find(tx.sendTo);
                 if (it == walker.mapAddress.end())
                 {
-                    walker.mapAddress.insert(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txid)));
+                    walker.mapAddress.insert(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
                 }
             }
         }
@@ -1983,24 +2060,13 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
 
     for (const auto& vd : walker.mapAddress)
     {
-        auto it = mapAddressInvite.find(vd.first);
-        if (it == mapAddressInvite.end())
-        {
-            it = mapAddressInvite.insert(make_pair(vd.first, CForkAddressInvite())).first;
-            if (it == mapAddressInvite.end())
-            {
-                return false;
-            }
-            it->second.pSelfDest = &(it->first);
-        }
-        auto mt = mapAddressInvite.find(vd.second.destInviteParent);
-        if (mt != mapAddressInvite.end())
+        if (!addrInvite.UpdateAddress(vd.first, vd.second.destInviteParent, vd.second.hashTxInvite))
         {
             return false;
         }
-        it->second.pParent = &(mt->second);
-        mt->second.vSubline.push_back(&(it->second));
     }
+
+    addrInvite.UpdateParent();
     return true;
 }
 

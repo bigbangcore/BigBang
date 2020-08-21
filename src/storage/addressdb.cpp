@@ -50,20 +50,62 @@ bool CForkAddressDB::RemoveAll()
     return true;
 }
 
-bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& vAddNew, const vector<CDestination>& vRemove)
+bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& vAddNew, const vector<pair<CDestination, CAddrInfo>>& vRemove)
 {
     xengine::CWriteLock wlock(rwUpper);
 
     MapType& mapUpper = dblCache.GetUpperMap();
 
-    for (const auto& addr : vAddNew)
+    for (const auto& addr : vRemove)
     {
-        mapUpper[addr.first] = addr.second;
+        CAddrInfo addrInfo;
+        if (GetAddress(addr.first, addrInfo) && addrInfo.hashTxInvite == addr.second.hashTxInvite)
+        {
+            mapUpper[addr.first].SetNull();
+        }
     }
 
-    for (const auto& dest : vRemove)
+    for (const auto& vd : vAddNew)
     {
-        mapUpper[dest].SetNull();
+        if (vd.first.IsNull() || vd.second.destInviteParent.IsNull() || vd.first == vd.second.destInviteParent)
+        {
+            continue;
+        }
+        CAddrInfo addrInfo;
+        if (!GetAddress(vd.first, addrInfo))
+        {
+            bool fLoop = false;
+            CAddrInfo addrParentInfo;
+            if (GetAddress(vd.second.destInviteParent, addrInfo))
+            {
+                addrParentInfo = addrInfo;
+                while (1)
+                {
+                    if (addrInfo.destInviteRoot == vd.first)
+                    {
+                        fLoop = true;
+                        break;
+                    }
+                    if (addrInfo.destInviteRoot.IsNull() || !GetAddress(addrInfo.destInviteRoot, addrInfo))
+                    {
+                        break;
+                    }
+                }
+            }
+            if (!fLoop)
+            {
+                auto& addr = mapUpper[vd.first];
+                addr = vd.second;
+                if (!addrParentInfo.IsNull())
+                {
+                    addr.destInviteRoot = addrParentInfo.destInviteRoot;
+                }
+                else
+                {
+                    addr.destInviteRoot.SetNull();
+                }
+            }
+        }
     }
 
     return true;
@@ -238,6 +280,39 @@ bool CForkAddressDB::LoadWalker(CBufStream& ssKey, CBufStream& ssValue,
     return walker.Walk(dest, addrInfo);
 }
 
+bool CForkAddressDB::GetAddress(const CDestination& dest, CAddrInfo& addrInfo)
+{
+    {
+        MapType& mapUpper = dblCache.GetUpperMap();
+        typename MapType::iterator it = mapUpper.find(dest);
+        if (it != mapUpper.end())
+        {
+            if (!(*it).second.IsNull())
+            {
+                addrInfo = (*it).second;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    {
+        MapType& mapLower = dblCache.GetLowerMap();
+        typename MapType::iterator it = mapLower.find(dest);
+        if (it != mapLower.end())
+        {
+            if (!(*it).second.IsNull())
+            {
+                addrInfo = (*it).second;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    return Read(dest, addrInfo);
+}
+
 bool CForkAddressDB::Flush()
 {
     xengine::CUpgradeLock ulock(rwLower);
@@ -398,7 +473,7 @@ void CAddressDB::Clear()
 }
 
 bool CAddressDB::Update(const uint256& hashFork,
-                        const vector<pair<CDestination, CAddrInfo>>& vAddNew, const vector<CDestination>& vRemove)
+                        const vector<pair<CDestination, CAddrInfo>>& vAddNew, const vector<pair<CDestination, CAddrInfo>>& vRemove)
 {
     CReadLock rlock(rwAccess);
 
