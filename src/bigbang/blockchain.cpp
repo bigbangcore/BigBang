@@ -1839,12 +1839,10 @@ void CBlockChain::InitCheckPoints()
 
     if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
-        /*
         std::vector<CCheckPoint> vecGenesisCheckPoints, vecBBCN;
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
         InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
-
 #else
         vecGenesisCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },
@@ -1869,8 +1867,7 @@ void CBlockChain::InitCheckPoints()
               { 230000, uint256("00038270812d3b2f338b5f8c9d00edfd084ae38580c6837b6278f20713ff20cc") },
               { 238000, uint256("0003a1b031248f0c0060fd8afd807f30ba34f81b6fcbbe84157e380d2d7119bc") },
               { 285060, uint256("00045984ae81f672b42525e0465dd05239c742fe0b6723a15c4fd03215362eae") },
-              { 366692, uint256("00059864d72f76565cb8aa190c1e73ab4eb449d6641d73f7eba4e6a849589453") } });*/
-    }
+              { 366692, uint256("00059864d72f76565cb8aa190c1e73ab4eb449d6641d73f7eba4e6a849589453") } });
 
         vecBBCN.assign(
             { { 300000, uint256("000493e02a0f6ef977ebd5f844014badb412b6db85847b120f162b8d913b9028") },

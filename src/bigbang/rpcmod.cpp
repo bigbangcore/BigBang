@@ -262,9 +262,9 @@ CRPCMod::CRPCMod()
         //
         ("makeorigin", &CRPCMod::RPCMakeOrigin)
         //
-        ("signofflinetransaction", &CRPCMod::RPCSignOfflineTransaction)
+        ("signrawtransactionwithwallet", &CRPCMod::RPCSignRawTransactionWithWallet)
         //
-        ("sendofflinesignedtransaction", &CRPCMod::RPCSendOfflineSignedTransaction)
+        ("sendrawtransaction", &CRPCMod::RPCSendRawTransaction)
         /* Util */
         ("verifymessage", &CRPCMod::RPCVerifyMessage)
         //
@@ -2327,7 +2327,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(CRPCParamPtr param)
 {
-    auto spParam = CastParamPtr<CSignOfflineTransactionParam>(param);
+    auto spParam = CastParamPtr<CSignRawTransactionWithWalletParam>(param);
 
     CAddress addr(spParam->strAddrin);
     crypto::CPubKey pubkey;
@@ -2381,9 +2381,9 @@ CRPCResultPtr CRPCMod::RPCSignRawTransactionWithWallet(CRPCParamPtr param)
     return spResult;
 }
 
-CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCSendRawTransaction(rpc::CRPCParamPtr param)
 {
-    auto spParam = CastParamPtr<CSendOfflineSignedTransactionParam>(param);
+    auto spParam = CastParamPtr<CSendRawTransactionParam>(param);
 
     vector<unsigned char> txData = ParseHexString(spParam->strTxdata);
     CBufStream ss;
@@ -2405,7 +2405,7 @@ CRPCResultPtr CRPCMod::RPCSendOfflineSignedTransaction(rpc::CRPCParamPtr param)
                                                           + ErrorString(err));
     }
 
-    return MakeCSendOfflineSignedTransactionResultPtr(rawTx.GetHash().GetHex());
+    return MakeCSendRawTransactionResultPtr(rawTx.GetHash().GetHex());
 }
 
 /* Util */

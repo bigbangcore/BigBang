@@ -446,7 +446,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         {
             CBlock block;
             PreparePiggyback(block, agreement, hashRefBlock, nRefBlockTime, nPrevHeight, it->second, nPrevMintType);
-            mapBlocks.insert(make_pair(nRefBlockTime, make_pair(hashFork, block)));
+            mapBlocks.insert(make_pair(nRefBlockTime, make_pair(it->first, block)));
         }
     }
     Log("subfork: mapBlocks size[%d]", mapBlocks.size());
