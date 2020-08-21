@@ -17,6 +17,7 @@ namespace bigbang
 // defi reward cache
 class CBlockChain : public IBlockChain
 {
+
 public:
     CBlockChain();
     ~CBlockChain();

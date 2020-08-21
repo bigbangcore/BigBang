@@ -14,7 +14,7 @@ using namespace xengine;
 //////////////////////////////
 // CDeFiProfile
 
-void CDeFiProfile::Save(std::vector<unsigned char>& vchProfile)
+void CDeFiProfile::Save(std::vector<unsigned char>& vchProfile) const
 {
     CODataStream os(vchProfile);
     os << nDecayCycle << nDecayPercent << nRewardCycle << nStakeRewardPercent << nPromotionRewardPercent << nStakeMinToken << mapPromotionTokenTimes;
@@ -42,6 +42,7 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         encoder.Push(PROFILE_MINTREWARD, nMintReward);
         encoder.Push(PROFILE_MINTXFEE, nMinTxFee);
         encoder.Push(PROFILE_HALVECYCLE, nHalveCycle);
+        
 
         vector<unsigned char> vchDestOwner;
         CODataStream os(vchDestOwner);
