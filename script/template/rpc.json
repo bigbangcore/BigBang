@@ -80,8 +80,8 @@
                         "type": "array",
                         "content": {
                             "key": {
-                                "type": "string",
-                                "desc": "key value"
+                                "type": "uint",
+                                "desc": "key or value"
                             }
                         },
                         "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [key0,value0,key1,value1,...,keyN, valueN]"
