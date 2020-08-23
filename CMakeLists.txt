@@ -143,6 +143,7 @@ endif()
 if(MSVC)
     add_definitions(-D_WIN32_WINNT=0x0601)
     add_definitions(-DBOOST_ALL_DYN_LINK)
+    add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)
 endif()
 
 if(TESTNET)
