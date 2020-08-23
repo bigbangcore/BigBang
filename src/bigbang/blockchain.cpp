@@ -4,6 +4,9 @@
 
 #include "blockchain.h"
 
+#include <algorithm>
+#include <stack>
+
 #include "delegatecomm.h"
 #include "delegateverify.h"
 
@@ -53,7 +56,7 @@ int32 CBlockChain::CReward::PrevRewardHeight(const uint256& forkid, const int32 
     return -1;
 }
 
-int64 CBlockChain::CReward::ComputeSectionMintReward(const uint256& forkid, const uint256& hash)
+int64 CBlockChain::CReward::ComputeSectionCoinbaseReward(const uint256& forkid, const uint256& hash)
 {
     int64 nReward = 0;
     CProfile profile = GetForkProfile(forkid);
@@ -72,10 +75,10 @@ int64 CBlockChain::CReward::ComputeSectionMintReward(const uint256& forkid, cons
     }
 
     int64 nCoinbase = 0;
-    uint32 nNextHeight = 0;
+    int32 nNextHeight = 0;
     while (nBeginHeight < nEndHeight)
     {
-        if (GetDecayMint(profile, nBeginHeight, nCoinbase, nNextHeight))
+        if (GetDecayCoinbase(profile, nBeginHeight, nCoinbase, nNextHeight))
         {
             uint32 nHeight = min(nEndHeight, nNextHeight) - nBeginHeight;
             nReward += nCoinbase * nHeight;
@@ -119,7 +122,7 @@ void CBlockChain::CReward::AddForkSection(const uint256& forkid, const uint256& 
     }
 }
 
-bool CBlockChain::CReward::GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nCoinbase, uint32& nNextHeight)
+bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight)
 {
     if (nHeight <= profile.nJointHeight + 1)
     {
@@ -150,15 +153,16 @@ bool CBlockChain::CReward::GetDecayMint(const CProfile& profile, const int32 nHe
     for (int i = 0; i <= nDecayCount; i++)
     {
         uint32 count = (i == nDecayCount) ? nCurSupplyCount : nSupplyCount;
-        supply *= pow(1 + fCoinbaseIncreasing, count);
+        nSupply *= pow(1 + fCoinbaseIncreasing, count);
         if (i < nDecayCount || nCurSupplyCount == nSupplyCount)
         {
-            fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;;
+            fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
+            ;
         }
     }
 
-    nCoinbase = supply * fCoinbaseIncreasing / nSupplyCount;
-    nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle;
+    nCoinbase = nSupply * fCoinbaseIncreasing / nSupplyCount;
+    nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nDecayHeight;
     return true;
 }
 
@@ -2295,14 +2299,32 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
 {
     CDeFiRewardSet s;
 
-    int64 nReward = defiReward.ComputeSectionMintReward(forkid, hash);
+    int64 nReward = defiReward.ComputeSectionCoinbaseReward(forkid, hash);
     if (nReward <= 0)
     {
         return s;
     }
 
-    map<CDestination, int64> stakeReward = ComputeStakeReward(forkid, hash, nReward);
-    map<CDestination, int64> promotionReward = ComputeStakeReward(forkid, hash, nReward);
+    storage::CBlockView view;
+    if (!cntrBlock.GetBlockView(hash, view))
+    {
+        Error("ComputeDeFiSection get block view error, hash: %s", hash.ToString().c_str());
+        return s;
+    }
+
+    map<CDestination, int64> mapAddressAmount;
+    if (!cntrBlock.ListForkAllAddressAmount(forkid, view, mapAddressAmount) || mapAddressAmount.empty())
+    {
+        Error("ComputeDeFiSection ListForkAllAddressAmount error, hash: %s", hash.ToString().c_str());
+        return s;
+    }
+
+    CProfile profile = defiReward.GetForkProfile(forkid);
+    int64 nStakeReward = nReward * profile.defi.nStakeRewardPercent / 100;
+    int64 nPromotionReward = nReward * profile.defi.nPromotionRewardPercent / 100;
+
+    map<CDestination, int64> stakeReward = ComputeStakeReward(view, forkid, hash, profile.defi.nStakeMinToken, nStakeReward, mapAddressAmount);
+    map<CDestination, int64> promotionReward = ComputePromotionReward(view, forkid, hash, nPromotionReward, mapAddressAmount, profile.defi.mapPromotionTokenTimes);
 
     for (auto& stake : stakeReward)
     {
@@ -2336,38 +2358,189 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
     return s;
 }
 
-map<CDestination, int64> CBlockChain::ComputeStakeReward(const uint256& forkid, const uint256& hash, const int64 nReward)
+map<CDestination, int64> CBlockChain::ComputeStakeReward(storage::CBlockView& view, const uint256& forkid,
+                                                         const uint256& hash, const int64 nMin, const int64 nReward,
+                                                         const map<CDestination, int64>& mapAddressAmount)
 {
     map<CDestination, int64> reward;
 
-    CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveIndex(hash, &pIndex))
+    // sort by token
+    multimap<int64, pair<CDestination, uint32>> mapRank;
+    for (auto& p : mapAddressAmount)
     {
-        Error("ComputeStakeReward retrieve block index error, hash: %s", hash.ToString().c_str());
-        return reward;
+        if (p.second >= nMin)
+        {
+            mapRank.insert(make_pair(p.second, make_pair(p.first, 0)));
+        }
     }
 
-    storage::CBlockView view;
-    if (!cntrBlock.GetBlockView(hash, view))
+    // tag rank
+    uint32 nRank = 1;
+    uint32 nPos = 0;
+    uint32 nTotal = 0;
+    int64 nToken = -1;
+    for (auto& p : mapRank)
     {
-        Error("ComputeStakeReward get block view error, hash: %s", hash.ToString().c_str());
-        return reward;
+        ++nPos;
+        if (p.first != nToken)
+        {
+            p.second.second = nPos;
+            nRank = nPos;
+            nToken = p.first;
+        }
+        else
+        {
+            p.second.second = nRank;
+        }
+
+        nTotal += p.second.second;
     }
 
-    map<CDestination, int64> mapAddressAmount;
-    if (!cntrBlock.ListForkAllAddressAmount(forkid, view, mapAddressAmount))
+    // reward
+    int64 nUnitReward = nReward / nTotal;
+    for (auto& p : mapRank)
     {
-        Error("ComputeStakeReward ListForkAllAddressAmount error, hash: %s", hash.ToString().c_str());
-        return reward;
+        reward.insert(make_pair(p.second.first, nUnitReward * p.second.second));
     }
 
-    return map<CDestination, int64>();
+    return reward;
 }
 
-map<CDestination, int64> CBlockChain::ComputePromotionReward(const uint256& forkid, const uint256& hash, const int64 nReward)
+map<CDestination, int64> CBlockChain::ComputePromotionReward(storage::CBlockView& view, const uint256& forkid,
+                                                             const uint256& hash, const int64 nReward,
+                                                             const map<CDestination, int64>& mapAddressAmount,
+                                                             const std::map<uint64, uint32>& mapPromotionTokenTimes)
 {
-    // TODO
-    return map<CDestination, int64>();
+    map<CDestination, int64> reward;
+
+    // get invitation relation
+    storage::CForkAddressInvite addrInvite;
+    if (!cntrBlock.ListForkAddressInvite(forkid, view, addrInvite))
+    {
+        Error("ComputePromotionReward ListForkAddressInvite error, hash: %s", hash.ToString().c_str());
+        return reward;
+    }
+
+    // compute promotion power
+    int64 nTotal = 0;
+    for (auto& dest : addrInvite.vRoot)
+    {
+        storage::CInviteAddress* pNode = addrInvite.mapInviteAddress[dest];
+        if (pNode == nullptr)
+        {
+            Error("ComputePromotionReward no root address, dest: %s", CAddress(dest).ToString().c_str());
+            return reward;
+        }
+
+        // postorder traversal
+        stack<storage::CInviteAddress*> st;
+        do
+        {
+            if (pNode != nullptr)
+            {
+                if (!pNode->setSubline.empty())
+                {
+                    st.push(pNode);
+                    pNode = *pNode->setSubline.begin();
+                    continue;
+                }
+            }
+            else
+            {
+                pNode = st.top();
+                st.pop();
+            }
+
+            // amount
+            auto it = mapAddressAmount.find(pNode->dest);
+            pNode->nAmount = (it == mapAddressAmount.end()) ? 0 : it->second;
+
+            // power
+            pNode->nPower = 0;
+            if (!pNode->setSubline.empty())
+            {
+                int64 nMax = -1;
+                for (auto& p : pNode->setSubline)
+                {
+                    pNode->nAmount += p->nAmount;
+                    int64 n = 0;
+                    if (p->nAmount <= nMax)
+                    {
+                        n = p->nAmount;
+                    }
+                    else
+                    {
+                        n = nMax;
+                        nMax = p->nAmount;
+                    }
+
+                    if (n < 0)
+                    {
+                        continue;
+                    }
+
+                    for (auto& tokenTimes : mapPromotionTokenTimes)
+                    {
+                        if (n > tokenTimes.first)
+                        {
+                            pNode->nPower += tokenTimes.first * tokenTimes.second;
+                            n -= tokenTimes.first;
+                        }
+                        else
+                        {
+                            pNode->nPower += n * tokenTimes.second;
+                            break;
+                        }
+                    }
+                }
+
+                pNode->nPower += (int64)pow(nMax, 1.0 / 3);
+            }
+
+            if (pNode->nPower > 0)
+            {
+                nTotal += pNode->nPower;
+                reward.insert(make_pair(pNode->dest, pNode->nPower));
+            }
+
+            if (pNode->pParent != nullptr && pNode->pParent->setSubline.empty())
+            {
+                Error("ComputePromotionReward parent: %s subline is empty", CAddress(pNode->pParent->dest).ToString().c_str());
+                return reward;
+            }
+
+            // root or the last child of parent. fetch from stack when next loop
+            if (pNode->pParent == nullptr || pNode == *pNode->pParent->setSubline.rbegin())
+            {
+                pNode = nullptr;
+            }
+            else
+            {
+                auto it = pNode->pParent->setSubline.find(pNode);
+                if (it == pNode->pParent->setSubline.end())
+                {
+                    Error("ComputePromotionReward parent: %s have not subline: %s", CAddress(pNode->pParent->dest).ToString().c_str(), CAddress(pNode->dest).ToString().c_str());
+                    return reward;
+                }
+                else
+                {
+                    pNode = *++it;
+                }
+            }
+        } while (!st.empty());
+    }
+
+    // reward
+    if (nTotal > 0)
+    {
+        int64 nUnitReward = nReward / nTotal;
+        for (auto& p : reward)
+        {
+            p.second *= nUnitReward;
+        }
+    }
+
+    return reward;
 }
 
 } // namespace bigbang

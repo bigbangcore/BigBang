@@ -110,8 +110,13 @@ protected:
     // defi
     std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
     CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash);
-    std::map<CDestination, int64> ComputeStakeReward(const uint256& forkid, const uint256& hash, const int64 nReward);
-    std::map<CDestination, int64> ComputePromotionReward(const uint256& forkid, const uint256& hash, const int64 nReward);
+    std::map<CDestination, int64> ComputeStakeReward(storage::CBlockView& view, const uint256& forkid,
+                                                     const uint256& hash, const int64 nMin, const int64 nReward,
+                                                     const std::map<CDestination, int64>& mapAddressAmount);
+    std::map<CDestination, int64> ComputePromotionReward(storage::CBlockView& view, const uint256& forkid,
+                                                         const uint256& hash, const int64 nReward,
+                                                         const std::map<CDestination, int64>& mapAddressAmount,
+                                                         const std::map<uint64, uint32>& mapPromotionTokenTimes);
 
 protected:
     boost::shared_mutex rwAccess;
@@ -143,14 +148,14 @@ protected:
         CProfile GetForkProfile(const uint256& forkid);
 
         int32 PrevRewardHeight(const uint256& forkid, const int32 nHeight);
-        int64 ComputeSectionMintReward(const uint256& forkid, const uint256& hash);
+        int64 ComputeSectionCoinbaseReward(const uint256& forkid, const uint256& hash);
 
         bool ExistForkSection(const uint256& forkid, const uint256& section);
         const CDeFiRewardSet& GetForkSection(const uint256& forkid, const uint256& section);
         void AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward);
-    
+
     protected:
-        bool GetDecayMint(const CProfile& profile, const int32 nHeight, int64& nCoinbase, uint32& nNextHeight);
+        bool GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight);
 
     protected:
         MapForkReward forkReward;
