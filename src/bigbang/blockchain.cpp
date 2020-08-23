@@ -727,7 +727,8 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         {
             // TODO: check stake and promotion in vchData or ?
             if (!fCheckDeFi || (itListDeFi == listDeFiReward.end())
-                || (itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount))
+                || (itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount)
+                || (itListDeFi->hashAnchor != tx.hashAnchor))
             {
                 Log("AddNewBlock Check defi reward tx Error");
                 return ERR_TRANSACTION_INVALID;
@@ -2347,6 +2348,7 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nReward = r;
             reward.nStakeReward = sr;
             reward.nPromotionReward = pr;
+            reward.hashAnchor = hash;
             s.insert(move(reward));
         }
     }
@@ -2360,6 +2362,7 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nReward = promotion.second;
             reward.nStakeReward = 0;
             reward.nPromotionReward = promotion.second;
+            reward.hashAnchor = hash;
             s.insert(move(reward));
         }
     }

@@ -357,6 +357,7 @@ struct CDeFiReward
     int64 nReward;
     int64 nStakeReward;
     int64 nPromotionReward;
+    uint256 hashAnchor;
 };
 
 typedef boost::multi_index_container<
