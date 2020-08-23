@@ -138,7 +138,7 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
     data.strType = wtx.GetTypeString();
     data.nTime = (boost::int64_t)wtx.nTimeStamp;
     data.fSend = wtx.IsFromMe();
-    if (!wtx.IsMintTx())
+    if (!wtx.IsMintTx() && wtx.nType != CTransaction::TX_DEFI_REWARD)
     {
         data.strFrom = CAddress(wtx.destIn).ToString();
     }

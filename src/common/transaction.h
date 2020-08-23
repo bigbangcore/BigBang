@@ -144,14 +144,18 @@ public:
     {
         if (nType == TX_TOKEN)
             return std::string("token");
-        if (nType == TX_CERT)
+        else if (nType == TX_CERT)
             return std::string("certification");
-        if (nType == TX_GENESIS)
+        else if (nType == TX_GENESIS)
             return std::string("genesis");
-        if (nType == TX_STAKE)
+        else if (nType == TX_STAKE)
             return std::string("stake");
-        if (nType == TX_WORK)
+        else if (nType == TX_WORK)
             return std::string("work");
+        else if (nType == TX_DEFI_REWARD)
+            return std::string("defi-reward");
+        else if (nType == TX_DEFI_RELATION)
+            return std::string("defi-relation");
         return std::string("undefined");
     }
     int64 GetTxTime() const

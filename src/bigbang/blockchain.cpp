@@ -2328,31 +2328,40 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
 
     for (auto& stake : stakeReward)
     {
-        CDeFiReward reward;
-        reward.dest = stake.first;
-        reward.nReward = stake.second;
-        reward.nStakeReward = stake.second;
-        reward.nPromotionReward = 0;
-
         auto it = promotionReward.find(stake.first);
+
+        int64 sr = stake.second;
+        int64 pr = 0;
         if (it != promotionReward.end())
         {
-            reward.nReward += it->second;
-            reward.nPromotionReward = it->second;
+            pr = it->second;
             promotionReward.erase(it);
         }
+        int64 r = sr + pr;
 
-        s.insert(move(reward));
+        // check reward > txfee
+        if (r > NEW_MIN_TX_FEE)
+        {
+            CDeFiReward reward;
+            reward.dest = stake.first;
+            reward.nReward = r;
+            reward.nStakeReward = sr;
+            reward.nPromotionReward = pr;
+            s.insert(move(reward));
+        }
     }
 
     for (auto& promotion : promotionReward)
     {
-        CDeFiReward reward;
-        reward.dest = promotion.first;
-        reward.nReward = promotion.second;
-        reward.nStakeReward = 0;
-        reward.nPromotionReward = promotion.second;
-        s.insert(move(reward));
+        if (promotion.second > NEW_MIN_TX_FEE)
+        {
+            CDeFiReward reward;
+            reward.dest = promotion.first;
+            reward.nReward = promotion.second;
+            reward.nStakeReward = 0;
+            reward.nPromotionReward = promotion.second;
+            s.insert(move(reward));
+        }
     }
 
     return s;

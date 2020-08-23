@@ -592,7 +592,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         return ERR_ALREADY_HAVE;
     }
 
-    if (tx.IsMintTx())
+    if (tx.IsMintTx() || tx.nType == CTransaction::TX_DEFI_REWARD)
     {
         StdError("CTxPool", "Push: tx is mint, txid: %s", txid.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
@@ -931,6 +931,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
+
+            // defi
+            if (tx.nType == CTransaction::TX_DEFI_REWARD)
+            {
+                continue;
+            }
+
             uint256 txid = tx.GetHash();
             if (!update.setTxUpdate.count(txid))
             {
@@ -966,6 +973,13 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         for (int i = 0; i < block.vtx.size(); ++i)
         {
             const CTransaction& tx = block.vtx[i];
+
+            // defi
+            if (tx.nType == CTransaction::TX_DEFI_REWARD)
+            {
+                continue;
+            }
+
             uint256 txid = tx.GetHash();
             if (!update.setTxUpdate.count(txid))
             {

@@ -105,7 +105,7 @@ void CDelegateContext::AddNewTx(const CAssembledTx& tx)
 {
     /*if (tx.sendTo == destDelegate)
     {
-        if (tx.nType == CTransaction::TX_TOKEN && tx.destIn == destOwner)
+        if ((tx.nType == CTransaction::TX_TOKEN || tx.nType == CTransaction::TX_DEFI_RELATION) && tx.destIn == destOwner)
         {
             uint256 txid = tx.GetHash();
             CDelegateTx& delegateTx = mapTx[txid];
