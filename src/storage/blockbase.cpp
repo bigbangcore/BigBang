@@ -1987,9 +1987,9 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.nAmount >= 10000)
+            if (tx.IsDeFiRelation())
             {
-                vRemoveAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
+                vRemoveAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
             }
         }
     }
@@ -2001,9 +2001,9 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.nAmount >= 10000)
+            if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
-                vNewAddress.push_back(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
+                vNewAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
             }
         }
     }
@@ -2028,10 +2028,11 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
         for (int i = block.vtx.size() - 1; i >= 0; --i)
         {
             const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.nAmount >= 10000)
+            if (tx.IsDeFiRelation())
             {
-                auto it = walker.mapAddress.find(tx.sendTo);
+                auto it = walker.mapAddress.find(txContxt.destIn);
                 if (it != walker.mapAddress.end() && it->second.hashTxInvite == txid)
                 {
                     walker.mapAddress.erase(it);
@@ -2047,12 +2048,12 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
             uint256 txid = tx.GetHash();
-            if (tx.nAmount >= 10000)
+            if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
-                auto it = walker.mapAddress.find(tx.sendTo);
+                auto it = walker.mapAddress.find(txContxt.destIn);
                 if (it == walker.mapAddress.end())
                 {
-                    walker.mapAddress.insert(make_pair(tx.sendTo, CAddrInfo(txContxt.destIn, txContxt.destIn, txid)));
+                    walker.mapAddress.insert(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
                 }
             }
         }

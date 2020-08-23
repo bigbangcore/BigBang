@@ -6,6 +6,7 @@
 #define STORAGE_CHECKREPAIR_H
 
 #include "address.h"
+#include "addressdb.h"
 #include "block.h"
 #include "blockindexdb.h"
 #include "core.h"
@@ -399,6 +400,7 @@ public:
     CBlockIndex* pLast;
     map<uint256, CCheckBlockTx> mapBlockTx;
     map<CTxOutPoint, CCheckTxOut> mapBlockUnspent;
+    map<CDestination, CAddrInfo> mapBlockAddress;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -464,9 +466,11 @@ protected:
     bool FetchTxPool();
     bool FetchWalletAddress();
     bool FetchWalletTx();
+    bool FetchAddress();
 
     bool CheckRepairFork();
     bool CheckBlockUnspent();
+    bool CheckBlockAddress();
     bool CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>& vRemoveTx);
     bool CheckTxIndex();
 
@@ -486,6 +490,7 @@ protected:
     CCheckForkManager objForkManager;
     CCheckBlockWalker objBlockWalker;
     map<uint256, CCheckForkUnspentWalker> mapForkUnspentWalker;
+    map<uint256, CListAddressWalker> mapForkAddressWalker;
     CCheckDBAddrWalker objWalletAddressWalker;
     CCheckWalletTxWalker objWalletTxWalker;
     CCheckTxPoolData objTxPoolData;

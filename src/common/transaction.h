@@ -140,6 +140,10 @@ public:
     {
         return (nType == TX_GENESIS || nType == TX_STAKE || nType == TX_WORK);
     }
+    bool IsDeFiRelation() const
+    {
+        return (nType == TX_DEFI_RELATION);
+    }
     std::string GetTypeString() const
     {
         if (nType == TX_TOKEN)
