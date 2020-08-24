@@ -331,12 +331,14 @@ CForkAddressInvite::~CForkAddressInvite()
             it->second = nullptr;
         }
     }
+    mapInviteAddress.clear();
 }
 
 bool CForkAddressInvite::UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite)
 {
     if (dest.IsNull() || parent.IsNull() || txInvite == 0)
     {
+        StdError("CForkAddressInvite", "UpdateAddress: param error");
         return false;
     }
     auto it = mapInviteAddress.find(dest);
@@ -345,48 +347,83 @@ bool CForkAddressInvite::UpdateAddress(const CDestination& dest, const CDestinat
         CInviteAddress* pNewAddr = new CInviteAddress(dest, parent, txInvite);
         if (pNewAddr == nullptr)
         {
+            StdError("CForkAddressInvite", "UpdateAddress: new error, dest: %s", CAddress(dest).ToString().c_str());
             return false;
         }
-        it = mapInviteAddress.insert(make_pair(dest, pNewAddr)).first;
-        if (it == mapInviteAddress.end())
+        if (!mapInviteAddress.insert(make_pair(dest, pNewAddr)).second)
         {
+            StdError("CForkAddressInvite", "UpdateAddress: insert fail, dest: %s", CAddress(dest).ToString().c_str());
             delete pNewAddr;
             return false;
         }
     }
     else
     {
-        if (it->second == nullptr)
-        {
-            return false;
-        }
-        it->second->parent = parent;
-        it->second->hashTxInvite = txInvite;
+        StdError("CForkAddressInvite", "UpdateAddress: duplicate address, dest: %s", CAddress(dest).ToString().c_str());
+        return false;
     }
     return true;
 }
 
-void CForkAddressInvite::UpdateParent()
+bool CForkAddressInvite::UpdateParent()
 {
+    map<CDestination, set<CDestination>> mapRoot;
     for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
     {
-        if (it->second)
+        if (!it->second)
         {
-            auto mt = mapInviteAddress.find(it->second->parent);
-            if (mt != mapInviteAddress.end() && mt->second)
+            StdError("CForkAddressInvite", "UpdateParent: address is null, dest: %s", CAddress(it->first).ToString().c_str());
+            return false;
+        }
+        if (it->second->parent.IsNull())
+        {
+            StdError("CForkAddressInvite", "UpdateParent: parent is null, dest: %s", CAddress(it->first).ToString().c_str());
+            return false;
+        }
+        auto mt = mapInviteAddress.find(it->second->parent);
+        if (mt != mapInviteAddress.end())
+        {
+            if (!mt->second)
+            {
+                StdError("CForkAddressInvite", "UpdateParent: parent address is null, dest: %s", CAddress(it->first).ToString().c_str());
+                return false;
+            }
+            it->second->pParent = mt->second;
+            mt->second->setSubline.insert(it->second);
+        }
+        else
+        {
+            mapRoot[it->second->parent].insert(it->first);
+        }
+    }
+
+    for (const auto& vd : mapRoot)
+    {
+        CInviteAddress* pNewAddr = new CInviteAddress(vd.first, CDestination(), uint256());
+        if (pNewAddr == nullptr)
+        {
+            StdError("CForkAddressInvite", "UpdateParent: new error, dest: %s", CAddress(vd.first).ToString().c_str());
+            return false;
+        }
+        auto mt = mapInviteAddress.insert(make_pair(vd.first, pNewAddr)).first;
+        if (mt == mapInviteAddress.end())
+        {
+            StdError("CForkAddressInvite", "UpdateParent: insert fail, dest: %s", CAddress(vd.first).ToString().c_str());
+            delete pNewAddr;
+            return false;
+        }
+        for (const auto& sub : vd.second)
+        {
+            auto it = mapInviteAddress.find(sub);
+            if (it != mapInviteAddress.end())
             {
                 it->second->pParent = mt->second;
                 mt->second->setSubline.insert(it->second);
             }
         }
+        vRoot.push_back(vd.first);
     }
-    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
-    {
-        if (it->second && it->second->pParent == nullptr)
-        {
-            vRoot.push_back(it->first);
-        }
-    }
+    return true;
 }
 
 //////////////////////////////
@@ -2016,6 +2053,7 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
     CListAddressWalker walker;
     if (!dbBlock.WalkThroughAddress(hashFork, walker))
     {
+        StdLog("CBlockBase", "ListForkAddressInvite: WalkThroughAddress fail, fork: %s", hashFork.GetHex().c_str());
         return false;
     }
 
@@ -2063,11 +2101,16 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
     {
         if (!addrInvite.UpdateAddress(vd.first, vd.second.destInviteParent, vd.second.hashTxInvite))
         {
+            StdLog("CBlockBase", "ListForkAddressInvite: UpdateAddress fail, fork: %s", hashFork.GetHex().c_str());
             return false;
         }
     }
 
-    addrInvite.UpdateParent();
+    if (!addrInvite.UpdateParent())
+    {
+        StdLog("CBlockBase", "ListForkAddressInvite: UpdateParent fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
     return true;
 }
 

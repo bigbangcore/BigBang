@@ -230,9 +230,10 @@ protected:
 class CInviteAddress
 {
 public:
-    CInviteAddress() : nPower(0), nAmount(0) {}
+    CInviteAddress()
+      : pParent(nullptr), nPower(0), nAmount(0) {}
     CInviteAddress(const CDestination& destIn, const CDestination& parentIn, const uint256& hashTxInviteIn)
-      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn), nPower(0), nAmount(0) {}
+      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn), pParent(nullptr), nPower(0), nAmount(0) {}
 
 public:
     CDestination dest;
@@ -251,7 +252,7 @@ public:
     ~CForkAddressInvite();
 
     bool UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite);
-    void UpdateParent();
+    bool UpdateParent();
 
 public:
     std::map<CDestination, CInviteAddress*> mapInviteAddress;
