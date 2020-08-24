@@ -680,7 +680,7 @@ bool CCheckForkTxPool::AddTx(const uint256& txid, const CAssembledTx& tx)
         StdError("check", "TxPool AddTx: Add unspent 0 fail, txid: %s.", txid.GetHex().c_str());
         return false;
     }
-    if (!tx.IsMintTx())
+    if (!tx.IsMintTx() && tx.nType != CTransaction::TX_DEFI_REWARD)
     {
         if (!Unspent(CTxOutPoint(txid, 1), tx.GetOutput(1)))
         {
@@ -883,7 +883,7 @@ bool CCheckBlockFork::AddBlockTx(const CTransaction& txIn, const CTxContxt& cont
         StdLog("check", "AddBlockTx: add block unspent 0 fail, txid: %s.", txid.GetHex().c_str());
         return false;
     }
-    if (!txIn.IsMintTx())
+    if (!txIn.IsMintTx() && txIn.nType != CTransaction::TX_DEFI_REWARD)
     {
         if (!AddBlockUnspent(CTxOutPoint(txid, 1), CTxOut(txIn, contxtIn.destIn, contxtIn.GetValueIn())))
         {

@@ -376,7 +376,7 @@ void CForkAddressInvite::UpdateParent()
             if (mt != mapInviteAddress.end() && mt->second)
             {
                 it->second->pParent = mt->second;
-                mt->second->mapSubline[it->first] = it->second;
+                mt->second->setSubline.insert(it->second);
             }
         }
     }

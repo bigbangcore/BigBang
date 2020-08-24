@@ -230,16 +230,18 @@ protected:
 class CInviteAddress
 {
 public:
-    CInviteAddress() {}
+    CInviteAddress() : nPower(0), nAmount(0) {}
     CInviteAddress(const CDestination& destIn, const CDestination& parentIn, const uint256& hashTxInviteIn)
-      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn) {}
+      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn), nPower(0), nAmount(0) {}
 
 public:
     CDestination dest;
     CDestination parent;
     uint256 hashTxInvite;
     CInviteAddress* pParent;
-    std::map<CDestination, CInviteAddress*> mapSubline;
+    std::set<CInviteAddress*> setSubline;
+    int64 nPower;
+    int64 nAmount;
 };
 
 class CForkAddressInvite
