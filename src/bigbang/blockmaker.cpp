@@ -361,7 +361,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             txNew.nLockUntil = 0;
             txNew.sendTo = reward.dest;
             txNew.nAmount = reward.nReward;
-            txNew.nTxFee = CalcMinTxFee(0, NEW_MIN_TX_FEE);
+            txNew.nTxFee = CalcMinTxFee(txNew.vchData.size(), NEW_MIN_TX_FEE);
             
             uint256 hashSig = txNew.GetSignatureHash();
             if (!profile.keyMint.Sign(hashSig, txNew.vchSig))
