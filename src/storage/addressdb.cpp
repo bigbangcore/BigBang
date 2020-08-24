@@ -162,9 +162,18 @@ bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& 
                             fLoop = true;
                             break;
                         }
-                        if (addrInfo.destInviteRoot.IsNull() || !Read(addrInfo.destInviteRoot, addrInfo))
+                        if (addrInfo.destInviteRoot.IsNull())
                         {
                             break;
+                        }
+                        if (!Read(addrInfo.destInviteRoot, addrInfo))
+                        {
+                            auto nt = mapAddNew.find(vd.second.destInviteRoot);
+                            if (nt == mapAddNew.end())
+                            {
+                                break;
+                            }
+                            addrInfo = kt->second;
                         }
                     }
                 }
