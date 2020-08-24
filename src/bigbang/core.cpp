@@ -627,6 +627,11 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
+    if (tx.nType == CTransaction::TX_DEFI_RELATION && destIn == tx.sendTo)
+    {
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "DeFi relation tx from address must be not equal to sendto address\n");
+    }
+
     if (tx.nType == CTransaction::TX_CERT)
     {
         if (VerifyCertTx(tx, destIn, fork) != OK)
@@ -753,6 +758,11 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
         return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    if (tx.nType == CTransaction::TX_DEFI_RELATION && destIn == tx.sendTo)
+    {
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "DeFi relation tx from address must be not equal to sendto address\n");
     }
 
     if (tx.nType == CTransaction::TX_CERT)
