@@ -102,7 +102,7 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
                 }
                 else
                 {
-                    addr.destInviteRoot.SetNull();
+                    addr.destInviteRoot = vd.second.destInviteParent;
                 }
             }
         }
@@ -113,24 +113,101 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
 
 bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& vAddUpdate, const vector<CDestination>& vRemove)
 {
-    if (!TxnBegin())
+    // Remove
     {
-        return false;
+        if (!TxnBegin())
+        {
+            return false;
+        }
+        for (const auto& dest : vRemove)
+        {
+            Erase(dest);
+        }
+        if (!TxnCommit())
+        {
+            return false;
+        }
     }
 
-    for (const auto& addr : vAddUpdate)
+    // Construct new data
+    map<CDestination, CAddrInfo> mapAddNew;
     {
-        Write(addr.first, addr.second);
+        CAddrInfo addrInfo;
+        for (const auto& vd : vAddUpdate)
+        {
+            if (vd.first.IsNull() || vd.second.destInviteParent.IsNull() || vd.first == vd.second.destInviteParent)
+            {
+                continue;
+            }
+            if (!Read(vd.first, addrInfo) && mapAddNew.count(vd.first) == 0)
+            {
+                bool fLoop = false;
+                CAddrInfo addrParentInfo;
+                auto kt = mapAddNew.find(vd.second.destInviteParent);
+                if (kt != mapAddNew.end())
+                {
+                    addrInfo = kt->second;
+                    addrParentInfo = kt->second;
+                }
+                else if (Read(vd.second.destInviteParent, addrInfo))
+                {
+                    addrParentInfo = addrInfo;
+                }
+                if (!addrParentInfo.IsNull())
+                {
+                    while (1)
+                    {
+                        if (addrInfo.destInviteRoot == vd.first)
+                        {
+                            fLoop = true;
+                            break;
+                        }
+                        if (addrInfo.destInviteRoot.IsNull())
+                        {
+                            break;
+                        }
+                        if (!Read(addrInfo.destInviteRoot, addrInfo))
+                        {
+                            auto nt = mapAddNew.find(vd.second.destInviteRoot);
+                            if (nt == mapAddNew.end())
+                            {
+                                break;
+                            }
+                            addrInfo = kt->second;
+                        }
+                    }
+                }
+                if (!fLoop)
+                {
+                    auto& addr = mapAddNew[vd.first];
+                    addr = vd.second;
+                    if (!addrParentInfo.IsNull())
+                    {
+                        addr.destInviteRoot = addrParentInfo.destInviteRoot;
+                    }
+                    else
+                    {
+                        addr.destInviteRoot = vd.second.destInviteParent;
+                    }
+                }
+            }
+        }
     }
 
-    for (const auto& dest : vRemove)
+    // Add
     {
-        Erase(dest);
-    }
-
-    if (!TxnCommit())
-    {
-        return false;
+        if (!TxnBegin())
+        {
+            return false;
+        }
+        for (const auto& addr : mapAddNew)
+        {
+            Write(addr.first, addr.second);
+        }
+        if (!TxnCommit())
+        {
+            return false;
+        }
     }
     return true;
 }
