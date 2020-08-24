@@ -963,6 +963,58 @@
                         "owner": {
                             "type": "string",
                             "desc": "owner's address"
+                        },
+                        "forktype": {
+                            "type": "string",
+                            "desc": "fork params, a json object"
+                        },
+                        "defi": {
+                            "type": "object",
+                            "desc": "Fork DeFi Parameters",
+                            "content": {
+                                "decaycycle": {
+                                    "type": "uint",
+                                    "desc": "coinbase decay cycle in height"
+                                },
+                                "coinbasedecaypercent": {
+                                    "type": "uint",
+                                    "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%"
+                                },
+                                "initcoinbasepercent": {
+                                    "type": "uint",
+                                    "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
+                                },
+                                "rewardcycle": {
+                                    "type": "uint",
+                                    "desc": "generate reward cycle in height"
+                                },
+                                "supplycycle": {
+                                    "type": "uint",
+                                    "desc": "supplyment changing cycle in height"
+                                },
+                                "stakerewardpercent": {
+                                    "type": "uint",
+                                    "desc": "stake reward ratio, [0 - 100] means [0% - 100%]"
+                                },
+                                "promotionrewardpercent": {
+                                    "type": "uint",
+                                    "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]"
+                                },
+                                "stakemintoken": {
+                                    "type": "uint",
+                                    "desc": "the minimum token on address can participate stake reward"
+                                },
+                                "mappromotiontokentimes": {
+                                    "type": "array",
+                                    "content": {
+                                        "key": {
+                                            "type": "uint",
+                                            "desc": "key or value"
+                                        }
+                                    },
+                                    "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [key0,value0,key1,value1,...,keyN, valueN]"
+                                }
+                            }
                         }
                     }
                 }
