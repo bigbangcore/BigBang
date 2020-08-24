@@ -84,7 +84,7 @@ public:
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
     // defi
-    std::multimap<CDestination, CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev) override;
+    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nMax = -1) override;
 
 protected:
     bool HandleInitialize() override;
@@ -107,6 +107,17 @@ protected:
     void InitCheckPoints();
     void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
 
+    // defi
+    std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
+    CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash);
+    std::map<CDestination, int64> ComputeStakeReward(storage::CBlockView& view, const uint256& forkid,
+                                                     const uint256& hash, const int64 nMin, const int64 nReward,
+                                                     const std::map<CDestination, int64>& mapAddressAmount);
+    std::map<CDestination, int64> ComputePromotionReward(storage::CBlockView& view, const uint256& forkid,
+                                                         const uint256& hash, const int64 nReward,
+                                                         const std::map<CDestination, int64>& mapAddressAmount,
+                                                         const std::map<uint64, uint32>& mapPromotionTokenTimes);
+
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
@@ -123,24 +134,35 @@ protected:
     class CReward
     {
     public:
-        typedef std::map<CDestination, CDeFiReward> MapAddrReward;
-        typedef std::map<uint256, MapAddrReward> MapBlockReward;
+        typedef std::map<uint256, CDeFiRewardSet> MapSectionReward;
 
         struct CForkReward
         {
-            MapBlockReward reward;
-            CDeFiProfile profile;
+            MapSectionReward reward;
+            CProfile profile;
         };
         typedef std::map<uint256, CForkReward> MapForkReward;
 
         bool ExistFork(const uint256& forkid) const;
-        void AddFork(const uint256& forkid, const CDeFiProfile& profile);
-    
+        void AddFork(const uint256& forkid, const CProfile& profile);
+        CProfile GetForkProfile(const uint256& forkid);
+
+        int32 PrevRewardHeight(const uint256& forkid, const int32 nHeight);
+        int64 ComputeSectionCoinbaseReward(const uint256& forkid, const uint256& hash);
+
+        bool ExistForkSection(const uint256& forkid, const uint256& section);
+        const CDeFiRewardSet& GetForkSection(const uint256& forkid, const uint256& section);
+        void AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward);
+
+    protected:
+        bool GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight);
+
     protected:
         MapForkReward forkReward;
+        CDeFiRewardSet null;
     };
 
-    CDeFiReward defiReward;
+    CReward defiReward;
 };
 
 } // namespace bigbang

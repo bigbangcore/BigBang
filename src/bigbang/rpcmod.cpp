@@ -138,7 +138,7 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
     data.strType = wtx.GetTypeString();
     data.nTime = (boost::int64_t)wtx.nTimeStamp;
     data.fSend = wtx.IsFromMe();
-    if (!wtx.IsMintTx())
+    if (!wtx.IsMintTx() && wtx.nType != CTransaction::TX_DEFI_REWARD)
     {
         data.strFrom = CAddress(wtx.destIn).ToString();
     }
@@ -2269,11 +2269,12 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     
-    if(spParam->strForktype == "DeFi")
+    if(spParam->strForktype == "defi")
     {
         profile.nForkType = FORK_TYPE_DEFI;
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
-        profile.defi.nDecayPercent = spParam->defi.nDecaypercent;
+        profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
+        profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
         profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
         profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;

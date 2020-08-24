@@ -353,11 +353,22 @@ public:
 
 struct CDeFiReward
 {
+    CDestination dest;
     int64 nReward;
     int64 nStakeReward;
     int64 nPromotionReward;
-    bool fRewarded;
+    uint256 hashAnchor;
 };
+
+typedef boost::multi_index_container<
+    CDeFiReward,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<boost::multi_index::member<CDeFiReward, CDestination, &CDeFiReward::dest>>,
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<CDeFiReward, int64, &CDeFiReward::nReward>, std::greater<int64>>>>
+    CDeFiRewardSet;
+
+typedef CDeFiRewardSet::nth_index<0>::type CDeFiRewardSetByDest;
+typedef CDeFiRewardSet::nth_index<1>::type CDeFiRewardSetByReward;
 
 } // namespace bigbang
 

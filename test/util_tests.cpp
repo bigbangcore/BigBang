@@ -88,7 +88,8 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.nAmount = 100000;
     profile.nForkType = FORK_TYPE_DEFI;
     profile.defi.nDecayCycle = 10;
-    profile.defi.nDecayPercent = 15;
+    profile.defi.nCoinbaseDecayPercent = 50;
+    profile.defi.nInitCoinbasePercent = 15;
     profile.defi.nPromotionRewardPercent = 20;
     profile.defi.nRewardCycle = 25;
     profile.defi.nSupplyCycle = 55;
@@ -120,7 +121,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
 
     BOOST_CHECK(profileLoad.nForkType == profile.nForkType);
     BOOST_CHECK(profileLoad.defi.nDecayCycle == profile.defi.nDecayCycle);
-    BOOST_CHECK(profileLoad.defi.nDecayPercent == profile.defi.nDecayPercent);
+    BOOST_CHECK(profileLoad.defi.nInitCoinbasePercent == profile.defi.nInitCoinbasePercent);
     BOOST_CHECK(profileLoad.defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
     BOOST_CHECK(profileLoad.defi.nRewardCycle == profile.defi.nRewardCycle);
     BOOST_CHECK(profileLoad.defi.nSupplyCycle == profile.defi.nSupplyCycle);
@@ -143,7 +144,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
 
     BOOST_CHECK(forkContextRead.GetProfile().nForkType == profile.nForkType);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayCycle == profile.defi.nDecayCycle);
-    BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayPercent == profile.defi.nDecayPercent);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nInitCoinbasePercent == profile.defi.nInitCoinbasePercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nRewardCycle == profile.defi.nRewardCycle);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nSupplyCycle == profile.defi.nSupplyCycle);
