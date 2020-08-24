@@ -1615,6 +1615,12 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
+    uint16 nType = (uint16)spParam->nType;
+    if (nType != CTransaction::TX_TOKEN && nType != CTransaction::TX_DEFI_RELATION)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid tx type");
+    }
+
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
     uint256 hashFork;
@@ -1679,7 +1685,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nType, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
@@ -1772,6 +1778,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
+    uint16 nType = (uint16)spParam->nType;
+    if (nType != CTransaction::TX_TOKEN && nType != CTransaction::TX_DEFI_RELATION)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid tx type");
+    }
+
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
     uint256 hashFork;
@@ -1825,7 +1837,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nType, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
@@ -2272,14 +2284,64 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     if(spParam->strForktype == "defi")
     {
         profile.nForkType = FORK_TYPE_DEFI;
+        if (hashParent != pCoreProtocol->GetGenesisBlockHash())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the direct child fork of main fork");
+        }
+        if (!profile.IsIsolated())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
+        }
+
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
         profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
+        if (profile.defi.nCoinbaseDecayPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
+        }
+
         profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
+        if (profile.defi.nInitCoinbasePercent == 0 || profile.defi.nInitCoinbasePercent > 10000)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nInitCoinbasePercent must be [1, 10000]");
+        }
+
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
+        if (profile.defi.nRewardCycle == 0 || profile.defi.nRewardCycle > 189216000)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nRewardCycle must be [1, 189216000]");
+        }
+
         profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
+        if (profile.defi.nSupplyCycle == 0 || profile.defi.nSupplyCycle > 189216000)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nSupplyCycle must be [1, 189216000]");
+        }
+        if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
+        }
+
         profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
         profile.defi.nPromotionRewardPercent = spParam->defi.nPromotionrewardpercent;
-        profile.defi.nStakeMinToken = spParam->defi.nStakemintoken;
+        if (profile.defi.nStakeRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nStakeRewardPercent must be [0, 100]");
+        }
+        if (profile.defi.nPromotionRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nPromotionRewardPercent must be [0, 100]");
+        }
+        if (profile.defi.nStakeRewardPercent + profile.defi.nPromotionRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param (nStakeRewardPercent + nPromotionRewardPercent) must be [0, 100]");
+        }
+
+        profile.defi.nStakeMinToken = spParam->defi.nStakemintoken * COIN;
+        if (!MoneyRange(profile.defi.nStakeMinToken))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nStakeMinToken is out of range");
+        }
         
         if(spParam->defi.vecMappromotiontokentimes.size() % 2 != 0)
         {
