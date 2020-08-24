@@ -1980,15 +1980,15 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
     vector<CBlockEx> vRemove;
     view.GetBlockChanges(vAdd, vRemove);
 
-    for (const CBlockEx& block : boost::adaptors::reverse(vRemove))
+    for (const CBlockEx& block : vRemove)
     {
         for (int i = block.vtx.size() - 1; i >= 0; --i)
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
-            uint256 txid = tx.GetHash();
             if (tx.IsDeFiRelation())
             {
+                uint256 txid = tx.GetHash();
                 vRemoveAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
             }
         }
@@ -2000,9 +2000,9 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
-            uint256 txid = tx.GetHash();
             if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
+                uint256 txid = tx.GetHash();
                 vNewAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
             }
         }
@@ -2029,9 +2029,9 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
-            uint256 txid = tx.GetHash();
             if (tx.IsDeFiRelation())
             {
+                uint256 txid = tx.GetHash();
                 auto it = walker.mapAddress.find(txContxt.destIn);
                 if (it != walker.mapAddress.end() && it->second.hashTxInvite == txid)
                 {
@@ -2047,9 +2047,9 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
-            uint256 txid = tx.GetHash();
             if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
+                uint256 txid = tx.GetHash();
                 auto it = walker.mapAddress.find(txContxt.destIn);
                 if (it == walker.mapAddress.end())
                 {
