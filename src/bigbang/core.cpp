@@ -422,6 +422,54 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
             return DEBUG(ERR_BLOCK_INVALID_FORK, "permission denied");
         }
     }
+    // check defi param
+    if (forkProfile.nForkType == FORK_TYPE_DEFI)
+    {
+        if (forkProfile.hashParent != GetGenesisBlockHash())
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork must be the direct child fork of main fork");
+        }
+        if (!forkProfile.IsIsolated())
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork must be the isolated fork");
+        }
+        if (forkProfile.defi.nCoinbaseDecayPercent > 100)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
+        }
+        if (forkProfile.defi.nInitCoinbasePercent == 0 || forkProfile.defi.nInitCoinbasePercent > 10000)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nInitCoinbasePercent must be [1, 10000]");
+        }
+        if (forkProfile.defi.nRewardCycle == 0 || forkProfile.defi.nRewardCycle > 189216000)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nRewardCycle must be [1, 189216000]");
+        }
+        if (forkProfile.defi.nSupplyCycle == 0 || forkProfile.defi.nSupplyCycle > 189216000)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nSupplyCycle must be [1, 189216000]");
+        }
+        if ((forkProfile.defi.nDecayCycle / forkProfile.defi.nSupplyCycle) * forkProfile.defi.nSupplyCycle != forkProfile.defi.nDecayCycle)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
+        }
+        if (forkProfile.defi.nStakeRewardPercent > 100)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeRewardPercent must be [0, 100]");
+        }
+        if (forkProfile.defi.nPromotionRewardPercent > 100)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nPromotionRewardPercent must be [0, 100]");
+        }
+        if (forkProfile.defi.nStakeRewardPercent + forkProfile.defi.nPromotionRewardPercent > 100)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param (nStakeRewardPercent + nPromotionRewardPercent) must be [0, 100]");
+        }
+        if (!MoneyRange(forkProfile.defi.nStakeMinToken))
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeMinToken is out of range");
+        }
+    }
     return OK;
 }
 
