@@ -370,8 +370,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
                 continue;
             }
 
-            rewardTxSize += GetSerializeSize(txNew);
-            if(rewardTxSize > nRestOfSize)
+            if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
             {
                 break;
             }
@@ -379,6 +378,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             //txNew.vchData = vchData;
             block.vtx.push_back(txNew);
             nRewardTxTotalFee += txNew.nTxFee;
+            rewardTxSize += GetSerializeSize(txNew);
         }
     }
 
