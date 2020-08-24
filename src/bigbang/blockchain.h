@@ -109,7 +109,7 @@ protected:
 
     // defi
     std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
-    CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash);
+    CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash, const CProfile& profile);
     std::map<CDestination, int64> ComputeStakeReward(storage::CBlockView& view, const uint256& forkid,
                                                      const uint256& hash, const int64 nMin, const int64 nReward,
                                                      const std::map<CDestination, int64>& mapAddressAmount);

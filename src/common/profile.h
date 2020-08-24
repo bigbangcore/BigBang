@@ -37,6 +37,7 @@ enum
 class CDeFiProfile
 {
 public:
+    int64 nMaxSupply;                                // the max DeFi supply in this fork, -1 means no upper limit
     uint32 nDecayCycle;                              // coinbase decay cycle in height, if 0 means no decay
     uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%]
     uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization. range [1 - 10000] means inital increasing [1% - 10000%]

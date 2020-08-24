@@ -2842,13 +2842,20 @@
                     "desc": "Fork DeFi Parameters",
                     "condition": "forktype=defi",
                     "content": {
+                        "maxsupply": {
+                            "type": "int",
+                            "desc": "the max DeFi supply in this fork, -1 means no upper limit",
+                            "required": false
+                        },
                         "decaycycle": {
                             "type": "uint",
                             "desc": "coinbase decay cycle in height"
                         },
                         "coinbasedecaypercent": {
                             "type": "uint",
-                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%"
+                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%",
+                            "default": 50,
+                            "required": false
                         },
                         "initcoinbasepercent": {
                             "type": "uint",
@@ -2864,15 +2871,21 @@
                         },
                         "stakerewardpercent": {
                             "type": "uint",
-                            "desc": "stake reward ratio, [0 - 100] means [0% - 100%]"
+                            "desc": "stake reward ratio, [0 - 100] means [0% - 100%]",
+                            "default": 50,
+                            "required": false
                         },
                         "promotionrewardpercent": {
                             "type": "uint",
-                            "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]"
+                            "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]",
+                            "default": 50,
+                            "required": false
                         },
                         "stakemintoken": {
                             "type": "uint",
-                            "desc": "the minimum token on address can participate stake reward"
+                            "desc": "the minimum token on address can participate stake reward",
+                            "default": 0,
+                            "required": false
                         },
                         "mappromotiontokentimes": {
                             "type": "array",
@@ -2882,7 +2895,8 @@
                                     "desc": "key or value"
                                 }
                             },
-                            "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [key0,value0,key1,value1,...,keyN, valueN]"
+                            "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [key0,value0,key1,value1,...,keyN, valueN]",
+                            "required": false
                         }
                     }
                 },

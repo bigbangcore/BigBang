@@ -80,6 +80,7 @@ int64 CBlockChain::CReward::ComputeSectionCoinbaseReward(const uint256& forkid, 
     {
         if (GetDecayCoinbase(profile, nBeginHeight, nCoinbase, nNextHeight))
         {
+            StdDebug("CBlockChain::CReward", "ComputeSectionCoinbaseReward GetDecayCoinbase nBeinHeight: %d, nCoinbase: %ld, nNexHeight: %d", nBeginHeight, nCoinbase, nNextHeight);
             uint32 nHeight = min(nEndHeight, nNextHeight) - nBeginHeight;
             nReward += nCoinbase * nHeight;
             nBeginHeight += nHeight;
@@ -2284,12 +2285,24 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
 
     if (!listSection.empty())
     {
-        for (const uint256& section : listSection)
+        CProfile profile = defiReward.GetForkProfile(forkid);
+
+        for (auto it = listSection.begin(); it != listSection.end(); it++)
         {
+            const uint256& section = *it;
             if (!defiReward.ExistForkSection(forkid, section))
             {
+                // check max supply
+                CBlockIndex* pIndexSection = nullptr;
+                if (!cntrBlock.RetrieveIndex(section, &pIndexSection) || (profile.defi.nMaxSupply >= 0 && pIndexSection->GetMoneySupply() >= profile.defi.nMaxSupply))
+                {
+                    Debug("GetDeFiSectionList money supply is to upper limit, limit: %ld, now: %ld", profile.defi.nMaxSupply, pIndexSection ? 0 : pIndexSection->GetMoneySupply());
+                    listSection.erase(it, listSection.end());
+                    break;
+                }
+                
                 // generate section
-                CDeFiRewardSet s = ComputeDeFiSection(forkid, section);
+                CDeFiRewardSet s = ComputeDeFiSection(forkid, section, profile);
                 defiReward.AddForkSection(forkid, section, std::move(s));
             }
         }
@@ -2298,7 +2311,7 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
     return listSection;
 }
 
-CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint256& hash)
+CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint256& hash, const CProfile& profile)
 {
     CDeFiRewardSet s;
 
@@ -2322,7 +2335,6 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
         return s;
     }
 
-    CProfile profile = defiReward.GetForkProfile(forkid);
     int64 nStakeReward = nReward * profile.defi.nStakeRewardPercent / 100;
     int64 nPromotionReward = nReward * profile.defi.nPromotionRewardPercent / 100;
 
@@ -2352,6 +2364,8 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nPromotionReward = pr;
             reward.hashAnchor = hash;
             s.insert(move(reward));
+            Debug("ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
         }
     }
 
@@ -2366,8 +2380,11 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nPromotionReward = promotion.second;
             reward.hashAnchor = hash;
             s.insert(move(reward));
+            Debug("ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
         }
     }
+    Debug("ComputeDeFiSection reward size: %lu, hash: %s", s.size(), hash.ToString().c_str());
 
     return s;
 }

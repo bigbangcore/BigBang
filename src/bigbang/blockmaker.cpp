@@ -887,8 +887,8 @@ void CBlockMaker::BlockMakerThreadFunc()
             nWaitTime = consParam.nWaitTime;
             continue;
         }
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        // StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+        //          consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
 
         if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())

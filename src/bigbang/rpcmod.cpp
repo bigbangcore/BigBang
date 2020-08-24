@@ -2317,6 +2317,19 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
         }
 
+        if (spParam->defi.nMaxsupply.IsValid())
+        {
+            profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
+            if (!MoneyRange(profile.defi.nMaxSupply))
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
+            }
+        }
+        else
+        {
+            profile.defi.nMaxSupply = -1;
+        }
+
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
         profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
         if (profile.defi.nCoinbaseDecayPercent > 100)
