@@ -696,10 +696,34 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
         //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
         if (pForkManager->IsAllowed(vFork[i].first))
         {
-            spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
-                                             (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
-                                             profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
-                                             CAddress(profile.destOwner).ToString() });
+            CListForkResult::CProfile displayProfile;
+            displayProfile.strFork = vFork[i].first.GetHex();
+            displayProfile.strName = profile.strName;
+            displayProfile.strSymbol = profile.strSymbol;
+            displayProfile.dAmount = (double)(profile.nAmount) / COIN;
+            displayProfile.dReward = (double)(profile.nMintReward) / COIN;
+            displayProfile.nHalvecycle = (uint64)(profile.nHalveCycle);
+            displayProfile.fIsolated = profile.IsIsolated();
+            displayProfile.fPrivate = profile.IsPrivate();
+            displayProfile.fEnclosed = profile.IsEnclosed();
+            displayProfile.strOwner = CAddress(profile.destOwner).ToString();
+            displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "DeFi" : "Common";
+            displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
+            displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
+            displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
+            displayProfile.defi.nPromotionrewardpercent = profile.defi.nPromotionRewardPercent;
+            displayProfile.defi.nRewardcycle = profile.defi.nRewardCycle;
+            displayProfile.defi.nStakemintoken = profile.defi.nStakeMinToken;
+            displayProfile.defi.nStakerewardpercent = profile.defi.nStakeRewardPercent;
+            displayProfile.defi.nSupplycycle = profile.defi.nSupplyCycle;
+
+            for(const auto& kv : profile.defi.mapPromotionTokenTimes)
+            {
+                displayProfile.defi.vecMappromotiontokentimes.push_back(kv.first);
+                displayProfile.defi.vecMappromotiontokentimes.push_back(kv.second);
+            }
+
+            spResult->vecProfile.push_back(displayProfile);
         }
     }
 
