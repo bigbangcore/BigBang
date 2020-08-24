@@ -382,7 +382,7 @@ public:
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) = 0;
     virtual bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                                           const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                           const CDestination& destSendTo, const uint16 nType, int64 nAmount, int64 nTxFee,
                                                            const std::vector<unsigned char>& vchData, CTransaction& txNew)
         = 0;
     virtual bool SynchronizeWalletTx(const CDestination& destNew) = 0;

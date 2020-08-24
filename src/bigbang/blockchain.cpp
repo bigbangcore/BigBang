@@ -134,7 +134,7 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     uint32 nSupplyCycle = profile.defi.nSupplyCycle;
     uint8 nCoinbaseDecayPercent = profile.defi.nCoinbaseDecayPercent;
     uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
-    int32 nSupplyCount = nDecayCycle / nSupplyCycle;
+    int32 nSupplyCount = (nDecayCycle == 0) ? ((nHeight - nJointHeight - 2) / nSupplyCycle) : (nDecayCycle / nSupplyCycle);
 
     // for example:
     // [2] nJoint height
@@ -143,7 +143,7 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     // [7, 8, 9] the second sypply cycle of the first decay cycle
     // [10, 11, 12] the first supply cycle of the second decay cycle
     // [13, 14, 15] the second supply cycle of the second decay cycle
-    int32 nDecayCount = (nHeight - nJointHeight - 2) / nDecayCycle;
+    int32 nDecayCount = (nDecayCycle == 0) ? 0 : ((nHeight - nJointHeight - 2) / nDecayCycle);
     int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
     int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
 
@@ -156,12 +156,14 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
         nSupply *= pow(1 + fCoinbaseIncreasing, count);
         if (i < nDecayCount || nCurSupplyCount == nSupplyCount)
         {
-            fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
-            ;
+            if (nDecayCycle != 0 && nCoinbaseDecayPercent != 100)
+            {
+                fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
+            }
         }
     }
 
-    nCoinbase = nSupply * fCoinbaseIncreasing / nSupplyCount;
+    nCoinbase = nSupply * fCoinbaseIncreasing / nSupplyCycle;
     nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nDecayHeight;
     return true;
 }
@@ -2376,6 +2378,11 @@ map<CDestination, int64> CBlockChain::ComputeStakeReward(storage::CBlockView& vi
 {
     map<CDestination, int64> reward;
 
+    if (nReward == 0)
+    {
+        return reward;
+    }
+
     // sort by token
     multimap<int64, pair<CDestination, uint32>> mapRank;
     for (auto& p : mapAddressAmount)
@@ -2424,6 +2431,11 @@ map<CDestination, int64> CBlockChain::ComputePromotionReward(storage::CBlockView
                                                              const std::map<uint64, uint32>& mapPromotionTokenTimes)
 {
     map<CDestination, int64> reward;
+
+    if (nReward == 0)
+    {
+        return reward;
+    }
 
     // get invitation relation
     storage::CForkAddressInvite addrInvite;

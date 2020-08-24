@@ -37,14 +37,14 @@ enum
 class CDeFiProfile
 {
 public:
-    uint32 nDecayCycle;                              // coinbase decay cycle in height
-    uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), [0 - 100] means decay to [0% - 100%]
-    uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization
-    uint32 nRewardCycle;                             // generate reward cycle in height
-    uint32 nSupplyCycle;                             // supplyment changing cycle in height
-    uint8 nStakeRewardPercent;                       // stake reward ratio(%), [0 - 100] means [0% - 100%]
-    uint8 nPromotionRewardPercent;                   // promotion reward ratio(%), [0 - 100] means [0% - 100%]
-    uint64 nStakeMinToken;                           // the minimum token on address can participate stake reward
+    uint32 nDecayCycle;                              // coinbase decay cycle in height, if 0 means no decay
+    uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%]
+    uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization. range [1 - 10000] means inital increasing [1% - 10000%]
+    uint32 nRewardCycle;                             // generate reward cycle in height, range [1, 189,216,000]
+    uint32 nSupplyCycle;                             // supplyment changing cycle in height, range [1, 189,216,000] && nDecayCycle is divisible by nSupplyCycle.
+    uint8 nStakeRewardPercent;                       // stake reward ratio(%), range [0 - 100] means [0% - 100%]
+    uint8 nPromotionRewardPercent;                   // promotion reward ratio(%), range [0 - 100] means [0% - 100%]
+    uint64 nStakeMinToken;                           // the minimum token on address can participate stake reward, range [0, MAX_TOKEN]
     std::map<uint64, uint32> mapPromotionTokenTimes; // In promotion computation, less than [key] amount should multiply [value].
 
     CDeFiProfile()
