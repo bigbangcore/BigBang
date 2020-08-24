@@ -356,9 +356,8 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             CTransaction txNew;
             txNew.SetNull();
             txNew.hashAnchor = reward.hashAnchor;
-        
             txNew.nType = CTransaction::TX_DEFI_REWARD;
-            txNew.nTimeStamp = GetNetTime();
+            txNew.nTimeStamp = block.GetBlockTime();
             txNew.nLockUntil = 0;
             txNew.sendTo = reward.dest;
             txNew.nAmount = reward.nReward;
@@ -370,24 +369,22 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
                 StdError("blockmaker", "keyMint Sign Reward Tx failed. hashSig: %s", hashSig.ToString().c_str());
                 continue;
             }
-            
-            //txNew.vchData = vchData;
-            block.vtx.push_back(txNew);
-            
-            nRewardTxTotalFee += txNew.nTxFee;
-            rewardTxSize += GetSerializeSize(txNew);
 
-            if(rewardTxSize > nRestOfSize - txDefaultSize * 10)
+            rewardTxSize += GetSerializeSize(txNew);
+            if(rewardTxSize > nRestOfSize)
             {
                 break;
             }
             
+            //txNew.vchData = vchData;
+            block.vtx.push_back(txNew);
+            nRewardTxTotalFee += txNew.nTxFee;
         }
     }
 
     size_t nMaxTxSize = nRestOfSize - rewardTxSize;
     int64 nTotalTxFee = nRewardTxTotalFee;
-    if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
+    if (rewardTxSize == 0 && !pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
     }
