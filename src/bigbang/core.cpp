@@ -76,20 +76,9 @@ const uint256& CCoreProtocol::GetGenesisBlockHash()
     return hashGenesisBlock;
 }
 
-/*
-PubKey : da915f7d9e1b1f6ed99fd816ff977a7d1f17cc95ba0209eef770fb9d00638b49
-Secret : 9df809804369829983150491d1086b99f6493356f91ccc080e661a76a976a4ee
-
-PubKey : e76226a3933711f195aa6c1879e2381976b33337bf7b3b296edd8dff105b24b5
-Secret : c00f1c287f0d9c0931b1b3f540409e8f7ad362427df4a75286992cb9200096b1
-
-PubKey : fe8455584d820639d140dad74d2644d742616ae2433e61c0423ec350c2226b78
-Secret : 9f1e445c2a8e74fabbb7c53e31323b2316112990078cbd8d27b2cd7100a1648d
-*/
-
 void CCoreProtocol::GetGenesisBlock(CBlock& block)
 {
-    const CDestination destOwner = CDestination(bigbang::crypto::CPubKey(uint256("da915f7d9e1b1f6ed99fd816ff977a7d1f17cc95ba0209eef770fb9d00638b49")));
+    const CDestination destOwner = CAddress("20804vs89n8bzpd4pcs65mza9gfrqt30jmnqn2wmd7ks4qst54a47xz3p");
 
     block.SetNull();
 
