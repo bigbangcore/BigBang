@@ -257,11 +257,15 @@ protected:
         s.Serialize(nHalveCycle, opt);
         s.Serialize(nJointHeight, opt);
         s.Serialize(destOwner, opt);
-        s.Serialize(nForkType, opt);
-        if(nForkType == FORK_TYPE_DEFI)
+        if(s.GetSize() > 0)
         {
-            s.Serialize(vchDeFi, opt);
+            s.Serialize(nForkType, opt);
+            if(nForkType == FORK_TYPE_DEFI)
+            {
+                s.Serialize(vchDeFi, opt);
+            }
         }
+        
     }
 };
 
