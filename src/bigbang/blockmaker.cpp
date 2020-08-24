@@ -339,46 +339,53 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
         isDeFi = (forkCtxt.GetProfile().nForkType == FORK_TYPE_DEFI) ? true : false;
     }
 
+    size_t nRestOfSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
     size_t rewardTxSize = 0;
     int64 nRewardTxTotalFee = 0;
     if(isDeFi)
     {
-        multimap<CDestination, CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev);
-        for(const auto& rewardKV : rewards)
-        {
-            const CDestination& destTo = rewardKV.first;
-            const CDeFiReward& reward = rewardKV.second;
+        
+        CTransaction txDefault;
+        txDefault.SetNull();
+        size_t txDefaultSize = GetSerializeSize(txDefault);
+        int32 nMaxTx = nRestOfSize /  txDefaultSize;
 
-            if(!reward.fRewarded)
-            {
-                CTransaction txNew;
-                txNew.SetNull();
-                txNew.hashAnchor = hashFork;
+        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, (nMaxTx > 0) ? nMaxTx : -1);
+        for(const auto& reward : rewards)
+        {
+            CTransaction txNew;
+            txNew.SetNull();
+            txNew.hashAnchor = reward.hashAnchor;
+        
+            txNew.nType = CTransaction::TX_DEFI_REWARD;
+            txNew.nTimeStamp = GetNetTime();
+            txNew.nLockUntil = 0;
+            txNew.sendTo = reward.dest;
+            txNew.nAmount = reward.nReward;
+            txNew.nTxFee = CalcMinTxFee(0, NEW_MIN_TX_FEE);
             
-                txNew.nType = CTransaction::TX_DEFI_REWARD;
-                txNew.nTimeStamp = GetNetTime();
-                txNew.nLockUntil = 0;
-                txNew.sendTo = destTo;
-                txNew.nAmount = reward.nReward;
-                txNew.nTxFee = CalcMinTxFee(0, NEW_MIN_TX_FEE);
-                
-                uint256 hashSig = txNew.GetSignatureHash();
-                if (!profile.keyMint.Sign(hashSig, txNew.vchSig))
-                {
-                    StdError("blockmaker", "keyMint Sign Reward Tx failed. hashSig: %s", hashSig.ToString().c_str());
-                    continue;
-                }
-                
-                //txNew.vchData = vchData;
-                block.vtx.push_back(txNew);
-                
-                nRewardTxTotalFee += txNew.nTxFee;
-                rewardTxSize += GetSerializeSize(txNew);
+            uint256 hashSig = txNew.GetSignatureHash();
+            if (!profile.keyMint.Sign(hashSig, txNew.vchSig))
+            {
+                StdError("blockmaker", "keyMint Sign Reward Tx failed. hashSig: %s", hashSig.ToString().c_str());
+                continue;
             }
+            
+            //txNew.vchData = vchData;
+            block.vtx.push_back(txNew);
+            
+            nRewardTxTotalFee += txNew.nTxFee;
+            rewardTxSize += GetSerializeSize(txNew);
+
+            if(rewardTxSize > nRestOfSize - txDefaultSize * 10)
+            {
+                break;
+            }
+            
         }
     }
 
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize() - rewardTxSize;
+    size_t nMaxTxSize = nRestOfSize - rewardTxSize;
     int64 nTotalTxFee = nRewardTxTotalFee;
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
