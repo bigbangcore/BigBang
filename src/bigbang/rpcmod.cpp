@@ -2275,6 +2275,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
         profile.defi.nDecayPercent = spParam->defi.nDecaypercent;
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
+        profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
         profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
         profile.defi.nPromotionRewardPercent = spParam->defi.nPromotionrewardpercent;
         profile.defi.nStakeMinToken = spParam->defi.nStakemintoken;

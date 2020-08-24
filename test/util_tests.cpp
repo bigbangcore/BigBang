@@ -91,6 +91,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.defi.nDecayPercent = 15;
     profile.defi.nPromotionRewardPercent = 20;
     profile.defi.nRewardCycle = 25;
+    profile.defi.nSupplyCycle = 55;
     profile.defi.nStakeMinToken = 100;
     profile.defi.nStakeRewardPercent = 30;
     profile.defi.mapPromotionTokenTimes.insert(std::make_pair(10, 11));
@@ -122,6 +123,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(profileLoad.defi.nDecayPercent == profile.defi.nDecayPercent);
     BOOST_CHECK(profileLoad.defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
     BOOST_CHECK(profileLoad.defi.nRewardCycle == profile.defi.nRewardCycle);
+    BOOST_CHECK(profileLoad.defi.nSupplyCycle == profile.defi.nSupplyCycle);
     BOOST_CHECK(profileLoad.defi.nStakeMinToken == profile.defi.nStakeMinToken);
     BOOST_CHECK(profileLoad.defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
     BOOST_CHECK(profileLoad.defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
@@ -144,6 +146,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayPercent == profile.defi.nDecayPercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nRewardCycle == profile.defi.nRewardCycle);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nSupplyCycle == profile.defi.nSupplyCycle);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeMinToken == profile.defi.nStakeMinToken);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
