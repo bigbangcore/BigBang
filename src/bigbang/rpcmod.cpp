@@ -2322,7 +2322,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
             profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
             if (!MoneyRange(profile.defi.nMaxSupply))
             {
-                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork Max Supply out of range");
             }
         }
         else

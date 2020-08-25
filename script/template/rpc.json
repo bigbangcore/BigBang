@@ -972,6 +972,10 @@
                             "type": "object",
                             "desc": "Fork DeFi Parameters",
                             "content": {
+                                "maxsupply": {
+                                    "type": "int",
+                                    "desc": "the max DeFi supply in this fork, -1 means no upper limit"
+                                },
                                 "decaycycle": {
                                     "type": "uint",
                                     "desc": "coinbase decay cycle in height"
