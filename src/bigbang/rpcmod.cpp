@@ -704,6 +704,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
             displayProfile.fEnclosed = profile.IsEnclosed();
             displayProfile.strOwner = CAddress(profile.destOwner).ToString();
             displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "DeFi" : "Common";
+            displayProfile.defi.nMaxsupply = profile.defi.nMaxSupply;
             displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
             displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
             displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
