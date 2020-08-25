@@ -54,6 +54,7 @@ public:
     }
     virtual void SetNull()
     {
+        nMaxSupply = 0;
         nDecayCycle = 0;
         nCoinbaseDecayPercent = 0;
         nInitCoinbasePercent = 0;

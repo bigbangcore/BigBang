@@ -433,6 +433,10 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork must be the isolated fork");
         }
+        if (forkProfile.defi.nMaxSupply >= 0 && !MoneyRange(forkProfile.defi.nMaxSupply))
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nMaxSupply is out of range");
+        }
         if (forkProfile.defi.nCoinbaseDecayPercent > 100)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseDecayPercent must be [0, 100]");

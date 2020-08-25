@@ -2316,73 +2316,90 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         }
 
         profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
-        if (profile.defi.nMaxSupply >= 0 && !MoneyRange(profile.defi.nMaxSupply))
+        if (profile.defi.nMaxSupply >= 0)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nMaxSupply is out of range");
+            try
+            {
+                profile.defi.nMaxSupply = AmountFromValue(profile.defi.nMaxSupply, true);
+            }
+            catch(...)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param maxsupply is out of range");
+            }
         }
 
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
         profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
         if (profile.defi.nCoinbaseDecayPercent > 100)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasedecaypercent must be [0, 100]");
         }
 
         profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
         if (profile.defi.nInitCoinbasePercent == 0 || profile.defi.nInitCoinbasePercent > 10000)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nInitCoinbasePercent must be [1, 10000]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param initcoinbasepercent must be [1, 10000]");
         }
 
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
         if (profile.defi.nRewardCycle == 0 || profile.defi.nRewardCycle > 189216000)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nRewardCycle must be [1, 189216000]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param rewardcycle must be [1, 189216000]");
         }
 
         profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
         if (profile.defi.nSupplyCycle == 0 || profile.defi.nSupplyCycle > 189216000)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nSupplyCycle must be [1, 189216000]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param supplycycle must be [1, 189216000]");
         }
         if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param decaycycle must be divisible by nSupplyCycle");
         }
 
         profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
         profile.defi.nPromotionRewardPercent = spParam->defi.nPromotionrewardpercent;
         if (profile.defi.nStakeRewardPercent > 100)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nStakeRewardPercent must be [0, 100]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param stakerewardpercent must be [0, 100]");
         }
         if (profile.defi.nPromotionRewardPercent > 100)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nPromotionRewardPercent must be [0, 100]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param promotionrewardpercent must be [0, 100]");
         }
         if (profile.defi.nStakeRewardPercent + profile.defi.nPromotionRewardPercent > 100)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param (nStakeRewardPercent + nPromotionRewardPercent) must be [0, 100]");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param (stakerewardpercent + promotionrewardpercent) must be [0, 100]");
         }
 
-        profile.defi.nStakeMinToken = spParam->defi.nStakemintoken * COIN;
-        if (!MoneyRange(profile.defi.nStakeMinToken))
+        try
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nStakeMinToken is out of range");
+            profile.defi.nStakeMinToken = AmountFromValue(spParam->defi.nStakemintoken);
+        }
+        catch(...)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param stakemintoken is out of range");
         }
         
         if(spParam->defi.vecMappromotiontokentimes.size() % 2 != 0)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "vecMappromotiontokentimes size must be size() % 2 == 0");
+            throw CRPCException(RPC_INVALID_PARAMETER, "mappromotiontokentimes size must be size() % 2 == 0");
         }
 
         if(spParam->defi.vecMappromotiontokentimes.size() >= 2)
         {
             for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i += 2)
             {
-                const uint64 key = spParam->defi.vecMappromotiontokentimes.at(i);
-                const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
-                profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+                try
+                {
+                    const uint64 key = AmountFromValue(spParam->defi.vecMappromotiontokentimes.at(i));
+                    const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
+                    profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+                }
+                catch(...)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param mappromotiontokentimes is out of range");
+                }
             }
         }
     }
