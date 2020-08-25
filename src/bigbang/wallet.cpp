@@ -606,20 +606,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
     }
 
-    if (fDestInRecorded && !tx.vchSig.empty())
-    {
-        CDestination sendToDelegateTmp;
-        CDestination sendToOwnerTmp;
-        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTmp, sendToOwnerTmp, vchSig))
-        {
-            Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
-            return false;
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
-    }
+    vchSig = tx.vchSig;
 
     set<crypto::CPubKey> setSignedKey;
     {
@@ -634,14 +621,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 
     UpdateAutoLock(setSignedKey);
 
-    if (fDestInRecorded)
-    {
-        CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
-    }
-    else
-    {
-        tx.vchSig = move(vchSig);
-    }
+    tx.vchSig = move(vchSig);
     return true;
 }
 
