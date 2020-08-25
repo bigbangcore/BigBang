@@ -37,19 +37,15 @@ const char* GetGitVersion();
 ///////////////////////////////
 // static function
 
-static int64 AmountFromValue(const double dAmount)
+static int64 AmountFromValue(const double dAmount, const bool fZero = false)
 {
     if (IsDoubleEqual(dAmount, -1.0))
     {
         return -1;
     }
 
-    if (dAmount <= 0.0 || dAmount > MAX_MONEY)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
-    }
     int64 nAmount = (int64)(dAmount * COIN + 0.5);
-    if (!MoneyRange(nAmount))
+    if ((!fZero && nAmount == 0) || !MoneyRange(nAmount))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
     }
@@ -2251,8 +2247,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
     }
 
-    int64 nAmount = AmountFromValue(spParam->dAmount);
-    int64 nMintReward = AmountFromValue(spParam->dReward);
+    int64 nAmount = AmountFromValue(spParam->dAmount, true);
+    int64 nMintReward = AmountFromValue(spParam->dReward, true);
     if (!RewardRange(nMintReward))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
@@ -2304,6 +2300,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nMintReward = nMintReward;
     profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
+    profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
     
     if(spParam->strForktype == "defi")
     {
@@ -2317,17 +2314,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
         }
 
-        if (spParam->defi.nMaxsupply.IsValid())
+        profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
+        if (profile.defi.nMaxSupply >= 0 && !MoneyRange(profile.defi.nMaxSupply))
         {
-            profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
-            if (!MoneyRange(profile.defi.nMaxSupply))
-            {
-                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork Max Supply out of range");
-            }
-        }
-        else
-        {
-            profile.defi.nMaxSupply = -1;
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param nMaxSupply is out of range");
         }
 
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
@@ -2396,8 +2386,6 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         }
     }
     
-    profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
-
     CBlock block;
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_ORIGIN;
