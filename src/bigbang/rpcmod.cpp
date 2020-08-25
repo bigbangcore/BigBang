@@ -696,28 +696,28 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
             displayProfile.strFork = vFork[i].first.GetHex();
             displayProfile.strName = profile.strName;
             displayProfile.strSymbol = profile.strSymbol;
-            displayProfile.dAmount = (double)(profile.nAmount) / COIN;
-            displayProfile.dReward = (double)(profile.nMintReward) / COIN;
+            displayProfile.dAmount = ValueFromAmount(profile.nAmount);
+            displayProfile.dReward = ValueFromAmount(profile.nMintReward);
             displayProfile.nHalvecycle = (uint64)(profile.nHalveCycle);
             displayProfile.fIsolated = profile.IsIsolated();
             displayProfile.fPrivate = profile.IsPrivate();
             displayProfile.fEnclosed = profile.IsEnclosed();
             displayProfile.strOwner = CAddress(profile.destOwner).ToString();
             displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "DeFi" : "Common";
-            displayProfile.defi.nMaxsupply = profile.defi.nMaxSupply;
+            displayProfile.defi.dMaxsupply = ValueFromAmount(profile.defi.nMaxSupply);
             displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
             displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
             displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
             displayProfile.defi.nPromotionrewardpercent = profile.defi.nPromotionRewardPercent;
             displayProfile.defi.nRewardcycle = profile.defi.nRewardCycle;
-            displayProfile.defi.nStakemintoken = profile.defi.nStakeMinToken;
+            displayProfile.defi.dStakemintoken = ValueFromAmount(profile.defi.nStakeMinToken);
             displayProfile.defi.nStakerewardpercent = profile.defi.nStakeRewardPercent;
             displayProfile.defi.nSupplycycle = profile.defi.nSupplyCycle;
 
             for(const auto& kv : profile.defi.mapPromotionTokenTimes)
             {
-                displayProfile.defi.vecMappromotiontokentimes.push_back(kv.first);
-                displayProfile.defi.vecMappromotiontokentimes.push_back(kv.second);
+                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(ValueFromAmount(kv.first)));
+                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.second));
             }
 
             spResult->vecProfile.push_back(displayProfile);

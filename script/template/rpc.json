@@ -973,8 +973,8 @@
                             "desc": "Fork DeFi Parameters",
                             "content": {
                                 "maxsupply": {
-                                    "type": "int",
-                                    "desc": "the max DeFi supply in this fork, -1 means no upper limit"
+                                    "type": "double",
+                                    "desc": "the max DeFi supply in this fork"
                                 },
                                 "decaycycle": {
                                     "type": "uint",
@@ -1005,14 +1005,14 @@
                                     "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]"
                                 },
                                 "stakemintoken": {
-                                    "type": "uint",
+                                    "type": "double",
                                     "desc": "the minimum token on address can participate stake reward"
                                 },
                                 "mappromotiontokentimes": {
                                     "type": "array",
                                     "content": {
                                         "key": {
-                                            "type": "uint",
+                                            "type": "string",
                                             "desc": "key or value"
                                         }
                                     },
