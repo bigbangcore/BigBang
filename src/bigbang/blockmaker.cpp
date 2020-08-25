@@ -344,6 +344,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     int64 nRewardTxTotalFee = 0;
     if(isDeFi)
     {
+        StdWarn("CSH", "DeFi Block Maker Entry");
         
         CTransaction txDefault;
         txDefault.SetNull();
@@ -380,6 +381,8 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             nRewardTxTotalFee += txNew.nTxFee;
             rewardTxSize += GetSerializeSize(txNew);
         }
+
+        StdWarn("CSH", "DeFi Block Maker Leave");
     }
 
     size_t nMaxTxSize = nRestOfSize - rewardTxSize;
