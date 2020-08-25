@@ -2306,6 +2306,11 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     if(spParam->strForktype == "defi")
     {
         profile.nForkType = FORK_TYPE_DEFI;
+        if(nMintReward > 0)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork mint Reward must be zero");
+        }
+
         if (hashParent != pCoreProtocol->GetGenesisBlockHash())
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the direct child fork of main fork");
