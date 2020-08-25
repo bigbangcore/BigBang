@@ -897,11 +897,11 @@ void CBlockMaker::BlockMakerThreadFunc()
             fCachePow = consParam.agreement.IsProofOfWork();
             if (consParam.agreement.IsProofOfWork())
             {
-                Log("GetAgreement: height: %d, consensus: pow", consParam.nPrevHeight + 1);
+                //Log("GetAgreement: height: %d, consensus: pow", consParam.nPrevHeight + 1);
             }
             else
             {
-                Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", consParam.nPrevHeight + 1, CAddress(consParam.agreement.vBallot[0]).ToString().c_str());
+                //Log("GetAgreement: height: %d, consensus: dpos, ballot address: %s", consParam.nPrevHeight + 1, CAddress(consParam.agreement.vBallot[0]).ToString().c_str());
             }
         }
         try
