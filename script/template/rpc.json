@@ -2849,6 +2849,7 @@
                         "maxsupply": {
                             "type": "int",
                             "desc": "the max DeFi supply in this fork, -1 means no upper limit",
+                            "default": -1,
                             "required": false
                         },
                         "decaycycle": {
