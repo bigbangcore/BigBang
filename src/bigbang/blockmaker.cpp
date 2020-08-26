@@ -362,8 +362,8 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             txNew.nTimeStamp = block.GetBlockTime();
             txNew.nLockUntil = 0;
             txNew.sendTo = reward.dest;
-            txNew.nAmount = reward.nReward - CalcMinTxFee(txNew.vchData.size(), NEW_MIN_TX_FEE);
-            txNew.nTxFee = 0;
+            txNew.nTxFee = NEW_MIN_TX_FEE;
+            txNew.nAmount = reward.nReward - txNew.nTxFee;
             
             if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
             {

@@ -149,7 +149,7 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
     StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nJointHeight: %u, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
         nJointHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
-    int32 nSupplyCount = (nDecayCycle == 0) ? ((nHeight - nJointHeight - 2) / nSupplyCycle) : (nDecayCycle / nSupplyCycle - 1);
+    int32 nSupplyCount = (nDecayCycle == 0) ? 0 : (nDecayCycle / nSupplyCycle);
     StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nSupplyCount: %d", nSupplyCount);
 
     // for example:
@@ -173,17 +173,20 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase fCoinbaseIncreasing: %f", fCoinbaseIncreasing);
     for (int i = 0; i <= nDecayCount; i++)
     {
-        uint32 count = (i == nDecayCount) ? nCurSupplyCount : nSupplyCount;
-        StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, count: %u", i, count);
-        nSupply *= pow(1 + fCoinbaseIncreasing, count);
-        StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, supply: %ld", i, nSupply);
         if (i < nDecayCount)
         {
+            nSupply *= pow(1 + fCoinbaseIncreasing, nSupplyCount);
+            StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nSupplyCount: %d, supply: %ld", i, nSupplyCount, nSupply);
             if (nDecayCycle != 0 && nCoinbaseDecayPercent != 100)
             {
                 fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
                 StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, fCoinbaseIncreasing: %f", i, fCoinbaseIncreasing);
             }
+        }
+        else
+        {
+            nSupply *= pow(1 + fCoinbaseIncreasing, nCurSupplyCount);
+            StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nCurSupplyCount: %d, supply: %ld", i, nCurSupplyCount, nSupply);
         }
     }
 
@@ -762,7 +765,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
                 return ERR_TRANSACTION_INVALID;
             }
 
-            if ((itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount) || (itListDeFi->hashAnchor != tx.hashAnchor))
+            if ((itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount + tx.nTxFee) || (itListDeFi->hashAnchor != tx.hashAnchor))
             {
                 Log("AddNewBlock Check defi reward tx error, block: %s, tx: %s", hash.ToString().c_str(), txid.ToString().c_str());
                 return ERR_TRANSACTION_INVALID;
@@ -2243,14 +2246,9 @@ list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint25
                         break;
                     }
                 }
-                if (it == itUpper)
-                {
-                    Error("SHT GetDeFiReward Not found the last destination: %s in last section: %s", CAddress(lastReward.dest).ToString().c_str(), nLastSection.ToString().c_str());
-                    return listReward;
-                }
             }
 
-            Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(), listReward size: %u, nMax: %d",
+            Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(): %d, listReward size: %u, nMax: %d",
                 section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
             for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
             {
@@ -2276,16 +2274,26 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
         return listSection;
     }
 
+    if (pIndexPrev->GetBlockHeight() == prevHeight)
+    {
+        Debug("SHT GetDeFiSectionList listSection 1 add section: %s, height: %d",pIndexPrev->GetBlockHash().ToString().c_str(), prevHeight);
+        listSection.push_front(pIndexPrev->GetBlockHash());
+        prevHeight = defiReward.PrevRewardHeight(forkid, pIndexPrev->GetBlockHeight());
+    }
+
+    // find all prev vacant
     const CBlockIndex* pIndexLast = pIndexPrev;
     while (pIndexLast->IsVacant())
     {
         if (pIndexLast->GetBlockHeight() == prevHeight)
         {
+            Debug("SHT GetDeFiSectionList listSection 2 add section: %s, height: %d",pIndexLast->GetBlockHash().ToString().c_str(), prevHeight);
             listSection.push_front(pIndexLast->GetBlockHash());
             prevHeight = defiReward.PrevRewardHeight(forkid, pIndexLast->GetBlockHeight());
         }
         pIndexLast = pIndexLast->pPrev;
     }
+    Debug("SHT GetDeFiSectionList pIndexLast is not vacant: %s", pIndexLast->GetBlockHash().ToString().c_str());
 
     // find the last section and last destination
     if (!pIndexLast->IsOrigin())
@@ -2297,6 +2305,7 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
             nLastSection = block.vtx.back().hashAnchor;
             lastReward.dest = block.vtx.back().sendTo;
             lastReward.nReward = block.vtx.back().nAmount;
+            Debug("SHT GetDeFiSectionList nLastSection nLastSection: %s", nLastSection.ToString().c_str());
 
             CBlockIndex* pIndexLastSection = nullptr;
             if (!cntrBlock.RetrieveIndex(nLastSection, &pIndexLastSection))
@@ -2305,10 +2314,13 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
                 return listSection;
             }
 
-            while (pIndexLast != pIndexLastSection)
+            while (pIndexLast != pIndexLastSection->pPrev)
             {
+                Debug("SHT GetDeFiSectionList pIndexLast pIndexLast: %p, pIndexLasthash: %s, pIndexLastSection->pPrev: %p, pIndexLastSection->pPrevhash: %s", 
+                    pIndexLast, pIndexLast->GetBlockHash().ToString().c_str(), pIndexLastSection->pPrev, pIndexLastSection->pPrev->GetBlockHash().ToString().c_str());
                 if (pIndexLast->GetBlockHeight() == prevHeight)
                 {
+                    Debug("SHT GetDeFiSectionList listSection 3 add section: %s, height: %d",pIndexLast->GetBlockHash().ToString().c_str(), prevHeight);
                     listSection.push_front(pIndexLast->GetBlockHash());
                     prevHeight = defiReward.PrevRewardHeight(forkid, pIndexLast->GetBlockHeight());
                 }
