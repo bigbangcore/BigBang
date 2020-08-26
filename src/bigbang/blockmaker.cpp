@@ -350,8 +350,8 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
         txDefault.SetNull();
         size_t txDefaultSize = GetSerializeSize(txDefault);
         int32 nMaxTx = nRestOfSize /  txDefaultSize;
-
         list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, (nMaxTx > 0) ? nMaxTx : -1);
+        StdWarn("CSH", "DeFi nMaxTx %d rewards size: %d", nMaxTx, rewards.size());
         for(const auto& reward : rewards)
         {
             CTransaction txNew;
@@ -373,6 +373,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 
             if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
             {
+                StdWarn("CSH", "rewardTxSize %d break", rewardTxSize);
                 break;
             }
             
@@ -387,6 +388,7 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 
     size_t nMaxTxSize = nRestOfSize - rewardTxSize;
     int64 nTotalTxFee = nRewardTxTotalFee;
+    StdWarn("CSH", "nRestOfSize %d rewardTxSize %d nMaxTxSize %d nRewardTxTotalFee %d", nRestOfSize, rewardTxSize, nMaxTxSize, nRewardTxTotalFee);
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
