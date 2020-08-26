@@ -2222,6 +2222,48 @@
             "{\"code\":-401,\"message\":\"Failed to resync wallet tx\"}"
         ]
     },
+    "getaddressinvite": {
+        "type": "command",
+        "name": "GetAddressInvite",
+        "introduction": "Get parent address of specified address",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "address": {
+                    "type": "string",
+                    "desc": "wallet address",
+                    "required": false,
+                    "opt": "a"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "parent",
+            "desc": "parent address string"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getaddressinvite 10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth7332bb",
+                "response": "10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-6,\"message\":\"Invalid address\"}"
+        ]
+    },
     "getbalance": {
         "type": "command",
         "name": "GetBalance",

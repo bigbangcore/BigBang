@@ -593,6 +593,11 @@ CTemplatePtr CService::GetTemplate(const CTemplateId& tid)
     return pWallet->GetTemplate(tid);
 }
 
+bool CService::GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CDestination& parent)
+{
+    return pBlockChain->GetForkAddressInvite(hashFork, destIn, parent);
+}
+
 bool CService::GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance)
 {
     int nForkHeight = 0;

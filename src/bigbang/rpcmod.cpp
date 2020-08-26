@@ -282,6 +282,8 @@ CRPCMod::CRPCMod()
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
+        //
+        ("getaddressinvite", &CRPCMod::RPCGetAddressInvite)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -1529,6 +1531,52 @@ CRPCResultPtr CRPCMod::RPCResyncWallet(CRPCParamPtr param)
         }
     }
     return MakeCResyncWalletResultPtr("Resync wallet successfully.");
+}
+
+CRPCResultPtr CRPCMod::RPCGetAddressInvite(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetAddressInviteParam>(param);
+
+    //getbalance (-f="fork") (-a="address")
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    if(hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "must be sub fork directly inherient from main fork");
+    }
+
+    CDestination Dest;
+    if (spParam->strAddress.IsValid())
+    {
+        CAddress address(spParam->strAddress);
+        if (address.IsNull())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+        }
+        Dest = address;
+    }
+    else
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+
+    auto spResult = MakeCGetAddressInviteResultPtr();
+    CDestination parentDest;
+    if(pService->GetForkAddressInvite(hashFork, Dest, parentDest))
+    {
+        spResult->strParent = CAddress(parentDest).ToString();   
+    }
+    return spResult;
+
 }
 
 CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
