@@ -84,7 +84,7 @@ public:
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
 
     // defi
-    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nMax = -1) override;
+    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nHeight, const int32 nMax = -1) override;
 
 protected:
     bool HandleInitialize() override;
@@ -108,7 +108,7 @@ protected:
     void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPoints);
 
     // defi
-    std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, uint256& nLastSection, CDeFiReward& lastReward);
+    std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, const int32 nHeight, uint256& nLastSection, CDeFiReward& lastReward);
     CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash, const CProfile& profile);
     std::map<CDestination, int64> ComputeStakeReward(storage::CBlockView& view, const uint256& forkid,
                                                      const uint256& hash, const int64 nMin, const int64 nReward,

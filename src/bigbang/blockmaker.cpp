@@ -350,7 +350,9 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
         size_t txDefaultSize = GetSerializeSize(txDefault);
         int32 nMaxTx = nRestOfSize /  txDefaultSize;
 
-        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, (nMaxTx > 0) ? nMaxTx : -1);
+        Debug("SHT ArrangeBlockTx will call pBlockChain->GetDeFiReward fork: %s, prev: %s, block: %s, max: %d", 
+            hashFork.ToString().c_str(), block.hashPrev.ToString().c_str(), block.GetHash().ToString().c_str(), nMaxTx);
+        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, block.GetBlockHeight(), nMaxTx);
         for(const auto& reward : rewards)
         {
             CTransaction txNew;

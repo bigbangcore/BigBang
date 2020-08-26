@@ -165,7 +165,7 @@ public:
     virtual bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) = 0;
 
     // defi
-    virtual std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nMax = -1) = 0;
+    virtual std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nHeight, const int32 nMax = -1) = 0;
 
     const CBasicConfig* Config()
     {
