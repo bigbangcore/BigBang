@@ -261,7 +261,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     {
         if (!witness.IsCollectCompleted())
         {
-            StdLog("CDelegateVote", "Get agreement: mapSecret is not empty, completed: false");
+           // StdLog("CDelegateVote", "Get agreement: mapSecret is not empty, completed: false");
         }
         vector<unsigned char> vch;
         CODataStream os(vch);
@@ -276,7 +276,7 @@ void CDelegateVote::GetAgreement(uint256& nAgreement, size_t& nWeight, map<CDest
     }
     else
     {
-        StdTrace("CDelegateVote", "Get agreement: mapSecret is empty, completed: %s", (witness.IsCollectCompleted() ? "true" : "false"));
+      //  StdTrace("CDelegateVote", "Get agreement: mapSecret is empty, completed: %s", (witness.IsCollectCompleted() ? "true" : "false"));
     }
 }
 
