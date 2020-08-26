@@ -2250,6 +2250,8 @@ list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint25
                 }
             }
 
+            Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(), listReward size: %u, nMax: %d",
+                section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
             for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
             {
                 listReward.push_back(*it);
@@ -2404,9 +2406,9 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nStakeReward = sr;
             reward.nPromotionReward = pr;
             reward.hashAnchor = hash;
-            s.insert(move(reward));
             Debug("SHT ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
                 CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
+            s.insert(move(reward));
         }
     }
 
@@ -2420,9 +2422,9 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
             reward.nStakeReward = 0;
             reward.nPromotionReward = promotion.second;
             reward.hashAnchor = hash;
-            s.insert(move(reward));
             Debug("SHT ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
                 CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
+            s.insert(move(reward));
         }
     }
     Debug("SHT ComputeDeFiSection reward size: %lu, hash: %s", s.size(), hash.ToString().c_str());
