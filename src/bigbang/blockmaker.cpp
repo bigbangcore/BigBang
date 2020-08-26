@@ -350,7 +350,10 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
         txDefault.SetNull();
         size_t txDefaultSize = GetSerializeSize(txDefault);
         int32 nMaxTx = nRestOfSize /  txDefaultSize;
-        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, (nMaxTx > 0) ? nMaxTx : -1);
+
+        Debug("SHT ArrangeBlockTx will call pBlockChain->GetDeFiReward fork: %s, prev: %s, block: %s, max: %d", 
+            hashFork.ToString().c_str(), block.hashPrev.ToString().c_str(), block.GetHash().ToString().c_str(), nMaxTx);
+        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, block.GetBlockHeight(), nMaxTx);
         StdWarn("CSH", "DeFi nMaxTx %d rewards size: %d", nMaxTx, rewards.size());
         for(const auto& reward : rewards)
         {
@@ -361,16 +364,9 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             txNew.nTimeStamp = block.GetBlockTime();
             txNew.nLockUntil = 0;
             txNew.sendTo = reward.dest;
-            txNew.nAmount = reward.nReward;
-            txNew.nTxFee = CalcMinTxFee(txNew.vchData.size(), NEW_MIN_TX_FEE);
+            txNew.nTxFee = NEW_MIN_TX_FEE;
+            txNew.nAmount = reward.nReward - txNew.nTxFee;
             
-            uint256 hashSig = txNew.GetSignatureHash();
-            if (!profile.keyMint.Sign(hashSig, txNew.vchSig))
-            {
-                StdError("blockmaker", "keyMint Sign Reward Tx failed. hashSig: %s", hashSig.ToString().c_str());
-                continue;
-            }
-
             if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
             {
                 StdWarn("CSH", "rewardTxSize %d break", rewardTxSize);

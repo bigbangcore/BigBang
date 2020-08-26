@@ -42,6 +42,7 @@ public:
     bool UpdateDelegateContext(const uint256& hash, const CDelegateContext& ctxtDelegate);
     bool UpdateAddressInfo(const uint256& hashFork, const std::vector<std::pair<CDestination, CAddrInfo>>& vNewAddress,
                            const std::vector<std::pair<CDestination, CAddrInfo>>& vRemoveAddress);
+    bool GetAddressInfo(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo);
     bool WalkThroughBlock(CBlockDBWalker& walker);
     bool RetrieveTxIndex(const uint256& txid, CTxIndex& txIndex, uint256& fork);
     bool RetrieveTxIndex(const uint256& fork, const uint256& txid, CTxIndex& txIndex);

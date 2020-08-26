@@ -2086,6 +2086,12 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
     return true;
 }
 
+bool CBlockBase::GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo)
+{
+    CAddrInfo addressInfo;
+    return dbBlock.GetAddressInfo(hashFork, destIn, addrInfo);
+}
+
 bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes)
 {
     CBlockIndex* pForkLastIndex = nullptr;

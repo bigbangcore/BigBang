@@ -314,6 +314,7 @@ public:
     bool ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount);
     bool AddForkAddressInvite(const uint256& hashFork, CBlockView& view);
     bool ListForkAddressInvite(const uint256& hashFork, CBlockView& view, CForkAddressInvite& addrInvite);
+    bool GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo);
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
     bool GetDelegatePaymentList(const uint256& block_hash, std::multimap<int64, CDestination>& mapVotes);

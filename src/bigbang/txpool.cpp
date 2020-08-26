@@ -933,6 +933,7 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
             // defi
             if (tx.nType == CTransaction::TX_DEFI_REWARD)
             {
+                change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight));
                 continue;
             }
 
@@ -971,14 +972,16 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         for (int i = 0; i < block.vtx.size(); ++i)
         {
             const CTransaction& tx = block.vtx[i];
+            uint256 txid = tx.GetHash();
 
             // defi
             if (tx.nType == CTransaction::TX_DEFI_REWARD)
             {
+                txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
+                vTxRemove.push_back(make_pair(txid, tx.vInput));
                 continue;
             }
 
-            uint256 txid = tx.GetHash();
             if (!update.setTxUpdate.count(txid))
             {
                 uint256 spent0, spent1;
