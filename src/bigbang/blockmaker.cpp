@@ -363,15 +363,8 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             txNew.nLockUntil = 0;
             txNew.sendTo = reward.dest;
             txNew.nAmount = reward.nReward;
-            txNew.nTxFee = CalcMinTxFee(txNew.vchData.size(), NEW_MIN_TX_FEE);
+            txNew.nTxFee = 0;
             
-            uint256 hashSig = txNew.GetSignatureHash();
-            if (!profile.keyMint.Sign(hashSig, txNew.vchSig))
-            {
-                StdError("blockmaker", "keyMint Sign Reward Tx failed. hashSig: %s", hashSig.ToString().c_str());
-                continue;
-            }
-
             if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
             {
                 break;
