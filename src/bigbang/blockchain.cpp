@@ -729,7 +729,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     // defi
     list<CDeFiReward> listDeFiReward;
     bool fDeFiFork = defiReward.ExistFork(forkid);
-    if (fDeFiFork)
+    if (!block.IsVacant() && fDeFiFork)
     {
         listDeFiReward = GetDeFiReward(forkid, pIndexPrev->GetBlockHash(), block.GetBlockHeight(), block.vtx.size());
     }
@@ -770,7 +770,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             ++itListDeFi;
         }
 
-        if (!pTxPool->Exists(txid))
+        if ((tx.nType != CTransaction::TX_DEFI_REWARD) && !pTxPool->Exists(txid))
         {
             err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, forkid);
             if (err != OK)

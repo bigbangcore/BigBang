@@ -261,9 +261,8 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     if (IsDposHeight(nHeight))
     {
         if (!MoneyRange(tx.nTxFee)
-            || (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_DEFI_RELATION && tx.nTxFee != 0)
-            || ((tx.nType == CTransaction::TX_TOKEN || tx.nType == CTransaction::TX_DEFI_RELATION)
-                && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE)))
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
         }
@@ -271,9 +270,8 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     else
     {
         if (!MoneyRange(tx.nTxFee)
-            || (tx.nType != CTransaction::TX_TOKEN && tx.nType != CTransaction::TX_DEFI_RELATION && tx.nTxFee != 0)
-            || ((tx.nType == CTransaction::TX_TOKEN || tx.nType == CTransaction::TX_DEFI_RELATION)
-                && (tx.nTxFee < CalcMinTxFee(tx.vchData.size(), NEW_MIN_TX_FEE) && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE))))
+            || (tx.nType != CTransaction::TX_TOKEN && tx.nTxFee != 0)
+            || (tx.nType == CTransaction::TX_TOKEN && tx.nTxFee < CalcMinTxFee(tx.vchData.size(), OLD_MIN_TX_FEE)))
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee invalid %ld", tx.nTxFee);
         }
