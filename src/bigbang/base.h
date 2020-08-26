@@ -381,6 +381,7 @@ public:
     virtual void GetTemplateIds(std::set<CTemplateId>& setTid) = 0;
     virtual bool AddTemplate(CTemplatePtr& ptr) = 0;
     virtual CTemplatePtr GetTemplate(const CTemplateId& tid) = 0;
+    virtual bool GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CDestination& parent) = 0;
     virtual bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) = 0;
     virtual bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) = 0;
     virtual boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,

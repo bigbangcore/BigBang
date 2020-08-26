@@ -282,6 +282,8 @@ CRPCMod::CRPCMod()
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
+        //
+        ("getaddressinvite", &CRPCMod::RPCGetAddressInvite)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -1566,8 +1568,13 @@ CRPCResultPtr CRPCMod::RPCGetAddressInvite(rpc::CRPCParamPtr param)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
     }
-    
+
     auto spResult = MakeCGetAddressInviteResultPtr();
+    CDestination parentDest;
+    if(pService->GetForkAddressInvite(hashFork, Dest, parentDest))
+    {
+        spResult->strParent = CAddress(parentDest).ToString();   
+    }
     return spResult;
 
 }

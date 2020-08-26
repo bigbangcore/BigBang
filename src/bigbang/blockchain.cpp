@@ -2485,6 +2485,13 @@ map<CDestination, int64> CBlockChain::ComputeStakeReward(storage::CBlockView& vi
 
 bool CBlockChain::GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CDestination& parent)
 {
+    storage::CAddrInfo addrInfo;
+    if(cntrBlock.GetForkAddressInvite(hashFork, destIn, addrInfo))
+    {
+        parent = addrInfo.destInviteParent;
+        return true;
+    }
+    
     return false;
 }
 
