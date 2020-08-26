@@ -2244,49 +2244,18 @@
             }
         },
         "response": {
-            "type": "array",
-            "name": "balance",
-            "content": {
-                "balance": {
-                    "type": "object",
-                    "desc": "balance info",
-                    "content": {
-                        "address": {
-                            "type": "string",
-                            "desc": "wallet address"
-                        },
-                        "avail": {
-                            "type": "double",
-                            "desc": "balance available amount"
-                        },
-                        "locked": {
-                            "type": "double",
-                            "desc": "locked amount"
-                        },
-                        "unconfirmed": {
-                            "type": "double",
-                            "desc": "unconfirmed amount"
-                        }
-                    }
-                }
-            }
+            "type": "string",
+            "name": "parent",
+            "desc": "parent address string"
         },
         "example": [
             {
-                "request": "bigbang-cli getbalance",
-                "response": "[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]"
+                "request": "bigbang-cli getaddressinvite 10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth7332bb",
+                "response": "10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"
             },
             {
                 "request": "curl -d '{\"id\":1,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
                 "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]}"
-            },
-            {
-                "request": "bigbang-cli getbalance -a=20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm",
-                "response": "[{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"avail\":58.99990000,\"locked\":0.00000000,\"unconfirmed\":13.99990000}]"
-            },
-            {
-                "request": "curl -d '{\"id\":20,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\"}}' http://127.0.0.1:9902",
-                "response": "{\"id\":20,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm\",\"avail\":58.99990000,\"locked\":0.00000000,\"unconfirmed\":13.99990000}]}"
             }
         ],
         "error": [
