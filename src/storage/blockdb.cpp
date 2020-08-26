@@ -207,6 +207,11 @@ bool CBlockDB::UpdateAddressInfo(const uint256& hashFork, const vector<pair<CDes
     return dbAddress.Update(hashFork, vNewAddress, vRemoveAddress);
 }
 
+bool CBlockDB::GetAddressInfo(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo)
+{
+    return dbAddress.Retrieve(hashFork, destIn, addrInfo);
+}
+
 bool CBlockDB::WalkThroughBlock(CBlockDBWalker& walker)
 {
     return dbBlockIndex.WalkThroughBlock(walker);

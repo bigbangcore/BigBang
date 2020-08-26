@@ -26,6 +26,7 @@
 #include "transaction.h"
 #include "uint256.h"
 #include "wallettx.h"
+#include "addressdb.h"
 
 namespace bigbang
 {
@@ -136,6 +137,7 @@ public:
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
     virtual bool GetBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, std::size_t nMaxCount) = 0;
     virtual bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent) = 0;
+    virtual bool GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CDestination& parent) = 0;
 
     /////////////    CheckPoints    /////////////////////
     virtual bool HasCheckPoints(const uint256& hashFork) const = 0;

@@ -2483,6 +2483,11 @@ map<CDestination, int64> CBlockChain::ComputeStakeReward(storage::CBlockView& vi
     return reward;
 }
 
+bool CBlockChain::GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CDestination& parent)
+{
+    return false;
+}
+
 map<CDestination, int64> CBlockChain::ComputePromotionReward(storage::CBlockView& view, const uint256& forkid,
                                                              const uint256& hash, const int64 nReward,
                                                              const map<CDestination, int64>& mapAddressAmount,
