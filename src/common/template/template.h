@@ -21,53 +21,14 @@ class CSpendableTemplate
 {
 };
 
-class CSendToRecordedTemplate
-{
-public:
-    static void RecordDest(const CDestination& sendToDelegate, const CDestination& sendToOwner,
-                           const std::vector<uint8>& vchPreSigIn, std::vector<uint8>& vchSigOut)
-    {
-        vchSigOut.clear();
-        xengine::CODataStream ods(vchSigOut, CDestination::DESTINATION_SIZE * 2 + vchPreSigIn.size());
-        ods << sendToDelegate << sendToOwner;
-        ods.Push(&vchPreSigIn[0], vchPreSigIn.size());
-    }
-
-    static bool ParseDest(const std::vector<uint8>& vchSigIn,
-                          CDestination& sendToDelegateOut, CDestination& sendToOwnerOut,
-                          std::vector<uint8>& vchSubSigOut)
-    {
-        xengine::CIDataStream is(vchSigIn);
-        try
-        {
-            is >> sendToDelegateOut >> sendToOwnerOut;
-            vchSubSigOut.assign(vchSigIn.begin() + (CDestination::DESTINATION_SIZE * 2), vchSigIn.end());
-        }
-        catch (std::exception& e)
-        {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
-            return false;
-        }
-        return true;
-    }
-
-    virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const = 0;
-};
-
-class CLockedCoinTemplate
-{
-public:
-    virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const = 0;
-};
-
 enum TemplateType
 {
-    TEMPLATE_MIN,
-    TEMPLATE_WEIGHTED,
-    TEMPLATE_MULTISIG,
-    TEMPLATE_PROOF,
-    TEMPLATE_EXCHANGE,
-    TEMPLATE_PAYMENT,
+    TEMPLATE_MIN = 0,
+    TEMPLATE_WEIGHTED = 1,
+    TEMPLATE_MULTISIG = 2,
+    TEMPLATE_PROOF = 4,
+    TEMPLATE_EXCHANGE = 6,
+    TEMPLATE_PAYMENT = 8,
     TEMPLATE_MAX
 };
 
@@ -121,12 +82,6 @@ public:
 
     // Return dest is spendable or not.
     static bool IsTxSpendable(const CDestination& dest);
-
-    // Return dest is destIn recorded or not.
-    static bool IsDestInRecorded(const CDestination& dest);
-
-    // Return delegate address.
-    static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
 
 public:
     // Deconstructor

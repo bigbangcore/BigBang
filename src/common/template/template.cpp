@@ -190,32 +190,6 @@ bool CTemplate::IsTxSpendable(const CDestination& dest)
     return false;
 }
 
-bool CTemplate::IsDestInRecorded(const CDestination& dest)
-{
-    if (dest.IsTemplate())
-    {
-        uint16 nType = dest.GetTemplateId().GetType();
-        const CTypeInfo* pTypeInfo = GetTypeInfoByType(nType);
-        if (pTypeInfo)
-        {
-            return (dynamic_cast<CSendToRecordedTemplate*>(pTypeInfo->ptr) != nullptr);
-        }
-    }
-    return false;
-}
-
-bool CTemplate::ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
-{
-    std::vector<uint8> vchSubSigOut;
-    bool fSendToVoteTemplate = false;
-    CTemplateId tid;
-    if (!fSendToVoteTemplate)
-    {
-        vchSubSigOut = std::move(vchSigIn);
-    }
-    return true;
-}
-
 const uint16& CTemplate::GetTemplateType() const
 {
     return nType;
