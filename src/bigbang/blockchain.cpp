@@ -52,8 +52,8 @@ int32 CBlockChain::CReward::PrevRewardHeight(const uint256& forkid, const int32 
             uint32 nRewardCycle = profile.defi.nRewardCycle;
             if (nHeight > nJointHeight + 1 && nRewardCycle > 0)
             {
-                StdDebug("CBlockChain::CReward", "SHT PrevRewardHeight nHeight: %d, nJoint: %u, nRewardCycle: %u, prev: %d",
-                    nHeight, nJointHeight, nRewardCycle, ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1);
+                // StdDebug("CBlockChain::CReward", "SHT PrevRewardHeight nHeight: %d, nJoint: %u, nRewardCycle: %u, prev: %d",
+                    // nHeight, nJointHeight, nRewardCycle, ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1);
                 return ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1;
             }
         }
@@ -67,7 +67,7 @@ int64 CBlockChain::CReward::ComputeSectionCoinbaseReward(const uint256& forkid, 
     CProfile profile = GetForkProfile(forkid);
     if (profile.IsNull())
     {
-        StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward profile is null, forkid: %s", forkid.ToString().c_str());
+        // StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward profile is null, forkid: %s", forkid.ToString().c_str());
         return nReward;
     }
 
@@ -79,7 +79,7 @@ int64 CBlockChain::CReward::ComputeSectionCoinbaseReward(const uint256& forkid, 
     {
         nBeginHeight = profile.nJointHeight + 2;
     }
-    StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward nBeginHeight: %d, nEndHeight: %d", nBeginHeight, nEndHeight);
+    // StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward nBeginHeight: %d, nEndHeight: %d", nBeginHeight, nEndHeight);
 
     int64 nCoinbase = 0;
     int32 nNextHeight = 0;
@@ -87,7 +87,7 @@ int64 CBlockChain::CReward::ComputeSectionCoinbaseReward(const uint256& forkid, 
     {
         if (GetDecayCoinbase(profile, nBeginHeight, nCoinbase, nNextHeight))
         {
-            StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward GetDecayCoinbase nBeinHeight: %d, nCoinbase: %ld, nNexHeight: %d", nBeginHeight, nCoinbase, nNextHeight);
+            // StdDebug("CBlockChain::CReward", "SHT ComputeSectionCoinbaseReward GetDecayCoinbase nBeinHeight: %d, nCoinbase: %ld, nNexHeight: %d", nBeginHeight, nCoinbase, nNextHeight);
             uint32 nHeight = min(nEndHeight, nNextHeight) - nBeginHeight;
             nReward += nCoinbase * nHeight;
             nBeginHeight += nHeight;
@@ -132,13 +132,24 @@ void CBlockChain::CReward::AddForkSection(const uint256& forkid, const uint256& 
     {
         it->second.reward[hash] = std::move(reward);
     }
+    while (forkReward.size() > MAX_REWARD_CACHE)
+    {
+        if (forkReward.begin()->first != hash)
+        {
+            forkReward.erase(forkReward.begin());
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
 bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight)
 {
     if (nHeight <= profile.nJointHeight + 1)
     {
-        StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nHeight <= profile.nJointHeight + 1, nHeight: %d, nJointHeight: %d", nHeight, profile.nJointHeight);
+        // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nHeight <= profile.nJointHeight + 1, nHeight: %d, nJointHeight: %d", nHeight, profile.nJointHeight);
         return false;
     }
 
@@ -147,10 +158,10 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     uint32 nSupplyCycle = profile.defi.nSupplyCycle;
     uint8 nCoinbaseDecayPercent = profile.defi.nCoinbaseDecayPercent;
     uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nJointHeight: %u, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
-        nJointHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nJointHeight: %u, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
+    //     nJointHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
     int32 nSupplyCount = (nDecayCycle == 0) ? 0 : (nDecayCycle / nSupplyCycle);
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nSupplyCount: %d", nSupplyCount);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nSupplyCount: %d", nSupplyCount);
 
     // for example:
     // [2] nJoint height
@@ -160,40 +171,40 @@ bool CBlockChain::CReward::GetDecayCoinbase(const CProfile& profile, const int32
     // [10, 11, 12] the first supply cycle of the second decay cycle
     // [13, 14, 15] the second supply cycle of the second decay cycle
     int32 nDecayCount = (nDecayCycle == 0) ? 0 : ((nHeight - nJointHeight - 2) / nDecayCycle);
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nDecayCount: %d", nDecayCount);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nDecayCount: %d", nDecayCount);
     int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nDecayHeight: %d", nDecayHeight);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nDecayHeight: %d", nDecayHeight);
     int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nCurSupplyCount: %d", nCurSupplyCount);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nCurSupplyCount: %d", nCurSupplyCount);
 
     // supply = init * (1 + nInitCoinbasePercent) ^ nSupplyCount * (1 + nInitCoinbasePercent * nCoinbaseDecayPercent) ^ nCurSupplyCount
     int64 nSupply = profile.nAmount;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nSupply: %ld", nSupply);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nSupply: %ld", nSupply);
     double fCoinbaseIncreasing = (double)nInitCoinbasePercent / 100;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase fCoinbaseIncreasing: %f", fCoinbaseIncreasing);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase fCoinbaseIncreasing: %f", fCoinbaseIncreasing);
     for (int i = 0; i <= nDecayCount; i++)
     {
         if (i < nDecayCount)
         {
             nSupply *= pow(1 + fCoinbaseIncreasing, nSupplyCount);
-            StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nSupplyCount: %d, supply: %ld", i, nSupplyCount, nSupply);
+            // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nSupplyCount: %d, supply: %ld", i, nSupplyCount, nSupply);
             if (nDecayCycle != 0 && nCoinbaseDecayPercent != 100)
             {
                 fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
-                StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, fCoinbaseIncreasing: %f", i, fCoinbaseIncreasing);
+                // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, fCoinbaseIncreasing: %f", i, fCoinbaseIncreasing);
             }
         }
         else
         {
             nSupply *= pow(1 + fCoinbaseIncreasing, nCurSupplyCount);
-            StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nCurSupplyCount: %d, supply: %ld", i, nCurSupplyCount, nSupply);
+            // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase i: %d, nCurSupplyCount: %d, supply: %ld", i, nCurSupplyCount, nSupply);
         }
     }
 
     nCoinbase = nSupply * fCoinbaseIncreasing / nSupplyCycle;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nCoinbase: %ld", nCoinbase);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nCoinbase: %ld", nCoinbase);
     nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nDecayHeight;
-    StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nNextHeight: %d", nNextHeight);
+    // StdDebug("CBlockChain::CReward", "SHT GetDecayCoinbase nNextHeight: %d", nNextHeight);
     return true;
 }
 
@@ -2488,10 +2499,10 @@ map<CDestination, int64> CBlockChain::ComputeStakeReward(storage::CBlockView& vi
     }
 
     // reward
-    int64 nUnitReward = nReward / nTotal;
+    double nUnitReward = (double)nReward / nTotal;
     for (auto& p : mapRank)
     {
-        reward.insert(make_pair(p.second.first, nUnitReward * p.second.second));
+        reward.insert(make_pair(p.second.first, (int64)(nUnitReward * p.second.second)));
     }
 
     return reward;
@@ -2641,7 +2652,7 @@ map<CDestination, int64> CBlockChain::ComputePromotionReward(storage::CBlockView
     // reward
     if (nTotal > 0)
     {
-        int64 nUnitReward = nReward / nTotal;
+        double nUnitReward = (double)nReward / nTotal;
         for (auto& p : reward)
         {
             p.second *= nUnitReward;

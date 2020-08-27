@@ -1575,6 +1575,10 @@ CRPCResultPtr CRPCMod::RPCGetAddressInvite(rpc::CRPCParamPtr param)
     {
         spResult->strParent = CAddress(parentDest).ToString();   
     }
+    else
+    {
+        spResult->strParent = "";
+    }
     return spResult;
 
 }
