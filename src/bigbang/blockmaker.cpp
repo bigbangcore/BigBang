@@ -424,7 +424,6 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
             {
                 pDispatcher->SetConsensus(consParam);
             }
-//            pDispatcher->CheckAllSubForkLastBlock();
             Log("...after generated primary-dpos");
         }
     }
@@ -433,6 +432,8 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
 void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                                  const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType)
 {
+    pDispatcher->CheckAllSubForkLastBlock();
+
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
     Log("subfork: GetForkStatus[%d]", mapForkStatus.size());

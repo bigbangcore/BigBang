@@ -485,7 +485,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     {
         do
         {
-            if (!block.IsPrimary() && pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
+            if (pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
                 && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
             {
                 fGetBranchBlock = false;
