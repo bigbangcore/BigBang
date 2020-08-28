@@ -136,8 +136,12 @@ protected:
     class CReward
     {
     public:
-        typedef std::map<uint256, CDeFiRewardSet> MapSectionReward;
+        enum
+        {
+            MAX_REWARD_CACHE = 20
+        };
 
+        typedef std::map<uint256, CDeFiRewardSet> MapSectionReward;
         struct CForkReward
         {
             MapSectionReward reward;
