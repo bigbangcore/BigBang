@@ -4,12 +4,15 @@
 
 #include "profile.h"
 #include "forkcontext.h"
+#include "defi.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include "test_big.h"
 
 using namespace xengine;
+using namespace bigbang;
+using namespace storage;
 
 BOOST_FIXTURE_TEST_SUITE(defi_tests, BasicUtfSetup)
 
@@ -160,6 +163,70 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeMinToken != profile.defi.nStakeMinToken);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeRewardPercent != profile.defi.nStakeRewardPercent);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() != profile.defi.mapPromotionTokenTimes.size());
+
+}
+
+static void RandGeneretor256(uint8_t* p)
+{
+    for (int i = 0; i < 32; i++)
+    {
+        *p++ = rand();
+    }
+}
+
+BOOST_AUTO_TEST_CASE(defi_relation_graph)
+{
+    {
+        CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
+        CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
+        
+        srand(time(0));
+        uint8_t md32[32];
+        RandGeneretor256(md32);
+        std::map<CDestination, CAddrInfo> mapAddressTree{
+            {A1, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))}
+        };
+        
+        CDeFiRelationGraph defiGraph;
+        BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
+    }
+
+
+    {
+        CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
+        CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
+        CAddress A2("1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q");
+        CAddress A3("1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq");
+        
+        srand(time(0));
+        uint8_t md32[32];
+        RandGeneretor256(md32);
+        std::map<CDestination, CAddrInfo> mapAddressTree;
+        mapAddressTree.insert(std::make_pair(A1, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+        mapAddressTree.insert(std::make_pair(A2, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+        mapAddressTree.insert(std::make_pair(A3, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+
+        CDeFiRelationGraph defiGraph;
+        BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
+    }
+    
+    {
+        CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
+        CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
+        CAddress A2("1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q");
+        CAddress A3("1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq");
+        
+        srand(time(0));
+        uint8_t md32[32];
+        RandGeneretor256(md32);
+        std::map<CDestination, CAddrInfo> mapAddressTree;
+        mapAddressTree.insert(std::make_pair(A1, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+        mapAddressTree.insert(std::make_pair(A2, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+        mapAddressTree.insert(std::make_pair(A3, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))));
+        //mapAddressTree.insert(std::make_pair(A, CAddrInfo(CDestination(), A2, uint256((uint64_t*)md32))));
+        CDeFiRelationGraph defiGraph;
+        BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
+    }
 
 }
 
