@@ -169,6 +169,15 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().nAmount == profile.nAmount);
 
     BOOST_CHECK(newForkContextRead.GetProfile().nForkType == FORK_TYPE_COMMON);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nDecayCycle != profile.defi.nDecayCycle);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nMaxSupply != profile.defi.nMaxSupply);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nInitCoinbasePercent != profile.defi.nInitCoinbasePercent);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nPromotionRewardPercent != profile.defi.nPromotionRewardPercent);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nRewardCycle != profile.defi.nRewardCycle);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nSupplyCycle != profile.defi.nSupplyCycle);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeMinToken != profile.defi.nStakeMinToken);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeRewardPercent != profile.defi.nStakeRewardPercent);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() != profile.defi.mapPromotionTokenTimes.size());
 
 }
 
