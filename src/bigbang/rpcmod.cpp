@@ -718,7 +718,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
 
             for(const auto& kv : profile.defi.mapPromotionTokenTimes)
             {
-                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(ValueFromAmount(kv.first)));
+                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.first));
                 displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.second));
             }
 

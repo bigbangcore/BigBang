@@ -48,67 +48,6 @@ bool CDeFiRelationGraph::ConstructRelationGraph(const std::map<CDestination, CAd
     return true;
 }
 
-// bool CDeFiRelationGraph::PostorderTraversal(Walker walker)
-// {
-//     for (auto& dest : setRoot)
-//     {
-//         CDeFiRelationNode* pNode = mapDestNode[dest];
-//         if (pNode == nullptr)
-//         {
-//             StdError("CDeFiRelationGraph", "SHT ComputePromotionReward no root address, dest: %s", CAddress(dest).ToString().c_str());
-//             return false;
-//         }
-
-//         // postorder traversal
-//         stack<CDeFiRelationNode*> st;
-//         do
-//         {
-//             // if pNode != nullptr push and down, or pop and up.
-//             if (pNode != nullptr)
-//             {
-//                 if (!pNode->setSubline.empty())
-//                 {
-//                     StdDebug("CDeFiRelationGraph", "SHT ComputePromotionReward push node: %s", CAddress(pNode->dest).ToString().c_str());
-//                     st.push(pNode);
-//                     pNode = *pNode->setSubline.begin();
-//                     continue;
-//                 }
-//             }
-//             else
-//             {
-//                 pNode = st.top();
-//                 st.pop();
-//                 StdDebug("CDeFiRelationGraph", "SHT ComputePromotionReward pop node: %s", CAddress(pNode->dest).ToString().c_str());
-//             }
-
-//             // call walker
-//             if (!walker(pNode))
-//             {
-//                 return false;
-//             }
-
-//             // root or the last child of parent. fetch from stack when next loop
-//             if (pNode->pParent == nullptr || pNode == *pNode->pParent->setSubline.rbegin())
-//             {
-//                 pNode = nullptr;
-//             }
-//             else
-//             {
-//                 auto it = pNode->pParent->setSubline.find(pNode);
-//                 if (it == pNode->pParent->setSubline.end())
-//                 {
-//                     StdError("CDeFiRelationGraph", "SHT ComputePromotionReward parent: %s have not subline: %s", CAddress(pNode->pParent->dest).ToString().c_str(), CAddress(pNode->dest).ToString().c_str());
-//                     return false;
-//                 }
-//                 else
-//                 {
-//                     pNode = *++it;
-//                 }
-//             }
-//         } while (!st.empty());
-//     }
-// }
-
 bool CDeFiRelationGraph::UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txid)
 {
     if (dest.IsNull() || parent.IsNull() || txid == 0)
