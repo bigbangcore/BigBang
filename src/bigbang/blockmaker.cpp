@@ -344,7 +344,6 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     int64 nRewardTxTotalFee = 0;
     if(isDeFi)
     {
-        
         CTransaction txDefault;
         txDefault.SetNull();
         size_t txDefaultSize = GetSerializeSize(txDefault);
@@ -369,6 +368,10 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
             {
                 break;
             }
+
+            Warn("defitest anchor height: %d, dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                CBlock::GetBlockHeightByHash(txNew.hashAnchor), CAddress(txNew.sendTo).ToString().c_str(),
+                reward.nReward, reward.nStakeReward, reward.nPromotionReward);
             
             //txNew.vchData = vchData;
             block.vtx.push_back(txNew);

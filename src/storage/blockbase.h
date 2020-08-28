@@ -227,38 +227,6 @@ protected:
     std::map<uint32, std::map<uint256, CBlockHeightIndex>> mapHeightIndex;
 };
 
-class CInviteAddress
-{
-public:
-    CInviteAddress()
-      : pParent(nullptr), nPower(0), nAmount(0) {}
-    CInviteAddress(const CDestination& destIn, const CDestination& parentIn, const uint256& hashTxInviteIn)
-      : dest(destIn), parent(parentIn), hashTxInvite(hashTxInviteIn), pParent(nullptr), nPower(0), nAmount(0) {}
-
-public:
-    CDestination dest;
-    CDestination parent;
-    uint256 hashTxInvite;
-    CInviteAddress* pParent;
-    std::set<CInviteAddress*> setSubline;
-    int64 nPower;
-    int64 nAmount;
-};
-
-class CForkAddressInvite
-{
-public:
-    CForkAddressInvite() {}
-    ~CForkAddressInvite();
-
-    bool UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite);
-    bool UpdateParent();
-
-public:
-    std::map<CDestination, CInviteAddress*> mapInviteAddress;
-    std::vector<CDestination> vRoot;
-};
-
 class CBlockBase
 {
     friend class CBlockView;
@@ -312,9 +280,9 @@ public:
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount);
-    bool AddForkAddressInvite(const uint256& hashFork, CBlockView& view);
-    bool ListForkAddressInvite(const uint256& hashFork, CBlockView& view, CForkAddressInvite& addrInvite);
-    bool GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo);
+    bool AddDeFiRelation(const uint256& hashFork, CBlockView& view);
+    bool ListDeFiRelation(const uint256& hashFork, CBlockView& view, std::map<CDestination, CAddrInfo>& mapAddress);
+    bool GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo);
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<int64, CDestination>& mapVotes);
     bool GetDelegatePaymentList(const uint256& block_hash, std::multimap<int64, CDestination>& mapVotes);

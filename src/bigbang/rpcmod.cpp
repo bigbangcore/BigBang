@@ -283,7 +283,7 @@ CRPCMod::CRPCMod()
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
         //
-        ("getaddressinvite", &CRPCMod::RPCGetAddressInvite)
+        ("getdefirelation", &CRPCMod::RPCGetDeFiRelation)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -1533,9 +1533,9 @@ CRPCResultPtr CRPCMod::RPCResyncWallet(CRPCParamPtr param)
     return MakeCResyncWalletResultPtr("Resync wallet successfully.");
 }
 
-CRPCResultPtr CRPCMod::RPCGetAddressInvite(rpc::CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetDeFiRelation(rpc::CRPCParamPtr param)
 {
-    auto spParam = CastParamPtr<CGetAddressInviteParam>(param);
+    auto spParam = CastParamPtr<CGetDeFiRelationParam>(param);
 
     //getbalance (-f="fork") (-a="address")
     uint256 hashFork;
@@ -1569,9 +1569,9 @@ CRPCResultPtr CRPCMod::RPCGetAddressInvite(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
     }
 
-    auto spResult = MakeCGetAddressInviteResultPtr();
+    auto spResult = MakeCGetDeFiRelationResultPtr();
     CDestination parentDest;
-    if(pService->GetForkAddressInvite(hashFork, Dest, parentDest))
+    if(pService->GetDeFiRelation(hashFork, Dest, parentDest))
     {
         spResult->strParent = CAddress(parentDest).ToString();   
     }
@@ -2447,16 +2447,17 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         {
             for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i += 2)
             {
-                try
+                const uint64 key = spParam->defi.vecMappromotiontokentimes.at(i);
+                if (key > (MAX_MONEY / COIN))
                 {
-                    const uint64 key = AmountFromValue(spParam->defi.vecMappromotiontokentimes.at(i));
-                    const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
-                    profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mappromotiontokentimes is larger than MAX_MONEY");
                 }
-                catch(...)
+                const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
+                if (value == 0)
                 {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param mappromotiontokentimes is out of range");
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mappromotiontokentimes is equal 0");
                 }
+                profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
             }
         }
     }

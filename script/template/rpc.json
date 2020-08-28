@@ -2222,9 +2222,9 @@
             "{\"code\":-401,\"message\":\"Failed to resync wallet tx\"}"
         ]
     },
-    "getaddressinvite": {
+    "getdefirelation": {
         "type": "command",
-        "name": "GetAddressInvite",
+        "name": "GetDeFiRelation",
         "introduction": "Get parent address of specified address",
         "request": {
             "type": "object",
@@ -2250,7 +2250,7 @@
         },
         "example": [
             {
-                "request": "bigbang-cli getaddressinvite 10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth7332bb",
+                "request": "bigbang-cli getdefirelation 10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth7332bb",
                 "response": "10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"
             },
             {

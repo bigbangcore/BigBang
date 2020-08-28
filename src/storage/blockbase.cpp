@@ -319,86 +319,6 @@ map<uint256, CBlockHeightIndex>* CForkHeightIndex::GetBlockMintList(uint32 nHeig
 }
 
 //////////////////////////////
-// CForkAddressInvite
-
-CForkAddressInvite::~CForkAddressInvite()
-{
-    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
-    {
-        if (it->second)
-        {
-            delete it->second;
-            it->second = nullptr;
-        }
-    }
-}
-
-bool CForkAddressInvite::UpdateAddress(const CDestination& dest, const CDestination& parent, const uint256& txInvite)
-{
-    if (dest.IsNull() || parent.IsNull() || txInvite == 0)
-    {
-        StdError("CForkAddressInvite", "UpdateAddress: param error");
-        return false;
-    }
-    auto it = mapInviteAddress.find(dest);
-    if (it == mapInviteAddress.end())
-    {
-        CInviteAddress* pNewAddr = new CInviteAddress(dest, parent, txInvite);
-        if (pNewAddr == nullptr)
-        {
-            StdError("CForkAddressInvite", "UpdateAddress: new error, dest: %s", CAddress(dest).ToString().c_str());
-            return false;
-        }
-        mapInviteAddress.insert(make_pair(dest, pNewAddr));
-    }
-    else
-    {
-        StdError("CForkAddressInvite", "UpdateAddress: duplicate address, dest: %s", CAddress(dest).ToString().c_str());
-        return false;
-    }
-    return true;
-}
-
-bool CForkAddressInvite::UpdateParent()
-{
-    for (auto it = mapInviteAddress.begin(); it != mapInviteAddress.end(); ++it)
-    {
-        if (!it->second)
-        {
-            StdError("CForkAddressInvite", "UpdateParent: address is null, dest: %s", CAddress(it->first).ToString().c_str());
-            return false;
-        }
-        if (it->second->parent.IsNull())
-        {
-            continue;
-        }
-        auto mt = mapInviteAddress.find(it->second->parent);
-        if (mt != mapInviteAddress.end())
-        {
-            if (!mt->second)
-            {
-                StdError("CForkAddressInvite", "UpdateParent: parent address is null, dest: %s", CAddress(it->first).ToString().c_str());
-                return false;
-            }
-        }
-        else
-        {
-            CInviteAddress* pNewAddr = new CInviteAddress(it->second->parent, CDestination(), uint256());
-            if (pNewAddr == nullptr)
-            {
-                StdError("CForkAddressInvite", "UpdateParent: new error, dest: %s", CAddress(it->second->parent).ToString().c_str());
-                return false;
-            }
-            mt = mapInviteAddress.insert(make_pair(it->second->parent, pNewAddr)).first;
-            vRoot.push_back(it->second->parent);
-        }
-        it->second->pParent = mt->second;
-        mt->second->setSubline.insert(it->second);
-    }
-    return true;
-}
-
-//////////////////////////////
 // CBlockBase
 
 CBlockBase::CBlockBase()
@@ -1207,9 +1127,9 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
     spFork->UpdateLast(pIndexNew);
 
-    if (!AddForkAddressInvite(hashFork, view))
+    if (!AddDeFiRelation(hashFork, view))
     {
-        StdTrace("BlockBase", "CommitBlockView: AddForkAddressInvite fail, fork: %s", hashFork.ToString().c_str());
+        StdTrace("BlockBase", "CommitBlockView: AddDeFiRelation fail, fork: %s", hashFork.ToString().c_str());
         return false;
     }
 
@@ -1980,7 +1900,7 @@ bool CBlockBase::ListForkAllAddressAmount(const uint256& hashFork, CBlockView& v
     return true;
 }
 
-bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
+bool CBlockBase::AddDeFiRelation(const uint256& hashFork, CBlockView& view)
 {
     vector<pair<CDestination, CAddrInfo>> vNewAddress;
     vector<pair<CDestination, CAddrInfo>> vRemoveAddress;
@@ -2020,12 +1940,12 @@ bool CBlockBase::AddForkAddressInvite(const uint256& hashFork, CBlockView& view)
     return dbBlock.UpdateAddressInfo(hashFork, vNewAddress, vRemoveAddress);
 }
 
-bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view, CForkAddressInvite& addrInvite)
+bool CBlockBase::ListDeFiRelation(const uint256& hashFork, CBlockView& view, map<CDestination, CAddrInfo>& mapAddress)
 {
     CListAddressWalker walker;
     if (!dbBlock.WalkThroughAddress(hashFork, walker))
     {
-        StdLog("CBlockBase", "ListForkAddressInvite: WalkThroughAddress fail, fork: %s", hashFork.GetHex().c_str());
+        StdLog("CBlockBase", "ListDeFiRelation: WalkThroughAddress fail, fork: %s", hashFork.GetHex().c_str());
         return false;
     }
 
@@ -2043,7 +1963,7 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
             {
                 uint256 txid = tx.GetHash();
                 auto it = walker.mapAddress.find(txContxt.destIn);
-                if (it != walker.mapAddress.end() && it->second.hashTxInvite == txid)
+                if (it != walker.mapAddress.end() && it->second.txid == txid)
                 {
                     walker.mapAddress.erase(it);
                 }
@@ -2069,24 +1989,11 @@ bool CBlockBase::ListForkAddressInvite(const uint256& hashFork, CBlockView& view
         }
     }
 
-    for (const auto& vd : walker.mapAddress)
-    {
-        if (!addrInvite.UpdateAddress(vd.first, vd.second.destInviteParent, vd.second.hashTxInvite))
-        {
-            StdLog("CBlockBase", "ListForkAddressInvite: UpdateAddress fail, fork: %s", hashFork.GetHex().c_str());
-            return false;
-        }
-    }
-
-    if (!addrInvite.UpdateParent())
-    {
-        StdLog("CBlockBase", "ListForkAddressInvite: UpdateParent fail, fork: %s", hashFork.GetHex().c_str());
-        return false;
-    }
+    mapAddress = std::move(walker.mapAddress);
     return true;
 }
 
-bool CBlockBase::GetForkAddressInvite(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo)
+bool CBlockBase::GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo)
 {
     CAddrInfo addressInfo;
     return dbBlock.GetAddressInfo(hashFork, destIn, addrInfo);
