@@ -977,7 +977,7 @@
                                     "desc": "the max DeFi supply in this fork"
                                 },
                                 "decaycycle": {
-                                    "type": "uint",
+                                    "type": "int",
                                     "desc": "coinbase decay cycle in height"
                                 },
                                 "coinbasedecaypercent": {
@@ -989,11 +989,11 @@
                                     "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
                                 },
                                 "rewardcycle": {
-                                    "type": "uint",
+                                    "type": "int",
                                     "desc": "generate reward cycle in height"
                                 },
                                 "supplycycle": {
-                                    "type": "uint",
+                                    "type": "int",
                                     "desc": "supplyment changing cycle in height"
                                 },
                                 "stakerewardpercent": {
@@ -2895,7 +2895,7 @@
                             "required": false
                         },
                         "decaycycle": {
-                            "type": "uint",
+                            "type": "int",
                             "desc": "coinbase decay cycle in height"
                         },
                         "coinbasedecaypercent": {
@@ -2909,11 +2909,11 @@
                             "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
                         },
                         "rewardcycle": {
-                            "type": "uint",
+                            "type": "int",
                             "desc": "generate reward cycle in height"
                         },
                         "supplycycle": {
-                            "type": "uint",
+                            "type": "int",
                             "desc": "supplyment changing cycle in height"
                         },
                         "stakerewardpercent": {

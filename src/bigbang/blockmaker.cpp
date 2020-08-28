@@ -331,7 +331,6 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    
     CForkContext forkCtxt;
     bool isDeFi = false;
     if(pBlockChain->GetForkContext(hashFork, forkCtxt))

@@ -158,7 +158,7 @@ public:
     // compute promotion reward
     std::map<CDestination, int64> ComputePromotionReward(const uint256& hash, const int64 nReward,
                                                          const std::map<CDestination, int64>& mapAddressAmount,
-                                                         const std::map<uint64, uint32>& mapPromotionTokenTimes,
+                                                         const std::map<int64, uint32>& mapPromotionTokenTimes,
                                                          CDeFiRelationGraph& relation);
 
 protected:

@@ -5,6 +5,7 @@
 #include "profile.h"
 #include "forkcontext.h"
 #include "defi.h"
+#include "param.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -291,6 +292,48 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         BOOST_CHECK(defiGraph.setRoot.find(AA22) == defiGraph.setRoot.end());
     }
 
+}
+
+BOOST_AUTO_TEST_CASE(reward)
+{
+    CDeFiForkReward r;
+    uint256 forkid;
+    RandGeneretor256(forkid.begin());
+
+    // test ExistFork and AddFork
+    BOOST_CHECK(!r.ExistFork(forkid));
+
+    CProfile profile;
+    profile.strName = "BBC Test";
+    profile.strSymbol = "BBCA";
+    profile.nVersion = 1;
+    profile.nMinTxFee = NEW_MIN_TX_FEE;
+    profile.nMintReward = 0;
+    profile.nAmount = 21000000 * COIN;
+    profile.nJointHeight = 150;
+    profile.nForkType = FORK_TYPE_DEFI;
+    profile.defi.nMaxSupply = 2100000000 * COIN;
+    profile.defi.nDecayCycle = 1036800;
+    profile.defi.nCoinbaseDecayPercent = 50;
+    profile.defi.nInitCoinbasePercent = 10;
+    profile.defi.nPromotionRewardPercent = 50;
+    profile.defi.nRewardCycle = 1440;
+    profile.defi.nSupplyCycle = 43200;
+    profile.defi.nStakeMinToken = 100 * COIN;
+    profile.defi.nStakeRewardPercent = 50;
+    profile.defi.mapPromotionTokenTimes.insert(std::make_pair(10000, 10));
+    r.AddFork(forkid, profile);
+
+    BOOST_CHECK(r.ExistFork(forkid));
+    BOOST_CHECK(r.GetForkProfile(forkid).strSymbol == "BBCA");
+
+    // test PrevRewardHeight
+    BOOST_CHECK(r.PrevRewardHeight(forkid, -10) == -1);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 0) == -1);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 151) == -1);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 152) == 151);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 1591) == 151);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 1592) == 1591);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
