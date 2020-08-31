@@ -707,6 +707,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
             displayProfile.strOwner = CAddress(profile.destOwner).ToString();
             displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "DeFi" : "Common";
             displayProfile.defi.dMaxsupply = ValueFromAmount(profile.defi.nMaxSupply);
+            displayProfile.defi.nCoinbasetype = profile.defi.nCoinbaseType;
             displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
             displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
             displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
@@ -720,6 +721,12 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
             {
                 displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.first));
                 displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.second));
+            }
+
+            for(const auto& kv : profile.defi.mapCoinbasePercent)
+            {
+                displayProfile.defi.vecMapcoinbasepercent.push_back(std::to_string(kv.first));
+                displayProfile.defi.vecMapcoinbasepercent.push_back(std::to_string(kv.second));
             }
 
             spResult->vecProfile.push_back(displayProfile);
@@ -2384,6 +2391,33 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
                 throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param maxsupply is out of range");
             }
         }
+
+        profile.defi.nCoinbaseType = spParam->defi.nCoinbasetype;
+        if(profile.defi.nCoinbaseType == 1)
+        {
+            if(spParam->defi.vecMapcoinbasepercent.size() % 2 != 0)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "mapcoinbasepercent size must be size() % 2 == 0");
+            }
+            
+            if(spParam->defi.vecMapcoinbasepercent.size() >= 2)
+            {
+                for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i += 2)
+                {
+                    const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i);
+                    if (key >= std::numeric_limits<uint64>::max() - 100)
+                    {
+                        throw CRPCException(RPC_INVALID_PARAMETER, string("DeFi param key of mapcoinbasepercent should be height, not be nagetive number").c_str());
+                    }
+                    const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i + 1);  
+                    if (value == 0)
+                    {
+                        throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent is equal 0");
+                    }
+                    profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
+                }
+            }
+        } 
 
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
         if (profile.defi.nDecayCycle < 0 || profile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
