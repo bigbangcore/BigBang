@@ -2214,7 +2214,7 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
     }
 
     int64 nStakeReward = nReward * profile.defi.nStakeRewardPercent / 100;
-    map<CDestination, int64> stakeReward = defiReward.ComputeStakeReward(hash, profile.defi.nStakeMinToken, nStakeReward, mapAddressAmount);
+    map<CDestination, int64> stakeReward = defiReward.ComputeStakeReward(profile.defi.nStakeMinToken, nStakeReward, mapAddressAmount);
 
     // get invitation relation
     map<CDestination, storage::CAddrInfo> mapAddress;
@@ -2232,7 +2232,7 @@ CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint
     }
 
     int64 nPromotionReward = nReward * profile.defi.nPromotionRewardPercent / 100;
-    map<CDestination, int64> promotionReward = defiReward.ComputePromotionReward(hash, nPromotionReward, mapAddressAmount, profile.defi.mapPromotionTokenTimes, relation);
+    map<CDestination, int64> promotionReward = defiReward.ComputePromotionReward(nPromotionReward, mapAddressAmount, profile.defi.mapPromotionTokenTimes, relation);
 
     for (auto& stake : stakeReward)
     {

@@ -219,12 +219,12 @@ int32 CDeFiForkReward::PrevRewardHeight(const uint256& forkid, const int32 nHeig
 
 int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& hash)
 {
-    int64 nReward = 0;
+    double nReward = 0;
     CProfile profile = GetForkProfile(forkid);
     if (profile.IsNull())
     {
         // StdDebug("CDeFiForkReward", "SHT GetSectionReward profile is null, forkid: %s", forkid.ToString().c_str());
-        return nReward;
+        return (int64)nReward;
     }
 
     int32 nEndHeight = CBlock::GetBlockHeightByHash(hash) + 1;
@@ -237,7 +237,7 @@ int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& ha
     }
     // StdDebug("CDeFiForkReward", "SHT GetSectionReward nBeginHeight: %d, nEndHeight: %d", nBeginHeight, nEndHeight);
 
-    int64 nCoinbase = 0;
+    double nCoinbase = 0;
     int32 nNextHeight = 0;
     while (nBeginHeight < nEndHeight)
     {
@@ -254,7 +254,7 @@ int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& ha
         }
     }
 
-    return nReward;
+    return (int64)nReward;
 }
 
 bool CDeFiForkReward::ExistForkSection(const uint256& forkid, const uint256& section)
@@ -301,7 +301,7 @@ void CDeFiForkReward::AddForkSection(const uint256& forkid, const uint256& hash,
     }
 }
 
-bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight)
+bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight)
 {
     if (nHeight <= profile.nJointHeight + 1)
     {
@@ -361,7 +361,7 @@ bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHei
     return true;
 }
 
-map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const uint256& hash, const int64 nMin, const int64 nReward,
+map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const int64 nMin, const int64 nReward,
                                                              const std::map<CDestination, int64>& mapAddressAmount)
 {
     map<CDestination, int64> reward;
@@ -413,7 +413,7 @@ map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const uint256& hash
     return reward;
 }
 
-map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const uint256& hash, const int64 nReward,
+map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const int64 nReward,
                                                                  const map<CDestination, int64>& mapAddressAmount,
                                                                  const std::map<int64, uint32>& mapPromotionTokenTimes,
                                                                  CDeFiRelationGraph& relation)

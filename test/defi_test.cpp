@@ -8,9 +8,11 @@
 #include "param.h"
 
 #include <boost/test/unit_test.hpp>
+#include <map>
 
 #include "test_big.h"
 
+using namespace std;
 using namespace xengine;
 using namespace bigbang;
 using namespace storage;
@@ -334,6 +336,75 @@ BOOST_AUTO_TEST_CASE(reward)
     BOOST_CHECK(r.PrevRewardHeight(forkid, 152) == 151);
     BOOST_CHECK(r.PrevRewardHeight(forkid, 1591) == 151);
     BOOST_CHECK(r.PrevRewardHeight(forkid, 1592) == 1591);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 100000) == 99511);
+    BOOST_CHECK(r.PrevRewardHeight(forkid, 10000000) == 9999511);
+
+    // test coinbase
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(0, uint224(0))) == 0);
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(151, uint224(0))) == 0);
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(152, uint224(0))) == 48611111);
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(1591, uint224(0))) == 70000000000);
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(43352, uint224(0))) == 53472222);
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(100000, uint224(0))) == 28762708333);
+    // 2179010403498881 = 21000000*(1.1^24)*(1.05^24)*(1.025^24)*(1.0125^24)*(1.00625^24)*(1.003125^24)*(1.0015625^24)*(1.00078125^24)*(1.000390625^24)*(1.0001953125^15)
+    // 2179010403498881*0.0001953125/43200*(10000000 - 151 - 9 * 1036800 - 15 * 43200 - 14 * 1440)
+    BOOST_CHECK(r.GetSectionReward(forkid, uint256(10000000, uint224(0))) == 4817419376);
+    int64 nReward = r.GetSectionReward(forkid, uint256(10000000, uint224(0)));
+
+    CAddress A("1632srrskscs1d809y3x5ttf50f0gabf86xjz2s6aetc9h9ewwhm58dj3");
+    CAddress a1("1f1nj5gjgrcz45g317s1y4tk18bbm89jdtzd41m9s0t14tp2ngkz4cg0x");
+    CAddress a11("1pmj5p47zhqepwa9vfezkecxkerckhrks31pan5fh24vs78s6cbkrqnxp");
+    CAddress a111("1bvaag2t23ybjmasvjyxnzetja0awe5d1pyw361ea3jmkfdqt5greqvfq");
+    CAddress a2("1ab1sjh07cz7xpb0xdkpwykfm2v91cvf2j1fza0gj07d2jktdnrwtyd57");
+    CAddress a21("1782a5jv06egd6pb2gjgp2p664tgej6n4gmj79e1hbvgfgy3t006wvwzt");
+    CAddress a22("1c7s095dcvzdsedrkpj6y5kjysv5sz3083xkahvyk7ry3tag4ddyydbv4");
+    CAddress a221("1ytysehvcj13ka9r1qhh9gken1evjdp9cn00cz0bhqjqgzwc6sdmse548");
+    CAddress a222("16aaahq32cncamxbmvedjy5jqccc2hcpk7rc0h2zqcmmrnm1g2213t2k3");
+    CAddress a3("1vz7k0748t840bg3wgem4mhf9pyvptf1z2zqht6bc2g9yn6cmke8h4dwe");
+    CAddress B("1fpt2z9nyh0a5999zrmabg6ppsbx78wypqapm29fsasx993z11crp6zm7");
+    CAddress b1("1rampdvtmzmxfzr3crbzyz265hbr9a8y4660zgpbw6r7qt9hdy535zed7");
+    CAddress b2("1w0k188jwq5aenm6sfj6fdx9f3d96k20k71612ddz81qrx6syr4bnp5m9");
+    CAddress b3("196wx05mee1zavws828vfcap72tebtskw094tp5sztymcy30y7n9varfa");
+    CAddress b4("19k8zjwdntjp8avk41c8aek0jxrs1fgyad5q9f1gd1q2fdd0hafmm549d");
+    CAddress C("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
+
+    // test stake reward
+    map<CDestination, int64> reward;
+    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, nReward, map<CDestination, int64>{
+        {A, 0},
+        {B, 100 * COIN},
+    });
+    BOOST_CHECK(reward.size() == 1);
+    auto it = reward.begin();
+    BOOST_CHECK(it->first == B && it->second == nReward);
+
+    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, nReward, map<CDestination, int64>{
+        {A, 0},
+        {a1, 100 * COIN},
+        {a11, 1000 * COIN},
+        {a111, 100 * COIN},
+    });
+    BOOST_CHECK(reward.size() == 3);
+    for (it = reward.begin(); it != reward.end(); it++)
+    {
+        if (it->first == a1)
+        {
+            BOOST_CHECK(it->second == 963483875);
+        }
+        else if (it->first == a11)
+        {
+            BOOST_CHECK(it->second == 2890451625);
+        }
+        else if (it->first == a111)
+        {
+            BOOST_CHECK(it->second == 963483875);
+        }
+        else
+        {
+            BOOST_ERROR("Stake reward error");
+        }
+    }
+    // B 1, D 1, C 3 = 1/5
 }
 
 BOOST_AUTO_TEST_SUITE_END()
