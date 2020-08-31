@@ -76,6 +76,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.nAmount = 100000;
     profile.nForkType = FORK_TYPE_DEFI;
     profile.defi.nMaxSupply = 5;
+    profile.defi.nCoinbaseType = SPECIFIC_DEFI_COINBASE_TYPE;
     profile.defi.nDecayCycle = 10;
     profile.defi.nCoinbaseDecayPercent = 50;
     profile.defi.nInitCoinbasePercent = 15;
@@ -86,6 +87,8 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.defi.nStakeRewardPercent = 30;
     profile.defi.mapPromotionTokenTimes.insert(std::make_pair(10, 11));
     profile.defi.mapPromotionTokenTimes.insert(std::make_pair(11, 12));
+    profile.defi.mapCoinbasePercent.insert(std::make_pair(5, 10));
+    profile.defi.mapCoinbasePercent.insert(std::make_pair(15, 11));
     
     std::vector<uint8> vchProfile;
     BOOST_CHECK(profile.Save(vchProfile));
@@ -110,6 +113,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
 
     BOOST_CHECK(profileLoad.nForkType == profile.nForkType);
     BOOST_CHECK(profileLoad.defi.nMaxSupply == profile.defi.nMaxSupply);
+    BOOST_CHECK(profileLoad.defi.nCoinbaseType == profile.defi.nCoinbaseType);
     BOOST_CHECK(profileLoad.defi.nDecayCycle == profile.defi.nDecayCycle);
     BOOST_CHECK(profileLoad.defi.nInitCoinbasePercent == profile.defi.nInitCoinbasePercent);
     BOOST_CHECK(profileLoad.defi.nPromotionRewardPercent == profile.defi.nPromotionRewardPercent);
@@ -118,6 +122,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(profileLoad.defi.nStakeMinToken == profile.defi.nStakeMinToken);
     BOOST_CHECK(profileLoad.defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
     BOOST_CHECK(profileLoad.defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
+    BOOST_CHECK(profileLoad.defi.mapCoinbasePercent.size() == profile.defi.mapCoinbasePercent.size());
 
     CForkContext forkContextWrite(uint256(), uint256(), uint256(), profile);
     CBufStream ss;
@@ -133,6 +138,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(forkContextRead.GetProfile().nAmount == profile.nAmount);
 
     BOOST_CHECK(forkContextRead.GetProfile().nForkType == profile.nForkType);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nCoinbaseType == profile.defi.nCoinbaseType);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayCycle == profile.defi.nDecayCycle);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nMaxSupply == profile.defi.nMaxSupply);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nInitCoinbasePercent == profile.defi.nInitCoinbasePercent);
@@ -142,6 +148,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeMinToken == profile.defi.nStakeMinToken);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nStakeRewardPercent == profile.defi.nStakeRewardPercent);
     BOOST_CHECK(forkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
+    BOOST_CHECK(forkContextRead.GetProfile().defi.mapCoinbasePercent.size() == profile.defi.mapCoinbasePercent.size());
 
 
     COldForkContext oldForkContextWrite(uint256(), uint256(), uint256(), profile);
@@ -157,6 +164,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().nAmount == profile.nAmount);
 
     BOOST_CHECK(newForkContextRead.GetProfile().nForkType == FORK_TYPE_COMMON);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nCoinbaseType != SPECIFIC_DEFI_COINBASE_TYPE);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nDecayCycle != profile.defi.nDecayCycle);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nMaxSupply != profile.defi.nMaxSupply);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nInitCoinbasePercent != profile.defi.nInitCoinbasePercent);
@@ -166,6 +174,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeMinToken != profile.defi.nStakeMinToken);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeRewardPercent != profile.defi.nStakeRewardPercent);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() != profile.defi.mapPromotionTokenTimes.size());
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.mapCoinbasePercent.size() != profile.defi.mapCoinbasePercent.size());
 
 }
 
