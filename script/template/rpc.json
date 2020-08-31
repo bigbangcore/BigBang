@@ -47,51 +47,6 @@
                 "type": "string",
                 "desc": "template type"
             },
-            "delegate": {
-                "type": "object",
-                "desc": "a delegate template",
-                "condition": "type=delegate",
-                "content": {
-                    "delegate": {
-                        "type": "string",
-                        "desc": "delegate public key"
-                    },
-                    "owner": {
-                        "type": "string",
-                        "desc": "owner address"
-                    }
-                }
-            },
-            "vote": {
-                "type": "object",
-                "desc": "a vote template",
-                "condition": "type=vote",
-                "content": {
-                    "delegate": {
-                        "type": "string",
-                        "desc": "delegate template address"
-                    },
-                    "owner": {
-                        "type": "string",
-                        "desc": "owner address"
-                    }
-                }
-            },
-            "fork": {
-                "type": "object",
-                "desc": "a new fork template",
-                "condition": "type=fork",
-                "content": {
-                    "redeem": {
-                        "type": "string",
-                        "desc": "redeem address"
-                    },
-                    "fork": {
-                        "type": "string",
-                        "desc": "fork hash"
-                    }
-                }
-            },
             "mint": {
                 "type": "object",
                 "desc": "a mint template",
@@ -210,6 +165,29 @@
                     }
                 }
             },
+            "increasecoin": {
+                "type": "object",
+                "desc": "a increasecoin template",
+                "condition": "type=increasecoin",
+                "content": {
+                    "height": {
+                        "type": "int",
+                        "desc": "take effect height"
+                    },
+                    "amount": {
+                        "type": "double",
+                        "desc": "over issued quantity"
+                    },
+                    "mint": {
+                        "type": "double",
+                        "desc": "number of reward blocks"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
+            },
             "synctx": {
                 "type": "bool",
                 "desc": "sync tx or not",
@@ -229,51 +207,6 @@
             "hex": {
                 "type": "string",
                 "desc": "temtplate data"
-            },
-            "delegate": {
-                "type": "object",
-                "desc": "delegate template struct",
-                "condition": "type=delegate",
-                "content": {
-                    "delegate": {
-                        "type": "string",
-                        "desc": "delegate public key"
-                    },
-                    "owner": {
-                        "type": "string",
-                        "desc": "owner address"
-                    }
-                }
-            },
-            "vote": {
-                "type": "object",
-                "desc": "vote template struct",
-                "condition": "type=vote",
-                "content": {
-                    "delegate": {
-                        "type": "string",
-                        "desc": "delegate template address"
-                    },
-                    "owner": {
-                        "type": "string",
-                        "desc": "owner address"
-                    }
-                }
-            },
-            "fork": {
-                "type": "object",
-                "desc": "fork template struct",
-                "condition": "type=fork",
-                "content": {
-                    "redeem": {
-                        "type": "string",
-                        "desc": "redeem address"
-                    },
-                    "fork": {
-                        "type": "string",
-                        "desc": "fork hash"
-                    }
-                }
             },
             "mint": {
                 "type": "object",
@@ -390,6 +323,29 @@
                                 "desc": "public key"
                             }
                         }
+                    }
+                }
+            },
+            "increasecoin": {
+                "type": "object",
+                "desc": "a increasecoin template",
+                "condition": "type=increasecoin",
+                "content": {
+                    "height": {
+                        "type": "int",
+                        "desc": "take effect height"
+                    },
+                    "amount": {
+                        "type": "double",
+                        "desc": "over issued quantity"
+                    },
+                    "mint": {
+                        "type": "double",
+                        "desc": "number of reward blocks"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
                     }
                 }
             }

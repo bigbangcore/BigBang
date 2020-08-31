@@ -15,6 +15,7 @@ set(template
     template/proof.h        template/proof.cpp 
     template/exchange.h     template/exchange.cpp
     template/payment.h      template/payment.cpp 
+    template/increasecoin.h  template/increasecoin.cpp 
 )
 
 set(sources

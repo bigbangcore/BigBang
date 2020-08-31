@@ -223,7 +223,7 @@ class CBlockBase
 public:
     CBlockBase();
     ~CBlockBase();
-    bool Initialize(const boost::filesystem::path& pathDataLocation, bool fDebug, bool fRenewDB = false);
+    bool Initialize(const boost::filesystem::path& pathDataLocation, const CBlock& blockGenesis, bool fDebug, bool fRenewDB = false);
     void Deinitialize();
     void Clear();
     bool IsEmpty() const;
@@ -264,6 +264,7 @@ public:
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint);
+    bool RetrieveIncreaseCoin(int nHeightIn, int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;
@@ -279,6 +280,7 @@ protected:
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
     bool GetTxUnspent(const uint256 fork, const CTxOutPoint& out, CTxOut& unspent);
     bool GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, std::vector<std::pair<uint256, CTxIndex>>& vTxNew);
+    bool UpdateIncreaseCoin(CBlockView& view);
     void ClearCache();
     bool LoadDB();
     bool SetupLog(const boost::filesystem::path& pathDataLocation, bool fDebug);
@@ -318,6 +320,8 @@ protected:
     mutable xengine::CRWAccess rwAccess;
     xengine::CLog log;
     bool fDebugLog;
+    uint256 hashGenesisBlock;
+    CDestination destGenesis;
     CBlockDB dbBlock;
     CTimeSeriesCached tsBlock;
     std::map<uint256, CBlockIndex*> mapIndex;

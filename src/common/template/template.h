@@ -60,6 +60,12 @@ public:
     virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const = 0;
 };
 
+class CIncreaseCoinParamTemplate
+{
+public:
+    virtual void GetIncreaseCoinParam(int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut, CDestination& destOwnerOut) const = 0;
+};
+
 enum TemplateType
 {
     TEMPLATE_MIN,
@@ -68,6 +74,7 @@ enum TemplateType
     TEMPLATE_PROOF,
     TEMPLATE_EXCHANGE,
     TEMPLATE_PAYMENT,
+    TEMPLATE_INCREASECOIN,
     TEMPLATE_MAX
 };
 

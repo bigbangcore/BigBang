@@ -75,6 +75,7 @@ public:
     bool ResynchronizeWalletTx() override;
     bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
     Errno SendOfflineSignedTransaction(CTransaction& tx) override;
+    bool VerifyIncreaseCoinHeight(const CDestination& from, const CDestination& to) override;
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                  uint256& hashPrev, uint32& nPrevTime, int& nAlgo, uint32_t& nBits,

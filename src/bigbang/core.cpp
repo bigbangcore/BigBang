@@ -53,6 +53,7 @@ bool CCoreProtocol::HandleInitialize()
     CBlock block;
     GetGenesisBlock(block);
     hashGenesisBlock = block.GetHash();
+    destGenesis = block.txMint.sendTo;
     if (!GetObject("blockchain", pBlockChain))
     {
         return false;
@@ -74,6 +75,11 @@ Errno CCoreProtocol::Debug(const Errno& err, const char* pszFunc, const char* ps
 const uint256& CCoreProtocol::GetGenesisBlockHash()
 {
     return hashGenesisBlock;
+}
+
+const CDestination& CCoreProtocol::GetGenesisDestination()
+{
+    return destGenesis;
 }
 
 /*
@@ -121,23 +127,23 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
 {
     if (tx.vInput.empty() && tx.nType != CTransaction::TX_GENESIS && tx.nType != CTransaction::TX_WORK)
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is empty\n");
+        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is empty");
     }
     if (!tx.vInput.empty() && (tx.nType == CTransaction::TX_GENESIS || tx.nType == CTransaction::TX_WORK))
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is not empty for genesis or work tx\n");
+        return DEBUG(ERR_TRANSACTION_INVALID, "tx vin is not empty for genesis or work tx");
     }
     if (!tx.vchSig.empty() && tx.IsMintTx())
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "invalid signature\n");
+        return DEBUG(ERR_TRANSACTION_INVALID, "invalid signature");
     }
     if (tx.sendTo.IsNull())
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to null address\n");
+        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to null address");
     }
     if (!MoneyRange(tx.nAmount))
     {
-        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld\n", tx.nAmount);
+        return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "amount overflow %ld", tx.nAmount);
     }
 
     if (!MoneyRange(tx.nTxFee)
@@ -162,17 +168,17 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     {
         if (txin.prevout.IsNull() || txin.prevout.n > 1)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "prevout invalid\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "prevout invalid");
         }
         if (!setInOutPoints.insert(txin.prevout).second)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "duplicate inputs\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "duplicate inputs");
         }
     }
 
     if (GetSerializeSize(tx) > MAX_TX_SIZE)
     {
-        return DEBUG(ERR_TRANSACTION_OVERSIZE, "%u\n", GetSerializeSize(tx));
+        return DEBUG(ERR_TRANSACTION_OVERSIZE, "%u", GetSerializeSize(tx));
     }
 
     return OK;
@@ -189,50 +195,59 @@ Errno CCoreProtocol::ValidateBlock(const CBlock& block)
     // Check timestamp
     if (block.GetBlockTime() > GetNetTime() + MAX_CLOCK_DRIFT)
     {
-        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld\n", block.GetBlockTime());
+        return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld", block.GetBlockTime());
     }
 
     // Validate mint tx
     if (!block.txMint.IsMintTx() || ValidateTransaction(block.txMint, block.GetBlockHeight()) != OK)
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx\n");
+        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid mint tx");
     }
 
     size_t nBlockSize = GetSerializeSize(block);
     if (nBlockSize > MAX_BLOCK_SIZE)
     {
-        return DEBUG(ERR_BLOCK_OVERSIZE, "size overflow size=%u vtx=%u\n", nBlockSize, block.vtx.size());
+        return DEBUG(ERR_BLOCK_OVERSIZE, "size overflow size=%u vtx=%u", nBlockSize, block.vtx.size());
     }
 
     if (block.nType == CBlock::BLOCK_ORIGIN && !block.vtx.empty())
     {
-        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "origin block vtx is not empty\n");
+        return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "origin block vtx is not empty");
     }
 
     vector<uint256> vMerkleTree;
     if (block.hashMerkle != block.BuildMerkleTree(vMerkleTree))
     {
-        return DEBUG(ERR_BLOCK_TXHASH_MISMATCH, "tx merkeroot mismatched\n");
+        return DEBUG(ERR_BLOCK_TXHASH_MISMATCH, "tx merkeroot mismatched");
     }
 
     set<uint256> setTx;
     setTx.insert(vMerkleTree.begin(), vMerkleTree.begin() + block.vtx.size());
     if (setTx.size() != block.vtx.size())
     {
-        return DEBUG(ERR_BLOCK_DUPLICATED_TRANSACTION, "duplicate tx\n");
+        return DEBUG(ERR_BLOCK_DUPLICATED_TRANSACTION, "duplicate tx");
     }
 
-    for (const CTransaction& tx : block.vtx)
+    for (int i = 0; i < block.vtx.size(); i++)
     {
+        const CTransaction& tx = block.vtx[i];
+        if (i == 0 && tx.nType == CTransaction::TX_GENESIS)
+        {
+            if (ValidateTransaction(tx, block.GetBlockHeight()) != OK)
+            {
+                return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s", tx.GetHash().GetHex().c_str());
+            }
+            continue;
+        }
         if (tx.IsMintTx() || ValidateTransaction(tx, block.GetBlockHeight()) != OK)
         {
-            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s\n", tx.GetHash().GetHex().c_str());
+            return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "invalid tx %s", tx.GetHash().GetHex().c_str());
         }
     }
 
     if (!CheckBlockSignature(block))
     {
-        return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "\n");
+        return DEBUG(ERR_BLOCK_SIGNATURE_INVALID, "CheckBlockSignature fail");
     }
     return OK;
 }
@@ -241,7 +256,7 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
 {
     if (!forkProfile.Load(block.vchProof))
     {
-        return DEBUG(ERR_BLOCK_INVALID_FORK, "load profile error\n");
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "load profile error");
     }
     if (forkProfile.IsNull())
     {
@@ -326,45 +341,64 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     {
         if (inctxt.nTxTime > tx.nTimeStamp)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx");
         }
         if (inctxt.IsLocked(pIndexPrev->GetBlockHeight()))
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked");
         }
         nValueIn += inctxt.nAmount;
     }
 
     if (!MoneyRange(nValueIn))
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld", nValueIn);
     }
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee);
+    }
+
+    vector<uint8> vchSig;
+    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
+    {
+        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_INCREASECOIN, tx.vchSig);
+        if (!ptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
+        }
+        set<CDestination> setSubDest;
+        if (!ptr->GetSignDestination(tx, tx.vchSig, setSubDest, vchSig))
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
     }
 
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, vchSig);
         if (templatePtr == nullptr)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
         }
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
         }
         else
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
         }
     }
 
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, tx.vchSig, nForkHeight, fork))
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
     }
 
     return OK;
@@ -379,38 +413,57 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     {
         if (destIn != output.destTo)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input destination mismatched\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input destination mismatched");
         }
         if (output.nTxTime > tx.nTimeStamp)
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "tx time is ahead of input tx");
         }
         if (output.IsLocked(nForkHeight))
         {
-            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked\n");
+            return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "input is still locked");
         }
         nValueIn += output.nAmount;
     }
     if (!MoneyRange(nValueIn))
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld\n", nValueIn);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein invalid %ld", nValueIn);
     }
     if (nValueIn < tx.nAmount + tx.nTxFee)
     {
-        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)\n", nValueIn, tx.nAmount + tx.nTxFee);
+        return DEBUG(ERR_TRANSACTION_INPUT_INVALID, "valuein is not enough (%ld : %ld)", nValueIn, tx.nAmount + tx.nTxFee);
     }
 
-    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, tx.vchSig, nForkHeight, fork))
+    vector<uint8> vchSig;
+    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
     {
-        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_INCREASECOIN, tx.vchSig);
+        if (!ptr)
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
+        }
+        set<CDestination> setSubDest;
+        if (!ptr->GetSignDestination(tx, tx.vchSig, setSubDest, vchSig))
+        {
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
+        }
+    }
+    else
+    {
+        vchSig = tx.vchSig;
+    }
+
+    if (!destIn.VerifyTxSignature(tx.GetSignatureHash(), tx.nType, /*tx.hashAnchor*/ GetGenesisBlockHash(), tx.sendTo, vchSig, nForkHeight, fork))
+    {
+        return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
     }
 
     if (destIn.IsTemplate() && destIn.GetTemplateId().GetType() == TEMPLATE_PAYMENT)
     {
-        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, tx.vchSig);
+        auto templatePtr = CTemplate::CreateTemplatePtr(TEMPLATE_PAYMENT, vchSig);
         if (templatePtr == nullptr)
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature vchSig err");
         }
         auto payment = boost::dynamic_pointer_cast<CTemplatePayment>(templatePtr);
         if (nForkHeight >= (payment->m_height_exec + payment->SafeHeight))
@@ -424,12 +477,12 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
             // }
             if (!payment->VerifyTransaction(tx, nForkHeight, mapVotes, dpos.nAgreement, nValueIn))
             {
-                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+                return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
             }
         }
         else
         {
-            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature\n");
+            return DEBUG(ERR_TRANSACTION_SIGNATURE_INVALID, "invalid signature");
         }
     }
 
@@ -544,6 +597,47 @@ bool CCoreProtocol::GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlg
 int64 CCoreProtocol::GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev)
 {
     return BBCP_YEAR_INC_REWARD_TOKEN * COIN;
+}
+
+bool CCoreProtocol::VerifyIncreaseCoinTx(const uint256& hashBlock, const CBlock& block, int64 nIncreaseCoin)
+{
+    if (block.vtx.empty())
+    {
+        StdError("CCoreProtocol", "VerifyBlock: Increase coin block, not genesis tx, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    const CTransaction& tx = block.vtx[0];
+    if (tx.nType != CTransaction::TX_GENESIS)
+    {
+        StdError("CCoreProtocol", "VerifyIncreaseCoinTx: Increase coin block, nType error, nType: %d, block: %s",
+                 tx.nType, hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (tx.sendTo != GetGenesisDestination())
+    {
+        StdError("CCoreProtocol", "VerifyIncreaseCoinTx: Increase coin block, sendTo error, sendTo: %s, block: %s",
+                 CAddress(tx.sendTo).ToString().c_str(), hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (tx.nAmount != nIncreaseCoin)
+    {
+        StdError("CCoreProtocol", "VerifyIncreaseCoinTx: Increase coin block, nAmount error, nAmount: %lu, block: %s",
+                 tx.nAmount, hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (tx.nTxFee != 0)
+    {
+        StdError("CCoreProtocol", "VerifyIncreaseCoinTx: Increase coin block, nTxFee error, nTxFee: %lu, block: %s",
+                 tx.nTxFee, hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (!tx.vInput.empty())
+    {
+        StdError("CCoreProtocol", "VerifyIncreaseCoinTx: Increase coin block, tx vin is not empty for genesis tx, block: %s",
+                 hashBlock.GetHex().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)

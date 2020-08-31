@@ -1582,6 +1582,18 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         nAmount -= nTxFee;
     }
 
+    if (to.IsTemplate() && to.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
+    {
+        if (from != pCoreProtocol->GetGenesisDestination())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, std::string("Increase coin from error"));
+        }
+        if (!pService->VerifyIncreaseCoinHeight(from, to))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, std::string("Increase coin height error"));
+        }
+    }
+
     auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {

@@ -227,6 +227,26 @@ bool CBlockDB::RetrieveEnroll(int height, const vector<uint256>& vBlockRange,
     return true; //dbDelegate.RetrieveEnrollTx(height, vBlockRange, mapEnrollTxPos);
 }
 
+bool CBlockDB::AddForkIncreaseCoin(const uint256& hashFork, int nHeight, int64 nAmount, int64 nMint, const uint256& hashTx)
+{
+    return dbFork.AddForkIncreaseCoin(hashFork, nHeight, nAmount, nMint, hashTx);
+}
+
+bool CBlockDB::RetrieveForkIncreaseCoin(const uint256& hashFork, int nHeight, int64& nAmount, int64& nMint, uint256& hashTx)
+{
+    return dbFork.RetrieveForkIncreaseCoin(hashFork, nHeight, nAmount, nMint, hashTx);
+}
+
+bool CBlockDB::RemoveForkIncreaseCoin(const uint256& hashFork, int nHeight)
+{
+    return dbFork.RemoveForkIncreaseCoin(hashFork, nHeight);
+}
+
+bool CBlockDB::ListForkIncreaseCoin(const uint256& hashFork, CForkIncreaseCoin& incCoin)
+{
+    return dbFork.ListForkIncreaseCoin(hashFork, incCoin);
+}
+
 bool CBlockDB::LoadFork()
 {
     vector<pair<uint256, uint256>> vFork;

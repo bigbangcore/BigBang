@@ -53,6 +53,7 @@ public:
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) override;
     bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) override;
     int64 GetBlockMoneySupply(const uint256& hashBlock) override;
+    bool RetrieveIncreaseCoin(int nHeightIn, int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut) override;
 
     /////////////    CheckPoints    /////////////////////
     bool HasCheckPoints() const override;

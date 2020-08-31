@@ -35,9 +35,9 @@ static const unsigned int MINT_MATURITY = 120; // 120 blocks about 2 hours
 static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 
 #ifdef BIGBANG_TESTNET
-static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 0;
+static const unsigned int MIN_INC_COIN_INTERVAL_HEIGHT = 10;
 #else
-static const unsigned int MIN_CREATE_FORK_INTERVAL_HEIGHT = 30;
+static const unsigned int MIN_INC_COIN_INTERVAL_HEIGHT = 20;
 #endif
 
 enum ConsensusMethod

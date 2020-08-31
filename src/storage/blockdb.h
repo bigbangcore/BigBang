@@ -48,6 +48,10 @@ public:
     bool RetrieveEnroll(const uint256& hash, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
+    bool AddForkIncreaseCoin(const uint256& hashFork, int nHeight, int64 nAmount, int64 nMint, const uint256& hashTx);
+    bool RetrieveForkIncreaseCoin(const uint256& hashFork, int nHeight, int64& nAmount, int64& nMint, uint256& hashTx);
+    bool RemoveForkIncreaseCoin(const uint256& hashFork, int nHeight);
+    bool ListForkIncreaseCoin(const uint256& hashFork, CForkIncreaseCoin& incCoin);
 
 protected:
     bool LoadFork();

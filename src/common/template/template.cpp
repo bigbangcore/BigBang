@@ -10,6 +10,7 @@
 #include <boost/multi_index_container.hpp>
 
 #include "exchange.h"
+#include "increasecoin.h"
 #include "multisig.h"
 #include "payment.h"
 #include "proof.h"
@@ -44,6 +45,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_EXCHANGE, new CTemplateExchange, "exchange" },
     { TEMPLATE_PAYMENT, new CTemplatePayment, "payment" },
+    { TEMPLATE_INCREASECOIN, new CTemplateIncreaseCoin, "increasecoin" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)
@@ -114,6 +116,7 @@ const CTemplatePtr CTemplate::CreateTemplatePtr(const CTemplateRequest& obj, CDe
     const CTypeInfo* pTypeInfo = GetTypeInfoByName(obj.strType);
     if (!pTypeInfo)
     {
+        StdError("CTemplate", "CreateTemplatePtr: GetTypeInfoByName fail, strType: %s", obj.strType.c_str());
         return nullptr;
     }
 

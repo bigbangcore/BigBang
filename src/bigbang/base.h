@@ -36,6 +36,7 @@ public:
     ICoreProtocol()
       : IBase("coreprotocol") {}
     virtual const uint256& GetGenesisBlockHash() = 0;
+    virtual const CDestination& GetGenesisDestination() = 0;
     virtual void GetGenesisBlock(CBlock& block) = 0;
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) = 0;
     virtual Errno ValidateBlock(const CBlock& block) = 0;
@@ -46,6 +47,7 @@ public:
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust) = 0;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) = 0;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) = 0;
+    virtual bool VerifyIncreaseCoinTx(const uint256& hashBlock, const CBlock& block, int64 nIncreaseCoin) = 0;
 };
 
 class IBlockChain : public xengine::IBase
@@ -126,6 +128,7 @@ public:
     virtual bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent) = 0;
     virtual bool VerifyRepeatBlock(const uint256& hashFork, const CBlock& block) = 0;
     virtual int64 GetBlockMoneySupply(const uint256& hashBlock) = 0;
+    virtual bool RetrieveIncreaseCoin(int nHeightIn, int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut) = 0;
 
     const CBasicConfig* Config()
     {
@@ -320,6 +323,7 @@ public:
     virtual bool ResynchronizeWalletTx() = 0;
     virtual bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) = 0;
     virtual Errno SendOfflineSignedTransaction(CTransaction& tx) = 0;
+    virtual bool VerifyIncreaseCoinHeight(const CDestination& from, const CDestination& to) = 0;
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, uint32& nPrevTime, int& nAlgo, uint32_t& nBits,

@@ -8,7 +8,7 @@
 #include <cstdio>
 
 #include "../bigbang/address.h"
-//#include "delegatecomm.h"
+#include "../bigbang/param.h"
 #include "template/template.h"
 #include "util.h"
 
@@ -309,7 +309,7 @@ CBlockBase::~CBlockBase()
     tsBlock.Deinitialize();
 }
 
-bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRenewDB)
+bool CBlockBase::Initialize(const path& pathDataLocation, const CBlock& blockGenesis, bool fDebug, bool fRenewDB)
 {
     if (!SetupLog(pathDataLocation, fDebug))
     {
@@ -330,6 +330,9 @@ bool CBlockBase::Initialize(const path& pathDataLocation, bool fDebug, bool fRen
         Error("B", "Failed to initialize block tsfile");
         return false;
     }
+
+    hashGenesisBlock = blockGenesis.GetHash();
+    destGenesis = blockGenesis.txMint.sendTo;
 
     if (fRenewDB)
     {
@@ -1000,6 +1003,11 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
         return false;
     }
     spFork->UpdateLast(pIndexNew);
+
+    if (hashFork == hashGenesisBlock)
+    {
+        UpdateIncreaseCoin(view);
+    }
 
     Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(),
         pIndexNew->GetBlockHash().ToString().c_str());
@@ -1728,6 +1736,16 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
     return true;
 }
 
+bool CBlockBase::RetrieveIncreaseCoin(int nHeightIn, int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut)
+{
+    CForkIncreaseCoin incCoin;
+    if (!dbBlock.ListForkIncreaseCoin(hashGenesisBlock, incCoin))
+    {
+        return false;
+    }
+    return incCoin.GetIncreaseCoin(nHeightIn, nTakeEffectHeightOut, nIncreaseCoinOut, nBlockRewardOut);
+}
+
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
 {
     map<uint256, CBlockIndex*>::const_iterator mi = mapIndex.find(hash);
@@ -1929,6 +1947,129 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
             vTxNew.push_back(make_pair(txid, txIndex));
             nOffset += ss.GetSerializeSize(tx);
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::UpdateIncreaseCoin(CBlockView& view)
+{
+    vector<CBlockEx> vAdd;
+    vector<CBlockEx> vRemove;
+    view.GetBlockChanges(vAdd, vRemove);
+
+    for (int64 i = vRemove.size() - 1; i >= 0; --i)
+    {
+        CBlockEx& block = vRemove[i];
+        for (int64 j = block.vtx.size() - 1; j >= 0; --j)
+        {
+            CTransaction& tx = block.vtx[j];
+            CTxContxt& txContxt = block.vTxContxt[j];
+            if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN
+                && txContxt.destIn == destGenesis)
+            {
+                auto ptr = CTemplate::CreateTemplatePtr(TEMPLATE_INCREASECOIN, tx.vchSig);
+                if (ptr != nullptr)
+                {
+                    int nTakeEffectHeight;
+                    int64 nIncreaseCoin;
+                    int64 nBlockReward;
+                    CDestination destOwner;
+                    boost::dynamic_pointer_cast<CIncreaseCoinParamTemplate>(ptr)->GetIncreaseCoinParam(nTakeEffectHeight, nIncreaseCoin, nBlockReward, destOwner);
+
+                    if (destOwner == destGenesis)
+                    {
+                        int64 nTempAmount, nTempMint;
+                        uint256 hashTempTx;
+                        if (dbBlock.RetrieveForkIncreaseCoin(hashGenesisBlock, nTakeEffectHeight, nTempAmount, nTempMint, hashTempTx)
+                            && hashTempTx == tx.GetHash())
+                        {
+                            dbBlock.RemoveForkIncreaseCoin(hashGenesisBlock, nTakeEffectHeight);
+                            StdLog("CBlockBase", "UpdateIncreaseCoin: RemoveForkIncreaseCoin success, take effect height: %d, tx: %s",
+                                   nTakeEffectHeight, tx.GetHash().GetHex().c_str());
+                        }
+                        else
+                        {
+                            StdLog("CBlockBase", "UpdateIncreaseCoin: No need to remove, take effect height: %d, tx: %s, inc tx: %s",
+                                   nTakeEffectHeight, tx.GetHash().GetHex().c_str(), hashTempTx.GetHex().c_str());
+                        }
+                    }
+                    else
+                    {
+                        StdLog("CBlockBase", "UpdateIncreaseCoin: Remove destOwner error, destOwner: %s, tx: %s",
+                               CAddress(destOwner).ToString().c_str(), tx.GetHash().GetHex().c_str());
+                    }
+                }
+                else
+                {
+                    StdLog("CBlockBase", "UpdateIncreaseCoin: Remove CreateTemplatePtr fail, tx: %s", tx.GetHash().GetHex().c_str());
+                }
+            }
+        }
+    }
+
+    for (int64 i = 0; i < vAdd.size(); ++i)
+    {
+        CBlockEx& block = vAdd[i];
+        for (int64 j = 0; j < block.vtx.size(); ++j)
+        {
+            CTransaction& tx = block.vtx[j];
+            CTxContxt& txContxt = block.vTxContxt[j];
+            if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN
+                && txContxt.destIn == destGenesis)
+            {
+                auto ptr = CTemplate::CreateTemplatePtr(TEMPLATE_INCREASECOIN, tx.vchSig);
+                if (ptr != nullptr)
+                {
+                    int nTakeEffectHeight;
+                    int64 nIncreaseCoin;
+                    int64 nBlockReward;
+                    CDestination destOwner;
+                    boost::dynamic_pointer_cast<CIncreaseCoinParamTemplate>(ptr)->GetIncreaseCoinParam(nTakeEffectHeight, nIncreaseCoin, nBlockReward, destOwner);
+
+                    if (destOwner == destGenesis)
+                    {
+                        int64 nTempAmount, nTempMint;
+                        uint256 hashTempTx;
+                        if (!dbBlock.RetrieveForkIncreaseCoin(hashGenesisBlock, nTakeEffectHeight, nTempAmount, nTempMint, hashTempTx))
+                        {
+                            if (block.GetBlockHeight() + MIN_INC_COIN_INTERVAL_HEIGHT <= nTakeEffectHeight)
+                            {
+                                if (!dbBlock.AddForkIncreaseCoin(hashGenesisBlock, nTakeEffectHeight, nIncreaseCoin, nBlockReward, tx.GetHash()))
+                                {
+                                    StdLog("CBlockBase", "UpdateIncreaseCoin: AddForkIncreaseCoin fail, take effect height: %d, block height: %d, tx: %s",
+                                           nTakeEffectHeight, block.GetBlockHeight(), tx.GetHash().GetHex().c_str());
+                                }
+                                else
+                                {
+                                    StdLog("CBlockBase", "UpdateIncreaseCoin: AddForkIncreaseCoin success, take effect height: %d, block height: %d, tx: %s",
+                                           nTakeEffectHeight, block.GetBlockHeight(), tx.GetHash().GetHex().c_str());
+                                }
+                            }
+                            else
+                            {
+                                StdLog("CBlockBase", "UpdateIncreaseCoin: Miss effective height, take effect height: %d, block height: %d, tx: %s",
+                                       nTakeEffectHeight, block.GetBlockHeight(), tx.GetHash().GetHex().c_str());
+                            }
+                        }
+                        else
+                        {
+                            StdLog("CBlockBase", "UpdateIncreaseCoin: Increase coin created, take effect height: %d, block height: %d, tx: %s",
+                                   nTakeEffectHeight, block.GetBlockHeight(), tx.GetHash().GetHex().c_str());
+                        }
+                    }
+                    else
+                    {
+                        StdLog("CBlockBase", "UpdateIncreaseCoin: Add destOwner error, destOwner: %s, block height: %d, tx: %s",
+                               CAddress(destOwner).ToString().c_str(), block.GetBlockHeight(), tx.GetHash().GetHex().c_str());
+                    }
+                }
+                else
+                {
+                    StdLog("CBlockBase", "UpdateIncreaseCoin: Add CreateTemplatePtr fail, tx: %s, block: %s",
+                           tx.GetHash().GetHex().c_str(), block.GetHash().GetHex().c_str());
+                }
+            }
         }
     }
     return true;

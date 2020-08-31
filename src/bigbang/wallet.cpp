@@ -545,10 +545,6 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted)
 {
-    vector<uint8> vchSig;
-    CDestination sendToDelegate;
-    CDestination sendToOwner;
-    bool fDestInRecorded = false;
     CTemplateId tid;
     if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
     {
@@ -606,14 +602,26 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
     }
 
-    if (fDestInRecorded && !tx.vchSig.empty())
+    vector<uint8> vchSig;
+    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
     {
-        CDestination sendToDelegateTmp;
-        CDestination sendToOwnerTmp;
-        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTmp, sendToOwnerTmp, vchSig))
+        CTemplatePtr ptr = GetTemplate(tx.sendTo.GetTemplateId());
+        if (!ptr)
         {
-            Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+            Error("SignTransaction: GetTemplate fail, sendTo: %s, txid: %s",
+                  tx.sendTo.ToString().c_str(), tx.GetHash().GetHex().c_str());
             return false;
+        }
+
+        if (!tx.vchSig.empty())
+        {
+            set<CDestination> setSubDest;
+            if (!ptr->GetSignDestination(tx, tx.vchSig, setSubDest, vchSig))
+            {
+                Error("SignTransaction: GetSignDestination fail, sendTo: %s, txid: %s",
+                      tx.sendTo.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
         }
     }
     else
@@ -634,9 +642,18 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 
     UpdateAutoLock(setSignedKey);
 
-    if (fDestInRecorded)
+    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
     {
-        CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
+        CTemplatePtr ptr = GetTemplate(tx.sendTo.GetTemplateId());
+        if (!ptr)
+        {
+            Error("SignTransaction: GetTemplate fail, sendTo: %s, txid: %s",
+                  tx.sendTo.ToString().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        std::vector<uint8> vPreSubSign = ptr->GetTemplateData();
+        tx.vchSig.assign(vPreSubSign.begin(), vPreSubSign.end());
+        tx.vchSig.insert(tx.vchSig.end(), vchSig.begin(), vchSig.end());
     }
     else
     {

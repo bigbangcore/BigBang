@@ -501,6 +501,21 @@ bool CService::SignTransaction(CTransaction& tx, const vector<uint8>& vchSendToD
 
     const CDestination& destIn = vUnspent[0].destTo;
     int32 nForkHeight = GetForkHeight(pCoreProtocol->GetGenesisBlockHash());
+
+    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
+    {
+        if (destIn != pCoreProtocol->GetGenesisDestination())
+        {
+            StdError("CService", "SignTransaction: Increase coin from error, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+        if (!VerifyIncreaseCoinHeight(destIn, tx.sendTo))
+        {
+            StdError("CService", "SignTransaction: Increase coin height error, txid: %s", tx.GetHash().GetHex().c_str());
+            return false;
+        }
+    }
+
     if (!pWallet->SignTransaction(destIn, tx, vchSendToData, nForkHeight, fCompleted))
     {
         StdError("CService", "SignTransaction: SignTransaction fail, txid: %s, destIn: %s", tx.GetHash().GetHex().c_str(), destIn.ToString().c_str());
@@ -649,6 +664,27 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
     }
 
     return pDispatcher->AddNewTx(tx, 0);
+}
+
+bool CService::VerifyIncreaseCoinHeight(const CDestination& from, const CDestination& to)
+{
+    CTemplatePtr ptr = GetTemplate(to.GetTemplateId());
+    if (!ptr)
+    {
+        return false;
+    }
+
+    int nTakeEffectHeight;
+    int64 nIncreaseCoin;
+    int64 nBlockReward;
+    CDestination destOwner;
+    boost::dynamic_pointer_cast<CIncreaseCoinParamTemplate>(ptr)->GetIncreaseCoinParam(nTakeEffectHeight, nIncreaseCoin, nBlockReward, destOwner);
+
+    if (GetForkHeight(pCoreProtocol->GetGenesisBlockHash()) + MIN_INC_COIN_INTERVAL_HEIGHT > nTakeEffectHeight)
+    {
+        return false;
+    }
+    return true;
 }
 
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

@@ -16,6 +16,7 @@ public:
     CCoreProtocol();
     virtual ~CCoreProtocol();
     virtual const uint256& GetGenesisBlockHash() override;
+    virtual const CDestination& GetGenesisDestination() override;
     virtual void GetGenesisBlock(CBlock& block) override;
     virtual Errno ValidateTransaction(const CTransaction& tx, int nHeight) override;
     virtual Errno ValidateBlock(const CBlock& block) override;
@@ -28,6 +29,7 @@ public:
     virtual bool GetBlockTrust(const CBlock& block, uint256& nChainTrust) override;
     virtual bool GetProofOfWorkTarget(const CBlockIndex* pIndexPrev, int nAlgo, uint32_t& nBits, int64& nReward) override;
     virtual int64 GetPrimaryMintWorkReward(const CBlockIndex* pIndexPrev) override;
+    virtual bool VerifyIncreaseCoinTx(const uint256& hashBlock, const CBlock& block, int64 nIncreaseCoin) override;
 
 protected:
     bool HandleInitialize() override;
@@ -36,6 +38,7 @@ protected:
 
 protected:
     uint256 hashGenesisBlock;
+    CDestination destGenesis;
     uint256 nProofOfWorkLowerLimit;
     uint256 nProofOfWorkUpperLimit;
     uint256 nProofOfWorkInit;

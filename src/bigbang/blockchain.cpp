@@ -56,7 +56,9 @@ void CBlockChain::HandleDeinitialize()
 
 bool CBlockChain::HandleInvoke()
 {
-    if (!cntrBlock.Initialize(Config()->pathData, Config()->fDebug))
+    CBlock blockGenesis;
+    pCoreProtocol->GetGenesisBlock(blockGenesis);
+    if (!cntrBlock.Initialize(Config()->pathData, blockGenesis, Config()->fDebug))
     {
         Error("Failed to initialize container");
         return false;
@@ -76,9 +78,7 @@ bool CBlockChain::HandleInvoke()
 
     if (cntrBlock.IsEmpty())
     {
-        CBlock block;
-        pCoreProtocol->GetGenesisBlock(block);
-        if (!InsertGenesisBlock(block))
+        if (!InsertGenesisBlock(blockGenesis))
         {
             Error("Failed to create genesis block");
             return false;
@@ -465,10 +465,18 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
 
     vTxContxt.reserve(block.vtx.size());
 
-    for (const CTransaction& tx : block.vtx)
+    for (int i = 0; i < block.vtx.size(); ++i)
     {
+        const CTransaction& tx = block.vtx[i];
         uint256 txid = tx.GetHash();
         CTxContxt txContxt;
+        if (i == 0 && tx.nType == CTransaction::TX_GENESIS)
+        {
+            view.AddTx(txid, tx);
+            vTxContxt.push_back(txContxt);
+            StdTrace("BlockChain", "AddNewBlock: verify genesis tx success, new tx: %s, new block: %s", txid.GetHex().c_str(), hash.GetHex().c_str());
+            continue;
+        }
         err = GetTxContxt(view, tx, txContxt);
         if (err != OK)
         {
@@ -604,6 +612,15 @@ bool CBlockChain::GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, uint3
         Log("GetProofOfWorkTarget : Unknown proof-of-work algo: %s ", hashPrev.ToString().c_str());
         return false;
     }
+
+    int nTakeEffectHeight;
+    int64 nIncreaseCoin;
+    int64 nBlockReward;
+    if (RetrieveIncreaseCoin(pIndexPrev->GetBlockHeight() + 1, nTakeEffectHeight, nIncreaseCoin, nBlockReward))
+    {
+        nReward = nBlockReward;
+    }
+
     return true;
 }
 
@@ -616,6 +633,14 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, int64& nReward)
         return false;
     }
     nReward = pCoreProtocol->GetPrimaryMintWorkReward(pIndexPrev);
+
+    int nTakeEffectHeight;
+    int64 nIncreaseCoin;
+    int64 nBlockReward;
+    if (RetrieveIncreaseCoin(pIndexPrev->GetBlockHeight() + 1, nTakeEffectHeight, nIncreaseCoin, nBlockReward))
+    {
+        nReward = nBlockReward;
+    }
     return true;
 }
 
@@ -652,6 +677,11 @@ int64 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
         return -1;
     }
     return pIndex->GetMoneySupply();
+}
+
+bool CBlockChain::RetrieveIncreaseCoin(int nHeightIn, int& nTakeEffectHeightOut, int64& nIncreaseCoinOut, int64& nBlockRewardOut)
+{
+    return cntrBlock.RetrieveIncreaseCoin(nHeightIn, nTakeEffectHeightOut, nIncreaseCoinOut, nBlockRewardOut);
 }
 
 bool CBlockChain::CheckContainer()
@@ -738,21 +768,43 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     nReward = 0;
     if (block.IsOrigin())
     {
+        StdError("BlockChain", "VerifyBlock: Block IsOrigin fail, block: %s", hashBlock.GetHex().c_str());
         return ERR_BLOCK_INVALID_FORK;
     }
     if (!block.IsPrimary())
     {
+        StdError("BlockChain", "VerifyBlock: Block IsPrimary fail, block: %s", hashBlock.GetHex().c_str());
         return ERR_BLOCK_TYPE_INVALID;
     }
     if (!pIndexPrev->IsPrimary())
     {
+        StdError("BlockChain", "VerifyBlock: Prev IsPrimary fail, block: %s", hashBlock.GetHex().c_str());
         return ERR_BLOCK_INVALID_FORK;
     }
     if (!GetBlockMintReward(block.hashPrev, nReward))
     {
+        StdError("BlockChain", "VerifyBlock: GetBlockMintReward fail, block: %s", hashBlock.GetHex().c_str());
         return ERR_BLOCK_COINBASE_INVALID;
     }
-    return pCoreProtocol->VerifyProofOfWork(block, pIndexPrev);
+    if (pCoreProtocol->VerifyProofOfWork(block, pIndexPrev) != OK)
+    {
+        StdError("BlockChain", "VerifyBlock: VerifyProofOfWork fail, block: %s", hashBlock.GetHex().c_str());
+        return ERR_BLOCK_COINBASE_INVALID;
+    }
+
+    int nTakeEffectHeight;
+    int64 nIncreaseCoin;
+    int64 nBlockReward;
+    if (RetrieveIncreaseCoin(block.GetBlockHeight(), nTakeEffectHeight, nIncreaseCoin, nBlockReward)
+        && nTakeEffectHeight == block.GetBlockHeight())
+    {
+        if (!pCoreProtocol->VerifyIncreaseCoinTx(hashBlock, block, nIncreaseCoin))
+        {
+            StdError("BlockChain", "VerifyBlock: Verify increase coin fail, block: %s", hashBlock.GetHex().c_str());
+            return ERR_BLOCK_COINBASE_INVALID;
+        }
+    }
+    return OK;
 }
 
 void CBlockChain::InitCheckPoints()

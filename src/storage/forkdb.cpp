@@ -113,6 +113,47 @@ bool CForkDB::ListFork(vector<pair<uint256, uint256>>& vFork)
     return true;
 }
 
+bool CForkDB::AddForkIncreaseCoin(const uint256& hashFork, int nHeight, int64 nAmount, int64 nMint, const uint256& hashTx)
+{
+    CForkIncreaseCoin incCoin;
+    if (!Read(make_pair(string("increasecoin"), hashFork), incCoin))
+    {
+        incCoin.Clear();
+    }
+    incCoin.AddIncreaseCoin(nHeight, nAmount, nMint, hashTx);
+    return Write(make_pair(string("increasecoin"), hashFork), incCoin);
+}
+
+bool CForkDB::RetrieveForkIncreaseCoin(const uint256& hashFork, int nHeight, int64& nAmount, int64& nMint, uint256& hashTx)
+{
+    CForkIncreaseCoin incCoin;
+    if (!Read(make_pair(string("increasecoin"), hashFork), incCoin))
+    {
+        return false;
+    }
+    return incCoin.GetIncreaseCoin(nHeight, nAmount, nMint, hashTx);
+}
+
+bool CForkDB::RemoveForkIncreaseCoin(const uint256& hashFork, int nHeight)
+{
+    CForkIncreaseCoin incCoin;
+    if (Read(make_pair(string("increasecoin"), hashFork), incCoin))
+    {
+        incCoin.RemoveIncreaseCoin(nHeight);
+        if (incCoin.IsNull())
+        {
+            return Erase(make_pair(string("increasecoin"), hashFork));
+        }
+        return Write(make_pair(string("increasecoin"), hashFork), incCoin);
+    }
+    return true;
+}
+
+bool CForkDB::ListForkIncreaseCoin(const uint256& hashFork, CForkIncreaseCoin& incCoin)
+{
+    return Read(make_pair(string("increasecoin"), hashFork), incCoin);
+}
+
 void CForkDB::Clear()
 {
     RemoveAll();

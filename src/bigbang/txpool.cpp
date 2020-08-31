@@ -733,7 +733,31 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
 void CTxPool::ArrangeBlockTx(const uint256& hashFork, int64 nBlockTime, const uint256& hashBlock, std::size_t nMaxSize,
                              std::vector<CTransaction>& vtx, int64& nTotalTxFee, int nHeight)
 {
-    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize);
+    std::size_t nMintTxSerializeSize = 0;
+
+    int nTakeEffectHeight;
+    int64 nIncreaseCoin;
+    int64 nBlockReward;
+    if (pBlockChain->RetrieveIncreaseCoin(nHeight, nTakeEffectHeight, nIncreaseCoin, nBlockReward)
+        && nTakeEffectHeight == nHeight)
+    {
+        CTransaction txMint;
+        txMint.nType = CTransaction::TX_GENESIS;
+        txMint.nTimeStamp = nBlockTime;
+        txMint.sendTo = pCoreProtocol->GetGenesisDestination();
+        txMint.nAmount = nIncreaseCoin;
+        txMint.nTxFee = 0;
+
+        vtx.push_back(txMint);
+
+        nMintTxSerializeSize = xengine::GetSerializeSize(txMint);
+        if (nMaxSize <= nMintTxSerializeSize)
+        {
+            return;
+        }
+    }
+
+    mapPoolView[hashFork].ArrangeBlockTx(vtx, nTotalTxFee, nBlockTime, nMaxSize - nMintTxSerializeSize);
 }
 
 bool CTxPool::FetchInputs(const uint256& hashFork, const CTransaction& tx, vector<CTxOut>& vUnspent)
