@@ -34,6 +34,12 @@ enum
     FORK_TYPE_DEFI = 1,
 };
 
+enum
+{
+    FIXED_DEFI_COINBASE_TYPE = 0,
+    SPECIFIC_DEFI_COINBASE_TYPE = 1,
+};
+
 class CDeFiProfile
 {
 public:
