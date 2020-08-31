@@ -2410,9 +2410,9 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
                         throw CRPCException(RPC_INVALID_PARAMETER, string("DeFi param key of mapcoinbasepercent should be height, not be nagetive number").c_str());
                     }
                     const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i + 1);  
-                    if (value == 0)
+                    if (value > 100)
                     {
-                        throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent is equal 0");
+                        throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
                     }
                     profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
                 }
