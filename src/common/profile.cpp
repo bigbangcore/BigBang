@@ -17,13 +17,15 @@ using namespace xengine;
 void CDeFiProfile::Save(std::vector<unsigned char>& vchProfile) const
 {
     CODataStream os(vchProfile);
-    os << nMaxSupply << nDecayCycle << nCoinbaseDecayPercent << nInitCoinbasePercent << nRewardCycle << nSupplyCycle << nStakeRewardPercent << nPromotionRewardPercent << nStakeMinToken << mapPromotionTokenTimes;
+    os << nMaxSupply << nCoinbaseType << nInitCoinbasePercent << nCoinbaseDecayPercent << nDecayCycle << mapCoinbasePercent
+       << nRewardCycle << nSupplyCycle << nStakeRewardPercent << nPromotionRewardPercent << nStakeMinToken << mapPromotionTokenTimes;
 }
 
 void CDeFiProfile::Load(const std::vector<unsigned char>& vchProfile)
 {
     CIDataStream is(vchProfile);
-    is >> nMaxSupply >> nDecayCycle >> nCoinbaseDecayPercent >> nInitCoinbasePercent >> nRewardCycle >> nSupplyCycle >> nStakeRewardPercent >> nPromotionRewardPercent >> nStakeMinToken >> mapPromotionTokenTimes;
+    is >> nMaxSupply >> nCoinbaseType >> nInitCoinbasePercent >> nCoinbaseDecayPercent >> nDecayCycle >> mapCoinbasePercent
+        >> nRewardCycle >> nSupplyCycle >> nStakeRewardPercent >> nPromotionRewardPercent >> nStakeMinToken >> mapPromotionTokenTimes;
 }
 
 //////////////////////////////
@@ -42,7 +44,6 @@ bool CProfile::Save(std::vector<unsigned char>& vchProfile)
         encoder.Push(PROFILE_MINTREWARD, nMintReward);
         encoder.Push(PROFILE_MINTXFEE, nMinTxFee);
         encoder.Push(PROFILE_HALVECYCLE, nHalveCycle);
-        
 
         vector<unsigned char> vchDestOwner;
         CODataStream os(vchDestOwner);

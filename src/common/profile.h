@@ -38,9 +38,11 @@ class CDeFiProfile
 {
 public:
     int64 nMaxSupply;                                // the max DeFi supply in this fork, -1 means no upper limit
-    int32 nDecayCycle;                               // coinbase decay cycle in height, if 0 means no decay
-    uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%]
+    uint8 nCoinbaseType;                             // coinbase type. 0 - fixed decay(related to 'nInitCoinbasePercent', 'nCoinbaseDecayPercent', 'nDecayCycle'). 1 - specific decay(related to 'mapCoinbasePercent')
     uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization. range [1 - 10000] means inital increasing [1% - 10000%]
+    uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%]
+    int32 nDecayCycle;                               // coinbase decay cycle in height, if 0 means no decay
+    std::map<uint32, uint32> mapCoinbasePercent;     // In promotion computation, less than [key] amount should multiply [value].
     int32 nRewardCycle;                              // generate reward cycle in height, range [1, 189,216,000]
     int32 nSupplyCycle;                              // supplyment changing cycle in height, range [1, 189,216,000] && nDecayCycle is divisible by nSupplyCycle.
     uint8 nStakeRewardPercent;                       // stake reward ratio(%), range [0 - 100] means [0% - 100%]
@@ -55,9 +57,11 @@ public:
     virtual void SetNull()
     {
         nMaxSupply = 0;
-        nDecayCycle = 0;
-        nCoinbaseDecayPercent = 0;
+        nCoinbaseType = 0;
         nInitCoinbasePercent = 0;
+        nCoinbaseDecayPercent = 0;
+        nDecayCycle = 0;
+        mapCoinbasePercent.clear();
         nRewardCycle = 0;
         nSupplyCycle = 0;
         nStakeRewardPercent = 0;
