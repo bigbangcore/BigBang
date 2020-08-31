@@ -32,6 +32,10 @@ static const unsigned int EXTENDED_BLOCK_SPACING = 2;
 static const unsigned int PROOF_OF_WORK_DECAY_STEP = BLOCK_TARGET_SPACING;
 static const unsigned int PROOF_OF_WORK_BLOCK_SPACING = 20;
 
+static const unsigned int DAY_HEIGHT = 24 * 60 * 60 / BLOCK_TARGET_SPACING;
+static const unsigned int MONTH_HEIGHT = 30 * DAY_HEIGHT;
+static const unsigned int YEAR_HEIGHT = 12 * MONTH_HEIGHT;
+
 static const unsigned int MINT_MATURITY = 120; // 120 blocks about 2 hours
 static const unsigned int MIN_TOKEN_TX_SIZE = 196;
 

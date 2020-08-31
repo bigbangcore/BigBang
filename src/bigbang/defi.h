@@ -144,7 +144,7 @@ public:
     // return the total reward from the beginning of section to the height of hash
     int64 GetSectionReward(const uint256& forkid, const uint256& hash);
     // return the coinbase of nHeight and the next different coinbase beginning height
-    bool GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight);
+    bool GetDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight);
     // return exist section cache of fork or not
     bool ExistForkSection(const uint256& forkid, const uint256& section);
     // return the section reward set. Should use ExistForkSection to determine if it exists first.
@@ -153,12 +153,12 @@ public:
     void AddForkSection(const uint256& forkid, const uint256& hash, CDeFiRewardSet&& reward);
 
     // compute stake reward
-    std::map<CDestination, int64> ComputeStakeReward(const uint256& hash, const int64 nMin, const int64 nReward,
+    std::map<CDestination, int64> ComputeStakeReward(const int64 nMin, const int64 nReward,
                                                      const std::map<CDestination, int64>& mapAddressAmount);
     // compute promotion reward
-    std::map<CDestination, int64> ComputePromotionReward(const uint256& hash, const int64 nReward,
+    std::map<CDestination, int64> ComputePromotionReward(const int64 nReward,
                                                          const std::map<CDestination, int64>& mapAddressAmount,
-                                                         const std::map<uint64, uint32>& mapPromotionTokenTimes,
+                                                         const std::map<int64, uint32>& mapPromotionTokenTimes,
                                                          CDeFiRelationGraph& relation);
 
 protected:

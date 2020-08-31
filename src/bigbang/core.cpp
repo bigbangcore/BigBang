@@ -437,6 +437,10 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nMaxSupply is out of range");
         }
+        if (forkProfile.defi.nDecayCycle < 0 || forkProfile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be [0, %ld]", 100 * YEAR_HEIGHT);
+        }
         if (forkProfile.defi.nCoinbaseDecayPercent > 100)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
@@ -445,13 +449,13 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nInitCoinbasePercent must be [1, 10000]");
         }
-        if (forkProfile.defi.nRewardCycle == 0 || forkProfile.defi.nRewardCycle > 189216000)
+        if (forkProfile.defi.nRewardCycle <= 0 || forkProfile.defi.nRewardCycle > 100 * YEAR_HEIGHT)
         {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nRewardCycle must be [1, 189216000]");
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nRewardCycle must be [1, %ld]", 100 * YEAR_HEIGHT);
         }
-        if (forkProfile.defi.nSupplyCycle == 0 || forkProfile.defi.nSupplyCycle > 189216000)
+        if (forkProfile.defi.nSupplyCycle <= 0 || forkProfile.defi.nSupplyCycle > 100 * YEAR_HEIGHT)
         {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nSupplyCycle must be [1, 189216000]");
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nSupplyCycle must be [1, %ld]", 100 * YEAR_HEIGHT);
         }
         if ((forkProfile.defi.nDecayCycle / forkProfile.defi.nSupplyCycle) * forkProfile.defi.nSupplyCycle != forkProfile.defi.nDecayCycle)
         {
@@ -472,6 +476,13 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         if (!MoneyRange(forkProfile.defi.nStakeMinToken))
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeMinToken is out of range");
+        }
+        for (auto& times: forkProfile.defi.mapPromotionTokenTimes)
+        {
+            if (times.first <= 0 || times.first > (MAX_MONEY / COIN))
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param key of mapPromotionTokenTimes should be (0, %ld]", (MAX_MONEY / COIN));
+            }
         }
     }
     return OK;

@@ -143,12 +143,12 @@ int32 CDeFiForkReward::PrevRewardHeight(const uint256& forkid, const int32 nHeig
         CProfile& profile = it->second.profile;
         if (!profile.defi.IsNull())
         {
-            uint32 nJointHeight = profile.nJointHeight;
-            uint32 nRewardCycle = profile.defi.nRewardCycle;
+            int32 nJointHeight = profile.nJointHeight;
+            int32 nRewardCycle = profile.defi.nRewardCycle;
             if (nHeight > nJointHeight + 1 && nRewardCycle > 0)
             {
-                // StdDebug("CDeFiForkReward", "SHT PrevRewardHeight nHeight: %d, nJoint: %u, nRewardCycle: %u, prev: %d",
-                // nHeight, nJointHeight, nRewardCycle, ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1);
+                StdDebug("PrevRewardHeight", "SHT PrevRewardHeight nHeight: %d, nJoint: %u, nRewardCycle: %u, prev: %d",
+                         nHeight, nJointHeight, nRewardCycle, ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1);
                 return ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1;
             }
         }
@@ -158,12 +158,12 @@ int32 CDeFiForkReward::PrevRewardHeight(const uint256& forkid, const int32 nHeig
 
 int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& hash)
 {
-    int64 nReward = 0;
+    double nReward = 0;
     CProfile profile = GetForkProfile(forkid);
     if (profile.IsNull())
     {
         // StdDebug("CDeFiForkReward", "SHT GetSectionReward profile is null, forkid: %s", forkid.ToString().c_str());
-        return nReward;
+        return (int64)nReward;
     }
 
     int32 nEndHeight = CBlock::GetBlockHeightByHash(hash) + 1;
@@ -176,7 +176,7 @@ int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& ha
     }
     // StdDebug("CDeFiForkReward", "SHT GetSectionReward nBeginHeight: %d, nEndHeight: %d", nBeginHeight, nEndHeight);
 
-    int64 nCoinbase = 0;
+    double nCoinbase = 0;
     int32 nNextHeight = 0;
     while (nBeginHeight < nEndHeight)
     {
@@ -193,7 +193,7 @@ int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& ha
         }
     }
 
-    return nReward;
+    return (int64)nReward;
 }
 
 bool CDeFiForkReward::ExistForkSection(const uint256& forkid, const uint256& section)
@@ -240,7 +240,7 @@ void CDeFiForkReward::AddForkSection(const uint256& forkid, const uint256& hash,
     }
 }
 
-bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, int64& nCoinbase, int32& nNextHeight)
+bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight)
 {
     if (nHeight <= profile.nJointHeight + 1)
     {
@@ -248,14 +248,14 @@ bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHei
         return false;
     }
 
-    uint32 nJointHeight = profile.nJointHeight;
-    uint32 nDecayCycle = profile.defi.nDecayCycle;
-    uint32 nSupplyCycle = profile.defi.nSupplyCycle;
+    int32 nJointHeight = profile.nJointHeight;
+    int32 nDecayCycle = profile.defi.nDecayCycle;
+    int32 nSupplyCycle = profile.defi.nSupplyCycle;
     uint8 nCoinbaseDecayPercent = profile.defi.nCoinbaseDecayPercent;
     uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
     // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase nJointHeight: %u, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
     //     nJointHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
-    int32 nSupplyCount = (nDecayCycle == 0) ? 0 : (nDecayCycle / nSupplyCycle);
+    int32 nSupplyCount = (nDecayCycle <= 0) ? 0 : (nDecayCycle / nSupplyCycle);
     // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase nSupplyCount: %d", nSupplyCount);
 
     // for example:
@@ -265,7 +265,7 @@ bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHei
     // [7, 8, 9] the second sypply cycle of the first decay cycle
     // [10, 11, 12] the first supply cycle of the second decay cycle
     // [13, 14, 15] the second supply cycle of the second decay cycle
-    int32 nDecayCount = (nDecayCycle == 0) ? 0 : ((nHeight - nJointHeight - 2) / nDecayCycle);
+    int32 nDecayCount = (nDecayCycle <= 0) ? 0 : ((nHeight - nJointHeight - 2) / nDecayCycle);
     // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase nDecayCount: %d", nDecayCount);
     int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
     // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase nDecayHeight: %d", nDecayHeight);
@@ -283,11 +283,8 @@ bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHei
         {
             nSupply *= pow(1 + fCoinbaseIncreasing, nSupplyCount);
             // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase i: %d, nSupplyCount: %d, supply: %ld", i, nSupplyCount, nSupply);
-            if (nDecayCycle != 0 && nCoinbaseDecayPercent != 100)
-            {
-                fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
-                // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase i: %d, fCoinbaseIncreasing: %f", i, fCoinbaseIncreasing);
-            }
+            fCoinbaseIncreasing = fCoinbaseIncreasing * nCoinbaseDecayPercent / 100;
+            // StdDebug("CDeFiForkReward", "SHT GetDecayCoinbase i: %d, fCoinbaseIncreasing: %f", i, fCoinbaseIncreasing);
         }
         else
         {
@@ -303,7 +300,7 @@ bool CDeFiForkReward::GetDecayCoinbase(const CProfile& profile, const int32 nHei
     return true;
 }
 
-map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const uint256& hash, const int64 nMin, const int64 nReward,
+map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const int64 nMin, const int64 nReward,
                                                              const std::map<CDestination, int64>& mapAddressAmount)
 {
     map<CDestination, int64> reward;
@@ -355,9 +352,9 @@ map<CDestination, int64> CDeFiForkReward::ComputeStakeReward(const uint256& hash
     return reward;
 }
 
-map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const uint256& hash, const int64 nReward,
+map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const int64 nReward,
                                                                  const map<CDestination, int64>& mapAddressAmount,
-                                                                 const std::map<uint64, uint32>& mapPromotionTokenTimes,
+                                                                 const std::map<int64, uint32>& mapPromotionTokenTimes,
                                                                  CDeFiRelationGraph& relation)
 {
     map<CDestination, int64> reward;
@@ -400,7 +397,7 @@ map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const uint256& 
                     continue;
                 }
 
-                uint64 nLastToken = 0;
+                int64 nLastToken = 0;
                 int64 nChildPower = 0;
                 for (auto& tokenTimes : mapPromotionTokenTimes)
                 {

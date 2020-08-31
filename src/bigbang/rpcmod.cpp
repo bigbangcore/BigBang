@@ -2386,6 +2386,11 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         }
 
         profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
+        if (profile.defi.nDecayCycle < 0 || profile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param decayCycle must be [0, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
+        }
+
         profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
         if (profile.defi.nCoinbaseDecayPercent > 100)
         {
@@ -2399,15 +2404,15 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         }
 
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
-        if (profile.defi.nRewardCycle == 0 || profile.defi.nRewardCycle > 189216000)
+        if (profile.defi.nRewardCycle <= 0 || profile.defi.nRewardCycle > 100 * YEAR_HEIGHT)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param rewardcycle must be [1, 189216000]");
+            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param rewardcycle must be [1, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
         }
 
         profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
-        if (profile.defi.nSupplyCycle == 0 || profile.defi.nSupplyCycle > 189216000)
+        if (profile.defi.nSupplyCycle <= 0 || profile.defi.nSupplyCycle > 100 * YEAR_HEIGHT)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param supplycycle must be [1, 189216000]");
+            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param supplycycle must be [1, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
         }
         if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
         {
@@ -2447,10 +2452,10 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         {
             for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i += 2)
             {
-                const uint64 key = spParam->defi.vecMappromotiontokentimes.at(i);
-                if (key > (MAX_MONEY / COIN))
+                const int64 key = spParam->defi.vecMappromotiontokentimes.at(i);
+                if (key <= 0 || key > ValueFromAmount(MAX_MONEY))
                 {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mappromotiontokentimes is larger than MAX_MONEY");
+                    throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param key of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
                 }
                 const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
                 if (value == 0)
