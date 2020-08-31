@@ -991,9 +991,9 @@
                                             "type": "object",
                                             "desc": "coinbase percent",
                                             "content": {
-                                                "coinbase": {
-                                                    "type": "uint",
-                                                    "desc": "coinbase"
+                                                "height": {
+                                                    "type": "int",
+                                                    "desc": "begin height"
                                                 },
                                                 "percent": {
                                                     "type": "uint",
@@ -2945,9 +2945,9 @@
                                     "type": "object",
                                     "desc": "coinbase percent",
                                     "content": {
-                                        "coinbase": {
-                                            "type": "uint",
-                                            "desc": "coinbase"
+                                        "height": {
+                                            "type": "int",
+                                            "desc": "begin height"
                                         },
                                         "percent": {
                                             "type": "uint",
@@ -3074,7 +3074,7 @@
                 "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ade2a8f61082cc0b8e98581e013c52126989d5c15e5c4c6b882f76c98bc68025\",\"hex\":\"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574305a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b00004078bbc21e237d727a58de54e14a19d0244e9dd27ce7d55dfca891158913068185f3dc5b98d4e11500b7512bc8d0e8aa136b34f22f16c16be45e9650e15253980e\"}}"
             },
             {
-                "request": " makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0 defi  '{\"maxsupply\": 11, \"coinbasetype\": 1, \"mapcoinbasepercent\": [{\"coinbase\": 10, \"percent\": 10}], \"decaycycle\": 12, \"decaypercent\":13, \"coinbasedecaypercent\": 11, \"initcoinbasepercent\": 15, \"rewardcycle\": 20, \"supplycycle\": 21, \"stakerewardpercent\": 26, \"promotionrewardpercent\": 21, \"stakemintoken\": 11, \"mappromotiontokentimes\": [{\"key\": 10, \"value\": 5}]}' -i -e -p",
+                "request": " makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0 defi  '{\"maxsupply\": 11, \"coinbasetype\": 1, \"mapcoinbasepercent\": [{\"height\": 10, \"percent\": 10}], \"decaycycle\": 12, \"decaypercent\":13, \"coinbasedecaypercent\": 11, \"initcoinbasepercent\": 15, \"rewardcycle\": 20, \"supplycycle\": 21, \"stakerewardpercent\": 26, \"promotionrewardpercent\": 21, \"stakemintoken\": 11, \"mappromotiontokentimes\": [{\"key\": 10, \"value\": 5}]}' -i -e -p",
                 "response": "{\"hash\" : \"327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a\",\"hex\" : \"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05\"}"
             }
         ],

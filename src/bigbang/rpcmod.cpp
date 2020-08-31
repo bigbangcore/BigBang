@@ -2440,21 +2440,17 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
             for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i++)
             {
-                const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i).nCoinbase;
-                if (key >= std::numeric_limits<uint64>::max() - 100)
+                const int32 key = spParam->defi.vecMapcoinbasepercent.at(i).nHeight;
+                if (key <= 0)
                 {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasepercent should be height, not be nagetive number");
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasepercent means height, must be larger than 0");
                 }
                 if ((key / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != key)
                 {
                     throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasePercent must be divisible by supplycycle");
                 }
 
-                const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
-                if (value > 100)
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
-                }
+                const uint32 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
                 if (value == 0)
                 {
                     throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be larger than 0");
