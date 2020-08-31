@@ -719,14 +719,14 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
 
             for(const auto& kv : profile.defi.mapPromotionTokenTimes)
             {
-                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.first));
-                displayProfile.defi.vecMappromotiontokentimes.push_back(std::to_string(kv.second));
+                CListForkResult::CProfile::CDefi::CMappromotiontokentimes promotiontokentimes(kv.first, kv.second); 
+                displayProfile.defi.vecMappromotiontokentimes.push_back(promotiontokentimes);
             }
 
             for(const auto& kv : profile.defi.mapCoinbasePercent)
             {
-                displayProfile.defi.vecMapcoinbasepercent.push_back(std::to_string(kv.first));
-                displayProfile.defi.vecMapcoinbasepercent.push_back(std::to_string(kv.second));
+                CListForkResult::CProfile::CDefi::CMapcoinbasepercent coinbasepercent(kv.first, kv.second);
+                displayProfile.defi.vecMapcoinbasepercent.push_back(coinbasepercent);
             }
 
             spResult->vecProfile.push_back(displayProfile);
@@ -2395,27 +2395,19 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         profile.defi.nCoinbaseType = spParam->defi.nCoinbasetype;
         if(profile.defi.nCoinbaseType == 1)
         {
-            if(spParam->defi.vecMapcoinbasepercent.size() % 2 != 0)
+            for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i++)
             {
-                throw CRPCException(RPC_INVALID_PARAMETER, "mapcoinbasepercent size must be size() % 2 == 0");
-            }
-            
-            if(spParam->defi.vecMapcoinbasepercent.size() >= 2)
-            {
-                for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i += 2)
+                const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i).nCoinbase;
+                if (key >= std::numeric_limits<uint64>::max() - 100)
                 {
-                    const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i);
-                    if (key >= std::numeric_limits<uint64>::max() - 100)
-                    {
-                        throw CRPCException(RPC_INVALID_PARAMETER, string("DeFi param key of mapcoinbasepercent should be height, not be nagetive number").c_str());
-                    }
-                    const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i + 1);  
-                    if (value > 100)
-                    {
-                        throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
-                    }
-                    profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
+                    throw CRPCException(RPC_INVALID_PARAMETER, string("DeFi param key of mapcoinbasepercent should be height, not be nagetive number").c_str());
                 }
+                const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
+                if (value > 100)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
+                }
+                profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
             }
         } 
 
@@ -2476,28 +2468,20 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param stakemintoken is out of range");
         }
-        
-        if(spParam->defi.vecMappromotiontokentimes.size() % 2 != 0)
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, "mappromotiontokentimes size must be size() % 2 == 0");
-        }
 
-        if(spParam->defi.vecMappromotiontokentimes.size() >= 2)
+        for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i++)
         {
-            for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i += 2)
+            const int64 key = spParam->defi.vecMappromotiontokentimes.at(i).nKey;
+            if (key <= 0 || key > ValueFromAmount(MAX_MONEY))
             {
-                const int64 key = spParam->defi.vecMappromotiontokentimes.at(i);
-                if (key <= 0 || key > ValueFromAmount(MAX_MONEY))
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param key of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
-                }
-                const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i + 1);  
-                if (value == 0)
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mappromotiontokentimes is equal 0");
-                }
-                profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param key of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
             }
+            const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i).nValue;  
+            if (value == 0)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mappromotiontokentimes is equal 0");
+            }
+            profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
         }
     }
     
