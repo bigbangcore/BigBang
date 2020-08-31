@@ -433,51 +433,78 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork must be the isolated fork");
         }
-        if (forkProfile.defi.nMaxSupply >= 0 && !MoneyRange(forkProfile.defi.nMaxSupply))
+
+        const CDeFiProfile& defi = forkProfile.defi;
+        if (defi.nMaxSupply >= 0 && !MoneyRange(defi.nMaxSupply))
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nMaxSupply is out of range");
         }
-        if (forkProfile.defi.nDecayCycle < 0 || forkProfile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
-        {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be [0, %ld]", 100 * YEAR_HEIGHT);
-        }
-        if (forkProfile.defi.nCoinbaseDecayPercent > 100)
-        {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
-        }
-        if (forkProfile.defi.nInitCoinbasePercent == 0 || forkProfile.defi.nInitCoinbasePercent > 10000)
-        {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nInitCoinbasePercent must be [1, 10000]");
-        }
-        if (forkProfile.defi.nRewardCycle <= 0 || forkProfile.defi.nRewardCycle > 100 * YEAR_HEIGHT)
+        if (defi.nRewardCycle <= 0 || defi.nRewardCycle > 100 * YEAR_HEIGHT)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nRewardCycle must be [1, %ld]", 100 * YEAR_HEIGHT);
         }
-        if (forkProfile.defi.nSupplyCycle <= 0 || forkProfile.defi.nSupplyCycle > 100 * YEAR_HEIGHT)
+        if (defi.nSupplyCycle <= 0 || defi.nSupplyCycle > 100 * YEAR_HEIGHT)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nSupplyCycle must be [1, %ld]", 100 * YEAR_HEIGHT);
         }
-        if ((forkProfile.defi.nDecayCycle / forkProfile.defi.nSupplyCycle) * forkProfile.defi.nSupplyCycle != forkProfile.defi.nDecayCycle)
+        if (defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
         {
-            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
+            if (defi.nInitCoinbasePercent == 0 || defi.nInitCoinbasePercent > 10000)
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nInitCoinbasePercent must be [1, 10000]");
+            }
+            if (defi.nCoinbaseDecayPercent > 100)
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseDecayPercent must be [0, 100]");
+            }
+            if (defi.nDecayCycle < 0 || defi.nDecayCycle > 100 * YEAR_HEIGHT)
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be [0, %ld]", 100 * YEAR_HEIGHT);
+            }
+            if ((defi.nDecayCycle / defi.nSupplyCycle) * defi.nSupplyCycle != defi.nDecayCycle)
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
+            }
         }
-        if (forkProfile.defi.nStakeRewardPercent > 100)
+        else if (defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
+        {
+            if (defi.mapCoinbasePercent.size() == 0)
+            {
+                return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param mapCoinbasePercent is empty");
+            }
+            for (auto it = defi.mapCoinbasePercent.begin(); it != defi.mapCoinbasePercent.end(); it++)
+            {
+                if ((it->first / defi.nSupplyCycle) * defi.nSupplyCycle != it->first)
+                {
+                    return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param key of mapCoinbasePercent must be divisible by nSupplyCycle");
+                }
+                if (it->second == 0)
+                {
+                    return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param value of mapCoinbasePercent must be larger than 0");
+                }
+            }
+        }
+        else
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nCoinbaseType is out of range");
+        }
+        if (defi.nStakeRewardPercent > 100)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeRewardPercent must be [0, 100]");
         }
-        if (forkProfile.defi.nPromotionRewardPercent > 100)
+        if (defi.nPromotionRewardPercent > 100)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nPromotionRewardPercent must be [0, 100]");
         }
-        if (forkProfile.defi.nStakeRewardPercent + forkProfile.defi.nPromotionRewardPercent > 100)
+        if (defi.nStakeRewardPercent + defi.nPromotionRewardPercent > 100)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param (nStakeRewardPercent + nPromotionRewardPercent) must be [0, 100]");
         }
-        if (!MoneyRange(forkProfile.defi.nStakeMinToken))
+        if (!MoneyRange(defi.nStakeMinToken))
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeMinToken is out of range");
         }
-        for (auto& times: forkProfile.defi.mapPromotionTokenTimes)
+        for (auto& times: defi.mapPromotionTokenTimes)
         {
             if (times.first <= 0 || times.first > (MAX_MONEY / COIN))
             {

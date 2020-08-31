@@ -143,8 +143,10 @@ public:
     int32 PrevRewardHeight(const uint256& forkid, const int32 nHeight);
     // return the total reward from the beginning of section to the height of hash
     int64 GetSectionReward(const uint256& forkid, const uint256& hash);
-    // return the coinbase of nHeight and the next different coinbase beginning height
-    bool GetDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight);
+    // for fixed decay coinbase, return the coinbase of nHeight and the next different coinbase beginning height
+    bool GetFixedDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight);
+    // for specific decay coinbase, return the coinbase of nHeight and the next different coinbase beginning height
+    bool GetSpecificDecayCoinbase(const CProfile& profile, const int32 nHeight, double& nCoinbase, int32& nNextHeight);
     // return exist section cache of fork or not
     bool ExistForkSection(const uint256& forkid, const uint256& section);
     // return the section reward set. Should use ExistForkSection to determine if it exists first.

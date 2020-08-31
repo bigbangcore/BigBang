@@ -38,6 +38,7 @@ enum
 {
     FIXED_DEFI_COINBASE_TYPE = 0,
     SPECIFIC_DEFI_COINBASE_TYPE = 1,
+    DEFI_COINBASE_TYPE_MAX
 };
 
 class CDeFiProfile
@@ -48,7 +49,7 @@ public:
     uint32 nInitCoinbasePercent;                     // coinbase increasing ratio(%) per supply cycle in initialization. range [1 - 10000] means inital increasing [1% - 10000%]
     uint8 nCoinbaseDecayPercent;                     // compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%]
     int32 nDecayCycle;                               // coinbase decay cycle in height, if 0 means no decay
-    std::map<uint32, uint32> mapCoinbasePercent;     // pairs of height - coinbase percent
+    std::map<int32, uint32> mapCoinbasePercent;     // pairs of height - coinbase percent
     int32 nRewardCycle;                              // generate reward cycle in height, range [1, 189,216,000]
     int32 nSupplyCycle;                              // supplyment changing cycle in height, range [1, 189,216,000] && nDecayCycle is divisible by nSupplyCycle.
     uint8 nStakeRewardPercent;                       // stake reward ratio(%), range [0 - 100] means [0% - 100%]

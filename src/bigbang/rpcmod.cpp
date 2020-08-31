@@ -2392,43 +2392,6 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
             }
         }
 
-        profile.defi.nCoinbaseType = spParam->defi.nCoinbasetype;
-        if(profile.defi.nCoinbaseType == 1)
-        {
-            for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i++)
-            {
-                const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i).nCoinbase;
-                if (key >= std::numeric_limits<uint64>::max() - 100)
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, string("DeFi param key of mapcoinbasepercent should be height, not be nagetive number").c_str());
-                }
-                const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
-                if (value > 100)
-                {
-                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
-                }
-                profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
-            }
-        } 
-
-        profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
-        if (profile.defi.nDecayCycle < 0 || profile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param decayCycle must be [0, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
-        }
-
-        profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
-        if (profile.defi.nCoinbaseDecayPercent > 100)
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasedecaypercent must be [0, 100]");
-        }
-
-        profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
-        if (profile.defi.nInitCoinbasePercent == 0 || profile.defi.nInitCoinbasePercent > 10000)
-        {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param initcoinbasepercent must be [1, 10000]");
-        }
-
         profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
         if (profile.defi.nRewardCycle <= 0 || profile.defi.nRewardCycle > 100 * YEAR_HEIGHT)
         {
@@ -2440,9 +2403,68 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         {
             throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param supplycycle must be [1, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
         }
-        if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
+
+        profile.defi.nCoinbaseType = spParam->defi.nCoinbasetype;
+        if(profile.defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param decaycycle must be divisible by nSupplyCycle");
+            profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
+            if (profile.defi.nDecayCycle < 0 || profile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param decayCycle must be [0, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
+            }
+
+            profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
+            if (profile.defi.nCoinbaseDecayPercent > 100)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasedecaypercent must be [0, 100]");
+            }
+
+            profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
+            if (profile.defi.nInitCoinbasePercent == 0 || profile.defi.nInitCoinbasePercent > 10000)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param initcoinbasepercent must be [1, 10000]");
+            }
+
+            if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param decaycycle must be divisible by supplycycle");
+            }
+
+        }
+        else if(profile.defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
+        {
+            if (spParam->defi.vecMapcoinbasepercent.size() == 0)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param mapcoinbasepercent is empty");
+            }
+
+            for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i++)
+            {
+                const uint64 key = spParam->defi.vecMapcoinbasepercent.at(i).nCoinbase;
+                if (key >= std::numeric_limits<uint64>::max() - 100)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasepercent should be height, not be nagetive number");
+                }
+                if ((key / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != key)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasePercent must be divisible by supplycycle");
+                }
+
+                const uint64 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
+                if (value > 100)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be [0, 100]");
+                }
+                if (value == 0)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be larger than 0");
+                }
+                profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
+            }
+        } 
+        else
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasetype is out of range");
         }
 
         profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
