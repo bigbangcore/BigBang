@@ -4,6 +4,7 @@
 
 #include "blockbase.h"
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/timer/timer.hpp>
 #include <cstdio>
 
@@ -1172,6 +1173,12 @@ bool CBlockBase::CommitBlockView(CBlockView& view, CBlockIndex* pIndexNew)
     }
     spFork->UpdateLast(pIndexNew);
 
+    if (!AddDeFiRelation(hashFork, view))
+    {
+        StdTrace("BlockBase", "CommitBlockView: AddDeFiRelation fail, fork: %s", hashFork.ToString().c_str());
+        return false;
+    }
+
     Log("B", "Update fork %s, last block hash=%s", hashFork.ToString().c_str(),
         pIndexNew->GetBlockHash().ToString().c_str());
     return true;
@@ -1906,6 +1913,136 @@ bool CBlockBase::ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std:
     CListUnspentBatchWalker walker(hashFork, mapUnspent, nMax);
     dbBlock.WalkThroughUnspent(hashFork, walker);
     return true;
+}
+
+bool CBlockBase::ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount)
+{
+    CListAddressUnspentWalker walker;
+    if (!dbBlock.WalkThroughUnspent(hashFork, walker))
+    {
+        return false;
+    }
+
+    std::vector<CTxUnspent> vAddNew;
+    std::vector<CTxOutPoint> vRemove;
+    view.GetUnspentChanges(vAddNew, vRemove);
+
+    for (const CTxUnspent& unspent : vAddNew)
+    {
+        walker.mapUnspent[static_cast<const CTxOutPoint&>(unspent)] = unspent.output;
+    }
+    for (const CTxOutPoint& txout : vRemove)
+    {
+        walker.mapUnspent[txout].SetNull();
+    }
+
+    for (auto it = walker.mapUnspent.begin(); it != walker.mapUnspent.end(); ++it)
+    {
+        if (!it->second.IsNull())
+        {
+            mapAddressAmount[it->second.destTo] += it->second.nAmount;
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::AddDeFiRelation(const uint256& hashFork, CBlockView& view)
+{
+    vector<pair<CDestination, CAddrInfo>> vNewAddress;
+    vector<pair<CDestination, CAddrInfo>> vRemoveAddress;
+
+    vector<CBlockEx> vAdd;
+    vector<CBlockEx> vRemove;
+    view.GetBlockChanges(vAdd, vRemove);
+
+    for (const CBlockEx& block : vRemove)
+    {
+        for (int i = block.vtx.size() - 1; i >= 0; --i)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            if (tx.IsDeFiRelation())
+            {
+                uint256 txid = tx.GetHash();
+                vRemoveAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+            }
+        }
+    }
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vAdd))
+    {
+        for (std::size_t i = 0; i < block.vtx.size(); i++)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
+            {
+                uint256 txid = tx.GetHash();
+                vNewAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+            }
+        }
+    }
+
+    return dbBlock.UpdateAddressInfo(hashFork, vNewAddress, vRemoveAddress);
+}
+
+bool CBlockBase::ListDeFiRelation(const uint256& hashFork, CBlockView& view, map<CDestination, CAddrInfo>& mapAddress)
+{
+    CListAddressWalker walker;
+    if (!dbBlock.WalkThroughAddress(hashFork, walker))
+    {
+        StdLog("CBlockBase", "ListDeFiRelation: WalkThroughAddress fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+
+    vector<CBlockEx> vAdd;
+    vector<CBlockEx> vRemove;
+    view.GetBlockChanges(vAdd, vRemove);
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vRemove))
+    {
+        for (int i = block.vtx.size() - 1; i >= 0; --i)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            if (tx.IsDeFiRelation())
+            {
+                uint256 txid = tx.GetHash();
+                auto it = walker.mapAddress.find(txContxt.destIn);
+                if (it != walker.mapAddress.end() && it->second.txid == txid)
+                {
+                    walker.mapAddress.erase(it);
+                }
+            }
+        }
+    }
+
+    for (const CBlockEx& block : boost::adaptors::reverse(vAdd))
+    {
+        for (std::size_t i = 0; i < block.vtx.size(); i++)
+        {
+            const CTransaction& tx = block.vtx[i];
+            const CTxContxt& txContxt = block.vTxContxt[i];
+            if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
+            {
+                uint256 txid = tx.GetHash();
+                auto it = walker.mapAddress.find(txContxt.destIn);
+                if (it == walker.mapAddress.end())
+                {
+                    walker.mapAddress.insert(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+                }
+            }
+        }
+    }
+
+    mapAddress = std::move(walker.mapAddress);
+    return true;
+}
+
+bool CBlockBase::GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CAddrInfo& addrInfo)
+{
+    CAddrInfo addressInfo;
+    return dbBlock.GetAddressInfo(hashFork, destIn, addrInfo);
 }
 
 bool CBlockBase::GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, int64& nVotes)

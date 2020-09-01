@@ -7,6 +7,7 @@
 #include "blockdb.h"
 #include "txpooldata.h"
 #include "walletdb.h"
+#include "delegatevotesave.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -51,6 +52,17 @@ bool CPurger::ResetDB(const boost::filesystem::path& pathDataLocation) const
         if (datTxPool.Initialize(pathDataLocation))
         {
             if (!datTxPool.Remove())
+            {
+                return false;
+            }
+        }
+    }
+
+    {
+        CDelegateVoteSave datVoteSave;
+        if (datVoteSave.Initialize(pathDataLocation))
+        {
+            if (!datVoteSave.Remove())
             {
                 return false;
             }

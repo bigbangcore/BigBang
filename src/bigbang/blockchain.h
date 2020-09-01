@@ -11,11 +11,15 @@
 
 #include "base.h"
 #include "blockbase.h"
+#include "defi.h"
+
 namespace bigbang
 {
 
+// defi reward cache
 class CBlockChain : public IBlockChain
 {
+
 public:
     CBlockChain();
     ~CBlockChain();
@@ -69,6 +73,7 @@ public:
     bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) override;
     bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) override;
     bool IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, const CBlock& block) override;
+    bool GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CDestination& parent) override;
 
     /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;
@@ -81,6 +86,9 @@ public:
     bool VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash) override;
     bool FindPreviousCheckPointBlock(const uint256& hashFork, CBlock& block) override;
     bool IsSameBranch(const uint256& hashFork, const CBlock& block) override;
+
+    // defi
+    std::list<CDeFiReward> GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nHeight, const int32 nMax = -1) override;
 
 protected:
     bool HandleInitialize() override;
@@ -104,6 +112,10 @@ protected:
     bool AddBlockForkContext(const CBlockEx& blockex);
     void InitCheckPoints(const uint256& hashFork, const std::vector<CCheckPoint>& vCheckPointsIn);
 
+    // defi
+    std::list<uint256> GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, const int32 nHeight, uint256& nLastSection, CDeFiReward& lastReward);
+    CDeFiRewardSet ComputeDeFiSection(const uint256& forkid, const uint256& hash, const CProfile& profile);
+
 protected:
     boost::shared_mutex rwAccess;
     ICoreProtocol* pCoreProtocol;
@@ -115,6 +127,7 @@ protected:
     xengine::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
     std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
+    CDeFiForkReward defiReward;
 };
 
 } // namespace bigbang

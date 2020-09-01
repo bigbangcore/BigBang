@@ -69,10 +69,11 @@ public:
     void GetTemplateIds(std::set<CTemplateId>& setTid) override;
     bool AddTemplate(CTemplatePtr& ptr) override;
     CTemplatePtr GetTemplate(const CTemplateId& tid) override;
+    bool GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CDestination& parent) override;
     bool GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance) override;
     bool ListWalletTx(const uint256& hashFork, const CDestination& dest, int nOffset, int nCount, std::vector<CWalletTx>& vWalletTx) override;
     boost::optional<std::string> CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                                   const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                   const CDestination& destSendTo, const uint16 nType, int64 nAmount, int64 nTxFee,
                                                    const std::vector<unsigned char>& vchData, CTransaction& txNew) override;
     bool SynchronizeWalletTx(const CDestination& destNew) override;
     bool ResynchronizeWalletTx() override;

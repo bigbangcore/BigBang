@@ -1016,7 +1016,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
         StdTrace("NetChannel", "CEventPeerTx: receive tx success, peer: %s, txid: %s",
                  GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());
 
-        if (tx.IsMintTx())
+        if (tx.IsMintTx() || tx.nType == CTransaction::TX_DEFI_REWARD)
         {
             StdDebug("NetChannel", "CEventPeerTx: tx is mint, peer: %s, txid: %s",
                      GetPeerAddressInfo(nNonce).c_str(), txid.GetHex().c_str());

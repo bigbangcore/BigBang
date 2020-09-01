@@ -4,6 +4,10 @@
 
 #include "blockchain.h"
 
+#include <algorithm>
+#include <cmath>
+#include <stack>
+
 #include "../common/template/fork.h"
 #include "delegatecomm.h"
 #include "delegateverify.h"
@@ -110,6 +114,25 @@ bool CBlockChain::HandleInvoke()
                          fork.first.ToString().c_str());
                 return false;
             }
+        }
+    }
+
+    // build defi fork
+    multimap<int, CBlockIndex*> mapForkIndex;
+    cntrBlock.ListForkIndex(mapForkIndex);
+    for (multimap<int, CBlockIndex*>::iterator it = mapForkIndex.begin(); it != mapForkIndex.end(); ++it)
+    {
+        uint256 hashFork = it->second->GetOriginHash();
+        CProfile profile;
+        if (!GetForkProfile(hashFork, profile))
+        {
+            StdError("BlockChain", "Load fork profile fail: %s", hashFork.ToString().c_str());
+            return false;
+        }
+
+        if (profile.nForkType == FORK_TYPE_DEFI)
+        {
+            defiReward.AddFork(hashFork, profile);
         }
     }
 
@@ -437,6 +460,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         Log("AddNewBlock Retrieve Prev Index Error: %s ", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
+    uint256 forkid = pIndexPrev->GetOriginHash();
 
     int64 nReward = 0;
     CDelegateAgreement agreement;
@@ -469,7 +493,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             nNewChainTrust += pIndexPrev->nChainTrust;
 
             CBlockIndex* pIndexForkLast = nullptr;
-            if (cntrBlock.RetrieveFork(pIndexPrev->GetOriginHash(), &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
+            if (cntrBlock.RetrieveFork(forkid, &pIndexForkLast) && pIndexForkLast->nChainTrust > nNewChainTrust)
             {
                 fGetBranchBlock = false;
                 break;
@@ -508,6 +532,15 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         nForkHeight = pIndexPrev->nHeight + 1;
     }
 
+    // defi
+    list<CDeFiReward> listDeFiReward;
+    bool fDeFiFork = defiReward.ExistFork(forkid);
+    if (!block.IsVacant() && fDeFiFork)
+    {
+        listDeFiReward = GetDeFiReward(forkid, pIndexPrev->GetBlockHash(), block.GetBlockHeight(), block.vtx.size());
+    }
+    list<CDeFiReward>::const_iterator itListDeFi = listDeFiReward.begin();
+
     for (const CTransaction& tx : block.vtx)
     {
         uint256 txid = tx.GetHash();
@@ -518,11 +551,39 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
             Log("AddNewBlock Get txContxt Error([%d] %s) : %s ", err, ErrorString(err), txid.ToString().c_str());
             return err;
         }
-        err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, pIndexPrev->GetOriginHash());
-        if (err != OK)
+
+        // non-defi fork should not exist defi tx
+        if (!fDeFiFork && (tx.nType == CTransaction::TX_DEFI_REWARD || tx.nType == CTransaction::TX_DEFI_RELATION))
         {
-            Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
-            return err;
+            Log("AddNewBlock non-defi fork don't allow reward tx and relation tx");
+            return ERR_TRANSACTION_INVALID;
+        }
+
+        // defi tx must be next to each other from the beginning
+        if (itListDeFi != listDeFiReward.end())
+        {
+            if (tx.nType != CTransaction::TX_DEFI_REWARD)
+            {
+                Log("AddNewBlock should be reward tx at the beginning of vtx of block: %s", hash.ToString().c_str());
+                return ERR_TRANSACTION_INVALID;
+            }
+
+            if ((itListDeFi->dest != tx.sendTo) || (itListDeFi->nReward != tx.nAmount + tx.nTxFee) || (itListDeFi->hashAnchor != tx.hashAnchor))
+            {
+                Log("AddNewBlock Check defi reward tx error, block: %s, tx: %s", hash.ToString().c_str(), txid.ToString().c_str());
+                return ERR_TRANSACTION_INVALID;
+            }
+            ++itListDeFi;
+        }
+
+        if (tx.nType != CTransaction::TX_DEFI_REWARD /*&& !pTxPool->Exists(txid)*/)
+        {
+            err = pCoreProtocol->VerifyBlockTx(tx, txContxt, pIndexPrev, nForkHeight, forkid);
+            if (err != OK)
+            {
+                Log("AddNewBlock Verify BlockTx Error(%s) : %s ", ErrorString(err), txid.ToString().c_str());
+                return err;
+            }
         }
         if (tx.nTimeStamp > block.nTimeStamp)
         {
@@ -758,6 +819,13 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     update = CBlockChainUpdate(pIndexNew);
     view.GetTxUpdated(update.setTxUpdate);
     update.vBlockAddNew.push_back(blockex);
+
+    // add defi fork
+    if (profile.nForkType == FORK_TYPE_DEFI)
+    {
+        defiReward.AddFork(hash, profile);
+        Log("................. AddNewOrigin supply: %ld", pIndexNew->GetMoneySupply());
+    }
 
     return OK;
 }
@@ -2128,6 +2196,270 @@ bool CBlockChain::IsSameBranch(const uint256& hashFork, const CBlock& block)
     }
 
     return block.GetHash() == bestChainBlockHash;
+}
+
+list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint256& hashPrev, const int32 nHeight, const int32 nMax)
+{
+    Debug("SHT GetDeFiReward begin, forkid: %s, prev: %s", forkid.ToString().c_str(), hashPrev.ToString().c_str());
+    list<CDeFiReward> listReward;
+    if (!defiReward.ExistFork(forkid))
+    {
+        return listReward;
+    }
+
+    CBlockIndex* pIndexPrev = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashPrev, &pIndexPrev))
+    {
+        Error("SHT GetDeFiSectionList retrieve prev block index fail: %s", hashPrev.ToString().c_str());
+        return listReward;
+    }
+
+    uint256 nLastSection;
+    CDeFiReward lastReward;
+    list<uint256> listSection = GetDeFiSectionList(forkid, pIndexPrev, nHeight, nLastSection, lastReward);
+
+    if (!listSection.empty())
+    {
+        for (const uint256& section : listSection)
+        {
+            const CDeFiRewardSet& s = defiReward.GetForkSection(forkid, section);
+            const CDeFiRewardSetByReward& idxByReward = s.get<1>();
+            CDeFiRewardSetByReward::iterator it = idxByReward.begin();
+            if (section == nLastSection)
+            {
+                auto itLower = idxByReward.lower_bound(lastReward.nReward);
+                auto itUpper = idxByReward.upper_bound(lastReward.nReward);
+                for (it = itLower; it != itUpper; it++)
+                {
+                    if (it->dest == lastReward.dest)
+                    {
+                        it++;
+                        break;
+                    }
+                }
+            }
+
+            Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(): %d, listReward size: %u, nMax: %d",
+                  section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
+            for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
+            {
+                listReward.push_back(*it);
+            }
+        }
+    }
+
+    Debug("SHT GetDeFiReward end, forkid: %s, prev: %s, reward size: %u", forkid.ToString().c_str(), hashPrev.ToString().c_str(), listReward.size());
+    return listReward;
+}
+
+list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBlockIndex* pIndexPrev, const int32 nHeight, uint256& nLastSection, CDeFiReward& lastReward)
+{
+    Debug("SHT GetDeFiSectionList begin, prev: %s", pIndexPrev->GetBlockHash().ToString().c_str());
+    list<uint256> listSection;
+
+    // find the last non-vacant block
+    int32 prevHeight = defiReward.PrevRewardHeight(forkid, nHeight);
+    if (prevHeight <= 0)
+    {
+        Debug("SHT GetDeFiSectionList prev height <= 0, prev: %s", pIndexPrev->GetBlockHash().ToString().c_str());
+        return listSection;
+    }
+
+    if (pIndexPrev->GetBlockHeight() == prevHeight)
+    {
+        Debug("SHT GetDeFiSectionList listSection 1 add section: %s, height: %d", pIndexPrev->GetBlockHash().ToString().c_str(), prevHeight);
+        listSection.push_front(pIndexPrev->GetBlockHash());
+        prevHeight = defiReward.PrevRewardHeight(forkid, pIndexPrev->GetBlockHeight());
+    }
+
+    // find all prev vacant
+    const CBlockIndex* pIndexLast = pIndexPrev;
+    while (pIndexLast->IsVacant())
+    {
+        if (pIndexLast->GetBlockHeight() == prevHeight)
+        {
+            Debug("SHT GetDeFiSectionList listSection 2 add section: %s, height: %d", pIndexLast->GetBlockHash().ToString().c_str(), prevHeight);
+            listSection.push_front(pIndexLast->GetBlockHash());
+            prevHeight = defiReward.PrevRewardHeight(forkid, pIndexLast->GetBlockHeight());
+        }
+        pIndexLast = pIndexLast->pPrev;
+    }
+    Debug("SHT GetDeFiSectionList pIndexLast is not vacant: %s", pIndexLast->GetBlockHash().ToString().c_str());
+
+    // find the last section and last destination
+    if (!pIndexLast->IsOrigin())
+    {
+        CBlockEx block;
+        cntrBlock.Retrieve(pIndexLast, block);
+        if (!block.vtx.empty() && block.vtx.back().nType == CTransaction::TX_DEFI_REWARD)
+        {
+            nLastSection = block.vtx.back().hashAnchor;
+            lastReward.dest = block.vtx.back().sendTo;
+            lastReward.nReward = block.vtx.back().nAmount;
+            Debug("SHT GetDeFiSectionList nLastSection nLastSection: %s", nLastSection.ToString().c_str());
+
+            CBlockIndex* pIndexLastSection = nullptr;
+            if (!cntrBlock.RetrieveIndex(nLastSection, &pIndexLastSection))
+            {
+                Error("SHT GetDeFiSectionList retrieve last section block index fail: %s", nLastSection.ToString().c_str());
+                return listSection;
+            }
+
+            while (pIndexLast != pIndexLastSection->pPrev)
+            {
+                Debug("SHT GetDeFiSectionList pIndexLast pIndexLast: %p, pIndexLasthash: %s, pIndexLastSection->pPrev: %p, pIndexLastSection->pPrevhash: %s",
+                      pIndexLast, pIndexLast->GetBlockHash().ToString().c_str(), pIndexLastSection->pPrev, pIndexLastSection->pPrev->GetBlockHash().ToString().c_str());
+                if (pIndexLast->GetBlockHeight() == prevHeight)
+                {
+                    Debug("SHT GetDeFiSectionList listSection 3 add section: %s, height: %d", pIndexLast->GetBlockHash().ToString().c_str(), prevHeight);
+                    listSection.push_front(pIndexLast->GetBlockHash());
+                    prevHeight = defiReward.PrevRewardHeight(forkid, pIndexLast->GetBlockHeight());
+                }
+                pIndexLast = pIndexLast->pPrev;
+            }
+        }
+    }
+
+    if (!listSection.empty())
+    {
+        CProfile profile = defiReward.GetForkProfile(forkid);
+
+        for (auto it = listSection.begin(); it != listSection.end(); it++)
+        {
+            Debug("SHT GetDeFiSectionList listSection hash: %s", it->ToString().c_str());
+            const uint256& section = *it;
+            if (!defiReward.ExistForkSection(forkid, section))
+            {
+                // check max supply
+                CBlockIndex* pIndexSection = nullptr;
+                if (!cntrBlock.RetrieveIndex(section, &pIndexSection))
+                {
+                    Error("SHT GetDeFiSectionList retrieve section index error, section: %s", section.ToString().c_str());
+                }
+                if (!cntrBlock.RetrieveIndex(section, &pIndexSection) || (profile.defi.nMaxSupply >= 0 && pIndexSection->GetMoneySupply() >= profile.defi.nMaxSupply))
+                {
+                    Debug("SHT GetDeFiSectionList money supply is to upper limit, limit: %ld, now: %ld", profile.defi.nMaxSupply, pIndexSection ? pIndexSection->GetMoneySupply() * COIN : 0);
+                    listSection.erase(it, listSection.end());
+                    break;
+                }
+
+                // generate section
+                CDeFiRewardSet s = ComputeDeFiSection(forkid, section, profile);
+                defiReward.AddForkSection(forkid, section, std::move(s));
+                Debug("SHT GetDeFiSectionList add fork section, fork: %s, section: %s", forkid.ToString().c_str(), section.ToString().c_str());
+            }
+        }
+    }
+
+    Debug("SHT GetDeFiSectionList end, prev: %s", pIndexPrev->GetBlockHash().ToString().c_str());
+    return listSection;
+}
+
+CDeFiRewardSet CBlockChain::ComputeDeFiSection(const uint256& forkid, const uint256& hash, const CProfile& profile)
+{
+    CDeFiRewardSet s;
+
+    int64 nReward = defiReward.GetSectionReward(forkid, hash);
+    if (nReward <= 0)
+    {
+        Debug("SHT ComputeDeFiSection nReward <= 0: %ld", nReward);
+        return s;
+    }
+    Debug("SHT ComputeDeFiSection nReward: %ld", nReward);
+
+    storage::CBlockView view;
+    if (!cntrBlock.GetBlockView(hash, view))
+    {
+        Error("SHT ComputeDeFiSection get block view error, fork: %s, hash: %s", forkid.ToString().c_str(), hash.ToString().c_str());
+        return s;
+    }
+
+    map<CDestination, int64> mapAddressAmount;
+    if (!cntrBlock.ListForkAllAddressAmount(forkid, view, mapAddressAmount) || mapAddressAmount.empty())
+    {
+        Error("SHT ComputeDeFiSection ListForkAllAddressAmount error, fork: %s, hash: %s", forkid.ToString().c_str(), hash.ToString().c_str());
+        return s;
+    }
+
+    int64 nStakeReward = nReward * profile.defi.nStakeRewardPercent / 100;
+    map<CDestination, int64> stakeReward = defiReward.ComputeStakeReward(profile.defi.nStakeMinToken, nStakeReward, mapAddressAmount);
+
+    // get invitation relation
+    map<CDestination, storage::CAddrInfo> mapAddress;
+    if (!cntrBlock.ListDeFiRelation(forkid, view, mapAddress))
+    {
+        Error("SHT ComputeDeFiSection ListDeFiRelation error, fork: %s, hash: %s", forkid.ToString().c_str(), hash.ToString().c_str());
+        return s;
+    }
+
+    CDeFiRelationGraph relation;
+    if (!relation.ConstructRelationGraph(mapAddress))
+    {
+        Error("SHT ComputeDeFiSection ConstructRelationGraph error, fork: %s, hash: %s", forkid.ToString().c_str(), hash.ToString().c_str());
+        return s;
+    }
+
+    int64 nPromotionReward = nReward * profile.defi.nPromotionRewardPercent / 100;
+    map<CDestination, int64> promotionReward = defiReward.ComputePromotionReward(nPromotionReward, mapAddressAmount, profile.defi.mapPromotionTokenTimes, relation);
+
+    for (auto& stake : stakeReward)
+    {
+        auto it = promotionReward.find(stake.first);
+
+        int64 sr = stake.second;
+        int64 pr = 0;
+        if (it != promotionReward.end())
+        {
+            pr = it->second;
+            promotionReward.erase(it);
+        }
+        int64 r = sr + pr;
+
+        // check reward > txfee
+        if (r > NEW_MIN_TX_FEE)
+        {
+            CDeFiReward reward;
+            reward.dest = stake.first;
+            reward.nReward = r;
+            reward.nStakeReward = sr;
+            reward.nPromotionReward = pr;
+            reward.hashAnchor = hash;
+            Debug("SHT ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                  CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
+            s.insert(move(reward));
+        }
+    }
+
+    for (auto& promotion : promotionReward)
+    {
+        if (promotion.second > NEW_MIN_TX_FEE)
+        {
+            CDeFiReward reward;
+            reward.dest = promotion.first;
+            reward.nReward = promotion.second;
+            reward.nStakeReward = 0;
+            reward.nPromotionReward = promotion.second;
+            reward.hashAnchor = hash;
+            Debug("SHT ComputeDeFiSection new reward dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                  CAddress(reward.dest).ToString().c_str(), reward.nReward, reward.nStakeReward, reward.nPromotionReward);
+            s.insert(move(reward));
+        }
+    }
+    Debug("SHT ComputeDeFiSection reward size: %lu, hash: %s", s.size(), hash.ToString().c_str());
+
+    return s;
+}
+
+bool CBlockChain::GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CDestination& parent)
+{
+    storage::CAddrInfo addrInfo;
+    if (cntrBlock.GetDeFiRelation(hashFork, destIn, addrInfo))
+    {
+        parent = addrInfo.destParent;
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace bigbang

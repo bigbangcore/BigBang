@@ -371,7 +371,6 @@ void CTxPoolView::ArrangeBlockTx(vector<CTransaction>& vtx, int64& nTotalTxFee, 
     set<uint256> setUnTx;
     CPooledCertTxLinkSet setCertRelativesIndex;
     std::vector<CPooledTxLink> prevLinks;
-    nTotalTxFee = 0;
 
     // Collect all cert related tx
     const CPooledTxLinkSetByTxType& idxTxLinkType = setTxLinkIndex.get<2>();
@@ -592,7 +591,7 @@ Errno CTxPool::Push(const CTransaction& tx, uint256& hashFork, CDestination& des
         return ERR_ALREADY_HAVE;
     }
 
-    if (tx.IsMintTx())
+    if (tx.IsMintTx() || tx.nType == CTransaction::TX_DEFI_REWARD)
     {
         StdError("CTxPool", "Push: tx is mint, txid: %s", txid.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
@@ -813,7 +812,6 @@ bool CTxPool::ArrangeBlockTx(const uint256& hashFork, const uint256& hashPrev, i
     }
     else
     {
-        nTotalTxFee = 0;
         size_t currentSize = 0;
         for (const auto& tx : vCacheTx)
         {
@@ -931,6 +929,14 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             const CTransaction& tx = block.vtx[i];
             const CTxContxt& txContxt = block.vTxContxt[i];
+
+            // defi
+            if (tx.nType == CTransaction::TX_DEFI_REWARD)
+            {
+                change.vTxAddNew.push_back(CAssembledTx(tx, nBlockHeight));
+                continue;
+            }
+
             uint256 txid = tx.GetHash();
             if (!update.setTxUpdate.count(txid))
             {
@@ -967,6 +973,15 @@ bool CTxPool::SynchronizeBlockChain(const CBlockChainUpdate& update, CTxSetChang
         {
             const CTransaction& tx = block.vtx[i];
             uint256 txid = tx.GetHash();
+
+            // defi
+            if (tx.nType == CTransaction::TX_DEFI_REWARD)
+            {
+                txView.InvalidateSpent(CTxOutPoint(txid, 0), viewInvolvedTx);
+                vTxRemove.push_back(make_pair(txid, tx.vInput));
+                continue;
+            }
+
             if (!update.setTxUpdate.count(txid))
             {
                 uint256 spent0, spent1;

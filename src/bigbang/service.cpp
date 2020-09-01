@@ -642,6 +642,11 @@ CTemplatePtr CService::GetTemplate(const CTemplateId& tid)
     return pWallet->GetTemplate(tid);
 }
 
+bool CService::GetDeFiRelation(const uint256& hashFork, const CDestination& destIn, CDestination& parent)
+{
+    return pBlockChain->GetDeFiRelation(hashFork, destIn, parent);
+}
+
 bool CService::GetBalance(const CDestination& dest, const uint256& hashFork, CWalletBalance& balance)
 {
     int32 nForkHeight;
@@ -667,7 +672,7 @@ bool CService::ListWalletTx(const uint256& hashFork, const CDestination& dest, i
 }
 
 boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork, const CDestination& destFrom,
-                                                         const CDestination& destSendTo, int64 nAmount, int64 nTxFee,
+                                                         const CDestination& destSendTo, const uint16 nType, int64 nAmount, int64 nTxFee,
                                                          const vector<unsigned char>& vchData, CTransaction& txNew)
 {
     int nForkHeight = 0;
@@ -685,7 +690,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
         hashLastBlock = it->second.hashLastBlock;
         txNew.hashAnchor = hashFork;
     }
-    txNew.nType = CTransaction::TX_TOKEN;
+    txNew.nType = nType;
     txNew.nTimeStamp = GetNetTime();
     txNew.nLockUntil = 0;
     txNew.sendTo = destSendTo;

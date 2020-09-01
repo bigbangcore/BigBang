@@ -39,6 +39,7 @@
             }
         }
     },
+            
     "templaterequest": {
         "type": "class",
         "name": "TemplateRequest",
@@ -962,6 +963,96 @@
                         "owner": {
                             "type": "string",
                             "desc": "owner's address"
+                        },
+                        "forktype": {
+                            "type": "string",
+                            "desc": "fork params, a json object"
+                        },
+                        "defi": {
+                            "type": "object",
+                            "desc": "Fork DeFi Parameters",
+                            "content": {
+                                "maxsupply": {
+                                    "type": "double",
+                                    "desc": "the max DeFi supply in this fork"
+                                },
+                                "coinbasetype": {
+                                    "type": "uint",
+                                    "desc": "coinbase type. 0 - fixed decay(related to 'nInitCoinbasePercent', 'nCoinbaseDecayPercent', 'nDecayCycle'). 1 - specific decay(related to 'mapCoinbasePercent')"
+                                },
+                                "decaycycle": {
+                                    "type": "int",
+                                    "desc": "coinbase decay cycle in height"
+                                },
+                                "mapcoinbasepercent": {
+                                    "type": "array",
+                                    "content": {
+                                        "element": {
+                                            "type": "object",
+                                            "desc": "coinbase percent",
+                                            "content": {
+                                                "height": {
+                                                    "type": "int",
+                                                    "desc": "begin height"
+                                                },
+                                                "percent": {
+                                                    "type": "uint",
+                                                    "desc": "coinbase increasing ratio [0 - 100]"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "desc": "compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%] eg. [{\"coinbase\": 10, \"percent\": 10},..]"
+                                },
+                                "coinbasedecaypercent": {
+                                    "type": "uint",
+                                    "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%"
+                                },
+                                "initcoinbasepercent": {
+                                    "type": "uint",
+                                    "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
+                                },
+                                "rewardcycle": {
+                                    "type": "int",
+                                    "desc": "generate reward cycle in height"
+                                },
+                                "supplycycle": {
+                                    "type": "int",
+                                    "desc": "supplyment changing cycle in height"
+                                },
+                                "stakerewardpercent": {
+                                    "type": "uint",
+                                    "desc": "stake reward ratio, [0 - 100] means [0% - 100%]"
+                                },
+                                "promotionrewardpercent": {
+                                    "type": "uint",
+                                    "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]"
+                                },
+                                "stakemintoken": {
+                                    "type": "double",
+                                    "desc": "the minimum token on address can participate stake reward"
+                                },
+                                "mappromotiontokentimes": {
+                                    "type": "array",
+                                    "content": {
+                                        "element": {
+                                            "type": "object",
+                                            "desc": "promotion key value",
+                                            "content": {
+                                                "key": {
+                                                    "type": "uint",
+                                                    "desc": "promotion key"
+                                                },
+                                                "value": {
+                                                    "type": "uint",
+                                                    "desc": "promotion value"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]"
+                                }
+                            }
                         }
                     }
                 }
@@ -2165,6 +2256,48 @@
             "{\"code\":-401,\"message\":\"Failed to resync wallet tx\"}"
         ]
     },
+    "getdefirelation": {
+        "type": "command",
+        "name": "GetDeFiRelation",
+        "introduction": "Get parent address of specified address",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                },
+                "address": {
+                    "type": "string",
+                    "desc": "wallet address",
+                    "required": false,
+                    "opt": "a"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "parent",
+            "desc": "parent address string"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli getdefirelation 10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth7332bb",
+                "response": "10g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getbalance\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"address\":\"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy\",\"avail\":30.00000000,\"locked\":0.00000000,\"unconfirmed\":0.00000000}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-6,\"message\":\"Invalid address\"}"
+        ]
+    },
     "getbalance": {
         "type": "command",
         "name": "GetBalance",
@@ -2373,6 +2506,13 @@
                     "desc": "If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'",
                     "required": false,
                     "opt": "td"
+                },
+                "type": {
+                    "type": "uint",
+                    "desc": "0: common token tx, 2: defi relation tx",
+                    "default": 0,
+                    "required": false,
+                    "opt": "type"
                 }
             }
         },
@@ -2405,6 +2545,14 @@
             {
                 "request": "curl -d '{\"id\":53,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20r07rwj0032jssv0d3xaes1kq6z1cvjmz1jwhme0m1jf23vx48v683s3\",\"to\":\"1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h\",\"amount\":12.345000,\"txfee\":1.00000000,\"sm\":\"1b8c6b0807472627cec2f77b2a33428539b64493f7f1b9f7be4dfbdee72f9aeb3b5763fa39ce5df2425d8d530698de9c1cea993bccfce6596901b6b8cb054103\", \"ss\":\"a51a925a50a7101ca25c8165050b61421f9e54aad5b0cfb4a4947da82f5fb62fec8e96fb80bd697db33f391bf1f875179d446ac08829f85cf8fe6483ec9acf0c\",\"fork\":\"92099485ffec67128fe4dbaca96ed8faf54ccc0b4760cd0d78a3d1e051a2498f\"}}' http://127.0.0.1:9902",
                 "response": "{\"id\":53,\"jsonrpc\":\"2.0\",\"result\":\"5ce79ba78b44f8710710c8e35b8d3b725c2f994d4038b74fda84f0b061c01a76\"}"
+            },
+            {
+                "request": "bigbang-cli sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 12pseg2t39s5v8z7cqeyj4f09vcxy4jn0dge8q86bkmkr284bm7gx4dy4 1 -type=2",
+                "response": "5f43336e0c300c03491c65d0f79ded0d864a4442f6c3eb9af3b736bf123d5aff"
+            },
+            {
+                "request": "curl -d '{\"id\":9,\"method\":\"sendfrom\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"to\":\"12pseg2t39s5v8z7cqeyj4f09vcxy4jn0dge8q86bkmkr284bm7gx4dy4\",\"amount\":1.000000,\"type\":2}}' http://127.0.0.1:9902",
+                "response": "{\"id\":9,\"jsonrpc\":\"2.0\",\"result\":\"5f43336e0c300c03491c65d0f79ded0d864a4442f6c3eb9af3b736bf123d5aff\"}"
             }
         ],
         "error": [
@@ -2457,6 +2605,13 @@
                     "desc": "output data",
                     "required": false,
                     "opt": "d"
+                },
+                "type": {
+                    "type": "uint",
+                    "desc": "0: common token tx, 2: defi relation tx",
+                    "default": 0,
+                    "required": false,
+                    "opt": "type"
                 }
             }
         },
@@ -2473,6 +2628,14 @@
             {
                 "request": "curl -d '{\"id\":59,\"method\":\"createtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26\",\"to\":\"1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q\",\"amount\":1.00000000,\"txfee\":0.10000000,\"fork\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"data\":\"12345\"}}' http://127.0.0.1:9902",
                 "response": "{\"id\":59,\"jsonrpc\":\"2.0\",\"result\":\"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a08601000000000002123400\"}"
+            },
+            {
+                "request": "bigbang-cli createtransaction 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 12pseg2t39s5v8z7cqeyj4f09vcxy4jn0dge8q86bkmkr284bm7gx4dy4 1 -type=2",
+                "response": "010002006334435f0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001ff5a3d12bf36b7f39aebc3f642444a860ded9df7d0651c49030c300c6e33435f010115b2e80b434e4bb47cecbbbd223c09db3be24aa06c1c8ba0cb9d2781208ba1e140420f000000000010270000000000000000"
+            },
+            {
+                "request": "curl -d '{\"id\":17,\"method\":\"createtransaction\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"to\":\"12pseg2t39s5v8z7cqeyj4f09vcxy4jn0dge8q86bkmkr284bm7gx4dy4\",\"amount\":1.000000,\"type\":2}}' http://127.0.0.1:9902",
+                "response": "{\"id\":17,\"jsonrpc\":\"2.0\",\"result\":\"010002006334435f0000000091d2b15e9aeeb57483889873bd0aea1273c8e5bb8df436c2bd4e85060000000001ff5a3d12bf36b7f39aebc3f642444a860ded9df7d0651c49030c300c6e33435f010115b2e80b434e4bb47cecbbbd223c09db3be24aa06c1c8ba0cb9d2781208ba1e140420f000000000010270000000000000000\"}"
             }
         ],
         "error": [
@@ -2750,6 +2913,111 @@
                     "type": "uint",
                     "desc": "halve cycle: 0: fixed reward, >0: blocks of halve cycle"
                 },
+                "forktype": {
+                    "type": "string",
+                    "desc": "fork params, a json object"
+                },
+                "defi": {
+                    "type": "object",
+                    "desc": "Fork DeFi Parameters",
+                    "condition": "forktype=defi",
+                    "content": {
+                        "maxsupply": {
+                            "type": "int",
+                            "desc": "the max DeFi supply in this fork, -1 means no upper limit",
+                            "default": -1,
+                            "required": false
+                        },
+                        "coinbasetype": {
+                            "type": "uint",
+                            "desc": "coinbase type. 0 - fixed decay(related to 'nInitCoinbasePercent', 'nCoinbaseDecayPercent', 'nDecayCycle'). 1 - specific decay(related to 'mapCoinbasePercent')",
+                            "default": 0,
+                            "required": false
+                        },
+                        "decaycycle": {
+                            "type": "int",
+                            "desc": "coinbase decay cycle in height"
+                        },
+                        "mapcoinbasepercent": {
+                            "type": "array",
+                            "content": {
+                                "element": {
+                                    "type": "object",
+                                    "desc": "coinbase percent",
+                                    "content": {
+                                        "height": {
+                                            "type": "int",
+                                            "desc": "begin height"
+                                        },
+                                        "percent": {
+                                            "type": "uint",
+                                            "desc": "coinbase increasing ratio [0 - 100]"
+                                        }
+                                    }
+                                }
+                            },
+                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%] eg. [{\"coinbase\": 10, \"percent\": 10},..]",
+                            "required": false
+                        },
+                        "coinbasedecaypercent": {
+                            "type": "uint",
+                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), 50 means decay 50%",
+                            "default": 50,
+                            "required": false
+                        },
+                        "initcoinbasepercent": {
+                            "type": "uint",
+                            "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
+                        },
+                        "rewardcycle": {
+                            "type": "int",
+                            "desc": "generate reward cycle in height"
+                        },
+                        "supplycycle": {
+                            "type": "int",
+                            "desc": "supplyment changing cycle in height"
+                        },
+                        "stakerewardpercent": {
+                            "type": "uint",
+                            "desc": "stake reward ratio, [0 - 100] means [0% - 100%]",
+                            "default": 50,
+                            "required": false
+                        },
+                        "promotionrewardpercent": {
+                            "type": "uint",
+                            "desc": "promotion reward ratio, [0 - 100] means [0% - 100%]",
+                            "default": 50,
+                            "required": false
+                        },
+                        "stakemintoken": {
+                            "type": "uint",
+                            "desc": "the minimum token on address can participate stake reward",
+                            "default": 0,
+                            "required": false
+                        },
+                        "mappromotiontokentimes": {
+                            "type": "array",
+                            "content": {
+                                "element": {
+                                    "type": "object",
+                                    "desc": "promotion key value",
+                                    "content": {
+                                        "key": {
+                                            "type": "uint",
+                                            "desc": "promotion key"
+                                        },
+                                        "value": {
+                                            "type": "uint",
+                                            "desc": "promotion value"
+                                        }
+                                    }
+                                }
+                            },
+                            "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]",
+                            "required": false
+                        }
+                    }
+                },
                 "isolated": {
                     "type": "bool",
                     "desc": "is isolated",
@@ -2804,6 +3072,10 @@
             {
                 "request": "{\"id\":2,\"method\":\"makeorigin\",\"jsonrpc\":\"2.0\",\"params\":{\"prev\":\"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0\",\"owner\":\"1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs\",\"amount\":1500,\"name\":\"test-fork\",\"symbol\":\"POW\",\"reward\":1,\"halvecycle\":0,\"isolated\":true,\"private\":false,\"enclosed\":true}}",
                 "response": "{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":{\"hash\":\"ade2a8f61082cc0b8e98581e013c52126989d5c15e5c4c6b882f76c98bc68025\",\"hex\":\"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574305a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b00004078bbc21e237d727a58de54e14a19d0244e9dd27ce7d55dfca891158913068185f3dc5b98d4e11500b7512bc8d0e8aa136b34f22f16c16be45e9650e15253980e\"}}"
+            },
+            {
+                "request": " makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0 defi  '{\"maxsupply\": 11, \"coinbasetype\": 1, \"mapcoinbasepercent\": [{\"height\": 10, \"percent\": 10}], \"decaycycle\": 12, \"decaypercent\":13, \"coinbasedecaypercent\": 11, \"initcoinbasepercent\": 15, \"rewardcycle\": 20, \"supplycycle\": 21, \"stakerewardpercent\": 26, \"promotionrewardpercent\": 21, \"stakemintoken\": 11, \"mappromotiontokentimes\": [{\"key\": 10, \"value\": 5}]}' -i -e -p",
+                "response": "{\"hash\" : \"327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a\",\"hex\" : \"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05\"}"
             }
         ],
         "error": [

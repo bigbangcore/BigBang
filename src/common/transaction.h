@@ -105,11 +105,13 @@ public:
     std::vector<uint8> vchSig;
     enum
     {
-        TX_TOKEN = 0x0000,   // normal Tx 0
-        TX_CERT = 0xff00,    // Enroll Tx 65280
-        TX_GENESIS = 0x0100, // 256
-        TX_STAKE = 0x0200,   // DPoS mint tx 512
-        TX_WORK = 0x0300     // PoW mint tx 768
+        TX_TOKEN = 0x0000,        // normal Tx 0
+        TX_CERT = 0xff00,         // Enroll Tx 65280
+        TX_GENESIS = 0x0100,      // 256
+        TX_STAKE = 0x0200,        // DPoS mint tx 512
+        TX_WORK = 0x0300,         // PoW mint tx 768
+        TX_DEFI_REWARD = 0x0001,  // DeFi reward tx
+        TX_DEFI_RELATION = 0x0002 // DeFi bind relation tx
     };
     CTransaction()
     {
@@ -138,18 +140,26 @@ public:
     {
         return (nType == TX_GENESIS || nType == TX_STAKE || nType == TX_WORK);
     }
+    bool IsDeFiRelation() const
+    {
+        return (nType == TX_DEFI_RELATION);
+    }
     std::string GetTypeString() const
     {
         if (nType == TX_TOKEN)
             return std::string("token");
-        if (nType == TX_CERT)
+        else if (nType == TX_CERT)
             return std::string("certification");
-        if (nType == TX_GENESIS)
+        else if (nType == TX_GENESIS)
             return std::string("genesis");
-        if (nType == TX_STAKE)
+        else if (nType == TX_STAKE)
             return std::string("stake");
-        if (nType == TX_WORK)
+        else if (nType == TX_WORK)
             return std::string("work");
+        else if (nType == TX_DEFI_REWARD)
+            return std::string("defi-reward");
+        else if (nType == TX_DEFI_RELATION)
+            return std::string("defi-relation");
         return std::string("undefined");
     }
     int64 GetTxTime() const

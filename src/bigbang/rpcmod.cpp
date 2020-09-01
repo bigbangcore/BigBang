@@ -37,19 +37,15 @@ const char* GetGitVersion();
 ///////////////////////////////
 // static function
 
-static int64 AmountFromValue(const double dAmount)
+static int64 AmountFromValue(const double dAmount, const bool fZero = false)
 {
     if (IsDoubleEqual(dAmount, -1.0))
     {
         return -1;
     }
 
-    if (dAmount <= 0.0 || dAmount > MAX_MONEY)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
-    }
     int64 nAmount = (int64)(dAmount * COIN + 0.5);
-    if (!MoneyRange(nAmount))
+    if ((!fZero && nAmount == 0) || !MoneyRange(nAmount))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
     }
@@ -138,7 +134,7 @@ static CWalletTxData WalletTxToJSON(const CWalletTx& wtx)
     data.strType = wtx.GetTypeString();
     data.nTime = (boost::int64_t)wtx.nTimeStamp;
     data.fSend = wtx.IsFromMe();
-    if (!wtx.IsMintTx())
+    if (!wtx.IsMintTx() && wtx.nType != CTransaction::TX_DEFI_REWARD)
     {
         data.strFrom = CAddress(wtx.destIn).ToString();
     }
@@ -286,6 +282,8 @@ CRPCMod::CRPCMod()
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
+        //
+        ("getdefirelation", &CRPCMod::RPCGetDeFiRelation)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -696,10 +694,42 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
         //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
         if (pForkManager->IsAllowed(vFork[i].first))
         {
-            spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
-                                             (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
-                                             profile.IsIsolated(), profile.IsPrivate(), profile.IsEnclosed(),
-                                             CAddress(profile.destOwner).ToString() });
+            CListForkResult::CProfile displayProfile;
+            displayProfile.strFork = vFork[i].first.GetHex();
+            displayProfile.strName = profile.strName;
+            displayProfile.strSymbol = profile.strSymbol;
+            displayProfile.dAmount = ValueFromAmount(profile.nAmount);
+            displayProfile.dReward = ValueFromAmount(profile.nMintReward);
+            displayProfile.nHalvecycle = (uint64)(profile.nHalveCycle);
+            displayProfile.fIsolated = profile.IsIsolated();
+            displayProfile.fPrivate = profile.IsPrivate();
+            displayProfile.fEnclosed = profile.IsEnclosed();
+            displayProfile.strOwner = CAddress(profile.destOwner).ToString();
+            displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "DeFi" : "Common";
+            displayProfile.defi.dMaxsupply = ValueFromAmount(profile.defi.nMaxSupply);
+            displayProfile.defi.nCoinbasetype = profile.defi.nCoinbaseType;
+            displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
+            displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
+            displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
+            displayProfile.defi.nPromotionrewardpercent = profile.defi.nPromotionRewardPercent;
+            displayProfile.defi.nRewardcycle = profile.defi.nRewardCycle;
+            displayProfile.defi.dStakemintoken = ValueFromAmount(profile.defi.nStakeMinToken);
+            displayProfile.defi.nStakerewardpercent = profile.defi.nStakeRewardPercent;
+            displayProfile.defi.nSupplycycle = profile.defi.nSupplyCycle;
+
+            for(const auto& kv : profile.defi.mapPromotionTokenTimes)
+            {
+                CListForkResult::CProfile::CDefi::CMappromotiontokentimes promotiontokentimes(kv.first, kv.second); 
+                displayProfile.defi.vecMappromotiontokentimes.push_back(promotiontokentimes);
+            }
+
+            for(const auto& kv : profile.defi.mapCoinbasePercent)
+            {
+                CListForkResult::CProfile::CDefi::CMapcoinbasepercent coinbasepercent(kv.first, kv.second);
+                displayProfile.defi.vecMapcoinbasepercent.push_back(coinbasepercent);
+            }
+
+            spResult->vecProfile.push_back(displayProfile);
         }
     }
 
@@ -1510,6 +1540,56 @@ CRPCResultPtr CRPCMod::RPCResyncWallet(CRPCParamPtr param)
     return MakeCResyncWalletResultPtr("Resync wallet successfully.");
 }
 
+CRPCResultPtr CRPCMod::RPCGetDeFiRelation(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetDeFiRelationParam>(param);
+
+    //getbalance (-f="fork") (-a="address")
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    if(hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "must be sub fork directly inherient from main fork");
+    }
+
+    CDestination Dest;
+    if (spParam->strAddress.IsValid())
+    {
+        CAddress address(spParam->strAddress);
+        if (address.IsNull())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+        }
+        Dest = address;
+    }
+    else
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+
+    auto spResult = MakeCGetDeFiRelationResultPtr();
+    CDestination parentDest;
+    if(pService->GetDeFiRelation(hashFork, Dest, parentDest))
+    {
+        spResult->strParent = CAddress(parentDest).ToString();   
+    }
+    else
+    {
+        spResult->strParent = "";
+    }
+    return spResult;
+
+}
+
 CRPCResultPtr CRPCMod::RPCGetBalance(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetBalanceParam>(param);
@@ -1615,6 +1695,12 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
+    uint16 nType = (uint16)spParam->nType;
+    if (nType != CTransaction::TX_TOKEN && nType != CTransaction::TX_DEFI_RELATION)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid tx type");
+    }
+
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
     uint256 hashFork;
@@ -1673,7 +1759,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nType, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
@@ -1766,6 +1852,12 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid to address");
     }
 
+    uint16 nType = (uint16)spParam->nType;
+    if (nType != CTransaction::TX_TOKEN && nType != CTransaction::TX_DEFI_RELATION)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid tx type");
+    }
+
     int64 nAmount = AmountFromValue(spParam->dAmount);
 
     uint256 hashFork;
@@ -1819,7 +1911,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
 
     CTransaction txNew;
-    auto strErr = pService->CreateTransaction(hashFork, from, to, nAmount, nTxFee, vchData, txNew);
+    auto strErr = pService->CreateTransaction(hashFork, from, to, nType, nAmount, nTxFee, vchData, txNew);
     if (strErr)
     {
         boost::format fmt = boost::format(" Balance: %1% TxFee: %2%") % balance.nAvailable % txNew.nTxFee;
@@ -2209,8 +2301,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner");
     }
 
-    int64 nAmount = AmountFromValue(spParam->dAmount);
-    int64 nMintReward = AmountFromValue(spParam->dReward);
+    int64 nAmount = AmountFromValue(spParam->dAmount, true);
+    int64 nMintReward = AmountFromValue(spParam->dReward, true);
     if (!RewardRange(nMintReward))
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid reward");
@@ -2263,7 +2355,148 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     profile.nMinTxFee = NEW_MIN_TX_FEE;
     profile.nHalveCycle = spParam->nHalvecycle;
     profile.SetFlag(spParam->fIsolated, spParam->fPrivate, spParam->fEnclosed);
+    
+    if(spParam->strForktype == "defi")
+    {
+        profile.nForkType = FORK_TYPE_DEFI;
+        if(nMintReward > 0)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork mint Reward must be zero");
+        }
 
+        if (hashParent != pCoreProtocol->GetGenesisBlockHash())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the direct child fork of main fork");
+        }
+        if (!profile.IsIsolated())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
+        }
+
+        profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
+        if (profile.defi.nMaxSupply >= 0)
+        {
+            try
+            {
+                profile.defi.nMaxSupply = AmountFromValue(profile.defi.nMaxSupply, true);
+            }
+            catch(...)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param maxsupply is out of range");
+            }
+        }
+
+        profile.defi.nRewardCycle = spParam->defi.nRewardcycle;
+        if (profile.defi.nRewardCycle <= 0 || profile.defi.nRewardCycle > 100 * YEAR_HEIGHT)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param rewardcycle must be [1, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
+        }
+
+        profile.defi.nSupplyCycle = spParam->defi.nSupplycycle;
+        if (profile.defi.nSupplyCycle <= 0 || profile.defi.nSupplyCycle > 100 * YEAR_HEIGHT)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param supplycycle must be [1, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
+        }
+
+        profile.defi.nCoinbaseType = spParam->defi.nCoinbasetype;
+        if(profile.defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
+        {
+            profile.defi.nDecayCycle = spParam->defi.nDecaycycle;
+            if (profile.defi.nDecayCycle < 0 || profile.defi.nDecayCycle > 100 * YEAR_HEIGHT)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param decayCycle must be [0, ") + to_string(100 * YEAR_HEIGHT) + "]").c_str());
+            }
+
+            profile.defi.nCoinbaseDecayPercent = spParam->defi.nCoinbasedecaypercent;
+            if (profile.defi.nCoinbaseDecayPercent > 100)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasedecaypercent must be [0, 100]");
+            }
+
+            profile.defi.nInitCoinbasePercent = spParam->defi.nInitcoinbasepercent;
+            if (profile.defi.nInitCoinbasePercent == 0 || profile.defi.nInitCoinbasePercent > 10000)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param initcoinbasepercent must be [1, 10000]");
+            }
+
+            if ((profile.defi.nDecayCycle / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != profile.defi.nDecayCycle)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param decaycycle must be divisible by supplycycle");
+            }
+
+        }
+        else if(profile.defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
+        {
+            if (spParam->defi.vecMapcoinbasepercent.size() == 0)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param mapcoinbasepercent is empty");
+            }
+
+            for(int i = 0; i < spParam->defi.vecMapcoinbasepercent.size(); i++)
+            {
+                const int32 key = spParam->defi.vecMapcoinbasepercent.at(i).nHeight;
+                if (key <= 0)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasepercent means height, must be larger than 0");
+                }
+                if ((key / profile.defi.nSupplyCycle) * profile.defi.nSupplyCycle != key)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param key of mapcoinbasePercent must be divisible by supplycycle");
+                }
+
+                const uint32 value = spParam->defi.vecMapcoinbasepercent.at(i).nPercent;  
+                if (value == 0)
+                {
+                    throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mapcoinbasepercent must be larger than 0");
+                }
+                profile.defi.mapCoinbasePercent.insert(std::make_pair(key, value));
+            }
+        } 
+        else
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param coinbasetype is out of range");
+        }
+
+        profile.defi.nStakeRewardPercent = spParam->defi.nStakerewardpercent;
+        profile.defi.nPromotionRewardPercent = spParam->defi.nPromotionrewardpercent;
+        if (profile.defi.nStakeRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param stakerewardpercent must be [0, 100]");
+        }
+        if (profile.defi.nPromotionRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param promotionrewardpercent must be [0, 100]");
+        }
+        if (profile.defi.nStakeRewardPercent + profile.defi.nPromotionRewardPercent > 100)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param (stakerewardpercent + promotionrewardpercent) must be [0, 100]");
+        }
+
+        try
+        {
+            profile.defi.nStakeMinToken = AmountFromValue(spParam->defi.nStakemintoken);
+        }
+        catch(...)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param stakemintoken is out of range");
+        }
+
+        for(int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i++)
+        {
+            const int64 key = spParam->defi.vecMappromotiontokentimes.at(i).nKey;
+            if (key <= 0 || key > ValueFromAmount(MAX_MONEY))
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param key of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
+            }
+            const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i).nValue;  
+            if (value == 0)
+            {
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mappromotiontokentimes is equal 0");
+            }
+            profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+        }
+    }
+    
     CBlock block;
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_ORIGIN;

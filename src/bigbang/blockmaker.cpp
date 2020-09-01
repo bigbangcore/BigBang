@@ -331,8 +331,56 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
-    int64 nTotalTxFee = 0;
+    CForkContext forkCtxt;
+    bool isDeFi = false;
+    if(pBlockChain->GetForkContext(hashFork, forkCtxt))
+    {
+        isDeFi = (forkCtxt.GetProfile().nForkType == FORK_TYPE_DEFI) ? true : false;
+    }
+
+    size_t nRestOfSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize();
+    size_t rewardTxSize = 0;
+    int64 nRewardTxTotalFee = 0;
+    if(isDeFi)
+    {
+        CTransaction txDefault;
+        txDefault.SetNull();
+        size_t txDefaultSize = GetSerializeSize(txDefault);
+        int32 nMaxTx = nRestOfSize /  txDefaultSize;
+
+        Debug("SHT ArrangeBlockTx will call pBlockChain->GetDeFiReward fork: %s, prev: %s, block: %s, max: %d", 
+            hashFork.ToString().c_str(), block.hashPrev.ToString().c_str(), block.GetHash().ToString().c_str(), nMaxTx);
+        list<CDeFiReward> rewards = pBlockChain->GetDeFiReward(hashFork, block.hashPrev, block.GetBlockHeight(), nMaxTx);
+        for(const auto& reward : rewards)
+        {
+            CTransaction txNew;
+            txNew.SetNull();
+            txNew.hashAnchor = reward.hashAnchor;
+            txNew.nType = CTransaction::TX_DEFI_REWARD;
+            txNew.nTimeStamp = block.GetBlockTime();
+            txNew.nLockUntil = 0;
+            txNew.sendTo = reward.dest;
+            txNew.nTxFee = NEW_MIN_TX_FEE;
+            txNew.nAmount = reward.nReward - txNew.nTxFee;
+            
+            if(rewardTxSize + GetSerializeSize(txNew) > nRestOfSize)
+            {
+                break;
+            }
+
+            Warn("defitest anchor height: %d, dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                CBlock::GetBlockHeightByHash(txNew.hashAnchor), CAddress(txNew.sendTo).ToString().c_str(),
+                reward.nReward, reward.nStakeReward, reward.nPromotionReward);
+            
+            //txNew.vchData = vchData;
+            block.vtx.push_back(txNew);
+            nRewardTxTotalFee += txNew.nTxFee;
+            rewardTxSize += GetSerializeSize(txNew);
+        }
+    }
+
+    size_t nMaxTxSize = nRestOfSize - rewardTxSize;
+    int64 nTotalTxFee = nRewardTxTotalFee;
     if (!pTxPool->ArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
         Error("ArrangeBlockTx error, block: %s", block.GetHash().ToString().c_str());
@@ -447,6 +495,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         bool fCreateExtendedTask = false;
         uint256 hashExtendedPrevBlock;
         int64 nExtendedPrevTime = 0;
+
         if (block.IsSubsidiary())
         {
             // query previous last extended block
@@ -835,8 +884,8 @@ void CBlockMaker::BlockMakerThreadFunc()
             nWaitTime = consParam.nWaitTime;
             continue;
         }
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        // StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
+        //          consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
 
         if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())

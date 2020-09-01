@@ -12,7 +12,7 @@
 #include "profile.h"
 #include "uint256.h"
 
-class CForkContext
+class COldForkContext
 {
     friend class xengine::CStream;
 
@@ -31,7 +31,6 @@ public:
     uint32 nHalveCycle;
     int nJointHeight;
     CDestination destOwner;
-
 public:
     enum
     {
@@ -39,11 +38,11 @@ public:
         FORK_FLAG_PRIVATE = (1 << 1),
         FORK_FLAG_ENCLOSED = (1 << 2),
     };
-    CForkContext()
+    COldForkContext()
     {
         SetNull();
     }
-    CForkContext(const uint256& hashForkIn, const uint256& hashJointIn, const uint256& txidEmbeddedIn,
+    COldForkContext(const uint256& hashForkIn, const uint256& hashJointIn, const uint256& txidEmbeddedIn,
                  const CProfile& profile)
     {
         hashFork = hashForkIn;
@@ -61,7 +60,7 @@ public:
         destOwner = profile.destOwner;
         nJointHeight = profile.nJointHeight;
     }
-    virtual ~CForkContext() = default;
+    virtual ~COldForkContext() = default;
     virtual void SetNull()
     {
         hashFork = 0;
@@ -124,6 +123,7 @@ public:
         profile.nHalveCycle = nHalveCycle;
         profile.destOwner = destOwner;
         profile.nJointHeight = nJointHeight;
+       
         return profile;
     }
 
@@ -145,6 +145,127 @@ protected:
         s.Serialize(nHalveCycle, opt);
         s.Serialize(nJointHeight, opt);
         s.Serialize(destOwner, opt);
+    }
+};
+
+
+class CForkContext : public COldForkContext
+{
+    friend class xengine::CStream;
+
+public:
+    int nForkType;
+    std::vector<unsigned char> vchDeFi;
+public:
+    enum
+    {
+        FORK_FLAG_ISOLATED = (1 << 0),
+        FORK_FLAG_PRIVATE = (1 << 1),
+        FORK_FLAG_ENCLOSED = (1 << 2),
+    };
+    CForkContext()
+    {
+        SetNull();
+    }
+    CForkContext(const uint256& hashForkIn, const uint256& hashJointIn, const uint256& txidEmbeddedIn,
+                 const CProfile& profile) : COldForkContext(hashForkIn, hashJointIn, txidEmbeddedIn, profile)
+    {
+        nForkType = profile.nForkType;
+        if(nForkType == FORK_TYPE_DEFI)
+        {
+            profile.defi.Save(vchDeFi);
+        }
+    }
+    virtual ~CForkContext() = default;
+    virtual void SetNull()
+    {
+        COldForkContext::SetNull();
+        nForkType = FORK_TYPE_COMMON;
+        vchDeFi.clear();
+    }
+    bool IsNull() const
+    {
+        return strName.empty();
+    }
+    bool IsIsolated() const
+    {
+        return (nFlag & FORK_FLAG_ISOLATED);
+    }
+    bool IsPrivate() const
+    {
+        return (nFlag & FORK_FLAG_PRIVATE);
+    }
+    bool IsEnclosed() const
+    {
+        return (nFlag & FORK_FLAG_ENCLOSED);
+    }
+    void SetFlag(uint16 flag)
+    {
+        nFlag |= flag;
+    }
+    void ResetFlag(uint16 flag)
+    {
+        nFlag &= ~flag;
+    }
+    void SetFlag(bool fIsolated, bool fPrivate, bool fEnclosed)
+    {
+        nFlag = 0;
+        nFlag |= (fIsolated ? FORK_FLAG_ISOLATED : 0);
+        nFlag |= (fPrivate ? FORK_FLAG_PRIVATE : 0);
+        nFlag |= (fEnclosed ? FORK_FLAG_ENCLOSED : 0);
+    }
+    const CProfile GetProfile() const
+    {
+        CProfile profile;
+        profile.strName = strName;
+        profile.strSymbol = strSymbol;
+        profile.hashParent = hashParent;
+        profile.nVersion = nVersion;
+        profile.nFlag = nFlag;
+        profile.nAmount = nAmount;
+        profile.nMintReward = nMintReward;
+        profile.nMinTxFee = nMinTxFee;
+        profile.nHalveCycle = nHalveCycle;
+        profile.destOwner = destOwner;
+        profile.nJointHeight = nJointHeight;
+        profile.nForkType = nForkType;
+        if(profile.nForkType == FORK_TYPE_DEFI)
+        {
+            CDeFiProfile defi;
+            defi.Load(vchDeFi);
+            profile.defi = defi;
+        }
+       
+        return profile;
+    }
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(strName, opt);
+        s.Serialize(strSymbol, opt);
+        s.Serialize(hashFork, opt);
+        s.Serialize(hashParent, opt);
+        s.Serialize(hashJoint, opt);
+        s.Serialize(txidEmbedded, opt);
+        s.Serialize(nVersion, opt);
+        s.Serialize(nFlag, opt);
+        s.Serialize(nAmount, opt);
+        s.Serialize(nMintReward, opt);
+        s.Serialize(nMinTxFee, opt);
+        s.Serialize(nHalveCycle, opt);
+        s.Serialize(nJointHeight, opt);
+        s.Serialize(destOwner, opt);
+        if(s.GetSize() > 0)
+        {
+            s.Serialize(nForkType, opt);
+            if(nForkType == FORK_TYPE_DEFI)
+            {
+                s.Serialize(vchDeFi, opt);
+            }
+        }
+        
     }
 };
 

@@ -380,7 +380,10 @@ public:
         o.push_back(value);
         fValid = true;
     }
-
+    T at(int index)
+    {
+        return o[index];
+    }
     inline typename std::vector<T>::const_iterator begin() const
     {
         return o.begin();

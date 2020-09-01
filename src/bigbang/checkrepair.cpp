@@ -1182,7 +1182,7 @@ bool CCheckForkTxPool::AddTx(const uint256& txid, const CAssembledTx& tx)
         StdError("check", "TxPool AddTx: Add unspent 0 fail, txid: %s.", txid.GetHex().c_str());
         return false;
     }
-    if (!tx.IsMintTx())
+    if (!tx.IsMintTx() && tx.nType != CTransaction::TX_DEFI_REWARD)
     {
         if (!Unspent(CTxOutPoint(txid, 1), tx.GetOutput(1)))
         {
@@ -1385,12 +1385,20 @@ bool CCheckBlockFork::AddBlockTx(const CTransaction& txIn, const CTxContxt& cont
         StdLog("check", "AddBlockTx: add block unspent 0 fail, txid: %s.", txid.GetHex().c_str());
         return false;
     }
-    if (!txIn.IsMintTx())
+    if (!txIn.IsMintTx() && txIn.nType != CTransaction::TX_DEFI_REWARD)
     {
         if (!AddBlockUnspent(CTxOutPoint(txid, 1), CTxOut(txIn, contxtIn.destIn, contxtIn.GetValueIn())))
         {
             StdLog("check", "AddBlockTx: add block unspent 1 fail, txid: %s.", txid.GetHex().c_str());
             return false;
+        }
+    }
+
+    if (txIn.IsDeFiRelation() && txIn.sendTo != contxtIn.destIn)
+    {
+        if (mapBlockAddress.find(contxtIn.destIn) == mapBlockAddress.end())
+        {
+            mapBlockAddress.insert(make_pair(contxtIn.destIn, CAddrInfo(CDestination(), txIn.sendTo, txid)));
         }
     }
     return true;
@@ -2604,6 +2612,36 @@ bool CCheckRepairData::FetchWalletTx()
     return true;
 }
 
+bool CCheckRepairData::FetchAddress()
+{
+    CAddressDB dbAddress;
+    if (!dbAddress.Initialize(path(strDataPath)))
+    {
+        StdError("check", "FetchAddress: dbAddress Initialize fail");
+        return false;
+    }
+
+    map<uint256, CCheckBlockFork>::iterator it = objBlockWalker.mapCheckFork.begin();
+    for (; it != objBlockWalker.mapCheckFork.end(); ++it)
+    {
+        if (!dbAddress.AddNewFork(it->first))
+        {
+            StdError("check", "FetchAddress: dbAddress AddNewFork fail.");
+            dbAddress.Deinitialize();
+            return false;
+        }
+        if (!dbAddress.WalkThrough(it->first, mapForkAddressWalker[it->first]))
+        {
+            StdError("check", "FetchAddress: dbAddress WalkThrough fail.");
+            dbAddress.Deinitialize();
+            return false;
+        }
+    }
+
+    dbAddress.Deinitialize();
+    return true;
+}
+
 bool CCheckRepairData::CheckBlockUnspent()
 {
     bool fCheckResult = true;
@@ -2615,6 +2653,85 @@ bool CCheckRepairData::CheckBlockUnspent()
             fCheckResult = false;
         }
     }
+    return fCheckResult;
+}
+
+bool CCheckRepairData::CheckBlockAddress()
+{
+    CAddressDB dbAddress;
+    if (!dbAddress.Initialize(path(strDataPath)))
+    {
+        StdError("check", "CheckBlockAddress: dbAddress Initialize fail");
+        return false;
+    }
+
+    bool fCheckResult = true;
+    map<uint256, CCheckBlockFork>::iterator mt = objBlockWalker.mapCheckFork.begin();
+    for (; mt != objBlockWalker.mapCheckFork.end(); ++mt)
+    {
+        const uint256& hashFork = mt->first;
+        vector<pair<CDestination, CAddrInfo>> vUpdateAddress;
+        vector<CDestination> vRemoveAddress;
+        {
+            CListAddressWalker& addrWalker = mapForkAddressWalker[hashFork];
+            for (auto it = addrWalker.mapAddress.begin(); it != addrWalker.mapAddress.end();)
+            {
+                if (mt->second.mapBlockAddress.find(it->first) == mt->second.mapBlockAddress.end())
+                {
+                    vRemoveAddress.push_back(it->first);
+                    addrWalker.mapAddress.erase(it++);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
+        {
+            CListAddressWalker& addrWalker = mapForkAddressWalker[hashFork];
+            for (const auto& vd : mt->second.mapBlockAddress)
+            {
+                auto nt = addrWalker.mapAddress.find(vd.first);
+                if (nt == addrWalker.mapAddress.end()
+                    || nt->second.destParent != vd.second.destParent
+                    || nt->second.txid != vd.second.txid)
+                {
+                    if (nt != addrWalker.mapAddress.end())
+                    {
+                        vRemoveAddress.push_back(vd.first); // Re add and construct root
+                    }
+                    vUpdateAddress.push_back(make_pair(vd.first, vd.second));
+                    addrWalker.mapAddress[vd.first] = vd.second;
+                }
+            }
+        }
+        if (!vUpdateAddress.empty() || !vRemoveAddress.empty())
+        {
+            if (fOnlyCheck)
+            {
+                fCheckResult = false;
+                StdLog("check", "CheckBlockAddress: Check fail, update: %lu, remove: %lu, fork: %s",
+                       vUpdateAddress.size(), vRemoveAddress.size(), hashFork.GetHex().c_str());
+            }
+            else
+            {
+                if (!dbAddress.AddNewFork(hashFork))
+                {
+                    StdLog("check", "dbAddress AddNewFork fail.");
+                    dbAddress.Deinitialize();
+                    return false;
+                }
+                if (!dbAddress.RepairAddress(hashFork, vUpdateAddress, vRemoveAddress))
+                {
+                    StdError("check", "CheckBlockAddress: RepairAddress fail, update: %lu, remove: %lu, fork: %s",
+                             vUpdateAddress.size(), vRemoveAddress.size(), hashFork.GetHex().c_str());
+                    return false;
+                }
+            }
+        }
+    }
+
+    dbAddress.Deinitialize();
     return fCheckResult;
 }
 
@@ -3047,6 +3164,13 @@ bool CCheckRepairData::CheckRepairData()
     }
     StdLog("check", "Fetch unspent success");
 
+    if (!FetchAddress())
+    {
+        StdLog("check", "Fetch address fail");
+        return false;
+    }
+    StdLog("check", "Fetch address success");
+
     if (!FetchTxPool())
     {
         StdLog("check", "Fetch txpool data fail");
@@ -3092,6 +3216,16 @@ bool CCheckRepairData::CheckRepairData()
     else
     {
         StdLog("check", "Check block unspent success");
+    }
+
+    StdLog("check", "Check block address starting");
+    if (!CheckBlockAddress())
+    {
+        StdLog("check", "Check block address fail");
+    }
+    else
+    {
+        StdLog("check", "Check block address success");
     }
 
     StdLog("check", "Check wallet tx starting");
