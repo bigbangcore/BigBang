@@ -101,7 +101,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = CBlock::BLOCK_VERSION;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575043200;
+    block.nTimeStamp = 1598497200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -677,7 +677,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 
     block.nVersion = CBlock::BLOCK_VERSION;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.nTimeStamp = 1575043200;
+    block.nTimeStamp = 1598497200;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;

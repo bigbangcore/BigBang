@@ -603,18 +603,17 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     }
 
     vector<uint8> vchSig;
-    if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
+    if (!tx.vchSig.empty())
     {
-        CTemplatePtr ptr = GetTemplate(tx.sendTo.GetTemplateId());
-        if (!ptr)
+        if (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_INCREASECOIN)
         {
-            Error("SignTransaction: GetTemplate fail, sendTo: %s, txid: %s",
-                  tx.sendTo.ToString().c_str(), tx.GetHash().GetHex().c_str());
-            return false;
-        }
-
-        if (!tx.vchSig.empty())
-        {
+            CTemplatePtr ptr = GetTemplate(tx.sendTo.GetTemplateId());
+            if (!ptr)
+            {
+                Error("SignTransaction: GetTemplate fail, sendTo: %s, txid: %s",
+                      tx.sendTo.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
             set<CDestination> setSubDest;
             if (!ptr->GetSignDestination(tx, tx.vchSig, setSubDest, vchSig))
             {
@@ -623,16 +622,16 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
                 return false;
             }
         }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
+        else
+        {
+            vchSig = tx.vchSig;
+        }
     }
 
     set<crypto::CPubKey> setSignedKey;
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
-        if (!SignDestination(destIn, tx, tx.GetSignatureHash(), vchSig, nForkHeight, setSignedKey, fCompleted))
+        if (!SignDestination(destIn, tx, tx.GetSignatureHash(), tx.vchSig, nForkHeight, setSignedKey, fCompleted))
         {
             Error("SignTransaction: SignDestination fail, destIn: %s, txid: %s",
                   destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
@@ -659,6 +658,7 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
     {
         tx.vchSig = move(vchSig);
     }
+
     return true;
 }
 
