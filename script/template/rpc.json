@@ -39,7 +39,6 @@
             }
         }
     },
-            
     "templaterequest": {
         "type": "class",
         "name": "TemplateRequest",
@@ -2936,7 +2935,9 @@
                         },
                         "decaycycle": {
                             "type": "int",
-                            "desc": "coinbase decay cycle in height"
+                            "desc": "coinbase decay cycle in height",
+                            "default": 0,
+                            "required": false
                         },
                         "mapcoinbasepercent": {
                             "type": "array",
@@ -2967,7 +2968,9 @@
                         },
                         "initcoinbasepercent": {
                             "type": "uint",
-                            "desc": "coinbase increasing ratio(%) per supply cycle in initialization"
+                            "desc": "coinbase increasing ratio(%) per supply cycle in initialization",
+                            "default": 0,
+                            "required": false
                         },
                         "rewardcycle": {
                             "type": "int",
@@ -3354,9 +3357,7 @@
                 "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0.01\"}\n"
             }
         ],
-        "error": [
-            
-        ]
+        "error": []
     },
     "listunspent": {
         "type": "command",
