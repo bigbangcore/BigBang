@@ -466,7 +466,7 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
                 return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nDecayCycle must be divisible by nSupplyCycle");
             }
         }
-        else if (defi.nCoinbaseType == FIXED_DEFI_COINBASE_TYPE)
+        else if (defi.nCoinbaseType == SPECIFIC_DEFI_COINBASE_TYPE)
         {
             if (defi.mapCoinbasePercent.size() == 0)
             {
@@ -508,7 +508,7 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi param nStakeMinToken is out of range");
         }
-        for (auto& times: defi.mapPromotionTokenTimes)
+        for (auto& times : defi.mapPromotionTokenTimes)
         {
             if (times.first <= 0 || times.first > (MAX_MONEY / COIN))
             {
