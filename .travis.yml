@@ -5,9 +5,6 @@ sudo: required
 
 dist: bionic # ubuntu 18.04
 
-#os:
- # - linux
-
 compiler:
 - gcc
 - clang
@@ -78,9 +75,9 @@ before_script:
 - ulimit -c unlimited -S       # enable core dumps
 
 script:
-- ./INSTALL.sh 
+- ./INSTALL.sh
 - ./build/test/test_big
 - ./build/test/test_ctsdb
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i libsodium-1.0.18 -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test . ;
+    cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i libsodium-1.0.18 -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test -i paho.mqtt.c -i src/mqtt . ;
   fi
