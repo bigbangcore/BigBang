@@ -71,6 +71,7 @@ install:
     cd /usr/local/include/mqtt;
     sudo chmod 644 *;
     cd -;
+    cd ../..;
   fi
 
 before_script:
