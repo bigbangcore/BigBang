@@ -54,7 +54,8 @@ public:
         nLastBlockTime(0),
         nLastBlockHeight(-1),
         nMoneySupply(0),
-        nMintType(-1)
+        nMintType(-1),
+        nWeight(0)
     {
     }
 
