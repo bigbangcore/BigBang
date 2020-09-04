@@ -20,6 +20,7 @@ branches:
   only:
   - master
   - mkf-master
+  - supernode-dpos-nilextend
 
 matrix:
   exclude:
