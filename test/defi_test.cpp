@@ -2,14 +2,13 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "profile.h"
-#include "forkcontext.h"
-#include "defi.h"
-#include "param.h"
-
 #include <boost/test/unit_test.hpp>
 #include <map>
 
+#include "defi.h"
+#include "forkcontext.h"
+#include "param.h"
+#include "profile.h"
 #include "test_big.h"
 
 using namespace std;
@@ -18,7 +17,6 @@ using namespace bigbang;
 using namespace storage;
 
 BOOST_FIXTURE_TEST_SUITE(defi_tests, BasicUtfSetup)
-
 
 BOOST_AUTO_TEST_CASE(common_profile)
 {
@@ -29,7 +27,7 @@ BOOST_AUTO_TEST_CASE(common_profile)
     profile.nMinTxFee = 100;
     profile.nMintReward = 1000;
     profile.nAmount = 100000;
-    
+
     std::vector<uint8> vchProfile;
     BOOST_CHECK(profile.Save(vchProfile));
 
@@ -38,11 +36,10 @@ BOOST_AUTO_TEST_CASE(common_profile)
     {
         BOOST_CHECK(profileLoad.Load(vchProfile));
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         BOOST_FAIL(e.what());
     }
-    
 
     BOOST_CHECK(profileLoad.strName == profile.strName);
     BOOST_CHECK(profileLoad.strSymbol == profile.strSymbol);
@@ -89,7 +86,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.defi.mapPromotionTokenTimes.insert(std::make_pair(11, 12));
     profile.defi.mapCoinbasePercent.insert(std::make_pair(5, 10));
     profile.defi.mapCoinbasePercent.insert(std::make_pair(15, 11));
-    
+
     std::vector<uint8> vchProfile;
     BOOST_CHECK(profile.Save(vchProfile));
 
@@ -98,11 +95,10 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     {
         BOOST_CHECK(profileLoad.Load(vchProfile));
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         BOOST_FAIL(e.what());
     }
-    
 
     BOOST_CHECK(profileLoad.strName == profile.strName);
     BOOST_CHECK(profileLoad.strSymbol == profile.strSymbol);
@@ -150,7 +146,6 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(forkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() == profile.defi.mapPromotionTokenTimes.size());
     BOOST_CHECK(forkContextRead.GetProfile().defi.mapCoinbasePercent.size() == profile.defi.mapCoinbasePercent.size());
 
-
     COldForkContext oldForkContextWrite(uint256(), uint256(), uint256(), profile);
     CBufStream ssFork;
     ssFork << oldForkContextWrite;
@@ -175,7 +170,6 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nStakeRewardPercent != profile.defi.nStakeRewardPercent);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.mapPromotionTokenTimes.size() != profile.defi.mapPromotionTokenTimes.size());
     BOOST_CHECK(newForkContextRead.GetProfile().defi.mapCoinbasePercent.size() != profile.defi.mapCoinbasePercent.size());
-
 }
 
 static void RandGeneretor256(uint8_t* p)
@@ -191,25 +185,24 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
     {
         CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
         CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
-        
+
         srand(time(0));
         uint8_t md32[32];
         RandGeneretor256(md32);
         std::map<CDestination, CAddrInfo> mapAddressTree{
-            {A1, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32))}
+            { A1, CAddrInfo(CDestination(), A, uint256((uint64_t*)md32)) }
         };
-        
+
         CDeFiRelationGraph defiGraph;
         BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
     }
-
 
     {
         CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
         CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
         CAddress A2("1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q");
         CAddress A3("1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq");
-        
+
         srand(time(0));
         uint8_t md32[32];
         RandGeneretor256(md32);
@@ -222,7 +215,7 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
         BOOST_CHECK(defiGraph.setRoot.size() == 1);
     }
-    
+
     {
         CAddress A("1w8ehkb2jc0qcn7wze3tv8enzzwmytn9b7n7gghwfa219rv1vhhd82n6h");
         CAddress A1("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");
@@ -234,7 +227,7 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         CAddress AAA111("18f2dv1vc6nv2xj7ak0e0yye4tx77205f5j73ep2a7a5w6szhjexkd5mj");
         CAddress AAA221("1yy76yav5mnah0jzew049a6gp5bs2ns67xzfvcengjkpqyymfb4n6vrda");
         CAddress AAA222("1g03a0775sbarkrazjrs7qymdepbkn3brn7375p7ysf0tnrcx408pj03n");
-        
+
         srand(time(0));
         uint8_t md32[32];
         RandGeneretor256(md32);
@@ -248,7 +241,7 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         mapAddressTree.insert(std::make_pair(AA22, CAddrInfo(CDestination(), A2, uint256((uint64_t*)md32))));
         mapAddressTree.insert(std::make_pair(AAA221, CAddrInfo(CDestination(), AA22, uint256((uint64_t*)md32))));
         mapAddressTree.insert(std::make_pair(AAA222, CAddrInfo(CDestination(), AA22, uint256((uint64_t*)md32))));
-        
+
         CDeFiRelationGraph defiGraph;
         BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
         BOOST_CHECK(defiGraph.setRoot.size() == 1);
@@ -272,7 +265,7 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         CAddress B2("1m73jrn8np6ny50g3xr461yys6x3rme4yf1t7t9xa464v6n6p84ppzxa2");
         CAddress B3("1q284qfnpasxmkytpv5snda5ptqbpjxa9ryp2re0j1527qncmg38z7ar1");
         CAddress B4("134btp09511w3bnr1qq4de6btdkxkbp2y5x3zmr09g0m9hfn9frsa1k2f");
-        
+
         srand(time(0));
         uint8_t md32[32];
         RandGeneretor256(md32);
@@ -290,7 +283,7 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         mapAddressTree.insert(std::make_pair(B2, CAddrInfo(CDestination(), B, uint256((uint64_t*)md32))));
         mapAddressTree.insert(std::make_pair(B3, CAddrInfo(CDestination(), B, uint256((uint64_t*)md32))));
         mapAddressTree.insert(std::make_pair(B4, CAddrInfo(CDestination(), B, uint256((uint64_t*)md32))));
-        
+
         CDeFiRelationGraph defiGraph;
         BOOST_CHECK(defiGraph.ConstructRelationGraph(mapAddressTree) == true);
         BOOST_CHECK(defiGraph.setRoot.size() == 2);
@@ -302,7 +295,6 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
         BOOST_CHECK(defiGraph.setRoot.find(B3) == defiGraph.setRoot.end());
         BOOST_CHECK(defiGraph.setRoot.find(AA22) == defiGraph.setRoot.end());
     }
-
 }
 
 BOOST_AUTO_TEST_CASE(reward)
@@ -349,7 +341,7 @@ BOOST_AUTO_TEST_CASE(reward)
     profile2.nForkType = FORK_TYPE_DEFI;
     profile2.defi.nMaxSupply = 1000000000 * COIN;
     profile2.defi.nCoinbaseType = SPECIFIC_DEFI_COINBASE_TYPE;
-    profile2.defi.mapCoinbasePercent = { {259200, 10}, {777600, 8}, {1814400, 5}, {3369600, 3}, {5184000, 2} };
+    profile2.defi.mapCoinbasePercent = { { 259200, 10 }, { 777600, 8 }, { 1814400, 5 }, { 3369600, 3 }, { 5184000, 2 } };
     profile2.defi.nRewardCycle = 1440;
     profile2.defi.nSupplyCycle = 43200;
     profile2.defi.nStakeMinToken = 100 * COIN;
@@ -419,8 +411,8 @@ BOOST_AUTO_TEST_CASE(reward)
     map<CDestination, int64> reward;
     map<CDestination, int64> balance;
     balance = map<CDestination, int64>{
-        {A, 0},
-        {B, 100 * COIN},
+        { A, 0 },
+        { B, 100 * COIN },
     };
     reward = r.ComputeStakeReward(profile1.defi.nStakeMinToken, nReward, balance);
     BOOST_CHECK(reward.size() == 1);
@@ -429,10 +421,10 @@ BOOST_AUTO_TEST_CASE(reward)
 
     // a1 = 1/5, a11 = 3/5, a111 = 1/5
     balance = map<CDestination, int64>{
-        {A, 0},
-        {a1, 100 * COIN},
-        {a11, 1000 * COIN},
-        {a111, 100 * COIN},
+        { A, 0 },
+        { a1, 100 * COIN },
+        { a11, 1000 * COIN },
+        { a111, 100 * COIN },
     };
     reward = r.ComputeStakeReward(profile1.defi.nStakeMinToken, nReward, balance);
     BOOST_CHECK(reward.size() == 3);
@@ -444,40 +436,40 @@ BOOST_AUTO_TEST_CASE(reward)
     BOOST_CHECK(it != reward.end() && it->second == 963483875);
 
     // test promotion reward
-    balance = map<CDestination, int64> {
-        {A, 10000 * COIN},
-        {a1, 100000 * COIN},
-        {a11, 100000 * COIN},
-        {a111, 100000 * COIN},
-        {a2, 1 * COIN},
-        {a21, 1 * COIN},
-        {a22, 12000 * COIN},
-        {a221, 18000 * COIN},
-        {a222, 5000 * COIN},
-        {a3, 1000000 * COIN},
-        {B, 10000 * COIN},
-        {b1, 10000 * COIN},
-        {b2, 11000 * COIN},
-        {b3, 5000 * COIN},
-        {b4, 50000 * COIN},
-        {C, 19568998 * COIN},
+    balance = map<CDestination, int64>{
+        { A, 10000 * COIN },
+        { a1, 100000 * COIN },
+        { a11, 100000 * COIN },
+        { a111, 100000 * COIN },
+        { a2, 1 * COIN },
+        { a21, 1 * COIN },
+        { a22, 12000 * COIN },
+        { a221, 18000 * COIN },
+        { a222, 5000 * COIN },
+        { a3, 1000000 * COIN },
+        { B, 10000 * COIN },
+        { b1, 10000 * COIN },
+        { b2, 11000 * COIN },
+        { b3, 5000 * COIN },
+        { b4, 50000 * COIN },
+        { C, 19568998 * COIN },
     };
 
     map<CDestination, CAddrInfo> mapAddress;
     mapAddress = map<CDestination, CAddrInfo>{
-        {a1, CAddrInfo(A, A, uint256(1))},
-        {a11, CAddrInfo(A, a1, uint256(1))},
-        {a111, CAddrInfo(A, a11, uint256(1))},
-        {a2, CAddrInfo(A, A, uint256(1))},
-        {a21, CAddrInfo(A, a2, uint256(1))},
-        {a22, CAddrInfo(A, a2, uint256(1))},
-        {a221, CAddrInfo(A, a22, uint256(1))},
-        {a222, CAddrInfo(A, a22, uint256(1))},
-        {a3, CAddrInfo(A, A, uint256(1))},
-        {b1, CAddrInfo(B, B, uint256(1))},
-        {b2, CAddrInfo(B, B, uint256(1))},
-        {b3, CAddrInfo(B, B, uint256(1))},
-        {b4, CAddrInfo(B, B, uint256(1))},
+        { a1, CAddrInfo(A, A, uint256(1)) },
+        { a11, CAddrInfo(A, a1, uint256(1)) },
+        { a111, CAddrInfo(A, a11, uint256(1)) },
+        { a2, CAddrInfo(A, A, uint256(1)) },
+        { a21, CAddrInfo(A, a2, uint256(1)) },
+        { a22, CAddrInfo(A, a2, uint256(1)) },
+        { a221, CAddrInfo(A, a22, uint256(1)) },
+        { a222, CAddrInfo(A, a22, uint256(1)) },
+        { a3, CAddrInfo(A, A, uint256(1)) },
+        { b1, CAddrInfo(B, B, uint256(1)) },
+        { b2, CAddrInfo(B, B, uint256(1)) },
+        { b3, CAddrInfo(B, B, uint256(1)) },
+        { b4, CAddrInfo(B, B, uint256(1)) },
     };
 
     CDeFiRelationGraph relation;
@@ -497,6 +489,16 @@ BOOST_AUTO_TEST_CASE(reward)
     BOOST_CHECK(it != reward.end() && it->second == 295225626);
     it = reward.find(B);
     BOOST_CHECK(it != reward.end() && it->second == 1481480742);
+
+    // test all reward
+    nReward = r.GetSectionReward(forkid2, uint256(1591, uint224(0)));
+    cout << "first section reward: " << nReward << endl;
+    CDeFiRelationGraph relationReward;
+    reward = r.ComputePromotionReward(nReward / 2, balance, profile2.defi.mapPromotionTokenTimes, relationReward);
+    for (auto& x : reward)
+    {
+        cout << "promotion reward, destination: " << CAddress(x.first).ToString() << ", reward: " << x.second << endl;
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
