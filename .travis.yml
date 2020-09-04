@@ -20,7 +20,6 @@ branches:
   only:
   - master
   - mkf-master
-  - supernode-dpos-nilextend
 
 matrix:
   exclude:
@@ -61,6 +60,16 @@ install:
     make -j2;
     sudo make install;
     cd ../;
+    git clone https://github.com/eclipse/paho.mqtt.c.git
+    cd paho.mqtt.c
+    git checkout v1.3.1
+    mkdir build && cd build
+    cmake -DPAHO_BUILD_STATIC=TRUE -DPAHO_WITH_SSL=TRUE ..
+    sudo make install
+    sudo cp -r  ${TRAVIS_BUILD_DIR}/src/mqtt/src/mqtt/ /usr/local/include/
+    sudo chmod 755 /usr/local/include/mqtt
+    cd /usr/local/include/mqtt
+    sudo chmod 644 *
   fi
 
 before_script:
