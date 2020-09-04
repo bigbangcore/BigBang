@@ -587,7 +587,7 @@ bool CMQCluster::PostBlockRequest(int syncHeight)
     return true;
 }
 
-bool CMQCluster::PostBizForkAssign(const std::string& topic, CAssignBizFork assign)
+bool CMQCluster::PostBizForkAssign(const std::string& topic, const CAssignBizFork& assign)
 {
     CBufferPtr spSS(new CBufStream);
     *spSS.get() << assign;

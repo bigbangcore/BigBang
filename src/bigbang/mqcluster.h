@@ -171,7 +171,7 @@ protected:
 
 private:
     bool PostBlockRequest(int syncHeight = -1);
-    bool PostBizForkAssign(const std::string& topic, CAssignBizFork assign);
+    bool PostBizForkAssign(const std::string& topic, const CAssignBizFork& assign);
     bool AppendSendQueue(const std::string& topic, CBufferPtr payload);
     void FetchBlock(bool fObliged, int syncHeight);
     void RequestBlockTimerFunc(uint32 nTimer);

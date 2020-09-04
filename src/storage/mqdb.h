@@ -50,8 +50,8 @@ public:
     int8 nodeCat;
 
 public:
-    CSuperNode(std::string id = std::string(), uint32 ip = 0,
-               std::vector<uint256> forks = std::vector<uint256>(), int8 cat = 0)
+    CSuperNode(const std::string& id = std::string(), uint32 ip = 0,
+               const std::vector<uint256>& forks = std::vector<uint256>(), int8 cat = 0)
       : superNodeID(id),
         ipAddr(ip),
         vecOwnedForks(forks),
