@@ -33,6 +33,7 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    nNodeCat = 0;
     pMQCluster = nullptr;
 }
 

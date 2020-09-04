@@ -66,6 +66,7 @@ CBlockMaker::CBlockMaker()
     thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this)),
     thrBizFork("bizmaker", boost::bind(&CBlockMaker::BizForkThreadFunc, this))
 {
+    nNodeCat = 0;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pForkManager = nullptr;
@@ -463,9 +464,9 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
         int64 nSeconds = it->first - GetNetTime();
         const uint256 hashFork = it->second.first;
         CBlock block = it->second.second;
-        mapBlocks.erase(it);
         Log("subfork: reftime-waittime[%ld]-[%ld] fork[%s] mapBlocks.size[%d]",
             it->first, nSeconds, hashFork.ToString().c_str(), mapBlocks.size());
+        mapBlocks.erase(it);
 
         if (!WaitExit(nSeconds))
         {
