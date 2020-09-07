@@ -45,6 +45,17 @@ install:
     brew update;
     brew install cmake pkg-config openssl boost libsodium readline protobuf ncurses;
     export OPENSSL_ROOT_DIR=`brew --prefix openssl`;
+    git clone https://github.com/eclipse/paho.mqtt.c.git;
+    cd paho.mqtt.c;
+    git checkout v1.3.1;
+    mkdir build && cd build;
+    cmake -DPAHO_BUILD_STATIC=TRUE -DPAHO_WITH_SSL=TRUE ..;
+    sudo make install;
+    sudo mkdir /usr/local/include/mqtt/;
+    sudo chmod 755 /usr/local/include/mqtt/;
+    sudo cp ${TRAVIS_BUILD_DIR}/src/mqtt/src/mqtt/* /usr/local/include/mqtt/;
+    sudo chmod 644 /usr/local/include/mqtt/*;
+    cd ../;
   else
     sudo apt-get update -qq;
     sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libprotobuf-dev protobuf-compiler libncurses5-dev autoconf;
