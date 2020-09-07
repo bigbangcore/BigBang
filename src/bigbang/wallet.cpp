@@ -37,10 +37,17 @@ public:
     }
     bool WalkTemplate(const CTemplateId& tid, const std::vector<unsigned char>& vchData) override
     {
-        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(tid.GetType(), vchData);
-        if (ptr)
+        if (vchData.empty())
         {
-            return pWallet->LoadTemplate(ptr);
+            return pWallet->LoadTemplate(tid);
+        }
+        else
+        {
+            CTemplatePtr ptr = CTemplate::CreateTemplatePtr(tid.GetType(), vchData);
+            if (ptr)
+            {
+                return pWallet->LoadTemplate(ptr);
+            }
         }
         return false;
     }
@@ -446,6 +453,11 @@ bool CWallet::LoadTemplate(CTemplatePtr ptr)
     return false;
 }
 
+bool CWallet::LoadTemplate(const CTemplateId& tid)
+{
+    return mapTemplatePtr.insert(make_pair(tid, nullptr)).second;
+}
+
 void CWallet::GetTemplateIds(set<CTemplateId>& setTemplateId) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
@@ -468,11 +480,23 @@ bool CWallet::AddTemplate(CTemplatePtr& ptr)
     if (ptr != nullptr)
     {
         CTemplateId tid = ptr->GetTemplateId();
-        if (mapTemplatePtr.insert(make_pair(tid, ptr)).second)
+        auto it = mapTemplatePtr.find(tid);
+        if (it == mapTemplatePtr.end() || it->second == nullptr)
         {
+            mapTemplatePtr[tid] = ptr;
             const vector<unsigned char>& vchData = ptr->GetTemplateData();
             return dbWallet.UpdateTemplate(tid, vchData);
         }
+    }
+    return false;
+}
+
+bool CWallet::AddTemplate(const CTemplateId& tid)
+{
+    boost::unique_lock<boost::shared_mutex> wlock(rwKeyStore);
+    if (mapTemplatePtr.insert(make_pair(tid, nullptr)).second)
+    {
+        return dbWallet.UpdateTemplate(tid, vector<unsigned char>());
     }
     return false;
 }

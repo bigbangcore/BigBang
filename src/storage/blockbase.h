@@ -278,6 +278,8 @@ public:
     bool CheckConsistency(int nCheckLevel, int nCheckDepth);
     bool CheckInputSingleAddressForTxWithChange(const uint256& txid);
     bool ListForkUnspent(const uint256& hashFork, const CDestination& dest, uint32 nMax, std::vector<CTxUnspent>& vUnspent);
+    bool RecordRollback(const std::vector<CBlockEx>& vBlockAddNew, const std::vector<CBlockEx>& vBlockRemove);
+    bool RecordRemove(const CBlockEx& block);
     bool ListForkUnspentBatch(const uint256& hashFork, uint32 nMax, std::map<CDestination, std::vector<CTxUnspent>>& mapUnspent);
     bool ListForkAllAddressAmount(const uint256& hashFork, CBlockView& view, std::map<CDestination, int64>& mapAddressAmount);
     bool AddDeFiRelation(const uint256& hashFork, CBlockView& view);

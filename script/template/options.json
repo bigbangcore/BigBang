@@ -287,7 +287,8 @@
             "default": "1440",
             "format": "-chkdpth=<n>",
             "desc": "Set storage check depth (default: 1440, range=0-n)"
-        },        {
+        },
+        {
             "name": "strRecoveryDir",
             "type": "string",
             "opt": "recoverydir",

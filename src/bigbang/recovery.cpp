@@ -15,14 +15,14 @@ using namespace boost::filesystem;
 namespace bigbang
 {
 
-class CRecoveryWalker : public storage::CTSWalker<CBlockEx>
+class CRecoveryWalker : public storage::CTSWalker<CBlockChange>
 {
 public:
     CRecoveryWalker(IDispatcher* pDispatcherIn, const size_t nSizeIn)
       : pDispatcher(pDispatcherIn), nSize(nSizeIn), nNextSize(nSizeIn / 100), nWalkedFileSize(0) {}
-    bool Walk(const CBlockEx& t, uint32 nFile, uint32 nOffset) override
+    bool Walk(const CBlockChange& t, uint32 nFile, uint32 nOffset) override
     {
-        if (!t.IsGenesis())
+        if (t.nOperator == CBlockChange::BLOCK_CHANGE_ADD && !t.IsGenesis())
         {
             Errno err = pDispatcher->AddNewBlock(t);
             if (err == OK)

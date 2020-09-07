@@ -243,7 +243,8 @@
                         "type": "string",
                         "desc": "owner address"
                     }
-                }
+                },
+                "required": false
             },
             "vote": {
                 "type": "object",
@@ -273,7 +274,8 @@
                         "type": "string",
                         "desc": "fork hash"
                     }
-                }
+                },
+                "required": false
             },
             "mint": {
                 "type": "object",
@@ -288,7 +290,8 @@
                         "type": "string",
                         "desc": "spent address"
                     }
-                }
+                },
+                "required": false
             },
             "multisig": {
                 "type": "object",
@@ -308,7 +311,8 @@
                             }
                         }
                     }
-                }
+                },
+                "required": false
             },
             "exchange": {
                 "type": "object",
@@ -339,7 +343,8 @@
                         "type": "string",
                         "desc": "fork s"
                     }
-                }
+                },
+                "required": false
             },
             "payment": {
                 "type": "object",
@@ -391,7 +396,8 @@
                             }
                         }
                     }
-                }
+                },
+                "required": false
             }
         }
     },
@@ -2136,6 +2142,40 @@
         "error": [
             "{\"code\":-6,\"message\":\"Invalid address\"}",
             "{\"code\":-401,\"message\":\"Unkown template\"}"
+        ]
+    },
+    "importtemplateaddress": {
+        "type": "command",
+        "name": "ImportTemplateAddress",
+        "desc": "Import a template address only.",
+        "request": {
+            "type": "object",
+            "content": {
+                "addr": {
+                    "type": "string",
+                    "desc": "template address"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "address",
+            "desc": "template address"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli importtemplate 0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402",
+                "response": "21w2040000000000000000000000000000000000000000000000epcek"
+            },
+            {
+                "request": "curl -d '{\"id\":52,\"method\":\"importtemplate\",\"jsonrpc\":\"2.0\",\"params\":{\"data\":\"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":52,\"jsonrpc\":\"2.0\",\"result\":\"21w2040000000000000000000000000000000000000000000000epcek\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parameters,failed to make template\"}",
+            "{\"code\":-401,\"message\":\"Failed to add template\"}",
+            "{\"code\":-401,\"message\":\"Failed to sync wallet tx\"}"
         ]
     },
     "validateaddress": {

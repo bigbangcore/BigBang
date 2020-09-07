@@ -464,4 +464,36 @@ public:
     std::vector<uint256> vBlockHash;
 };
 
+class CBlockChange : public CBlockEx
+{
+    friend class xengine::CStream;
+
+public:
+    uint8 nOperator;
+    enum
+    {
+        BLOCK_CHANGE_REMOVE = 0x00,
+        BLOCK_CHANGE_ADD = 0x01,
+    };
+
+public:
+    CBlockChange() {}
+    CBlockChange(const CBlockEx& block, const uint8 nOperatorIn)
+      : CBlockEx(block), nOperator(nOperatorIn)
+    {
+    }
+    CBlockChange(const CBlock& block, const uint8 nOperatorIn)
+      : CBlockEx(block), nOperator(nOperatorIn)
+    {
+    }
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        CBlockEx::Serialize(s, opt);
+        s.Serialize(nOperator, opt);
+    }
+};
+
 #endif //COMMON_BLOCK_H

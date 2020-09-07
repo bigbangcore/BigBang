@@ -146,9 +146,11 @@ public:
     bool Sign(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig) override;
     /* Template */
     bool LoadTemplate(CTemplatePtr ptr);
+    bool LoadTemplate(const CTemplateId& tid);
     void GetTemplateIds(std::set<CTemplateId>& setTemplateId) const override;
     bool Have(const CTemplateId& tid) const override;
     bool AddTemplate(CTemplatePtr& ptr) override;
+    bool AddTemplate(const CTemplateId& tid) override;
     CTemplatePtr GetTemplate(const CTemplateId& tid) const override;
     /* Destination */
     void GetDestinations(std::set<CDestination>& setDest);
@@ -281,6 +283,10 @@ public:
         return false;
     }
     virtual bool AddTemplate(CTemplatePtr& ptr) override
+    {
+        return false;
+    }
+    virtual bool AddTemplate(const CTemplateId& tid) override
     {
         return false;
     }
