@@ -8,6 +8,7 @@
 #include <future>
 #include <thread>
 
+#include "defs.h"
 #include "event.h"
 
 using namespace std;
@@ -32,6 +33,8 @@ CDispatcher::CDispatcher()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    nNodeCat = 0;
+    pMQCluster = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -106,6 +109,17 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
     strCmd = dynamic_cast<const CBasicConfig*>(Config())->strBlocknotify;
+
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (!GetObject("mqcluster", pMQCluster))
+        {
+            Error("Failed to request mqcluster");
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -122,6 +136,7 @@ void CDispatcher::HandleDeinitialize()
     pNetChannel = nullptr;
     pDelegatedChannel = nullptr;
     pDataStat = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -129,7 +144,7 @@ bool CDispatcher::HandleInvoke()
     vector<uint256> vActive;
     if (!pForkManager->LoadForkContext(vActive))
     {
-        Error("Failed to load for context");
+        Error("Failed to load fork context");
         return false;
     }
 
@@ -353,31 +368,37 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     }
 
     CDelegateRoutine routineDelegate;
-    pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
-
-    pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
-                                     routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
-                                     routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
-
-    for (const CTransaction& tx : routineDelegate.vEnrollTx)
+    if (NODE_CAT_DPOSNODE == nNodeCat)
     {
-        if (tx.vInput.size() == 0)
+        pConsensus->PrimaryUpdate(updateBlockChain, changeTxSet, routineDelegate);
+
+        pDelegatedChannel->PrimaryUpdate(updateBlockChain.nLastBlockHeight - updateBlockChain.vBlockAddNew.size(),
+                                         routineDelegate.vEnrolledWeight, routineDelegate.vDistributeData,
+                                         routineDelegate.mapPublishData, routineDelegate.hashDistributeOfPublish);
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat && !routineDelegate.vEnrollTx.empty())
+    {
+        for (const CTransaction& tx : routineDelegate.vEnrollTx)
         {
-            Error("Send DelegateTx: tx.vInput.size() == 0.");
-            continue;
-        }
-        Errno err = AddNewTx(tx, nNonce);
-        if (err == OK)
-        {
-            Log("Send DelegateTx success, txid: %s, previd: %s.",
-                tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
-        }
-        else
-        {
-            Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
-                err, ErrorString(err), tx.GetHash().GetHex().c_str(),
-                tx.vInput[0].prevout.hash.GetHex().c_str());
+            if (tx.vInput.size() == 0)
+            {
+                Error("Send DelegateTx: tx.vInput.size() == 0.");
+                continue;
+            }
+            Errno err = AddNewTx(tx, nNonce);
+            if (err == OK)
+            {
+                Log("Send DelegateTx success, txid: %s, previd: %s.",
+                    tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
+            else
+            {
+                Log("Send DelegateTx fail, err: [%d] %s, txid: %s, previd: %s.",
+                    err, ErrorString(err), tx.GetHash().GetHex().c_str(),
+                    tx.vInput[0].prevout.hash.GetHex().c_str());
+            }
         }
     }
 
@@ -400,6 +421,31 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
     if (!pCoreProtocol->IsRefVacantHeight(updateBlockChain.nLastBlockHeight - 1))
     {
         SyncForkHeight(updateBlockChain.nLastBlockHeight);
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat && !updateBlockChain.vBlockRemove.empty())
+    {
+        CEventMQChainUpdate* pMqChainUpdate = new CEventMQChainUpdate(0);
+        if (pMqChainUpdate != nullptr)
+        {
+            pMqChainUpdate->data.actRollBackLen = updateBlockChain.vBlockRemove.size();
+            pMqChainUpdate->data.vShort.reserve(updateBlockChain.vBlockRemove.size());
+            for (const auto& rb : updateBlockChain.vBlockRemove)
+            {
+                Log("CDispatcher::UpdatePrimaryBlock: removed short link block [%s]",
+                    rb.GetHash().ToString().c_str());
+                pMqChainUpdate->data.vShort.emplace_back(rb.GetHash());
+            }
+            reverse(pMqChainUpdate->data.vShort.begin(), pMqChainUpdate->data.vShort.end());
+            pMqChainUpdate->data.triHeight = pMqChainUpdate->data.vShort.front().Get32(7) - 1;
+            pBlockChain->GetBlockHash(pCoreProtocol->GetGenesisBlockHash(),
+                                      pMqChainUpdate->data.triHeight,
+                                      pMqChainUpdate->data.triHash);
+            Log("CDispatcher::UpdatePrimaryBlock: forked block hash [%s] with height [%d]",
+                pMqChainUpdate->data.triHash.ToString().c_str(), pMqChainUpdate->data.triHeight);
+
+            pMQCluster->PostEvent(pMqChainUpdate);
+        }
     }
 }
 
@@ -431,6 +477,10 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
     }
     pNetChannel->SubscribeFork(hashFork, nNonce);
     Log("Activated fork %s ...", hashFork.GetHex().c_str());
+
+    vector<uint256> forks;
+    forks.push_back(hashFork);
+    pNetChannel->DispatchGetBizForksEvent(forks);
 }
 
 bool CDispatcher::ProcessForkTx(const uint256& txid, const CTransaction& tx)
@@ -506,17 +556,25 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
 {
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
+    Log("subfork: there may be [%d] forks needed to update", mapForkStatus.size());
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
         const uint256& hashFork = (*it).first;
         CForkStatus& status = (*it).second;
-        if (!pForkManager->IsAllowed(hashFork) || !pNetChannel->IsForkSynchronized(hashFork))
+        if (!pForkManager->IsAllowed(hashFork))
         {
+            Log("fork[%s] is not allowed", hashFork.ToString().c_str());
             continue;
         }
 
+        if (!pNetChannel->IsForkSynchronized(hashFork))
+        {
+            Log("fork[%s] has not been synchronized yet", hashFork.ToString().c_str());
+            continue;
+        }
         vector<int64> vTimeStamp;
         int nDepth = nPrimaryHeight - status.nLastBlockHeight;
+        Log("subfork: biz[%s] has depth[%d]", hashFork.ToString().c_str(), nDepth);
 
         if (nDepth > 1 && hashFork != pCoreProtocol->GetGenesisBlockHash()
             && pBlockChain->GetLastBlockTime(pCoreProtocol->GetGenesisBlockHash(), nDepth, vTimeStamp))
@@ -532,12 +590,15 @@ void CDispatcher::SyncForkHeight(int nPrimaryHeight)
                 Errno err = AddNewBlock(block);
                 if (err != OK && err != ERR_ALREADY_HAVE)
                 {
-                    StdError("Dispatcher", "SyncForkHeight: Add new block failed, error: [%d] %s, block: %s",
-                             err, ErrorString(err), block.GetHash().GetHex().c_str());
+                    Log("subfork: add vacant failed errno[%d] err[%s] fork[%s] on height[%d] lastheight[%d]",
+                        err, ErrorString(err), hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
                     break;
                 }
+                Log("subfork: add vacant succeeded fork[%s] on height[%d] with lastheight[%d]",
+                    hashFork.ToString().c_str(), nHeight, status.nLastBlockHeight);
                 hashPrev = block.GetHash();
             }
+            Log("subfork: biz[%s] done [%d] depth", hashFork.ToString().c_str(), nDepth - 1);
         }
     }
 }

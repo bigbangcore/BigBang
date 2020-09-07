@@ -5,9 +5,6 @@ sudo: required
 
 dist: bionic # ubuntu 18.04
 
-#os:
- # - linux
-
 compiler:
 - gcc
 - clang
@@ -48,6 +45,17 @@ install:
     brew update;
     brew install cmake pkg-config openssl boost libsodium readline protobuf ncurses;
     export OPENSSL_ROOT_DIR=`brew --prefix openssl`;
+    git clone https://github.com/eclipse/paho.mqtt.c.git;
+    cd paho.mqtt.c;
+    git checkout v1.3.1;
+    mkdir build && cd build;
+    cmake -DPAHO_BUILD_STATIC=TRUE -DPAHO_WITH_SSL=TRUE ..;
+    sudo make install;
+    sudo mkdir /usr/local/include/mqtt/;
+    sudo chmod 755 /usr/local/include/mqtt/;
+    sudo cp ${TRAVIS_BUILD_DIR}/src/mqtt/src/mqtt/* /usr/local/include/mqtt/;
+    sudo chmod 644 /usr/local/include/mqtt/*;
+    cd ${TRAVIS_BUILD_DIR};
   else
     sudo apt-get update -qq;
     sudo apt install -y g++ cmake libboost-all-dev openssl libssl1.0-dev libreadline-dev pkg-config libprotobuf-dev protobuf-compiler libncurses5-dev autoconf;
@@ -60,15 +68,27 @@ install:
     make -j2;
     sudo make install;
     cd ../;
+    git clone https://github.com/eclipse/paho.mqtt.c.git;
+    cd paho.mqtt.c;
+    git checkout v1.3.1;
+    mkdir build && cd build;
+    cmake -DPAHO_BUILD_STATIC=TRUE -DPAHO_WITH_SSL=TRUE ..;
+    sudo make install;
+    sudo cp -r  ${TRAVIS_BUILD_DIR}/src/mqtt/src/mqtt/ /usr/local/include/;
+    sudo chmod 755 /usr/local/include/mqtt;
+    cd /usr/local/include/mqtt;
+    sudo chmod 644 *;
+    cd -;
+    cd ../..;
   fi
 
 before_script:
 - ulimit -c unlimited -S       # enable core dumps
 
 script:
-- ./INSTALL.sh 
+- ./INSTALL.sh
 - ./build/test/test_big
 - ./build/test/test_ctsdb
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    cppcheck --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i libsodium-1.0.18 -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test . ;
+    cppcheck -j2 --error-exitcode=1 --std=c++11 --enable=warning,performance,portability -i libsodium-1.0.18 -i src/leveldb -i build -i src/snappy -i src/crypto -i src/jsonrpc/json -i src/xengine/docker -i script -i test -i paho.mqtt.c -i src/mqtt . ;
   fi

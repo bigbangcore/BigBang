@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "address.h"
+#include "defs.h"
 #include "template/delegate.h"
 #include "template/mint.h"
 #include "template/proof.h"
@@ -62,8 +63,10 @@ bool CBlockMakerProfile::BuildTemplate()
 
 CBlockMaker::CBlockMaker()
   : thrMaker("blockmaker", boost::bind(&CBlockMaker::BlockMakerThreadFunc, this)),
-    thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this))
+    thrPow("powmaker", boost::bind(&CBlockMaker::PowThreadFunc, this)),
+    thrBizFork("bizmaker", boost::bind(&CBlockMaker::BizForkThreadFunc, this))
 {
+    nNodeCat = 0;
     pCoreProtocol = nullptr;
     pBlockChain = nullptr;
     pForkManager = nullptr;
@@ -136,7 +139,8 @@ bool CBlockMaker::HandleInitialize()
         }
     }
 
-    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0)
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (!MintConfig()->destCryptonight.IsNull() && MintConfig()->keyCryptonight != 0 && NODE_CAT_FORKNODE != nNodeCat)
     {
         CBlockMakerProfile profile(CM_CRYPTONIGHT, MintConfig()->destCryptonight, MintConfig()->keyCryptonight);
         if (profile.IsValid())
@@ -193,6 +197,14 @@ bool CBlockMaker::HandleInvoke()
     }
 
     fExit = false;
+    if (!mapDelegatedProfile.empty() && NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (!ThreadDelayStart(thrBizFork))
+        {
+            return false;
+        }
+    }
+
     if (!ThreadDelayStart(thrMaker))
     {
         return false;
@@ -220,6 +232,9 @@ void CBlockMaker::HandleHalt()
     fExit = true;
     condExit.notify_all();
     condBlock.notify_all();
+
+    thrBizFork.Interrupt();
+    ThreadExit(thrBizFork);
 
     thrMaker.Interrupt();
     ThreadExit(thrMaker);
@@ -264,10 +279,12 @@ bool CBlockMaker::HandleEvent(CEventBlockMakerUpdate& eventUpdate)
     {
         boost::unique_lock<boost::mutex> lock(mutex);
 
-        CBlockMakerUpdate& data = eventUpdate.data;
+        const CBlockMakerUpdate& data = eventUpdate.data;
         lastStatus.hashLastBlock = data.hashBlock;
         lastStatus.nLastBlockTime = data.nBlockTime;
         lastStatus.nLastBlockHeight = data.nBlockHeight;
+        lastStatus.nWeight = data.nWeight;
+        lastStatus.nAgreement = data.nAgreement;
         lastStatus.nMintType = data.nMintType;
 
         condBlock.notify_all();
@@ -371,6 +388,7 @@ bool CBlockMaker::DispatchBlock(const CBlock& block)
         }
         Debug("Dispatching block: %s already have, type: %u", block.GetHash().ToString().c_str(), block.nType);
     }
+    Debug("Dispatched block succeeded: %s, type: %u", block.GetHash().ToString().c_str(), block.nType);
     return true;
 }
 
@@ -381,33 +399,33 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
     {
         CBlockMakerProfile& profile = (*it).second;
 
-        CBlock block;
-        PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.agreement);
-
-        // get block time
-        block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
-        if (block.nTimeStamp == 0)
+        if (NODE_CAT_DPOSNODE == nNodeCat)
         {
-            Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
-        }
+            Log("before generating primary-dpos...");
+            CBlock block;
+            PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.agreement);
 
-        // create DPoS primary block
-        if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
-        {
-            Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
-        }
+            // get block time
+            block.nTimeStamp = pBlockChain->DPoSTimestamp(block.hashPrev);
+            if (block.nTimeStamp == 0)
+            {
+                Error("Get DPoSTimestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
+                return;
+            }
 
-        // dispatch DPoS primary block
-        if (DispatchBlock(block))
-        {
-            pDispatcher->SetConsensus(consParam);
+            // create DPoS primary block
+            if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), profile))
+            {
+                Error("CreateDelegatedBlock error, hashPrev: %s", block.hashPrev.ToString().c_str());
+                return;
+            }
 
-            pDispatcher->CheckAllSubForkLastBlock();
-
-            // create sub fork blocks
-            ProcessSubFork(profile, consParam.agreement, block.GetHash(), block.GetBlockTime(), consParam.nPrevHeight, consParam.nPrevMintType);
+            // dispatch DPoS primary block
+            if (DispatchBlock(block))
+            {
+                pDispatcher->SetConsensus(consParam);
+            }
+            Log("...after generated primary-dpos");
         }
     }
 }
@@ -415,28 +433,39 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
 void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                                  const uint256& hashRefBlock, int64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType)
 {
+    pDispatcher->CheckAllSubForkLastBlock();
+
     map<uint256, CForkStatus> mapForkStatus;
     pBlockChain->GetForkStatus(mapForkStatus);
+    Log("subfork: GetForkStatus[%d]", mapForkStatus.size());
 
     // create subsidiary task
     multimap<int64, pair<uint256, CBlock>> mapBlocks;
     for (map<uint256, CForkStatus>::iterator it = mapForkStatus.begin(); it != mapForkStatus.end(); ++it)
     {
-        const uint256& hashFork = it->first;
-        if (hashFork != pCoreProtocol->GetGenesisBlockHash() && pForkManager->IsAllowed(hashFork))
+        Log("subfork: GetForkStatus[%s]", it->first.ToString().c_str());
+        if (it->first != pCoreProtocol->GetGenesisBlockHash())
         {
             CBlock block;
             PreparePiggyback(block, agreement, hashRefBlock, nRefBlockTime, nPrevHeight, it->second, nPrevMintType);
-            mapBlocks.insert(make_pair(nRefBlockTime, make_pair(hashFork, block)));
+            mapBlocks.insert(make_pair(nRefBlockTime, make_pair(it->first, block)));
         }
     }
+    Log("subfork: mapBlocks size[%d]", mapBlocks.size());
+    for (const auto& it : mapBlocks)
+    {
+        Log("subfork: mapBlocks time-fork[%ld][%s]", it.first, it.second.first.ToString().c_str());
+    }
 
+    Log("subfork: before entering while (!mapBlocks.empty())");
     while (!mapBlocks.empty())
     {
         auto it = mapBlocks.begin();
         int64 nSeconds = it->first - GetNetTime();
         const uint256 hashFork = it->second.first;
         CBlock block = it->second.second;
+        Log("subfork: reftime-waittime[%ld]-[%ld] fork[%s] mapBlocks.size[%d]",
+            it->first, nSeconds, hashFork.ToString().c_str(), mapBlocks.size());
         mapBlocks.erase(it);
 
         if (!WaitExit(nSeconds))
@@ -510,24 +539,30 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
                     Error("ProcessSubFork GetLastBlock fail, fork: %s", hashFork.ToString().c_str());
                 }
 
-                /*uint256 hashLastBlock;
+/*                uint256 hashLastBlock;
                 int64 nLastTime;
 
-                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                //                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (GetNetTime() - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                int64 nettime = GetNetTime();
+                bool fInWaitTime = (nPrevMintType == CTransaction::TX_STAKE) && (nettime - nRefBlockTime < WAIT_LAST_EXTENDED_TIME);
+                Log("subfork: nPrevMintType[%d], nettime[%ld] - nRefBlockTime[%ld] = [%d], fInWaitTime[%d]",
+                    nPrevMintType, nettime, nRefBlockTime, nettime - nRefBlockTime, fInWaitTime);
                 if (pBlockChain->GetLastBlockOfHeight(hashFork, nPrevHeight, hashLastBlock, nLastTime)
                     && (!fInWaitTime || (nLastTime + EXTENDED_BLOCK_SPACING == nRefBlockTime)))
                 {
                     // last is PoW or last extended or timeout
                     block.hashPrev = hashLastBlock;
+                    Log("subfork: get last block nLastTime[%ld], hashLastBlock[%s]", nLastTime, hashLastBlock.ToString().c_str());
                 }
                 else if (fInWaitTime)
                 {
-                    // wait the last exteded block for 1s
+                    // wait the last extended block for 1s
                     mapBlocks.insert(make_pair(GetNetTime() + 1, make_pair(hashFork, block)));
+                    Log("subfork: cache one subsidiary block successfully nLastTime[%ld], hashLastBlock[%s]", nLastTime, hashLastBlock.ToString().c_str());
                 }
                 else
                 {
-                    Error("ProcessSubFork get last block error, fork: %s", hashFork.ToString().c_str());
+                    Error("subfork: get last block error, fork[%s]  nLastTime[%ld], hashLastBlock[%s]", hashFork.ToString().c_str(), nLastTime, hashLastBlock.ToString().c_str());
                 }*/
             }
 
@@ -590,6 +625,7 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             mapBlocks.insert(make_pair(extended.nTimeStamp, make_pair(hashFork, extended)));
         }
     }
+    Log("subfork: after leaving while (!mapBlocks.empty())");
 }
 
 bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
@@ -627,14 +663,19 @@ void CBlockMaker::PreparePiggyback(CBlock& block, const CDelegateAgreement& agre
     block.nType = CBlock::BLOCK_SUBSIDIARY;
     block.nTimeStamp = nRefBlockTime;
     proof.Save(block.vchProof);
-    /*if (status.nLastBlockHeight == nPrevHeight && status.nLastBlockTime < nRefBlockTime)
+    Log("subfork: status.nLastBlockHeight vs. nPrevHeight [%d] - [%d], RefHeight[%d], status.nLastBlockTime vs. nRefBlockTime [%ld] - [%ld]",
+        status.nLastBlockHeight, nPrevHeight, hashRefBlock.Get32(7), status.nLastBlockTime, nRefBlockTime);
+/*    if (status.nLastBlockHeight == nPrevHeight && status.nLastBlockTime < nRefBlockTime)
     {
+        Log("subfork: nPrevMintType[%d], last extended one[%ld], timeout[%ld]",
+            nPrevMintType, nRefBlockTime - status.nLastBlockTime, GetNetTime() - nRefBlockTime);
         // last is PoW or last extended or timeouot
         if (nPrevMintType != CTransaction::TX_STAKE
             || status.nLastBlockTime + EXTENDED_BLOCK_SPACING == nRefBlockTime
             || GetNetTime() - nRefBlockTime >= WAIT_LAST_EXTENDED_TIME)
         {
             block.hashPrev = status.hashLastBlock;
+            Log("subfork: prepared piggyback with prev");
         }
     }*/
 }
@@ -813,6 +854,7 @@ bool CBlockMaker::CreateProofOfWork()
 
 void CBlockMaker::BlockMakerThreadFunc()
 {
+    Log("Entering DPOS block maker thread...");
     uint256 hashCachePrev;
     bool fCachePow = false;
     int64 nWaitTime = 1;
@@ -835,8 +877,10 @@ void CBlockMaker::BlockMakerThreadFunc()
             nWaitTime = consParam.nWaitTime;
             continue;
         }
-        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, target height: %d, wait time: %ld, last height: %d, prev block: %s",
-                 consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
+        StdDebug("BlockMaker", "BlockMakerThreadFunc: GetNextConsensus success, "
+                               "target height: %d, consensus[%s], wait time: %ld, last height: %d, prev block: %s",
+                 consParam.nPrevHeight + 1, consParam.agreement.IsProofOfWork() ? "POW" : "DPOS",
+                 consParam.nWaitTime, lastStatus.nLastBlockHeight, consParam.hashPrev.GetHex().c_str());
         nWaitTime = consParam.nWaitTime;
 
         if (hashCachePrev != consParam.hashPrev || fCachePow != consParam.agreement.IsProofOfWork())
@@ -866,21 +910,108 @@ void CBlockMaker::BlockMakerThreadFunc()
             break;
         }
     }
-    Log("Block maker exited");
+    Log("...DPOS block maker thread exited normally");
 }
 
 void CBlockMaker::PowThreadFunc()
 {
+    Log("Entering POW block maker thread...");
     if (!WaitExit(5))
     {
-        Log("Pow exited non");
+        Log("...POW block maker thread exited without anything");
         return;
     }
     while (WaitExit(1))
     {
         CreateProofOfWork();
     }
-    Log("Pow exited");
+    Log("...POW block maker thread exited normally");
+}
+
+void CBlockMaker::BizForkThreadFunc()
+{
+    Log("Entering biz fork block maker thread...");
+    int64 nWaitTime = 1;
+    while (!fExit)
+    {
+        if (!WaitUpdateEvent(nWaitTime))
+        {
+            break;
+        }
+
+        try
+        {
+            CForkStatus status;
+            {
+                boost::unique_lock<boost::mutex> lock(mutex);
+                status = lastStatus;
+            }
+            Log("BizMaker: fork status: hashParent[%s], nOriginHeight[%d], hashLastBlock[%s], "
+                "nLastBlockTime[%ld], nLastBlockHeight[%d], nAgreement[%s], nWeight[%d], nMintType[%d]",
+                status.hashParent.ToString().c_str(), status.nOriginHeight, status.hashLastBlock.ToString().c_str(),
+                status.nLastBlockTime, status.nLastBlockHeight, status.nAgreement.ToString().c_str(), status.nWeight,
+                status.nMintType);
+
+            if (CTransaction::TX_STAKE == status.nMintType && status.nAgreement != 0 && status.nWeight > 0)
+            {
+                CBlock block;
+                if (!pBlockChain->GetBlock(status.hashLastBlock, block))
+                {
+                    throw runtime_error("get block from hash[" + status.hashLastBlock.ToString() + "] failed");
+                }
+                const CDestination& miner = block.txMint.sendTo;
+                auto it = mapDelegatedProfile.find(miner);
+                if (it != mapDelegatedProfile.end())
+                {
+                    Log("BizMaker: parent delegate miner found: [%s]", CAddress(miner).ToString().c_str());
+                    uint256 hashLastBlock;
+                    int nLastHeight;
+                    int64 nLastTime;
+                    uint16 nLastMintType;
+                    if (!pBlockChain->GetLastBlock(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock,
+                                                   nLastHeight, nLastTime, nLastMintType))
+                    {
+                        throw runtime_error("get last block failed");
+                    }
+                    if (hashLastBlock != status.hashLastBlock)
+                    {
+                        Log("BizMaker: blocks are mismatched: notify[%s] vs. last[%s]", status.hashLastBlock.ToString().c_str(),
+                            hashLastBlock.ToString().c_str());
+                        {
+                            boost::unique_lock<boost::mutex> lock(mutex);
+                            status = lastStatus;
+                        }
+                        if (hashLastBlock != status.hashLastBlock)
+                        {
+                            continue;
+                        }
+                    }
+                    Log("BizMaker: hashLastBlock[%s], nLastHeight[%d], nLastTime[%ld], nLastMintType[%d]",
+                        hashLastBlock.ToString().c_str(), nLastHeight, nLastTime, nLastMintType);
+
+                    int nPrevHeight = nLastHeight - 1;
+                    uint16 nPrevMintType;
+                    if (!pBlockChain->GetBlockMintType(block.hashPrev, nPrevMintType))
+                    {
+                        throw runtime_error("get previous block mint type failed");
+                    }
+                    CBlockMakerProfile& profile = (*it).second;
+                    CDelegateAgreement agreement;
+                    agreement.nWeight = status.nWeight;
+                    agreement.nAgreement = status.nAgreement;
+                    ProcessSubFork(profile, agreement, hashLastBlock, nLastTime, nPrevHeight, nPrevMintType);
+                    Log("BizMaker: after dealing with subfork");
+                }
+            }
+        }
+        catch (exception& e)
+        {
+            Error("Biz fork block maker error: %s ... abnormally exited biz fork block maker thread",
+                  e.what());
+            return;
+        }
+    }
+    Log("...biz fork block maker thread exited normally");
 }
 
 } // namespace bigbang

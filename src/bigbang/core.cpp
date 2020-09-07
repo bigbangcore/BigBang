@@ -298,7 +298,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                 || tid.GetType() == TEMPLATE_DELEGATE
                 || tid.GetType() == TEMPLATE_VOTE)
             {
-                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
+//                return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "send to address invalid 2");
             }
         }
     }

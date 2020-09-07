@@ -23,6 +23,8 @@ enum
     //PEER
     EVENT_PEER_ACTIVE,
     EVENT_PEER_DEACTIVE,
+    EVENT_PEER_GETBIZFORKS,
+    EVENT_PEER_BIZFORKS,
     EVENT_PEER_SUBSCRIBE,
     EVENT_PEER_UNSUBSCRIBE,
     EVENT_PEER_INV,
@@ -209,6 +211,8 @@ class CBbPeerEventListener;
 
 typedef TYPE_PEEREVENT(EVENT_PEER_ACTIVE, CAddress) CEventPeerActive;
 typedef TYPE_PEEREVENT(EVENT_PEER_DEACTIVE, CAddress) CEventPeerDeactive;
+typedef TYPE_PEEREVENT(EVENT_PEER_GETBIZFORKS, std::vector<uint256>) CEventPeerGetBizForks;
+typedef TYPE_PEEREVENT(EVENT_PEER_BIZFORKS, CBizFork) CEventPeerBizForks;
 typedef TYPE_PEERDATAEVENT(EVENT_PEER_SUBSCRIBE, std::vector<uint256>) CEventPeerSubscribe;
 typedef TYPE_PEERDATAEVENT(EVENT_PEER_UNSUBSCRIBE, std::vector<uint256>) CEventPeerUnsubscribe;
 typedef TYPE_PEERDATAEVENT(EVENT_PEER_INV, std::vector<CInv>) CEventPeerInv;
@@ -230,6 +234,8 @@ public:
     virtual ~CBbPeerEventListener() {}
     DECLARE_EVENTHANDLER(CEventPeerActive);
     DECLARE_EVENTHANDLER(CEventPeerDeactive);
+    DECLARE_EVENTHANDLER(CEventPeerGetBizForks);
+    DECLARE_EVENTHANDLER(CEventPeerBizForks);
     DECLARE_EVENTHANDLER(CEventPeerSubscribe);
     DECLARE_EVENTHANDLER(CEventPeerUnsubscribe);
     DECLARE_EVENTHANDLER(CEventPeerInv);

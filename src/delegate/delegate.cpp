@@ -65,7 +65,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
         map<int, CDelegateVote>::iterator it = mapVote.find(nDelete);
         if (it != mapVote.end())
         {
-            StdTrace("CDelegate", "Evolve Deletate: erase vote, target height: %d, distribute block: %s",
+            StdTrace("CDelegate", "Evolve Delete: erase vote, target height: %d, distribute block: %s",
                      nDelete, it->second.hashDistributeBlock.GetHex().c_str());
             if (it->second.hashDistributeBlock != 0)
             {
@@ -165,7 +165,7 @@ void CDelegate::Evolve(int nBlockHeight, const map<CDestination, size_t>& mapWei
             CDelegateVote& vote = mt->second;
             if (!vote.is_enroll)
             {
-                StdError("CDelegate", "Evolve Publish: not is enroll, target height: %d, distribute block: [%d] %s",
+                StdError("CDelegate", "Evolve Publish: is not enroll, target height: %d, distribute block: [%d] %s",
                          nPublish, hashDistribute.Get32(7), hashDistribute.GetHex().c_str());
                 break;
             }

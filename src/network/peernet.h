@@ -28,6 +28,8 @@ public:
     virtual bool SubmitCachePowBlock(const CConsensusParam& consParam) = 0;
     virtual bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) = 0;
     virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
+    virtual void DispatchGetBizForksEvent(const std::vector<uint256>& bizForks) = 0;
+    virtual void BroadcastBizForks(const uint32& nIP, const std::vector<uint256>& bizForks) = 0;
 };
 
 class IDelegatedChannel : public xengine::IIOModule, virtual public CBbPeerEventListener
@@ -59,6 +61,8 @@ public:
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
+    bool HandleEvent(CEventPeerGetBizForks& eventGetBizForks) override;
+    bool HandleEvent(CEventPeerBizForks& eventBizForks) override;
     bool HandleEvent(CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(CEventPeerUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(CEventPeerInv& eventInv) override;

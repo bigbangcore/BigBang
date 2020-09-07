@@ -13,6 +13,7 @@
 #include "transaction.h"
 #include "txindexdb.h"
 #include "unspentdb.h"
+#include "mqdb.h"
 
 namespace bigbang
 {
@@ -48,6 +49,10 @@ public:
     bool RetrieveEnroll(const uint256& hash, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
     bool RetrieveEnroll(int height, const std::vector<uint256>& vBlockRange,
                         std::map<CDestination, CDiskPos>& mapEnrollTxPos);
+    bool AddNewSuperNode(const CSuperNode& superNode);
+    bool ListSuperNode(std::vector<CSuperNode>& nodes);
+    bool FetchSuperNode(std::vector<CSuperNode>& nodes, const uint8 mask);
+    bool AddOuterNodes(const std::vector<CSuperNode>& outers, bool fSuper);
 
 protected:
     bool LoadFork();
@@ -58,6 +63,7 @@ protected:
     CTxIndexDB dbTxIndex;
     CUnspentDB dbUnspent;
     CDelegateDB dbDelegate;
+    CSuperNodeDB dbSuperNode;
 };
 
 } // namespace storage

@@ -30,11 +30,11 @@ CBasicConfig* CreateConfig(const std::string& cmd)
 {
 	if (cmd == "help")
 	{
-		return new mode_impl::CCombinConfig<CHelpConfig, T...>;
+		return new mode_impl::CCombineConfig<CHelpConfig, T...>;
 	}
 	else if (cmd == "stop")
 	{
-		return new mode_impl::CCombinConfig<CStopConfig, T...>;
+		return new mode_impl::CCombineConfig<CStopConfig, T...>;
 	}
     ...
 }

@@ -45,19 +45,32 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
     {
         vector<string> vecIgnoreCmd;
 
-        defaultDesc.add_options()("cmd", po::value<vector<string>>(&vecCommand))("help", po::value<bool>(&fHelp)->default_value(false))("daemon", po::value<bool>(&fDaemon)->default_value(false))("debug", po::value<bool>(&fDebug)->default_value(false))("datadir", po::value<string>(&strRoot)->default_value(pathDefault.string()))("conf", po::value<string>(&strConfig)->default_value(strConfile))("ignore", po::value<vector<string>>(&vecIgnoreCmd));
+        defaultDesc.add_options()
+        ("cmd", po::value<vector<string>>(&vecCommand))
+        ("help", po::value<bool>(&fHelp)->default_value(false))
+        ("daemon", po::value<bool>(&fDaemon)->default_value(false))
+        ("debug", po::value<bool>(&fDebug)->default_value(false))
+        ("datadir", po::value<string>(&strRoot)->default_value(pathDefault.string()))
+        ("conf", po::value<string>(&strConfig)->default_value(strConfile))
+        ("ignore", po::value<vector<string>>(&vecIgnoreCmd));
 
         po::positional_options_description defaultPosDesc;
         defaultPosDesc.add("cmd", -1).add("ignore", ignoreCmd);
 
-        auto parser = po::command_line_parser(argc, argv).options(defaultDesc).style(defaultCmdStyle).extra_parser(CConfig::ExtraParser).positional(defaultPosDesc);
+        auto parser = po::command_line_parser(argc, argv)
+                .options(defaultDesc)
+                .style(defaultCmdStyle)
+                .extra_parser(CConfig::ExtraParser)
+                .positional(defaultPosDesc);
         po::store(parser.run(), vm);
-
         po::notify(vm);
+
         pathRoot = strRoot;
         pathConfile = strConfig;
         if (!STD_DEBUG)
+        {
             STD_DEBUG = fDebug;
+        }
 
         if (fHelp)
         {
@@ -72,7 +85,12 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault, const st
         vector<string> confToken;
         if (TokenizeConfile(pathConfile.string().c_str(), confToken))
         {
-            po::store(po::command_line_parser(confToken).options(defaultDesc).style(defaultCmdStyle).extra_parser(CConfig::ExtraParser).allow_unregistered().run(), vm);
+            po::store(po::command_line_parser(confToken)
+                                              .options(defaultDesc)
+                                              .style(defaultCmdStyle)
+                                              .extra_parser(CConfig::ExtraParser)
+                                              .allow_unregistered()
+                                              .run(), vm);
             po::notify(vm);
         }
     }

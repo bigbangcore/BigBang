@@ -5,6 +5,7 @@
 #include "netchn.h"
 
 #include <boost/bind.hpp>
+#include <defs.h>
 
 #include "schedule.h"
 
@@ -57,7 +58,7 @@ void CNetChannelPeer::CNetChannelPeerFork::ClearExpiredTx()
 
 bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
 {
-    map<uint256, CNetChannelPeerFork>::const_iterator it = mapSubscribedFork.find(hashFork);
+    auto it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
         return it->second.fSynchronized;
@@ -67,7 +68,7 @@ bool CNetChannelPeer::IsSynchronized(const uint256& hashFork) const
 
 bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& fInverted)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    auto it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
         fInverted = (it->second.fSynchronized != fSync);
@@ -79,7 +80,7 @@ bool CNetChannelPeer::SetSyncStatus(const uint256& hashFork, bool fSync, bool& f
 
 void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>& vTxHash, size_t nTotalSynTxCount)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    auto it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
         it->second.AddKnownTx(vTxHash, nTotalSynTxCount);
@@ -88,7 +89,7 @@ void CNetChannelPeer::AddKnownTx(const uint256& hashFork, const vector<uint256>&
 
 bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& vTxPool, vector<network::CInv>& vInv)
 {
-    map<uint256, CNetChannelPeerFork>::iterator it = mapSubscribedFork.find(hashFork);
+    auto it = mapSubscribedFork.find(hashFork);
     if (it != mapSubscribedFork.end())
     {
         CNetChannelPeerFork& peerFork = it->second;
@@ -109,7 +110,7 @@ bool CNetChannelPeer::MakeTxInv(const uint256& hashFork, const vector<uint256>& 
                 }
                 else if (!peerFork.IsKnownTx(txid))
                 {
-                    vInv.push_back(network::CInv(network::CInv::MSG_TX, txid));
+                    vInv.emplace_back(network::CInv(network::CInv::MSG_TX, txid));
                     vTxHash.push_back(txid);
                 }
             }
@@ -140,7 +141,9 @@ CNetChannel::CNetChannel()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pMQCluster = nullptr;
     fStartIdlePushTxTimer = false;
+    nNodeCat = NODE_CAT_BBCNODE;
 }
 
 CNetChannel::~CNetChannel()
@@ -191,6 +194,12 @@ bool CNetChannel::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("mqcluster", pMQCluster))
+    {
+        Error("Failed to request mqcluster");
+        return false;
+    }
+
     return true;
 }
 
@@ -203,6 +212,7 @@ void CNetChannel::HandleDeinitialize()
     pService = nullptr;
     pDispatcher = nullptr;
     pConsensus = nullptr;
+    pMQCluster = nullptr;
 }
 
 bool CNetChannel::HandleInvoke()
@@ -212,6 +222,7 @@ bool CNetChannel::HandleInvoke()
         nTimerPushTx = 0;
         fStartIdlePushTxTimer = false;
     }
+    nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
     return network::INetChannel::HandleInvoke();
 }
 
@@ -251,7 +262,7 @@ int CNetChannel::GetPrimaryChainHeight()
 bool CNetChannel::IsForkSynchronized(const uint256& hashFork) const
 {
     boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-    map<uint256, set<uint64>>::const_iterator it = mapUnsync.find(hashFork);
+    auto it = mapUnsync.find(hashFork);
     return (it == mapUnsync.end() || (*it).second.empty());
 }
 
@@ -271,13 +282,13 @@ void CNetChannel::BroadcastBlockInv(const uint256& hashFork, const uint256& hash
     }
 
     network::CEventPeerInv eventInv(0, hashFork);
-    eventInv.data.push_back(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
+    eventInv.data.emplace_back(network::CInv(network::CInv::MSG_BLOCK, hashBlock));
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        for (auto const& p : mapPeer)
         {
-            uint64 nNonce = (*it).first;
-            if (!setKnownPeer.count(nNonce) && (*it).second.IsSubscribed(hashFork))
+            uint64 nNonce = p.first;
+            if (!setKnownPeer.count(nNonce) && p.second.IsSubscribed(hashFork))
             {
                 eventInv.nNonce = nNonce;
                 pPeerNet->DispatchEvent(&eventInv);
@@ -315,10 +326,22 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
         if (!mapSched.insert(make_pair(hashFork, CSchedule())).second)
         {
-            StdLog("NetChannel", "SubscribeFork: mapSched insert fail, hashFork: %s", hashFork.GetHex().c_str());
+            StdError("NetChannel", "SubscribeFork: mapSched insert fail, hashFork: %s", hashFork.GetHex().c_str());
             return;
         }
         StdLog("NetChannel", "SubscribeFork: mapSched insert success, hashFork: %s", hashFork.GetHex().c_str());
+    }
+
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash() && NODE_CAT_FORKNODE == nNodeCat)
+    {
+        StdLog("NetChannel", "SubscribeFork: succeed in filtering the main chain for fork nodes with nonce[%d]", nNonce);
+        return;
+    }
+
+    if (hashFork != pCoreProtocol->GetGenesisBlockHash() && NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        StdLog("NetChannel", "SubscribeFork: succeed in filtering biz chains for dpos nodes with nonce[%d]", nNonce);
+        return;
     }
 
     vector<uint64> vPeerNonce;
@@ -326,10 +349,10 @@ void CNetChannel::SubscribeFork(const uint256& hashFork, const uint64& nNonce)
     eventSubscribe.data.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        for (const auto& p : mapPeer)
         {
-            vPeerNonce.push_back((*it).first);
-            eventSubscribe.nNonce = (*it).first;
+            vPeerNonce.push_back(p.first);
+            eventSubscribe.nNonce = p.first;
             pPeerNet->DispatchEvent(&eventSubscribe);
         }
     }
@@ -360,9 +383,9 @@ void CNetChannel::UnsubscribeFork(const uint256& hashFork)
     eventUnsubscribe.data.push_back(hashFork);
     {
         boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
-        for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)
+        for (const auto& p : mapPeer)
         {
-            eventUnsubscribe.nNonce = (*it).first;
+            eventUnsubscribe.nNonce = p.first;
             pPeerNet->DispatchEvent(&eventUnsubscribe);
         }
     }
@@ -545,31 +568,104 @@ bool CNetChannel::AddCacheLocalPowBlock(const CBlock& block)
     return ret;
 }
 
+void CNetChannel::DispatchGetBizForksEvent(const vector<uint256>& bizForks)
+{
+    map<uint64, vector<uint256>> mapRequest;
+    for (const auto& hashFork : bizForks)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+        for (auto const& p : mapPeer)
+        {
+            if (p.second.IsSubscribed(hashFork))
+            {
+                uint64 nNonce = p.first;
+                mapRequest[nNonce].push_back(hashFork);
+            }
+        }
+    }
+    for (const auto& req : mapRequest)
+    {
+        uint64 nNonce = req.first;
+        network::CEventPeerGetBizForks eventGetBiz(nNonce);
+        eventGetBiz.data.assign(req.second.begin(), req.second.end());
+        pPeerNet->DispatchEvent(&eventGetBiz);
+        StdLog("NetChannel", "DispatchGetBizForksEvent: request for bizforks to peer[%s]", GetPeerAddressInfo(nNonce).c_str());
+    }
+}
+
+void CNetChannel::BroadcastBizForks(const uint32& nIP, const vector<uint256>& bizForks)
+{
+    map<uint64, pair<uint256, uint32>> mapNote;
+    for (const auto& hashFork : bizForks)
+    {
+        boost::shared_lock<boost::shared_mutex> rlock(rwNetPeer);
+        for (auto const& p : mapPeer)
+        {
+            if (p.second.IsSubscribed(hashFork))
+            {
+                uint64 nNonce = p.first;
+                mapNote.insert(make_pair(nNonce, make_pair(hashFork, nIP)));
+                StdLog("NetChannel", "BroadcastBizForks: peer[%ld] has subscribed fork[%s]", nNonce,
+                       hashFork.ToString().c_str());
+            }
+        }
+    }
+    StdLog("NetChannel", "BroadcastBizForks: mapNote.size()[%d] for nIP[%d]", mapNote.size(), nIP);
+    for (const auto& peer : mapNote)
+    {
+        uint64 nNonce = peer.first;
+        network::CEventPeerBizForks eventBiz(nNonce);
+        network::CBizFork& biz = eventBiz.data;
+        vector<uint32> vIP;
+        vIP.push_back(peer.second.second);
+        biz.mapFork[peer.second.first] = move(vIP);
+        pPeerNet->DispatchEvent(&eventBiz);
+        StdLog("NetChannel", "BroadcastBizForks: broadcast biz[%s]ip[%d] to peer[%s]", peer.second.first.ToString().c_str(),
+               peer.second.second, GetPeerAddressInfo(nNonce).c_str());
+    }
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
 {
     uint64 nNonce = eventActive.nNonce;
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
-        mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+        if (eventActive.data.nService & network::NODE_SUPERNODE || NODE_CAT_FORKNODE == nNodeCat)
+        {
+            mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, uint256());
+        }
+        else
+        {
+            mapPeer[nNonce] = CNetChannelPeer(eventActive.data.nService, eventActive.data, pCoreProtocol->GetGenesisBlockHash());
+            mapUnsync[pCoreProtocol->GetGenesisBlockHash()].insert(nNonce);
+        }
     }
     StdLog("NetChannel", "CEventPeerActive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     if ((eventActive.data.nService & network::NODE_NETWORK))
     {
+        if (NODE_CAT_FORKNODE != nNodeCat)
         {
-            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-            DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+            {
+                boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                DispatchGetBlocksEvent(nNonce, pCoreProtocol->GetGenesisBlockHash());
+            }
+            BroadcastTxInv(pCoreProtocol->GetGenesisBlockHash());
         }
-        BroadcastTxInv(pCoreProtocol->GetGenesisBlockHash());
+        else
+        {
+            StdLog("NetChannel", "CEventPeerActive: succeeded in filtering to get main chain from fork node stemmed from peer[%s]",
+                   GetPeerAddressInfo(nNonce).c_str());
+        }
 
         network::CEventPeerSubscribe eventSubscribe(nNonce, pCoreProtocol->GetGenesisBlockHash());
         {
             boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-            for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
+            for (auto const& sch : mapSched)
             {
-                if ((*it).first != pCoreProtocol->GetGenesisBlockHash())
+                if (sch.first != pCoreProtocol->GetGenesisBlockHash())
                 {
-                    eventSubscribe.data.push_back((*it).first);
+                    eventSubscribe.data.push_back(sch.first);
+                    StdLog("NetChannel", "CEventPeerActive: prepare to subscribe fork[%s]", sch.first.ToString().c_str());
                 }
             }
         }
@@ -577,6 +673,66 @@ bool CNetChannel::HandleEvent(network::CEventPeerActive& eventActive)
         {
             pPeerNet->DispatchEvent(&eventSubscribe);
         }
+
+        network::CEventPeerGetBizForks eventGetBiz(nNonce);
+        switch (nNodeCat)
+        {
+        case NODE_CAT_FORKNODE:
+        {
+            // forks enrolled by super node
+            if (!pMQCluster->GetForkNodeFork(eventGetBiz.data))
+            {
+                StdError("NetChannel", "CEventPeerActive: GetForkNodeFork failed");
+                return true;
+            }
+        } // deliberately provide no break in order to fall down sharing operations
+        case NODE_CAT_BBCNODE:
+        {
+            // forks configured by options
+            vector<string> vFork;
+            vector<string> vGroup;
+            vFork = dynamic_cast<const CForkConfigOption*>(Config())->vFork;
+            vGroup = dynamic_cast<const CForkConfigOption*>(Config())->vGroup;
+            if (vFork.end() != find(vFork.begin(), vFork.end(), "any")
+                || vGroup.end() != find(vGroup.begin(), vGroup.end(), pCoreProtocol->GetGenesisBlockHash().ToString()))
+            {
+                // send request for all biz forks while set fork filter as "any"
+                StdLog("NetChannel", "CEventPeerActive: watched fork as any or watched group as genesis");
+                eventGetBiz.data.clear();
+                break;
+            }
+            {
+                boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+                for (auto const& sched : mapSched)
+                {
+                    if (sched.first == pCoreProtocol->GetGenesisBlockHash())
+                    {
+                        continue;
+                    }
+                    eventGetBiz.data.push_back(sched.first);
+                    StdLog("NetChannel", "CEventPeerActive: prepare to submit request for fork[%s]",
+                           sched.first.ToString().c_str());
+                }
+            }
+            if (eventGetBiz.data.empty())
+            {
+                StdLog("NetChannel", "CEventPeerActive: no biz fork needed to fetch, so bypass getbizforks");
+                NotifyPeerUpdate(nNonce, true, eventActive.data);
+                return true;
+            }
+            // remove duplicated items
+            sort(eventGetBiz.data.begin(), eventGetBiz.data.end());
+            auto it = unique(eventGetBiz.data.begin(), eventGetBiz.data.end());
+            eventGetBiz.data.erase(it, eventGetBiz.data.end());
+        }
+        break;
+        case NODE_CAT_DPOSNODE:
+        {
+            // send request for all biz forks as a dpos node
+            eventGetBiz.data.clear();
+        }
+        }
+        pPeerNet->DispatchEvent(&eventGetBiz);
     }
     NotifyPeerUpdate(nNonce, true, eventActive.data);
     return true;
@@ -588,22 +744,22 @@ bool CNetChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
     StdLog("NetChannel", "CEventPeerDeactive: peer: %s", GetPeerAddressInfo(nNonce).c_str());
     {
         boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
-        for (map<uint256, CSchedule>::iterator it = mapSched.begin(); it != mapSched.end(); ++it)
+        for (auto& sch : mapSched)
         {
-            CSchedule& sched = (*it).second;
+            CSchedule& sched = sch.second;
             set<uint64> setSchedPeer;
             sched.RemovePeer(nNonce, setSchedPeer);
 
             for (const uint64 nNonceSched : setSchedPeer)
             {
-                SchedulePeerInv(nNonceSched, (*it).first, sched);
+                SchedulePeerInv(nNonceSched, sch.first, sched);
             }
         }
     }
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
 
-        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        auto it = mapPeer.find(nNonce);
         if (it != mapPeer.end())
         {
             for (auto& subFork : (*it).second.mapSubscribedFork)
@@ -618,28 +774,268 @@ bool CNetChannel::HandleEvent(network::CEventPeerDeactive& eventDeactive)
     return true;
 }
 
+bool CNetChannel::HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks)
+{
+    uint64 nNonce = eventGetBizForks.nNonce;
+    vector<uint256>& bizForks = eventGetBizForks.data;
+    for (auto const& f : bizForks)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for fork[%s]",
+               GetPeerAddressInfo(nNonce).c_str(), f.ToString().c_str());
+    }
+    StdLog("NetChannel", "CEventPeerGetBizForks: peer[%s] is asking for total [%d] biz fork(s)",
+           GetPeerAddressInfo(nNonce).c_str(), bizForks.size());
+
+    vector<storage::CSuperNode> nodes;
+    if (!pBlockChain->ListSuperNode(nodes))
+    {
+        StdError("NetChannel", "CEventPeerGetBizForks: ListSuperNode failed");
+        return false;
+    }
+
+    //filter out dpos node itself
+    for (auto it = nodes.begin(); it != nodes.end(); ++it)
+    {
+        if (0 == it->ipAddr)
+        {
+            nodes.erase(it);
+            break;
+        }
+    }
+
+    StdLog("NetChannel", "CEventPeerGetBizForks: there is/are [%d] biz fork node(s) all", nodes.size());
+    for (auto const& node : nodes)
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: biz fork as [%s]", node.ToString().c_str());
+    }
+
+    if (nodes.empty())
+    {
+        StdLog("NetChannel", "CEventPeerGetBizForks: there has been no biz fork till now.");
+        return true;
+    }
+
+    storage::CForkKnownIPSet setForkIp;
+    for (auto const& node : nodes)
+    {
+        for (auto const& fork : node.vecOwnedForks)
+        {
+            setForkIp.emplace(storage::CForkKnownIP(fork, node.ipAddr));
+        }
+    }
+
+    if (bizForks.empty())
+    { //fetch all to acquiring peer of dpos/bbc node
+        map<uint256, vector<uint32>> mapForkIps;
+        const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
+        for (auto const& it : idxForkID)
+        {
+            mapForkIps[it.forkID].emplace_back(it.nodeIP);
+        }
+        StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for all [%d] biz fork(s)", mapForkIps.size());
+        for (auto& it : mapForkIps)
+        {
+            auto& ips = it.second;
+            sort(ips.begin(), ips.end());
+            auto last = unique(ips.begin(), ips.end());
+            ips.erase(last, ips.end());
+            StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for biz fork[%s] with [%d] IP(s)",
+                   it.first.ToString().c_str(), ips.size());
+            for (auto const& i : ips)
+            {
+                StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
+            }
+        }
+
+        network::CEventPeerBizForks eventFork(nNonce);
+        eventFork.data = mapForkIps;
+        pPeerNet->DispatchEvent(&eventFork);
+
+        return true;
+    }
+
+    for (auto const& fork : bizForks)
+    { //fetch matched biz fork(s) to acquiring peer of fork node or bbc node
+        map<uint256, vector<uint32>> mapForkIps;
+        const storage::CForkKnownIpSetById& idxForkID = setForkIp.get<0>();
+        auto itBegin = idxForkID.equal_range(fork).first;
+        auto itEnd = idxForkID.equal_range(fork).second;
+        while (itBegin != itEnd)
+        {
+            mapForkIps[fork].emplace_back(itBegin->nodeIP);
+            ++itBegin;
+        }
+        StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for [%d] biz fork(s) partly", mapForkIps.size());
+        for (auto& it : mapForkIps)
+        {
+            auto& ips = it.second;
+            sort(ips.begin(), ips.end());
+            auto last = unique(ips.begin(), ips.end());
+            ips.erase(last, ips.end());
+            StdLog("NetChannel", "CEventPeerGetBizForks: peer asked for biz fork[%s] with [%d] IP(s)",
+                   it.first.ToString().c_str(), ips.size());
+            for (auto const& i : ips)
+            {
+                StdLog("NetChannel", "CEventPeerGetBizForks: IP[%s]", storage::CSuperNode::Int2Ip(i).c_str());
+            }
+        }
+
+        if (mapForkIps.empty())
+        {
+            StdLog("NetChannel", "CEventPeerGetBizForks: there is no matched biz fork to feedback, "
+                                 "so bypass bizforks to peer of bbc or fork node");
+            return true;
+        }
+
+        network::CEventPeerBizForks eventFork(nNonce);
+        eventFork.data = mapForkIps;
+        pPeerNet->DispatchEvent(&eventFork);
+    }
+
+    return true;
+}
+
+bool CNetChannel::HandleEvent(network::CEventPeerBizForks& eventBizForks)
+{
+    uint64 nNonce = eventBizForks.nNonce;
+    map<uint256, vector<uint32>> mapForkIps = eventBizForks.data.mapFork;
+
+    StdLog("NetChannel", "CEventPeerBizForks: peer[%s] has fed total [%d] biz fork(s)",
+           GetPeerAddressInfo(nNonce).c_str(), mapForkIps.size());
+
+    if (mapForkIps.empty())
+    {
+        StdLog("NetChannel", "CEventPeerBizForks: there is no fork to be provided");
+        return true;
+    }
+
+    storage::CForkKnownIPSet setForkIp;
+    for (auto const& fork : mapForkIps)
+    {
+        StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding total [%d] IPs for fork[%s]",
+               GetPeerAddressInfo(nNonce).c_str(), fork.second.size(), fork.first.ToString().c_str());
+        for (auto const ip : fork.second)
+        {
+            StdLog("NetChannel", "CEventPeerBizForks: peer[%s] is feeding IP[%s] for fork[%s]",
+                   GetPeerAddressInfo(nNonce).c_str(), storage::CSuperNode::Int2Ip(ip).c_str(),
+                   fork.first.ToString().c_str());
+            setForkIp.emplace(storage::CForkKnownIP(fork.first, ip));
+        }
+    }
+
+    map<uint32, vector<uint256>> mapIpForks;
+    const storage::CForkKnownIpSetByIp& idxNodeID = setForkIp.get<1>();
+    for (auto const& it : idxNodeID)
+    {
+        mapIpForks[it.nodeIP].push_back(it.forkID);
+    }
+
+    vector<storage::CSuperNode> nodes;
+    for (auto const& it : mapIpForks)
+    {
+        nodes.emplace_back(storage::CSuperNode(storage::CLIENT_ID_OUT_OF_MQ_CLUSTER, it.first, it.second, 0));
+    }
+
+    if (!pBlockChain->AddOuterNodes(nodes, NODE_CAT_BBCNODE != nNodeCat))
+    {
+        StdError("NetChannel", "CEventPeerBizForks: AddOuterNodes failed with sum of [%d]", nodes.size());
+        return true;
+    }
+    StdLog("NetChannel", "CEventPeerBizForks: AddOuterNodes succeeded with sum of [%d]", nodes.size());
+
+    //if dpos node self, dispatch them to fork nodes by MQ later; if this is a fork node, just notify it.
+    if (NODE_CAT_DPOSNODE == nNodeCat || NODE_CAT_FORKNODE == nNodeCat)
+    {
+        auto pEvent = new CEventMQBizForkUpdate(nNonce);
+        if (pEvent != nullptr)
+        {
+            pEvent->data = setForkIp;
+            pMQCluster->PostEvent(pEvent);
+            StdLog("NetChannel", "CEventPeerBizForks: peer[%s] has posted biz forks "
+                                 "with total [%d] ip(s), [%d] fork(s)",
+                   GetPeerAddressInfo(nNonce).c_str(), mapIpForks.size(), mapForkIps.size());
+        }
+        return true;
+    }
+
+    set<uint32> setIP;
+    for (auto const& it : mapForkIps)
+    {
+        bool fOwned = false;
+        {
+            boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
+            fOwned = mapSched.count(it.first);
+        }
+        if (fOwned)
+        {
+            setIP.insert(it.second.begin(), it.second.end());
+            StdLog("NetChannel", "CEventPeerBizForks: Add [%d] peer node(s) with biz fork[%s]",
+                   it.second.size(), it.first.ToString().c_str());
+        }
+    }
+    for (auto const& nIP : setIP)
+    {
+        string strIP = storage::CSuperNode::Int2Ip(nIP);
+        CNetHost host(strIP, DEFAULT_P2PPORT);
+        CEventPeerNetAddNode eventAddNode(0);
+        eventAddNode.data = host;
+        if (!pPeerNet->DispatchEvent(&eventAddNode))
+        {
+            StdError("NetChannel", "CEventPeerBizForks: Adding outer peer node[%s] failed", strIP.c_str());
+            return false;
+        }
+        StdLog("NetChannel", "CEventPeerBizForks: Adding outer peer node[%s] succeeded", strIP.c_str());
+    }
+
+    return true;
+}
+
 bool CNetChannel::HandleEvent(network::CEventPeerSubscribe& eventSubscribe)
 {
     uint64 nNonce = eventSubscribe.nNonce;
     uint256& hashFork = eventSubscribe.hashFork;
-    StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+    StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, mainfork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+    for (const auto& fork : eventSubscribe.data)
+    {
+        StdLog("NetChannel", "CEventPeerSubscribe: peer: %s, bizfork: %s", GetPeerAddressInfo(nNonce).c_str(), fork.GetHex().c_str());
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        StdTrace("NetChannel", "CEventPeerSubscribe: peer[%s] is subscribing biz chains from a dpos node",
+                 GetPeerAddressInfo(nNonce).c_str());
+        // return true;
+    }
+
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         vector<uint256> vDispatchHash;
         {
             boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-            map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+            auto it = mapPeer.find(nNonce);
             if (it != mapPeer.end())
             {
                 for (const uint256& hash : eventSubscribe.data)
                 {
+                    if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
+                    {
+                        StdError("NetChannel", "CEventPeerSubscribe: peer[%ld] is subscribing a main chain "
+                                               "from a fork node, just ignore it",
+                                 nNonce);
+                        continue;
+                    }
+                    StdTrace("NetChannel", "CEventPeerSubscribe: note peer[%d] as subscribed to fork[%s]",
+                             nNonce, hash.ToString().c_str());
                     (*it).second.Subscribe(hash);
-                    mapUnsync[hash].insert(nNonce);
+                    if (NODE_CAT_DPOSNODE != nNodeCat)
+                    {
+                        mapUnsync[hash].insert(nNonce);
+                    }
                     vDispatchHash.push_back(hash);
                 }
             }
         }
-        if (!vDispatchHash.empty())
+        if (!vDispatchHash.empty() && NODE_CAT_DPOSNODE != nNodeCat)
         {
             boost::recursive_mutex::scoped_lock scoped_lock(mtxSched);
             for (const uint256& hash : vDispatchHash)
@@ -663,16 +1059,40 @@ bool CNetChannel::HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe)
     uint64 nNonce = eventUnsubscribe.nNonce;
     uint256& hashFork = eventUnsubscribe.hashFork;
     StdLog("NetChannel", "CEventPeerUnsubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), hashFork.GetHex().c_str());
+    for (const auto& fork : eventUnsubscribe.data)
+    {
+        StdLog("NetChannel", "CEventPeerUnsubscribe: peer: %s, fork: %s", GetPeerAddressInfo(nNonce).c_str(), fork.GetHex().c_str());
+    }
+
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        StdTrace("NetChannel", "CEventPeerUnsubscribe: peer[%s] is unsubscribing biz chains from a dpos node",
+                 GetPeerAddressInfo(nNonce).c_str());
+        // return true;
+    }
+
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         boost::unique_lock<boost::shared_mutex> wlock(rwNetPeer);
-        map<uint64, CNetChannelPeer>::iterator it = mapPeer.find(nNonce);
+        auto it = mapPeer.find(nNonce);
         if (it != mapPeer.end())
         {
             for (const uint256& hash : eventUnsubscribe.data)
             {
+                if (NODE_CAT_FORKNODE == nNodeCat && hash == pCoreProtocol->GetGenesisBlockHash())
+                {
+                    StdError("NetChannel", "CEventPeerUnsubscribe: peer[%ld] is unsubscribing a main chain "
+                                           "from a fork node, just ignore it",
+                             nNonce);
+                    continue;
+                }
+                StdTrace("NetChannel", "CEventPeerUnsubscribe: note peer[%d] as unsubscribed to fork[%s]",
+                         nNonce, hash.ToString().c_str());
                 (*it).second.Unsubscribe(hash);
-                mapUnsync[hash].erase(nNonce);
+                if (NODE_CAT_DPOSNODE != nNodeCat)
+                {
+                    mapUnsync[hash].erase(nNonce);
+                }
             }
         }
     }
@@ -688,6 +1108,27 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
 {
     uint64 nNonce = eventInv.nNonce;
     uint256& hashFork = eventInv.hashFork;
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is feeding a main chain inv "
+                                   "to a fork node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerInv: peer[%s] is feeding a main chain inv "
+                                   "to a dpos node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     try
     {
         if (eventInv.data.size() > network::CInv::MAX_INV_COUNT)
@@ -841,7 +1282,8 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetData& eventGetData)
             }
             else
             {
-                StdError("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s", inv.nHash.GetHex().c_str());
+                StdError("NetChannel", "CEventPeerGetData: Get transaction fail, txid: %s",
+                         inv.nHash.GetHex().c_str());
                 eventGetFail.data.push_back(inv);
             }
         }
@@ -903,6 +1345,28 @@ bool CNetChannel::HandleEvent(network::CEventPeerGetBlocks& eventGetBlocks)
 {
     uint64 nNonce = eventGetBlocks.nNonce;
     uint256& hashFork = eventGetBlocks.hashFork;
+
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerGetBlocks: peer[%s] is asking main chain blocks "
+                                   "from a fork node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerGetBlocks: peer[%s] is asking biz chain blocks "
+                                   "from a dpos node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     vector<uint256> vBlockHash;
 
     StdTrace("NetChannel", "CEventPeerGetBlocks: peer: %s, fork: %s",
@@ -966,6 +1430,28 @@ bool CNetChannel::HandleEvent(network::CEventPeerTx& eventTx)
 {
     uint64 nNonce = eventTx.nNonce;
     uint256& hashFork = eventTx.hashFork;
+
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerTx: peer[%s] is feeding a main chain tx "
+                                   "to a fork node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerTx: peer[%s] is feeding a biz chain tx "
+                                   "to a dpos node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     CTransaction& tx = eventTx.data;
     uint256 txid = tx.GetHash();
 
@@ -1018,6 +1504,28 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
 {
     uint64 nNonce = eventBlock.nNonce;
     uint256& hashFork = eventBlock.hashFork;
+
+    if (NODE_CAT_FORKNODE == nNodeCat)
+    {
+        if (hashFork == pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerBlock: peer[%s] is feeding a main chain block "
+                                   "to a fork node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (hashFork != pCoreProtocol->GetGenesisBlockHash())
+        {
+            StdTrace("NetChannel", "CEventPeerBlock: peer[%s] is feeding a biz chain block "
+                                   "to a dpos node, just ignore it",
+                     GetPeerAddressInfo(nNonce).c_str());
+            return true;
+        }
+    }
+
     CBlock& block = eventBlock.data;
     uint256 hash = block.GetHash();
     uint32 nBlockHeight = block.GetBlockHeight();
@@ -1918,7 +2426,7 @@ bool CNetChannel::PushTxInv(const uint256& hashFork)
     {
         vector<uint256> vTxPool;
         pTxPool->ListTx(hashFork, vTxPool);
-        if (!vTxPool.empty() && !mapPeer.empty())
+        if (!vTxPool.empty())
         {
             boost::unique_lock<boost::shared_mutex> rlock(rwNetPeer);
             for (map<uint64, CNetChannelPeer>::iterator it = mapPeer.begin(); it != mapPeer.end(); ++it)

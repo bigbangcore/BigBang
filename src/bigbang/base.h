@@ -17,6 +17,7 @@
 #include "destination.h"
 #include "error.h"
 #include "key.h"
+#include "mqdb.h"
 #include "param.h"
 #include "peer.h"
 #include "profile.h"
@@ -117,6 +118,7 @@ public:
     virtual bool GetBlock(const uint256& hashBlock, CBlock& block) = 0;
     virtual bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) = 0;
     virtual bool GetOrigin(const uint256& hashFork, CBlock& block) = 0;
+    virtual bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) = 0;
     virtual bool Exists(const uint256& hashBlock) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx) = 0;
     virtual bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) = 0;
@@ -131,6 +133,10 @@ public:
     virtual Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) = 0;
     virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
+    virtual Errno AddNewSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
+    virtual bool FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask) = 0;
+    virtual bool AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) = 0;
     virtual bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) = 0;
@@ -159,6 +165,7 @@ public:
     virtual bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) = 0;
     virtual uint32 DPoSTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
+    virtual bool ListActiveFork(std::vector<uint256>& forks) = 0;
     virtual bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) = 0;
     virtual bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) = 0;
     virtual bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) = 0;
@@ -214,6 +221,7 @@ public:
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     virtual void GetForkList(std::vector<uint256>& vFork) const = 0;
     virtual bool GetSubline(const uint256& hashFork, std::vector<std::pair<int, uint256>>& vSubline) const = 0;
+    virtual bool SetForkFilter(const std::vector<uint256>& vFork = std::vector<uint256>(), const std::vector<uint256>& vGroup = std::vector<uint256>()) = 0;
     virtual bool GetCreatedHeight(const uint256& hashFork, int& nCreatedHeight) const = 0;
     const CForkConfig* ForkConfig()
     {
@@ -333,6 +341,7 @@ public:
     virtual void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) = 0;
     virtual bool AddNode(const xengine::CNetHost& node) = 0;
     virtual bool RemoveNode(const xengine::CNetHost& node) = 0;
+    virtual bool AddBizForkNodes(const std::vector<uint32>& nodes) = 0;
     /* Blockchain & Tx Pool*/
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
@@ -394,6 +403,9 @@ public:
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                              crypto::CKey& keyMint, uint256& hashBlock)
         = 0;
+    /* Util */
+    virtual bool AddSuperNode(const storage::CSuperNode& node) = 0;
+    virtual bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) = 0;
 };
 
 class IDataStat : public xengine::IIOModule

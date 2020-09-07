@@ -9,7 +9,7 @@
 #include "httputil.h"
 #include "netio/netio.h"
 
-#define HTTPGET_CONNET_TIMEOUT 10
+#define HTTPGET_CONNECT_TIMEOUT 10
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -271,7 +271,7 @@ void CHttpGet::HostResolved(const CNetHost& host, const tcp::endpoint& ep)
     if (it != mapRequest.upper_bound(host))
     {
         CHttpReqData& httpReqData = (*it).second.data;
-        if (SSLConnect(ep, HTTPGET_CONNET_TIMEOUT, GetSSLOption(httpReqData, host.strHost)))
+        if (SSLConnect(ep, HTTPGET_CONNECT_TIMEOUT, GetSSLOption(httpReqData, host.strHost)))
         {
             mapRequest.insert(make_pair(CNetHost(ep), (*it).second));
         }
@@ -413,7 +413,7 @@ bool CHttpGet::HandleEvent(CEventHttpGet& eventGet)
     tcp::endpoint ep = host.ToEndPoint();
     if (ep != tcp::endpoint())
     {
-        if (!SSLConnect(ep, HTTPGET_CONNET_TIMEOUT, GetSSLOption(httpReqData, host.strHost)))
+        if (!SSLConnect(ep, HTTPGET_CONNECT_TIMEOUT, GetSSLOption(httpReqData, host.strHost)))
         {
             PostError(httpReqData.strIOModule, nNonce, HTTPGET_CONNECT_FAILED);
             return true;

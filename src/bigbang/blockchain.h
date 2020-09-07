@@ -34,6 +34,7 @@ public:
     bool GetBlock(const uint256& hashBlock, CBlock& block) override;
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) override;
     bool GetOrigin(const uint256& hashFork, CBlock& block) override;
+    bool GetBlockMintType(const uint256& hashBlock, uint16& nMintType) override;
     bool Exists(const uint256& hashBlock) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx) override;
     bool GetTransaction(const uint256& txid, CTransaction& tx, uint256& hashFork, int& nHeight) override;
@@ -47,6 +48,10 @@ public:
     Errno AddNewForkContext(const CTransaction& txFork, CForkContext& ctxt) override;
     Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
+    Errno AddNewSuperNode(const storage::CSuperNode& node) override;
+    bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) override;
+    bool FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask) override;
+    bool AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits, int64& nReward) override;
     bool GetBlockMintReward(const uint256& hashPrev, int64& nReward) override;
     bool GetBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep) override;
@@ -64,6 +69,7 @@ public:
     bool ListDelegatePayment(uint32 height, CBlock& block, std::multimap<int64, CDestination>& mapVotes) override;
     uint32 DPoSTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
+    bool ListActiveFork(std::vector<uint256>& forks) override;
     bool CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update) override;
     bool VerifyForkRefLongChain(const uint256& hashFork, const uint256& hashForkBlock, const uint256& hashPrimaryBlock) override;
     bool GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime) override;

@@ -46,6 +46,7 @@ set(src
     wallet.cpp          wallet.h
     blockchain.cpp      blockchain.h
     forkmanager.cpp     forkmanager.h
+    mqcluster.cpp       mqcluster.h
     datastat.cpp        datastat.h
     recovery.cpp        recovery.h
     checkrepair.cpp     checkrepair.h
@@ -53,8 +54,8 @@ set(src
     base.h
     struct.h
     param.h
-    storage.h
     version.h
+    mqevent.h
 )
 set(mode_src
     mode/basic_config.cpp   mode/basic_config.h
@@ -80,7 +81,7 @@ set(sources
 add_library(libbigbang ${sources})
 add_executable(bigbang bigbang.cpp)
 
-include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
+include_directories(../xengine ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ../mqtt/src/mqtt ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 include_directories(${Protobuf_INCLUDE_DIRS})
@@ -126,6 +127,7 @@ target_link_libraries(libbigbang
     delegate    
     jsonrpc
     common
+    mqtt
 )
 
 # create symbol link

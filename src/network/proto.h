@@ -19,6 +19,7 @@ enum
 {
     NODE_NETWORK = (1 << 0),
     NODE_DELEGATED = (1 << 1),
+    NODE_SUPERNODE = (1 << 2),
 };
 
 enum
@@ -37,6 +38,8 @@ enum
     PROTO_CMD_ADDRESS = 4,
     PROTO_CMD_PING = 5,
     PROTO_CMD_PONG = 6,
+    PROTO_CMD_GETBIZFORK = 7,
+    PROTO_CMD_BIZFORK = 8,
 };
 
 enum
@@ -128,6 +131,26 @@ protected:
         (void)s;
         serSize += MESSAGE_HEADER_SIZE;
     }
+};
+
+class CBizFork
+{
+    friend class xengine::CStream;
+
+public:
+    CBizFork() {}
+    CBizFork(const std::map<uint256, std::vector<uint32>>& rForkIn)
+      : mapFork(rForkIn) {}
+
+protected:
+    template <typename O>
+    void Serialize(xengine::CStream& s, O& opt)
+    {
+        s.Serialize(mapFork, opt);
+    }
+
+public:
+    std::map<uint256, std::vector<uint32>> mapFork;
 };
 
 class CMsgRsp

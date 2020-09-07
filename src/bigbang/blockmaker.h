@@ -98,10 +98,12 @@ protected:
 private:
     void BlockMakerThreadFunc();
     void PowThreadFunc();
+    void BizForkThreadFunc();
 
 protected:
     xengine::CThread thrMaker;
     xengine::CThread thrPow;
+    xengine::CThread thrBizFork;
     boost::mutex mutex;
     boost::condition_variable condExit;
     boost::condition_variable condBlock;
@@ -110,6 +112,7 @@ protected:
     std::map<int, CBlockMakerHashAlgo*> mapHashAlgo;
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
+    int nNodeCat;
     ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
     IForkManager* pForkManager;

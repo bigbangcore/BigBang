@@ -16,6 +16,8 @@
 //#include <algorithm>
 
 #include "address.h"
+#include "defs.h"
+#include "mqdb.h"
 #include "rpc/auto_protocol.h"
 #include "template/fork.h"
 #include "template/proof.h"
@@ -108,14 +110,7 @@ static CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx,
     ret.dTxfee = ValueFromAmount(tx.nTxFee);
 
     std::string str(tx.vchData.begin(), tx.vchData.end());
-    if (str.substr(0, 4) == "msg:")
-    {
-        ret.strData = str;
-    }
-    else
-    {
-        ret.strData = xengine::ToHexString(tx.vchData);
-    }
+    ret.strData = xengine::ToHexString(tx.vchData);
     ret.strSig = xengine::ToHexString(tx.vchSig);
     ret.strFork = hashFork.GetHex();
     if (nDepth >= 0)
@@ -286,6 +281,10 @@ CRPCMod::CRPCMod()
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("listunspent", &CRPCMod::RPCListUnspent)
+        //
+        ("enrollsupernode", &CRPCMod::RPCEnrollSuperNode)
+        //
+        ("listenrollment", &CRPCMod::RPCListEnrollment)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -632,6 +631,17 @@ CRPCResultPtr CRPCMod::RPCListPeer(CRPCParamPtr param)
                     peer.strServices = peer.strServices + ",NODE_DELEGATED";
                 }
             }
+            if (info.nService & network::NODE_SUPERNODE)
+            {
+                if (peer.strServices.empty())
+                {
+                    peer.strServices = "NODE_SUPERNODE";
+                }
+                else
+                {
+                    peer.strServices = peer.strServices + ",NODE_SUPERNODE";
+                }
+            }
             if (peer.strServices.empty())
             {
                 peer.strServices = string("OTHER:") + to_string(info.nService);
@@ -691,10 +701,11 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     auto spResult = MakeCListForkResultPtr();
     for (size_t i = 0; i < vFork.size(); i++)
     {
+        Log("listfork[%s]", vFork[i].first.ToString().c_str());
         CProfile& profile = vFork[i].second;
         //auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
         //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
-        if (pForkManager->IsAllowed(vFork[i].first))
+        if (spParam->fAll || (!spParam->fAll && pForkManager->IsAllowed(vFork[i].first)))
         {
             spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
                                              (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
@@ -1631,15 +1642,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     if (spParam->strData.IsValid())
     {
         auto strDataTmp = spParam->strData;
-        if (((std::string)strDataTmp).substr(0, 4) == "msg:")
-        {
-            auto hex = xengine::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
-            vchData = ParseHexString(hex);
-        }
-        else
-        {
-            vchData = ParseHexString(strDataTmp);
-        }
+        vchData = ParseHexString(strDataTmp);
     }
 
     int64 nTxFee = CalcMinTxFee(vchData.size(), NEW_MIN_TX_FEE);
@@ -2244,7 +2247,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     int nForkHeight = pService->GetForkHeight(hashParent);
     if (nForkHeight < nJointHeight + MIN_CREATE_FORK_INTERVAL_HEIGHT)
     {
-        throw CRPCException(RPC_INVALID_PARAMETER, "The minimum confirmed height of the previous block is 30");
+        //        throw CRPCException(RPC_INVALID_PARAMETER, string("The minimum confirmed height of the previous block is: ") + std::to_string(MIN_CREATE_FORK_INTERVAL_HEIGHT));
     }
     if ((int64)nForkHeight > (int64)nJointHeight + MAX_JOINT_FORK_INTERVAL_HEIGHT)
     {
@@ -2570,6 +2573,7 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
             }
         }
 
+        sort(addresses.begin(), addresses.end());
         auto last = unique(addresses.begin(), addresses.end());
         addresses.erase(last, addresses.end());
 
@@ -2653,9 +2657,132 @@ CRPCResultPtr CRPCMod::RPCListUnspent(CRPCParamPtr param)
     return spResult;
 }
 
+CRPCResultPtr CRPCMod::RPCEnrollSuperNode(rpc::CRPCParamPtr param)
+{
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (NODE_CAT_FORKNODE != nNodeCat && NODE_CAT_DPOSNODE != nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only super node has the feature");
+    }
+
+    auto spParam = CastParamPtr<CEnrollSuperNodeParam>(param);
+    std::string ipStr = spParam->strClientip;
+    unsigned long ipNum = 0;
+    if (!storage::CSuperNode::Ip2Int(ipStr, ipNum))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid ip address");
+    }
+
+    if (NODE_CAT_FORKNODE == nNodeCat && 0 == ipNum)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of fork node must not be 0.0.0.0");
+    }
+
+    std::string id = spParam->strClientid;
+    std::vector<std::string> vFork = spParam->vecForks;
+
+    string dposid = dynamic_cast<const CBasicConfig*>(Config())->strDposNodeID;
+    if (NODE_CAT_DPOSNODE == nNodeCat && dposid == id && 0 != ipNum)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Failed: IP of dpos node must be 0.0.0.0");
+    }
+
+    std::vector<uint256> forks;
+    for (const auto& i : vFork)
+    {
+        if (64 != i.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork hash");
+        }
+        uint256 fork;
+        if (fork.SetHex(i) != i.size())
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork hash");
+        }
+        forks.emplace_back(fork);
+    }
+
+    if (forks.empty())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "No fork hash parameter");
+    }
+
+    uint256 hashGenesis = pCoreProtocol->GetGenesisBlockHash();
+    if (NODE_CAT_DPOSNODE == nNodeCat)
+    {
+        if (dposid == id && forks.size() > 1)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Dpos node must have only main chain to enroll");
+        }
+
+        if (dposid == id && forks[0] != hashGenesis)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "The main fork dpos node enrolls does not match:[ " + hashGenesis.ToString() + " ]");
+        }
+    }
+
+    if (NODE_CAT_FORKNODE == nNodeCat
+        || (NODE_CAT_DPOSNODE == nNodeCat && dposid != id
+            && id != storage::CLIENT_ID_OUT_OF_MQ_CLUSTER))
+    {
+        if (forks.end() != find(forks.begin(), forks.end(), hashGenesis))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "The fork fork node enrolls should not be the main fork:[ " + hashGenesis.ToString() + " ]");
+        }
+    }
+
+    storage::CSuperNode newNode;
+    newNode.superNodeID = std::move(id);
+    newNode.ipAddr = ipNum;
+    newNode.vecOwnedForks = std::move(forks);
+    newNode.nodeCat = nNodeCat;
+
+    if (!pService->AddSuperNode(newNode))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Enroll super node failed");
+    }
+
+    return MakeCEnrollSuperNodeResultPtr(string("Add super node successfully."));
+}
+
+CRPCResultPtr CRPCMod::RPCListEnrollment(rpc::CRPCParamPtr param)
+{
+    vector<storage::CSuperNode> nodes;
+    if (!pService->ListSuperNode(nodes))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "List super nodes failed");
+    }
+
+    auto spResult = MakeCListEnrollmentResultPtr();
+    for (const auto& it : nodes)
+    {
+        CListEnrollmentResult::CNode node;
+        node.strClientid = it.superNodeID;
+        string strAddr;
+        if (!storage::CSuperNode::Int2Ip(it.ipAddr, strAddr))
+        {
+            throw CRPCException(RPC_INTERNAL_ERROR, "Failed to convert ip address");
+        }
+        node.strClientip = strAddr;
+        for (const auto& fork : it.vecOwnedForks)
+        {
+            node.vecForks.push_back(fork.ToString());
+        }
+        spResult->vecNode.push_back(node);
+    }
+
+    return spResult;
+}
+
 // /* Mint */
 CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
 {
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (1 == nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "This fork node has not feature of POW mining");
+    }
+
     //getwork <"spent"> <"privkey"> ("prev")
     auto spParam = CastParamPtr<CGetWorkParam>(param);
 
@@ -2673,7 +2800,7 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
     crypto::CPubKey pubkeySpent;
     if (addrSpent.GetPubKey(pubkeySpent) && pubkeySpent == key.GetPubKey())
     {
-        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid spent address or private key");
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Mining signature private key and spent address cannot be from the same.");
     }
     CTemplateMintPtr ptr = CTemplateMint::CreateTemplatePtr(new CTemplateProof(key.GetPubKey(), static_cast<CDestination&>(addrSpent)));
     if (ptr == nullptr)
@@ -2708,6 +2835,12 @@ CRPCResultPtr CRPCMod::RPCGetWork(CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCSubmitWork(CRPCParamPtr param)
 {
+    int nNodeCat = dynamic_cast<const CBasicConfig*>(Config())->nCatOfNode;
+    if (1 == nNodeCat)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "This fork node has not feature of POW mining");
+    }
+
     auto spParam = CastParamPtr<CSubmitWorkParam>(param);
     vector<unsigned char> vchWorkData(ParseHexString(spParam->strData));
     CAddress addrSpent(spParam->strSpent);

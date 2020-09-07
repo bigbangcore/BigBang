@@ -95,7 +95,7 @@ bool CBlockChain::HandleInvoke()
     InitCheckPoints();
 
     // Check local block compared to checkpoint
-    if (Config()->nMagicNum == MAINNET_MAGICNUM)
+    /*    if (Config()->nMagicNum == MAINNET_MAGICNUM)
     {
         std::map<uint256, CForkStatus> mapForkStatus;
         GetForkStatus(mapForkStatus);
@@ -109,7 +109,7 @@ bool CBlockChain::HandleInvoke()
                 return false;
             }
         }
-    }
+    }*/
 
     return true;
 }
@@ -322,6 +322,17 @@ bool CBlockChain::GetOrigin(const uint256& hashFork, CBlock& block)
     return cntrBlock.RetrieveOrigin(hashFork, block);
 }
 
+bool CBlockChain::GetBlockMintType(const uint256& hashBlock, uint16& nMintType)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveIndex(hashBlock, &pIndex))
+    {
+        return false;
+    }
+    nMintType = pIndex->nMintType;
+    return true;
+}
+
 bool CBlockChain::Exists(const uint256& hashBlock)
 {
     return cntrBlock.Exists(hashBlock);
@@ -474,7 +485,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
     {
         do
         {
-            if (!block.IsPrimary() && pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
+            if (pCoreProtocol->IsRefVacantHeight(block.GetBlockHeight()) && pIndexRef
                 && !cntrBlock.VerifyRefBlock(pCoreProtocol->GetGenesisBlockHash(), pIndexRef->GetBlockHash()))
             {
                 fGetBranchBlock = false;
@@ -697,7 +708,8 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     }
     if (block.GetBlockTime() != nTimeRef)
     {
-        Log("Invalid origin block time");
+        Log("Invalid origin block time - block[%ld - %ld] vs. ref[%ld] at height[%d]",
+            block.GetBlockTime(), block.nTimeStamp, nTimeRef, block.GetBlockHeight());
         return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
     }
 
@@ -777,6 +789,45 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
     update.vBlockAddNew.push_back(blockex);
 
     return OK;
+}
+
+Errno CBlockChain::AddNewSuperNode(const storage::CSuperNode& node)
+{
+    if (!cntrBlock.AddNewSuperNode(node))
+    {
+        return FAILED;
+    }
+    return OK;
+}
+
+bool CBlockChain::ListSuperNode(std::vector<storage::CSuperNode>& nodes)
+{
+    if (!cntrBlock.ListSuperNode(nodes))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool CBlockChain::FetchSuperNode(std::vector<storage::CSuperNode>& nodes, const uint8 mask)
+{
+    if (!cntrBlock.FetchSuperNode(nodes, mask))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool CBlockChain::AddOuterNodes(const std::vector<storage::CSuperNode>& outers, bool fSuper)
+{
+    if (!cntrBlock.AddOuterNodes(outers, fSuper))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 // uint320 GetBlockTrust() const
@@ -1191,6 +1242,11 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     }
 
     return OK;
+}
+
+bool CBlockChain::ListActiveFork(std::vector<uint256>& forks)
+{
+    return cntrBlock.ListActiveFork(forks);
 }
 
 bool CBlockChain::CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate& update)
@@ -1787,7 +1843,6 @@ void CBlockChain::InitCheckPoints()
 #ifdef BIGBANG_TESTNET
         vecGenesisCheckPoints.push_back(CCheckPoint(0, pCoreProtocol->GetGenesisBlockHash()));
         InitCheckPoints(pCoreProtocol->GetGenesisBlockHash(), vecGenesisCheckPoints);
-
 #else
         vecGenesisCheckPoints.assign(
             { { 0, uint256("00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70") },

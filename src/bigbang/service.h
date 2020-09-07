@@ -6,6 +6,8 @@
 #define BIGBANG_SERVICE_H
 
 #include "base.h"
+#include "mqdb.h"
+#include "mqcluster.h"
 #include "network.h"
 #include "xengine.h"
 
@@ -28,6 +30,7 @@ public:
     void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) override;
     bool AddNode(const xengine::CNetHost& node) override;
     bool RemoveNode(const xengine::CNetHost& node) override;
+    bool AddBizForkNodes(const std::vector<uint32>& nodes) override;
     /* Blockchain & Tx Pool*/
     int GetForkCount() override;
     bool HaveFork(const uint256& hashFork) override;
@@ -83,6 +86,9 @@ public:
                  const CTemplateMintPtr& templMint) override;
     Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                      crypto::CKey& keyMint, uint256& hashBlock) override;
+    /* Util */
+    bool AddSuperNode(const storage::CSuperNode& node) override;
+    bool ListSuperNode(std::vector<storage::CSuperNode>& nodes) override;
 
 protected:
     bool HandleInitialize() override;
@@ -98,6 +104,7 @@ protected:
     IWallet* pWallet;
     CNetwork* pNetwork;
     IForkManager* pForkManager;
+    IMQCluster* pMQCluster;
     network::INetChannel* pNetChannel;
     mutable boost::shared_mutex rwForkStatus;
     std::map<uint256, CForkStatus> mapForkStatus;

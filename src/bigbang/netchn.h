@@ -6,6 +6,7 @@
 #define BIGBANG_NETCHN_H
 
 #include "base.h"
+#include "mqcluster.h"
 #include "peernet.h"
 #include "schedule.h"
 
@@ -18,8 +19,10 @@ class CNetChannelPeer
     {
     public:
         CNetChannelPeerFork()
-          : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT), nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
-            nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2), fWaitGetTxComplete(false), nCacheSynTxCount(NETCHANNEL_KNOWNINV_MAXCOUNT)
+          : fSynchronized(false), nSynTxInvStatus(SYNTXINV_STATUS_INIT),
+            nSynTxInvSendTime(0), nSynTxInvRecvTime(0), nPrevGetDataTime(0),
+            nSingleSynTxInvCount(network::CInv::MAX_INV_COUNT / 2),
+            fWaitGetTxComplete(false), nCacheSynTxCount(NETCHANNEL_KNOWNINV_MAXCOUNT)
         {
         }
         enum
@@ -94,7 +97,8 @@ class CNetChannelPeer
                 }
                 break;
             case SYNTXINV_STATUS_WAIT_PEER_COMPLETE:
-                if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
+                if (nCurTime - nPrevGetDataTime >= SYNTXINV_GETDATA_TIMEOUT
+                    || nCurTime - nSynTxInvRecvTime >= SYNTXINV_COMPLETE_TIMEOUT)
                 {
                     InitTxInvSynData();
                     nSingleSynTxInvCount = network::CInv::MIN_INV_COUNT;
@@ -148,7 +152,10 @@ public:
     CNetChannelPeer(uint64 nServiceIn, const network::CAddress& addr, const uint256& hashPrimary)
       : nService(nServiceIn), addressRemote(addr)
     {
-        mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        if (hashPrimary != uint256())
+        {
+            mapSubscribedFork.insert(std::make_pair(hashPrimary, CNetChannelPeerFork()));
+        }
 
         boost::asio::ip::tcp::endpoint ep;
         addressRemote.ssEndpoint.GetEndpoint(ep);
@@ -254,6 +261,8 @@ public:
     bool SubmitCachePowBlock(const CConsensusParam& consParam) override;
     bool IsLocalCachePowBlock(int nHeight, bool& fIsDpos) override;
     bool AddCacheLocalPowBlock(const CBlock& block) override;
+    void DispatchGetBizForksEvent(const vector<uint256>& bizForks) override;
+    void BroadcastBizForks(const uint32& nIP, const vector<uint256>& bizForks) override;
 
 protected:
     enum
@@ -288,6 +297,8 @@ protected:
 
     bool HandleEvent(network::CEventPeerActive& eventActive) override;
     bool HandleEvent(network::CEventPeerDeactive& eventDeactive) override;
+    bool HandleEvent(network::CEventPeerGetBizForks& eventGetBizForks) override;
+    bool HandleEvent(network::CEventPeerBizForks& eventBizForks) override;
     bool HandleEvent(network::CEventPeerSubscribe& eventSubscribe) override;
     bool HandleEvent(network::CEventPeerUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(network::CEventPeerInv& eventInv) override;
@@ -335,6 +346,7 @@ protected:
     IDispatcher* pDispatcher;
     IService* pService;
     IConsensus* pConsensus;
+    IMQCluster* pMQCluster;
 
     mutable boost::recursive_mutex mtxSched;
     std::map<uint256, CSchedule> mapSched;
@@ -347,6 +359,8 @@ protected:
     uint32 nTimerPushTx;
     bool fStartIdlePushTxTimer;
     std::set<uint256> setPushTxFork;
+
+    int8 nNodeCat;
 };
 
 } // namespace bigbang

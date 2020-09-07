@@ -38,7 +38,7 @@ elseif(UNIX)
     set(CMAKE_CXX_EXTENSIONS OFF)
     
 else()
-    message(FATAL_ERROR "Unsupported plantform")
+    message(FATAL_ERROR "Unsupported platform")
 endif()
 
 # build type
@@ -57,7 +57,7 @@ endif()
 if(UNIX AND NOT CYGWIN)
     string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing")
     if (APPLE)
-        string(APPEND CMAKE_CXX_FLAGS " -fvisibility-inlines-hidden -fvisibility=hidden")
+        string(APPEND CMAKE_CXX_FLAGS " -Wno-missing-field-initializers -fvisibility-inlines-hidden -fvisibility=hidden")
     endif()
 endif()
 
