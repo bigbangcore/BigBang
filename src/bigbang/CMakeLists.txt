@@ -127,7 +127,7 @@ target_link_libraries(libbigbang
     delegate    
     jsonrpc
     common
-        mqtt
+    mqtt
 )
 
 # create symbol link
