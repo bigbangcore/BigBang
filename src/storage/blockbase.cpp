@@ -281,19 +281,41 @@ void CBlockView::InsertBlockList(const uint256& hash, const CBlockEx& block, lis
 //////////////////////////////
 // CForkHeightIndex
 
-void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint)
+void CForkHeightIndex::AddHeightIndex(uint32 nHeight, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock)
 {
-    mapHeightIndex[nHeight][hashBlock] = CBlockHeightIndex(nBlockTimeStamp, destMint);
+    mapHeightIndex[nHeight][hashBlock] = CBlockHeightIndex(nBlockTimeStamp, destMint, hashRefBlock);
 }
 
 void CForkHeightIndex::RemoveHeightIndex(uint32 nHeight, const uint256& hashBlock)
 {
-    mapHeightIndex[nHeight].erase(hashBlock);
+    auto it = mapHeightIndex.find(nHeight);
+    if (it != mapHeightIndex.end())
+    {
+        it->second.erase(hashBlock);
+    }
+}
+
+void CForkHeightIndex::UpdateBlockRef(int nHeight, const uint256& hashBlock, const uint256& hashRefBlock)
+{
+    auto it = mapHeightIndex.find(nHeight);
+    if (it != mapHeightIndex.end())
+    {
+        auto mt = it->second.find(hashBlock);
+        if (mt != it->second.end())
+        {
+            mt->second.hashRefBlock = hashRefBlock;
+        }
+    }
 }
 
 map<uint256, CBlockHeightIndex>* CForkHeightIndex::GetBlockMintList(uint32 nHeight)
 {
-    return &(mapHeightIndex[nHeight]);
+    auto it = mapHeightIndex.find(nHeight);
+    if (it != mapHeightIndex.end())
+    {
+        return &(it->second);
+    }
+    return nullptr;
 }
 
 //////////////////////////////
@@ -918,7 +940,7 @@ bool CBlockBase::GetBlockView(CBlockView& view)
     return true;
 }
 
-bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable)
+bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommitable, bool fGetBranchBlock)
 {
     CBlockIndex* pIndex = nullptr;
     uint256 hashOrigin;
@@ -944,6 +966,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
 
     view.Initialize(this, spFork, hashOrigin, fCommitable);
 
+    if (fGetBranchBlock)
     {
         CReadLock rlock(rwAccess);
         CBlockIndex* pForkLast = spFork->GetLast();
@@ -951,8 +974,8 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
         vector<CBlockIndex*> vPath;
         CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
 
-        uint16 nBlockRemoved = 0;
-        uint16 nTxRemoved = 0;
+        uint64 nBlockRemoved = 0;
+        uint64 nTxRemoved = 0;
         for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
         {
             // remove block tx;
@@ -977,7 +1000,7 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                 view.RemoveTx(block.vtx[j].GetHash(), block.vtx[j], block.vTxContxt[j]);
                 ++nTxRemoved;
             }
-            if (!block.txMint.IsNull())
+            if (!block.txMint.sendTo.IsNull())
             {
                 StdTrace("BlockBase",
                          "Chain rollback attempt[removed mint tx]: %s",
@@ -987,15 +1010,12 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
             }
             view.RemoveBlock(p->GetBlockHash(), block);
         }
-        if (nBlockRemoved > 0)
-        {
-            StdTrace("BlockBase",
-                     "Chain rollback attempt[removed block amount]: %u",
-                     nTxRemoved);
-        }
+        StdTrace("BlockBase",
+                 "Chain rollback attempt[removed block amount]: %lu, [removed tx amount]: %lu",
+                 nBlockRemoved, nTxRemoved);
 
-        uint16 nBlockAdded = 0;
-        uint16 nTxAdded = 0;
+        uint64 nBlockAdded = 0;
+        uint64 nTxAdded = 0;
         for (int i = vPath.size() - 1; i >= 0; i--)
         {
             // add block tx;
@@ -1013,7 +1033,10 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
                          vPath[i]->GetBlockHash().ToString().c_str());
                 return false;
             }
-            view.AddTx(block.txMint.GetHash(), block.txMint);
+            if (!block.txMint.sendTo.IsNull())
+            {
+                view.AddTx(block.txMint.GetHash(), block.txMint);
+            }
             ++nTxAdded;
             for (int j = 0; j < block.vtx.size(); j++)
             {
@@ -1026,12 +1049,9 @@ bool CBlockBase::GetBlockView(const uint256& hash, CBlockView& view, bool fCommi
             }
             view.AddBlock(vPath[i]->GetBlockHash(), block);
         }
-        if (vPath.size() > 0)
-        {
-            StdTrace("BlockBase",
-                     "Chain rollback attempt[added block amount]: %u",
-                     vPath.size());
-        }
+        StdTrace("BlockBase",
+                 "Chain rollback attempt[added block amount]: %lu, [added tx amount]: %lu",
+                 nBlockAdded, nTxAdded);
     }
     return true;
 }
@@ -1159,7 +1179,7 @@ bool CBlockBase::LoadIndex(CBlockOutline& outline)
         }
     }
 
-    UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, pIndexNew->nTimeStamp, CDestination());
+    UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, pIndexNew->nTimeStamp, CDestination(), uint256());
     return true;
 }
 
@@ -1377,6 +1397,7 @@ bool CBlockBase::GetForkBlockInv(const uint256& hashFork, const CBlockLocator& l
         {
             if (pIndex->GetOriginHash() != hashFork)
             {
+                StdTrace("BlockBase", "GetForkBlockInv GetOriginHash error, fork: %s", hashFork.ToString().c_str());
                 return false;
             }
             break;
@@ -1945,6 +1966,8 @@ bool CBlockBase::GetDelegateList(const uint256& hashGenesis, uint32 nCount, std:
 bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const CDestination& destMint, uint16 nBlockType,
                                    uint32 nBlockTimeStamp, uint32 nRefBlockTimeStamp, uint32 nExtendedBlockSpacing)
 {
+    CWriteLock wlock(rwAccess);
+
     map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
     if (it != mapForkHeightIndex.end())
     {
@@ -1955,13 +1978,25 @@ bool CBlockBase::VerifyRepeatBlock(const uint256& hashFork, uint32 height, const
             {
                 if (mt.second.destMint.IsNull())
                 {
-                    CTransaction tx;
-                    CBlockIndex* pBlockIndex = nullptr;
-                    if (RetrieveIndex(mt.first, &pBlockIndex)
-                        && !pBlockIndex->IsVacant()
-                        && RetrieveTx(pBlockIndex->txidMint, tx))
+                    CBlockIndex* pBlockIndex = GetIndex(mt.first);
+                    if (pBlockIndex)
                     {
-                        mt.second.destMint = tx.sendTo;
+                        if (pBlockIndex->IsVacant())
+                        {
+                            CBlock block;
+                            if (Retrieve(pBlockIndex, block) && !block.txMint.sendTo.IsNull())
+                            {
+                                mt.second.destMint = block.txMint.sendTo;
+                            }
+                        }
+                        else
+                        {
+                            CTransaction tx;
+                            if (RetrieveTx(pBlockIndex->txidMint, tx))
+                            {
+                                mt.second.destMint = tx.sendTo;
+                            }
+                        }
                     }
                 }
                 if (mt.second.destMint == destMint)
@@ -2014,6 +2049,182 @@ bool CBlockBase::GetBlockDelegatedEnrollTx(const uint256& hashBlock, map<int, se
         }
     }
     return true;
+}
+
+bool CBlockBase::VerifyRefBlock(const uint256& hashGenesis, const uint256& hashRefBlock)
+{
+    CReadLock rlock(rwAccess);
+
+    CBlockIndex* pIndexGenesisLast = nullptr;
+    boost::shared_ptr<CBlockFork> spForkGenesis;
+    spForkGenesis = GetFork(hashGenesis);
+    if (spForkGenesis == nullptr)
+    {
+        return false;
+    }
+    pIndexGenesisLast = spForkGenesis->GetLast();
+    if (pIndexGenesisLast == nullptr)
+    {
+        return false;
+    }
+    return IsValidBlock(pIndexGenesisLast, hashRefBlock);
+}
+
+CBlockIndex* CBlockBase::GetForkValidLast(const uint256& hashGenesis, const uint256& hashFork, int nRefVacantHeight)
+{
+    CReadLock rlock(rwAccess);
+
+    CBlockIndex* pIndexGenesisLast = nullptr;
+    boost::shared_ptr<CBlockFork> spForkGenesis;
+    spForkGenesis = GetFork(hashGenesis);
+    if (spForkGenesis == nullptr)
+    {
+        return nullptr;
+    }
+    pIndexGenesisLast = spForkGenesis->GetLast();
+    if (pIndexGenesisLast == nullptr)
+    {
+        return nullptr;
+    }
+
+    CBlockIndex* pForkLast = nullptr;
+    boost::shared_ptr<CBlockFork> spFork;
+    spFork = GetFork(hashFork);
+    if (spFork == nullptr)
+    {
+        return nullptr;
+    }
+    pForkLast = spFork->GetLast();
+    if (pForkLast == nullptr || pForkLast->IsOrigin() || pForkLast->GetBlockHeight() <= nRefVacantHeight)
+    {
+        return nullptr;
+    }
+
+    set<uint256> setInvalidHash;
+    CBlockIndex* pIndex = pForkLast;
+    while (pIndex && !pIndex->IsOrigin())
+    {
+        if (pIndex->GetBlockHeight() <= nRefVacantHeight)
+        {
+            break;
+        }
+        if (VerifyValidBlock(pIndexGenesisLast, pIndex))
+        {
+            break;
+        }
+        setInvalidHash.insert(pIndex->GetBlockHash());
+        pIndex = pIndex->pPrev;
+    }
+    if (pIndex == nullptr)
+    {
+        pIndex = GetIndex(hashFork);
+    }
+    if (pIndex == pForkLast)
+    {
+        return nullptr;
+    }
+    CBlockIndex* pIndexValidLast = GetLongChainLastBlock(hashFork, pIndex->GetBlockHeight(), pIndexGenesisLast, setInvalidHash);
+    if (pIndexValidLast == nullptr)
+    {
+        return pIndex;
+    }
+    return pIndexValidLast;
+}
+
+bool CBlockBase::VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock)
+{
+    CReadLock rlock(rwAccess);
+
+    CBlockIndex* pPrevIndex = GetIndex(hashPrevBlock);
+    if (pPrevIndex == nullptr)
+    {
+        return false;
+    }
+    CBlockIndex* pAfterIndex = GetIndex(hashAfterBlock);
+    if (pAfterIndex == nullptr)
+    {
+        return false;
+    }
+    while (pAfterIndex->GetBlockHeight() >= pPrevIndex->GetBlockHeight())
+    {
+        if (pAfterIndex == pPrevIndex)
+        {
+            return true;
+        }
+        pAfterIndex = pAfterIndex->pPrev;
+    }
+    return false;
+}
+
+bool CBlockBase::GetLastRefBlockHash(const uint256& hashFork, const uint256& hashBlock, uint256& hashRefBlock, bool& fOrigin)
+{
+    hashRefBlock = 0;
+    fOrigin = false;
+
+    auto it = mapForkHeightIndex.find(hashFork);
+    if (it == mapForkHeightIndex.end())
+    {
+        return false;
+    }
+    std::map<uint256, CBlockHeightIndex>* pHeightIndex = it->second.GetBlockMintList(CBlock::GetBlockHeightByHash(hashBlock));
+    if (pHeightIndex)
+    {
+        auto mt = pHeightIndex->find(hashBlock);
+        if (mt != pHeightIndex->end() && mt->second.hashRefBlock != 0)
+        {
+            hashRefBlock = mt->second.hashRefBlock;
+            return true;
+        }
+    }
+
+    CBlockIndex* pIndex = GetIndex(hashBlock);
+    while (pIndex)
+    {
+        if (pIndex->IsOrigin())
+        {
+            fOrigin = true;
+            return true;
+        }
+        CBlockEx block;
+        if (!Retrieve(pIndex, block))
+        {
+            return false;
+        }
+        if (!block.vchProof.empty())
+        {
+            CProofOfPiggyback proof;
+            if (proof.Load(block.vchProof) && proof.hashRefBlock != 0)
+            {
+                hashRefBlock = proof.hashRefBlock;
+                UpdateBlockRef(pIndex->GetOriginHash(), pIndex->GetBlockHash(), proof.hashRefBlock);
+                return true;
+            }
+        }
+        pIndex = pIndex->pPrev;
+    }
+    return false;
+}
+
+bool CBlockBase::GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime)
+{
+    CReadLock rlock(rwAccess);
+
+    CBlockIndex* pIndex = GetIndex(hashLastBlock);
+    if (pIndex == nullptr || !pIndex->IsPrimary())
+    {
+        return false;
+    }
+    while (pIndex && pIndex->GetBlockHeight() >= nHeight)
+    {
+        if (pIndex->GetBlockHeight() == nHeight)
+        {
+            hashBlock = pIndex->GetBlockHash();
+            nTime = pIndex->GetBlockTime();
+            return true;
+        }
+        pIndex = pIndex->pPrev;
+    }
+    return false;
 }
 
 CBlockIndex* CBlockBase::GetIndex(const uint256& hash) const
@@ -2075,9 +2286,9 @@ CBlockIndex* CBlockBase::GetOriginIndex(const uint256& txidMint) const
     return nullptr;
 }
 
-void CBlockBase::UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint)
+void CBlockBase::UpdateBlockHeightIndex(const uint256& hashFork, const uint256& hashBlock, uint32 nBlockTimeStamp, const CDestination& destMint, const uint256& hashRefBlock)
 {
-    mapForkHeightIndex[hashFork].AddHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, nBlockTimeStamp, destMint);
+    mapForkHeightIndex[hashFork].AddHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, nBlockTimeStamp, destMint, hashRefBlock);
 }
 
 void CBlockBase::RemoveBlockIndex(const uint256& hashFork, const uint256& hashBlock)
@@ -2088,6 +2299,15 @@ void CBlockBase::RemoveBlockIndex(const uint256& hashFork, const uint256& hashBl
         it->second.RemoveHeightIndex(CBlock::GetBlockHeightByHash(hashBlock), hashBlock);
     }
     mapIndex.erase(hashBlock);
+}
+
+void CBlockBase::UpdateBlockRef(const uint256& hashFork, const uint256& hashBlock, const uint256& hashRefBlock)
+{
+    std::map<uint256, CForkHeightIndex>::iterator it = mapForkHeightIndex.find(hashFork);
+    if (it != mapForkHeightIndex.end())
+    {
+        it->second.UpdateBlockRef(CBlock::GetBlockHeightByHash(hashBlock), hashBlock, hashRefBlock);
+    }
 }
 
 CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, uint32 nFile, uint32 nOffset, uint256 nChainTrust)
@@ -2118,7 +2338,18 @@ CBlockIndex* CBlockBase::AddNewIndex(const uint256& hash, const CBlock& block, u
         pIndexNew->nChainTrust = nChainTrust;
         pIndexNew->nRandBeacon = nRandBeacon;
 
-        UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, block.nTimeStamp, block.txMint.sendTo);
+        uint256 hashRefBlock;
+        if (!block.IsPrimary() && !block.vchProof.empty()
+            && (block.IsSubsidiary() || block.IsExtended() || (block.IsVacant() && !block.txMint.sendTo.IsNull())))
+        {
+            CProofOfPiggyback proof;
+            if (proof.Load(block.vchProof) && proof.hashRefBlock != 0)
+            {
+                hashRefBlock = proof.hashRefBlock;
+            }
+        }
+
+        UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hash, block.nTimeStamp, block.txMint.sendTo, hashRefBlock);
     }
     return pIndexNew;
 }
@@ -2327,7 +2558,7 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
         int nHeight = pIndex->GetBlockHeight();
         uint32 nOffset = pIndex->nOffset + block.GetTxSerializedOffset();
 
-        if (!block.txMint.IsNull())
+        if (!block.txMint.sendTo.IsNull())
         {
             CTxIndex txIndex(nHeight, pIndex->nFile, nOffset);
             vTxNew.push_back(make_pair(block.txMint.GetHash(), txIndex));
@@ -2346,6 +2577,118 @@ bool CBlockBase::GetTxNewIndex(CBlockView& view, CBlockIndex* pIndexNew, vector<
         }
     }
     return true;
+}
+
+bool CBlockBase::IsValidBlock(CBlockIndex* pForkLast, const uint256& hashBlock)
+{
+    if (hashBlock != 0)
+    {
+        CBlockIndex* pIndex = pForkLast;
+        while (pIndex)
+        {
+            if (pIndex->GetBlockHash() == hashBlock)
+            {
+                return true;
+            }
+            pIndex = pIndex->pPrev;
+        }
+    }
+    return false;
+}
+
+bool CBlockBase::VerifyValidBlock(CBlockIndex* pIndexGenesisLast, const CBlockIndex* pIndex)
+{
+    if (pIndex->IsOrigin())
+    {
+        return true;
+    }
+
+    uint256 hashRefBlock;
+    auto it = mapForkHeightIndex.find(pIndex->GetOriginHash());
+    if (it == mapForkHeightIndex.end())
+    {
+        return false;
+    }
+    std::map<uint256, CBlockHeightIndex>* pHeightIndex = it->second.GetBlockMintList(pIndex->GetBlockHeight());
+    if (pHeightIndex)
+    {
+        auto mt = pHeightIndex->find(pIndex->GetBlockHash());
+        if (mt != pHeightIndex->end() && mt->second.hashRefBlock != 0)
+        {
+            hashRefBlock = mt->second.hashRefBlock;
+        }
+    }
+    if (hashRefBlock == 0)
+    {
+        CBlockEx block;
+        if (!Retrieve(pIndex, block))
+        {
+            return false;
+        }
+        if (!block.vchProof.empty())
+        {
+            CProofOfPiggyback proof;
+            if (proof.Load(block.vchProof) && proof.hashRefBlock != 0)
+            {
+                hashRefBlock = proof.hashRefBlock;
+                UpdateBlockRef(pIndex->GetOriginHash(), pIndex->GetBlockHash(), proof.hashRefBlock);
+            }
+        }
+        if (hashRefBlock == 0)
+        {
+            return false;
+        }
+    }
+    return IsValidBlock(pIndexGenesisLast, hashRefBlock);
+}
+
+CBlockIndex* CBlockBase::GetLongChainLastBlock(const uint256& hashFork, int nStartHeight, CBlockIndex* pIndexGenesisLast, const std::set<uint256>& setInvalidHash)
+{
+    auto it = mapForkHeightIndex.find(hashFork);
+    if (it == mapForkHeightIndex.end())
+    {
+        return nullptr;
+    }
+    CForkHeightIndex& indexHeight = it->second;
+    CBlockIndex* pMaxTrustIndex = nullptr;
+    while (1)
+    {
+        std::map<uint256, CBlockHeightIndex>* pHeightIndex = indexHeight.GetBlockMintList(nStartHeight);
+        if (pHeightIndex == nullptr)
+        {
+            break;
+        }
+        auto mt = pHeightIndex->begin();
+        for (; mt != pHeightIndex->end(); ++mt)
+        {
+            const uint256& hashBlock = mt->first;
+            if (setInvalidHash.count(hashBlock) == 0)
+            {
+                CBlockIndex* pIndex;
+                if (!(pIndex = GetIndex(hashBlock)))
+                {
+                    StdError("BlockBase", "GetLongChainLastBlock GetIndex failed, block: %s", hashBlock.ToString().c_str());
+                }
+                else if (!pIndex->IsOrigin())
+                {
+                    if (VerifyValidBlock(pIndexGenesisLast, pIndex))
+                    {
+                        if (pMaxTrustIndex == nullptr)
+                        {
+                            pMaxTrustIndex = pIndex;
+                        }
+                        else if (!(pMaxTrustIndex->nChainTrust > pIndex->nChainTrust
+                                   || (pMaxTrustIndex->nChainTrust == pIndex->nChainTrust && !pIndex->IsEquivalent(pMaxTrustIndex))))
+                        {
+                            pMaxTrustIndex = pIndex;
+                        }
+                    }
+                }
+            }
+        }
+        nStartHeight++;
+    }
+    return pMaxTrustIndex;
 }
 
 void CBlockBase::ClearCache()

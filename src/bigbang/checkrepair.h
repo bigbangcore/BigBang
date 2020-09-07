@@ -431,6 +431,7 @@ public:
     bool CheckTxExist(const uint256& hashFork, const uint256& txid, int& nHeight);
     bool GetBlockWalletTx(const set<CDestination>& setAddress, vector<CWalletTx>& vWalletTx);
     bool CheckBlockIndex();
+    bool CheckRefBlock();
 
 public:
     bool fOnlyCheck;
@@ -467,7 +468,6 @@ protected:
     bool CheckRepairFork();
     bool CheckBlockUnspent();
     bool CheckWalletTx(vector<CWalletTx>& vAddTx, vector<uint256>& vRemoveTx);
-    bool CheckBlockIndex();
     bool CheckTxIndex();
 
     bool RemoveTxPoolFile();
