@@ -143,13 +143,13 @@ int32 CDeFiForkReward::PrevRewardHeight(const uint256& forkid, const int32 nHeig
         CProfile& profile = it->second.profile;
         if (!profile.defi.IsNull())
         {
-            int32 nJointHeight = profile.nJointHeight;
+            int32 nMintHeight = (profile.defi.nMintHeight < 0) ? (profile.nJointHeight + 2) : profile.defi.nMintHeight;
             int32 nRewardCycle = profile.defi.nRewardCycle;
-            if (nHeight > nJointHeight + 1 && nRewardCycle > 0)
+            if (nHeight >= nMintHeight && nRewardCycle > 0)
             {
-                // StdDebug("PrevRewardHeight", "SHT PrevRewardHeight nHeight: %d, nJoint: %u, nRewardCycle: %u, prev: %d",
-                //          nHeight, nJointHeight, nRewardCycle, ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1);
-                return ((nHeight - nJointHeight - 2) / nRewardCycle) * nRewardCycle + nJointHeight + 1;
+                // StdDebug("PrevRewardHeight", "SHT PrevRewardHeight nHeight: %d, nMintHeight: %d, nRewardCycle: %u, prev: %d",
+                //          nHeight, nMintHeight, nRewardCycle, ((nHeight - nMintHeight) / nRewardCycle) * nRewardCycle + nMintHeight - 1);
+                return ((nHeight - nMintHeight) / nRewardCycle) * nRewardCycle + nMintHeight - 1;
             }
         }
     }
@@ -170,10 +170,10 @@ int64 CDeFiForkReward::GetSectionReward(const uint256& forkid, const uint256& ha
     int32 nEndHeight = CBlock::GetBlockHeightByHash(hash) + 1;
     int32 nBeginHeight = PrevRewardHeight(forkid, CBlock::GetBlockHeightByHash(hash)) + 1;
 
-    // the next block of origin
-    if (nBeginHeight <= profile.nJointHeight + 1)
+    int32 nMintHeight = (profile.defi.nMintHeight < 0) ? (profile.nJointHeight + 2) : profile.defi.nMintHeight;
+    if (nBeginHeight < nMintHeight)
     {
-        nBeginHeight = profile.nJointHeight + 2;
+        nBeginHeight = nMintHeight;
     }
     // StdDebug("CDeFiForkReward", "SHT GetSectionReward nBeginHeight: %d, nEndHeight: %d", nBeginHeight, nEndHeight);
 
@@ -261,19 +261,19 @@ void CDeFiForkReward::AddForkSection(const uint256& forkid, const uint256& hash,
 
 bool CDeFiForkReward::GetFixedDecayCoinbase(const CProfile& profile, const int32 nHeight, double& fCoinbase, int32& nNextHeight)
 {
-    if (nHeight <= profile.nJointHeight + 1)
+    int32 nMintHeight = (profile.defi.nMintHeight < 0) ? (profile.nJointHeight + 2) : profile.defi.nMintHeight;
+    if (nHeight < nMintHeight)
     {
-        // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nHeight <= profile.nJointHeight + 1, nHeight: %d, nJointHeight: %d", nHeight, profile.nJointHeight);
+        // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nHeight < nMintHeight, nHeight: %d, nMintHeight: %d", nHeight, nMintHeight);
         return false;
     }
 
-    int32 nJointHeight = profile.nJointHeight;
     int32 nDecayCycle = profile.defi.nDecayCycle;
     int32 nSupplyCycle = profile.defi.nSupplyCycle;
     uint8 nCoinbaseDecayPercent = profile.defi.nCoinbaseDecayPercent;
     uint32 nInitCoinbasePercent = profile.defi.nInitCoinbasePercent;
-    // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nJointHeight: %u, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
-    //     nJointHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
+    // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nMintHeight: %d, nDecayCycle: %u, nSupplyCycle: %u, nCoinbaseDecayPercent: %u, nInitCoinbasePercent: %u",
+    //     nMintHeight, nDecayCycle, nSupplyCycle, (uint32)nCoinbaseDecayPercent, nInitCoinbasePercent);
     int32 nSupplyCount = (nDecayCycle <= 0) ? 0 : (nDecayCycle / nSupplyCycle);
     // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nSupplyCount: %d", nSupplyCount);
 
@@ -284,9 +284,9 @@ bool CDeFiForkReward::GetFixedDecayCoinbase(const CProfile& profile, const int32
     // [7, 8, 9] the second sypply cycle of the first decay cycle
     // [10, 11, 12] the first supply cycle of the second decay cycle
     // [13, 14, 15] the second supply cycle of the second decay cycle
-    int32 nDecayCount = (nDecayCycle <= 0) ? 0 : ((nHeight - nJointHeight - 2) / nDecayCycle);
+    int32 nDecayCount = (nDecayCycle <= 0) ? 0 : ((nHeight - nMintHeight) / nDecayCycle);
     // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nDecayCount: %d", nDecayCount);
-    int32 nDecayHeight = nDecayCount * nDecayCycle + nJointHeight + 2;
+    int32 nDecayHeight = nDecayCount * nDecayCycle + nMintHeight;
     // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nDecayHeight: %d", nDecayHeight);
     int32 nCurSupplyCount = (nHeight - nDecayHeight) / nSupplyCycle;
     // StdDebug("CDeFiForkReward", "SHT GetFixedDecayCoinbase nCurSupplyCount: %d", nCurSupplyCount);
@@ -321,16 +321,16 @@ bool CDeFiForkReward::GetFixedDecayCoinbase(const CProfile& profile, const int32
 bool CDeFiForkReward::GetSpecificDecayCoinbase(const CProfile& profile, const int32 nHeight, double& fCoinbase, int32& nNextHeight)
 {
     // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase begin, height: %d", nHeight);
-    if (nHeight <= profile.nJointHeight + 1)
+    int32 nMintHeight = (profile.defi.nMintHeight < 0) ? (profile.nJointHeight + 2) : profile.defi.nMintHeight;
+    if (nHeight < nMintHeight)
     {
-        // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nHeight <= profile.nJointHeight + 1, nHeight: %d, nJointHeight: %d", nHeight, profile.nJointHeight);
+        // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nHeight <= nMintHeight, nHeight: %d, nMintHeight: %d", nHeight, nMintHeight);
         return false;
     }
 
-    int32 nJointHeight = profile.nJointHeight;
     int32 nSupplyCycle = profile.defi.nSupplyCycle;
     const map<int32, uint32>& mapCoinbasePercent = profile.defi.mapCoinbasePercent;
-    // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nJointHeight: %u, nSupplyCycle: %u", nJointHeight, nSupplyCycle);
+    // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nMintHeight: %d, nSupplyCycle: %u", nMintHeight, nSupplyCycle);
 
     // for example:
     // [2] nJoint height
@@ -341,7 +341,7 @@ bool CDeFiForkReward::GetSpecificDecayCoinbase(const CProfile& profile, const in
     // [10, 11] the first supply cycle of the second decay cycle
     // [12, 13] the second supply cycle of the second decay cycle
     // [14, 15] the first supply cycle of the third decay cycle
-    int32 nRelativeHeight = (nHeight - nJointHeight - 1);
+    int32 nRelativeHeight = (nHeight - nMintHeight + 1);
     // supply = init * (1 + nCoinbasePercent1) ^ nSupplyCount1 * (1 + nCoinbasePercent2) ^ nSupplyCount2 * ... * (1 + nCoinbasePercentN) ^ nCurSupplyCount
     int64 nSupply = profile.nAmount;
     // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nSupply: %ld", nSupply);

@@ -971,6 +971,10 @@
                             "type": "object",
                             "desc": "Fork DeFi Parameters",
                             "content": {
+                                "mintheight": {
+                                    "type": "int",
+                                    "desc": "beginning mint height of DeFi, -1 means the first block after origin"
+                                },
                                 "maxsupply": {
                                     "type": "double",
                                     "desc": "the max DeFi supply in this fork"
@@ -2921,6 +2925,12 @@
                     "desc": "Fork DeFi Parameters",
                     "condition": "forktype=defi",
                     "content": {
+                        "mintheight": {
+                            "type": "int",
+                            "desc": "beginning mint height of DeFi, -1 means the first block after origin",
+                            "default": -1,
+                            "required": false
+                        },
                         "maxsupply": {
                             "type": "int",
                             "desc": "the max DeFi supply in this fork, -1 means no upper limit",

@@ -17,14 +17,14 @@ using namespace xengine;
 void CDeFiProfile::Save(std::vector<unsigned char>& vchProfile) const
 {
     CODataStream os(vchProfile);
-    os << nMaxSupply << nCoinbaseType << nInitCoinbasePercent << nCoinbaseDecayPercent << nDecayCycle << mapCoinbasePercent
+    os << nMintHeight << nMaxSupply << nCoinbaseType << nInitCoinbasePercent << nCoinbaseDecayPercent << nDecayCycle << mapCoinbasePercent
        << nRewardCycle << nSupplyCycle << nStakeRewardPercent << nPromotionRewardPercent << nStakeMinToken << mapPromotionTokenTimes;
 }
 
 void CDeFiProfile::Load(const std::vector<unsigned char>& vchProfile)
 {
     CIDataStream is(vchProfile);
-    is >> nMaxSupply >> nCoinbaseType >> nInitCoinbasePercent >> nCoinbaseDecayPercent >> nDecayCycle >> mapCoinbasePercent
+    is >> nMintHeight >> nMaxSupply >> nCoinbaseType >> nInitCoinbasePercent >> nCoinbaseDecayPercent >> nDecayCycle >> mapCoinbasePercent
         >> nRewardCycle >> nSupplyCycle >> nStakeRewardPercent >> nPromotionRewardPercent >> nStakeMinToken >> mapPromotionTokenTimes;
 }
 

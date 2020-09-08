@@ -2378,6 +2378,12 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
             throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork must be the isolated fork");
         }
 
+        profile.defi.nMintHeight = spParam->defi.nMintheight;
+        if (profile.defi.nMintHeight >= 0 && profile.defi.nMintHeight < nJointHeight + 2)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param mintheight should be -1 or larger than fork genesis block height");
+        }
+
         profile.defi.nMaxSupply = spParam->defi.nMaxsupply;
         if (profile.defi.nMaxSupply >= 0)
         {
