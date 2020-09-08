@@ -378,7 +378,7 @@ bool CDeFiForkReward::GetSpecificDecayCoinbase(const CProfile& profile, const in
     {
         double fCoinbaseIncreasing = (double)nCurCoinbaseIncreasing / 100;
         fCoinbase = nSupply * fCoinbaseIncreasing / nSupplyCycle;
-        nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nLastDecayHeight;
+        nNextHeight = (nCurSupplyCount + 1) * nSupplyCycle + nLastDecayHeight + nMintHeight - 1;
         // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nNextHeight1: %d", (nCurSupplyCount + 1));
         // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nNextHeight2: %d", (nCurSupplyCount + 1) * nSupplyCycle);
         // StdDebug("CDeFiForkReward", "SHT GetSpecificDecayCoinbase nNextHeight3: %d", (nCurSupplyCount + 1) * nSupplyCycle + nLastDecayHeight);
