@@ -970,6 +970,7 @@
                         "defi": {
                             "type": "object",
                             "desc": "Fork DeFi Parameters",
+                            "condition": "forktype=defi",
                             "content": {
                                 "mintheight": {
                                     "type": "int",
