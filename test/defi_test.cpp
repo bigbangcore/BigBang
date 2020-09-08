@@ -2,6 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <boost/filesystem/path.hpp>
 #include <boost/test/unit_test.hpp>
 #include <map>
 
@@ -72,6 +73,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     profile.nMintReward = 1000;
     profile.nAmount = 100000;
     profile.nForkType = FORK_TYPE_DEFI;
+    profile.defi.nMintHeight = -1;
     profile.defi.nMaxSupply = 5;
     profile.defi.nCoinbaseType = SPECIFIC_DEFI_COINBASE_TYPE;
     profile.defi.nDecayCycle = 10;
@@ -108,6 +110,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(profileLoad.nAmount == profile.nAmount);
 
     BOOST_CHECK(profileLoad.nForkType == profile.nForkType);
+    BOOST_CHECK(profileLoad.defi.nMintHeight == profile.defi.nMintHeight);
     BOOST_CHECK(profileLoad.defi.nMaxSupply == profile.defi.nMaxSupply);
     BOOST_CHECK(profileLoad.defi.nCoinbaseType == profile.defi.nCoinbaseType);
     BOOST_CHECK(profileLoad.defi.nDecayCycle == profile.defi.nDecayCycle);
@@ -134,6 +137,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(forkContextRead.GetProfile().nAmount == profile.nAmount);
 
     BOOST_CHECK(forkContextRead.GetProfile().nForkType == profile.nForkType);
+    BOOST_CHECK(forkContextRead.GetProfile().defi.nMintHeight == profile.defi.nMintHeight);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nCoinbaseType == profile.defi.nCoinbaseType);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nDecayCycle == profile.defi.nDecayCycle);
     BOOST_CHECK(forkContextRead.GetProfile().defi.nMaxSupply == profile.defi.nMaxSupply);
@@ -159,6 +163,7 @@ BOOST_AUTO_TEST_CASE(defi_profile)
     BOOST_CHECK(newForkContextRead.GetProfile().nAmount == profile.nAmount);
 
     BOOST_CHECK(newForkContextRead.GetProfile().nForkType == FORK_TYPE_COMMON);
+    BOOST_CHECK(newForkContextRead.GetProfile().defi.nMintHeight != profile.defi.nMintHeight);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nCoinbaseType != SPECIFIC_DEFI_COINBASE_TYPE);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nDecayCycle != profile.defi.nDecayCycle);
     BOOST_CHECK(newForkContextRead.GetProfile().defi.nMaxSupply != profile.defi.nMaxSupply);
@@ -299,6 +304,10 @@ BOOST_AUTO_TEST_CASE(defi_relation_graph)
 
 BOOST_AUTO_TEST_CASE(reward)
 {
+    // STD_DEBUG = true;
+    // boost::filesystem::path logPath = boost::filesystem::absolute(boost::unit_test::framework::master_test_suite().argv[0]).parent_path();
+    // InitLog(logPath, true, true, 1024, 1024);
+
     CDeFiForkReward r;
     uint256 forkid1;
     RandGeneretor256(forkid1.begin());
@@ -317,6 +326,7 @@ BOOST_AUTO_TEST_CASE(reward)
     profile1.nAmount = 21000000 * COIN;
     profile1.nJointHeight = 150;
     profile1.nForkType = FORK_TYPE_DEFI;
+    profile1.defi.nMintHeight = -1;
     profile1.defi.nMaxSupply = 2100000000 * COIN;
     profile1.defi.nCoinbaseType = FIXED_DEFI_COINBASE_TYPE;
     profile1.defi.nDecayCycle = 1036800;
@@ -339,6 +349,7 @@ BOOST_AUTO_TEST_CASE(reward)
     profile2.nAmount = 10000000 * COIN;
     profile2.nJointHeight = 150;
     profile2.nForkType = FORK_TYPE_DEFI;
+    profile2.defi.nMintHeight = 1500;
     profile2.defi.nMaxSupply = 1000000000 * COIN;
     profile2.defi.nCoinbaseType = SPECIFIC_DEFI_COINBASE_TYPE;
     profile2.defi.mapCoinbasePercent = { { 259200, 10 }, { 777600, 8 }, { 1814400, 5 }, { 3369600, 3 }, { 5184000, 2 } };
@@ -377,17 +388,17 @@ BOOST_AUTO_TEST_CASE(reward)
 
     // specific coinbase
     BOOST_CHECK(r.GetSectionReward(forkid2, uint256(0, uint224(0))) == 0);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(151, uint224(0))) == 0);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(152, uint224(0))) == 23148148);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(1591, uint224(0))) == 33333333333);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(43352, uint224(0))) == 25462962);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(259352, uint224(0))) == 32806685);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(1000000, uint224(0))) == 32224247817);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(2000000, uint224(0))) == 126959353755);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(1499, uint224(0))) == 0);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(1500, uint224(0))) == 23148148);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(2939, uint224(0))) == 33333333333);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(44700, uint224(0))) == 25462962);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(260700, uint224(0))) == 32806685);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(1001348, uint224(0))) == 32224247817);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(2001348, uint224(0))) == 126959353755);
     // supply = 550207933.870525 = 10000000*(1.1^6)*(1.08^12)*(1.05^24)*(1.03^36)*(1.02^14)
-    // reward = 550207933.870525 * 0.02/43200 * ((4000000 - 151 - (6+12+24+36+14) * 43200) % 1440)
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(4000000, uint224(0))) == 246829392555);
-    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(10000000, uint224(0))) == 0);
+    // reward = 550207933.870525 * 0.02/43200 * ((4001348 - (1500 - 1) - (6+12+24+36+14) * 43200) % 1440)
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(4001348, uint224(0))) == 246829392555);
+    BOOST_CHECK(r.GetSectionReward(forkid2, uint256(10001348, uint224(0))) == 0);
 
     CAddress A("1632srrskscs1d809y3x5ttf50f0gabf86xjz2s6aetc9h9ewwhm58dj3");
     CAddress a1("1f1nj5gjgrcz45g317s1y4tk18bbm89jdtzd41m9s0t14tp2ngkz4cg0x");
@@ -491,14 +502,15 @@ BOOST_AUTO_TEST_CASE(reward)
     BOOST_CHECK(it != reward.end() && it->second == 1481480742);
 
     // test all reward
-    nReward = r.GetSectionReward(forkid2, uint256(1591, uint224(0)));
-    cout << "first section reward: " << nReward << endl;
+    nReward = r.GetSectionReward(forkid2, uint256(2939, uint224(0)));
     CDeFiRelationGraph relationReward;
     reward = r.ComputePromotionReward(nReward / 2, balance, profile2.defi.mapPromotionTokenTimes, relationReward);
     for (auto& x : reward)
     {
         cout << "promotion reward, destination: " << CAddress(x.first).ToString() << ", reward: " << x.second << endl;
     }
+
+    // boost::filesystem::remove_all(logPath);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -1918,7 +1918,7 @@ bool CBlockBase::AddDeFiRelation(const uint256& hashFork, CBlockView& view)
             if (tx.IsDeFiRelation())
             {
                 uint256 txid = tx.GetHash();
-                vRemoveAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+                vRemoveAddress.push_back(make_pair(tx.sendTo, CAddrInfo(CDestination(), txContxt.destIn, txid)));
             }
         }
     }
@@ -1932,7 +1932,7 @@ bool CBlockBase::AddDeFiRelation(const uint256& hashFork, CBlockView& view)
             if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
                 uint256 txid = tx.GetHash();
-                vNewAddress.push_back(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+                vNewAddress.push_back(make_pair(tx.sendTo, CAddrInfo(CDestination(), txContxt.destIn, txid)));
             }
         }
     }
@@ -1958,11 +1958,10 @@ bool CBlockBase::ListDeFiRelation(const uint256& hashFork, CBlockView& view, map
         for (int i = block.vtx.size() - 1; i >= 0; --i)
         {
             const CTransaction& tx = block.vtx[i];
-            const CTxContxt& txContxt = block.vTxContxt[i];
             if (tx.IsDeFiRelation())
             {
                 uint256 txid = tx.GetHash();
-                auto it = walker.mapAddress.find(txContxt.destIn);
+                auto it = walker.mapAddress.find(tx.sendTo);
                 if (it != walker.mapAddress.end() && it->second.txid == txid)
                 {
                     walker.mapAddress.erase(it);
@@ -1980,10 +1979,10 @@ bool CBlockBase::ListDeFiRelation(const uint256& hashFork, CBlockView& view, map
             if (tx.IsDeFiRelation() && tx.sendTo != txContxt.destIn)
             {
                 uint256 txid = tx.GetHash();
-                auto it = walker.mapAddress.find(txContxt.destIn);
+                auto it = walker.mapAddress.find(tx.sendTo);
                 if (it == walker.mapAddress.end())
                 {
-                    walker.mapAddress.insert(make_pair(txContxt.destIn, CAddrInfo(CDestination(), tx.sendTo, txid)));
+                    walker.mapAddress.insert(make_pair(tx.sendTo, CAddrInfo(CDestination(), txContxt.destIn, txid)));
                 }
             }
         }

@@ -894,9 +894,9 @@ bool CCheckBlockFork::AddBlockTx(const CTransaction& txIn, const CTxContxt& cont
 
     if (txIn.IsDeFiRelation() && txIn.sendTo != contxtIn.destIn)
     {
-        if (mapBlockAddress.find(contxtIn.destIn) == mapBlockAddress.end())
+        if (mapBlockAddress.find(txIn.sendTo) == mapBlockAddress.end())
         {
-            mapBlockAddress.insert(make_pair(contxtIn.destIn, CAddrInfo(CDestination(), txIn.sendTo, txid)));
+            mapBlockAddress.insert(make_pair(txIn.sendTo, CAddrInfo(CDestination(), contxtIn.destIn, txid)));
         }
     }
     return true;
