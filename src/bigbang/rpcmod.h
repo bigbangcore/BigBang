@@ -130,7 +130,7 @@ private:
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTxFee(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCListUnspent(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr RPCGetAddressInvite(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetDeFiRelation(rpc::CRPCParamPtr param);
     /* Mint */
     rpc::CRPCResultPtr RPCGetWork(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSubmitWork(rpc::CRPCParamPtr param);

@@ -59,7 +59,7 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
     for (const auto& addr : vRemove)
     {
         CAddrInfo addrInfo;
-        if (GetAddress(addr.first, addrInfo) && addrInfo.hashTxInvite == addr.second.hashTxInvite)
+        if (GetAddress(addr.first, addrInfo) && addrInfo.txid == addr.second.txid)
         {
             mapUpper[addr.first].SetNull();
         }
@@ -67,7 +67,7 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
 
     for (const auto& vd : vAddNew)
     {
-        if (vd.first.IsNull() || vd.second.destInviteParent.IsNull() || vd.first == vd.second.destInviteParent)
+        if (vd.first.IsNull() || vd.second.destParent.IsNull() || vd.first == vd.second.destParent)
         {
             continue;
         }
@@ -76,17 +76,17 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
         {
             bool fLoop = false;
             CAddrInfo addrParentInfo;
-            if (GetAddress(vd.second.destInviteParent, addrInfo))
+            if (GetAddress(vd.second.destParent, addrInfo))
             {
                 addrParentInfo = addrInfo;
                 while (1)
                 {
-                    if (addrInfo.destInviteRoot == vd.first)
+                    if (addrInfo.destRoot == vd.first)
                     {
                         fLoop = true;
                         break;
                     }
-                    if (addrInfo.destInviteRoot.IsNull() || !GetAddress(addrInfo.destInviteRoot, addrInfo))
+                    if (addrInfo.destRoot.IsNull() || !GetAddress(addrInfo.destRoot, addrInfo))
                     {
                         break;
                     }
@@ -98,11 +98,11 @@ bool CForkAddressDB::UpdateAddress(const vector<pair<CDestination, CAddrInfo>>& 
                 addr = vd.second;
                 if (!addrParentInfo.IsNull())
                 {
-                    addr.destInviteRoot = addrParentInfo.destInviteRoot;
+                    addr.destRoot = addrParentInfo.destRoot;
                 }
                 else
                 {
-                    addr.destInviteRoot = vd.second.destInviteParent;
+                    addr.destRoot = vd.second.destParent;
                 }
             }
         }
@@ -135,7 +135,7 @@ bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& 
         CAddrInfo addrInfo;
         for (const auto& vd : vAddUpdate)
         {
-            if (vd.first.IsNull() || vd.second.destInviteParent.IsNull() || vd.first == vd.second.destInviteParent)
+            if (vd.first.IsNull() || vd.second.destParent.IsNull() || vd.first == vd.second.destParent)
             {
                 continue;
             }
@@ -143,13 +143,13 @@ bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& 
             {
                 bool fLoop = false;
                 CAddrInfo addrParentInfo;
-                auto kt = mapAddNew.find(vd.second.destInviteParent);
+                auto kt = mapAddNew.find(vd.second.destParent);
                 if (kt != mapAddNew.end())
                 {
                     addrInfo = kt->second;
                     addrParentInfo = kt->second;
                 }
-                else if (Read(vd.second.destInviteParent, addrInfo))
+                else if (Read(vd.second.destParent, addrInfo))
                 {
                     addrParentInfo = addrInfo;
                 }
@@ -157,18 +157,18 @@ bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& 
                 {
                     while (1)
                     {
-                        if (addrInfo.destInviteRoot == vd.first)
+                        if (addrInfo.destRoot == vd.first)
                         {
                             fLoop = true;
                             break;
                         }
-                        if (addrInfo.destInviteRoot.IsNull())
+                        if (addrInfo.destRoot.IsNull())
                         {
                             break;
                         }
-                        if (!Read(addrInfo.destInviteRoot, addrInfo))
+                        if (!Read(addrInfo.destRoot, addrInfo))
                         {
-                            auto nt = mapAddNew.find(vd.second.destInviteRoot);
+                            auto nt = mapAddNew.find(vd.second.destRoot);
                             if (nt == mapAddNew.end())
                             {
                                 break;
@@ -183,11 +183,11 @@ bool CForkAddressDB::RepairAddress(const vector<pair<CDestination, CAddrInfo>>& 
                     addr = vd.second;
                     if (!addrParentInfo.IsNull())
                     {
-                        addr.destInviteRoot = addrParentInfo.destInviteRoot;
+                        addr.destRoot = addrParentInfo.destRoot;
                     }
                     else
                     {
-                        addr.destInviteRoot = vd.second.destInviteParent;
+                        addr.destRoot = vd.second.destParent;
                     }
                 }
             }

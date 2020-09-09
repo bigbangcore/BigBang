@@ -331,7 +331,6 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 
 void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
 {
-    
     CForkContext forkCtxt;
     bool isDeFi = false;
     if(pBlockChain->GetForkContext(hashFork, forkCtxt))
@@ -372,6 +371,10 @@ void CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
                 StdWarn("CSH", "rewardTxSize %d break", rewardTxSize);
                 break;
             }
+
+            Warn("defitest anchor height: %d, dest: %s, reward: %ld, stake: %ld, promotion: %ld",
+                CBlock::GetBlockHeightByHash(txNew.hashAnchor), CAddress(txNew.sendTo).ToString().c_str(),
+                reward.nReward, reward.nStakeReward, reward.nPromotionReward);
             
             //txNew.vchData = vchData;
             block.vtx.push_back(txNew);

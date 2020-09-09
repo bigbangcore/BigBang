@@ -23,35 +23,35 @@ class CAddrInfo
     friend class xengine::CStream;
 
 public:
-    CDestination destInviteRoot;
-    CDestination destInviteParent;
-    uint256 hashTxInvite;
+    CDestination destRoot;
+    CDestination destParent;
+    uint256 txid;
 
 public:
     CAddrInfo()
     {
         SetNull();
     }
-    CAddrInfo(const CDestination& destInviteRootIn, const CDestination& destInviteParentIn, const uint256& hashTxInviteIn)
-      : destInviteRoot(destInviteRootIn), destInviteParent(destInviteParentIn), hashTxInvite(hashTxInviteIn) {}
+    CAddrInfo(const CDestination& destRootIn, const CDestination& destParentIn, const uint256& txidIn)
+      : destRoot(destRootIn), destParent(destParentIn), txid(txidIn) {}
     void SetNull()
     {
-        destInviteRoot.SetNull();
-        destInviteParent.SetNull();
-        hashTxInvite = 0;
+        destRoot.SetNull();
+        destParent.SetNull();
+        txid = 0;
     }
     bool IsNull() const
     {
-        return (destInviteRoot.IsNull() || destInviteParent.IsNull() || hashTxInvite == 0);
+        return (destRoot.IsNull() || destParent.IsNull() || txid == 0);
     }
 
 protected:
     template <typename O>
     void Serialize(xengine::CStream& s, O& opt)
     {
-        s.Serialize(destInviteRoot, opt);
-        s.Serialize(destInviteParent, opt);
-        s.Serialize(hashTxInvite, opt);
+        s.Serialize(destRoot, opt);
+        s.Serialize(destParent, opt);
+        s.Serialize(txid, opt);
     }
 };
 
