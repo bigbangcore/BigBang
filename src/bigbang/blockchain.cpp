@@ -2050,35 +2050,33 @@ list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint25
     CDeFiReward lastReward;
     list<uint256> listSection = GetDeFiSectionList(forkid, pIndexPrev, nHeight, nLastSection, lastReward);
 
-    if (!listSection.empty())
+    for (const uint256& section : listSection)
     {
-        for (const uint256& section : listSection)
+        const CDeFiRewardSet& s = defiReward.GetForkSection(forkid, section);
+        const CDeFiRewardSetByReward& idxByReward = s.get<1>();
+        CDeFiRewardSetByReward::iterator it = idxByReward.begin();
+        if (section == nLastSection)
         {
-            const CDeFiRewardSet& s = defiReward.GetForkSection(forkid, section);
-            const CDeFiRewardSetByReward& idxByReward = s.get<1>();
-            CDeFiRewardSetByReward::iterator it = idxByReward.begin();
-            if (section == nLastSection)
+            auto itLower = idxByReward.lower_bound(lastReward.nReward);
+            auto itUpper = idxByReward.upper_bound(lastReward.nReward);
+            for (it = itLower; it != itUpper; it++)
             {
-                auto itLower = idxByReward.lower_bound(lastReward.nReward);
-                auto itUpper = idxByReward.upper_bound(lastReward.nReward);
-                for (it = itLower; it != itUpper; it++)
+                if (it->dest == lastReward.dest)
                 {
-                    if (it->dest == lastReward.dest)
-                    {
-                        it++;
-                        break;
-                    }
+                    it++;
+                    break;
                 }
             }
+        }
 
-            Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(): %d, listReward size: %u, nMax: %d",
-                  section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
-            for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
-            {
-                listReward.push_back(*it);
-            }
+        Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(): %d, listReward size: %u, nMax: %d",
+                section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
+        for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
+        {
+            listReward.push_back(*it);
         }
     }
+    
 
     Debug("SHT GetDeFiReward end, forkid: %s, prev: %s, reward size: %u", forkid.ToString().c_str(), hashPrev.ToString().c_str(), listReward.size());
     return listReward;
