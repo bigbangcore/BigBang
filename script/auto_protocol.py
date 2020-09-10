@@ -872,9 +872,6 @@ def Help_cpp(config, w, scope):
             cond_statement = '(if ' + condstr + ')\n'
             container.append((indent + cond_statement, None))
 
-        if type == 'array':
-            return
-
         key_fmt = quote(key) + ': '
         if is_pod(type):
             if place_holder == None:
@@ -914,9 +911,8 @@ def Help_cpp(config, w, scope):
         elif not is_pod(type):
             container.append((indent + '{\n', None))
             for p in subclass.params:
-                if p.type != 'array':
-                    one_param(container, p.key, p.type, p.desc, p.required, next_indent,
-                              p.default, p.condstr, p != subclass.params[-1])
+                one_param(container, p.key, p.type, p.desc, p.required, next_indent,
+                          p.default, p.condstr, p != subclass.params[-1])
                 if not is_pod(p):
                     sub_params(container, p.type, p.cpp_type, p, find_subclass(p, subclass.subclass), next_indent)
 
