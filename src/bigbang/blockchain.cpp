@@ -2150,36 +2150,34 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
         }
     }
 
-    if (!listSection.empty())
+    CProfile profile = defiReward.GetForkProfile(forkid);
+
+    for (auto it = listSection.begin(); it != listSection.end(); it++)
     {
-        CProfile profile = defiReward.GetForkProfile(forkid);
-
-        for (auto it = listSection.begin(); it != listSection.end(); it++)
+        Debug("SHT GetDeFiSectionList listSection hash: %s", it->ToString().c_str());
+        const uint256& section = *it;
+        if (!defiReward.ExistForkSection(forkid, section))
         {
-            Debug("SHT GetDeFiSectionList listSection hash: %s", it->ToString().c_str());
-            const uint256& section = *it;
-            if (!defiReward.ExistForkSection(forkid, section))
+            // check max supply
+            CBlockIndex* pIndexSection = nullptr;
+            if (!cntrBlock.RetrieveIndex(section, &pIndexSection))
             {
-                // check max supply
-                CBlockIndex* pIndexSection = nullptr;
-                if (!cntrBlock.RetrieveIndex(section, &pIndexSection))
-                {
-                    Error("SHT GetDeFiSectionList retrieve section index error, section: %s", section.ToString().c_str());
-                }
-                if (!cntrBlock.RetrieveIndex(section, &pIndexSection) || (profile.defi.nMaxSupply >= 0 && pIndexSection->GetMoneySupply() >= profile.defi.nMaxSupply))
-                {
-                    Debug("SHT GetDeFiSectionList money supply is to upper limit, limit: %ld, now: %ld", profile.defi.nMaxSupply, pIndexSection ? pIndexSection->GetMoneySupply() * COIN : 0);
-                    listSection.erase(it, listSection.end());
-                    break;
-                }
-
-                // generate section
-                CDeFiRewardSet s = ComputeDeFiSection(forkid, section, profile);
-                defiReward.AddForkSection(forkid, section, std::move(s));
-                Debug("SHT GetDeFiSectionList add fork section, fork: %s, section: %s", forkid.ToString().c_str(), section.ToString().c_str());
+                Error("SHT GetDeFiSectionList retrieve section index error, section: %s", section.ToString().c_str());
             }
+            if (!cntrBlock.RetrieveIndex(section, &pIndexSection) || (profile.defi.nMaxSupply >= 0 && pIndexSection->GetMoneySupply() >= profile.defi.nMaxSupply))
+            {
+                Debug("SHT GetDeFiSectionList money supply is to upper limit, limit: %ld, now: %ld", profile.defi.nMaxSupply, pIndexSection ? pIndexSection->GetMoneySupply() * COIN : 0);
+                listSection.erase(it, listSection.end());
+                break;
+            }
+
+            // generate section
+            CDeFiRewardSet s = ComputeDeFiSection(forkid, section, profile);
+            defiReward.AddForkSection(forkid, section, std::move(s));
+            Debug("SHT GetDeFiSectionList add fork section, fork: %s, section: %s", forkid.ToString().c_str(), section.ToString().c_str());
         }
     }
+    
 
     Debug("SHT GetDeFiSectionList end, prev: %s", pIndexPrev->GetBlockHash().ToString().c_str());
     return listSection;
