@@ -425,6 +425,14 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     // check defi param
     if (forkProfile.nForkType == FORK_TYPE_DEFI)
     {
+        if (forkProfile.nMintReward != 0)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork mint reward must be zero");
+        }
+        if (forkProfile.nHalveCycle != 0)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork mint halvecycle must be zero");
+        }
         if (forkProfile.hashParent != GetGenesisBlockHash())
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "DeFi fork must be the direct child fork of main fork");
