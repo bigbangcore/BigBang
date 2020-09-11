@@ -1006,7 +1006,7 @@
                                             }
                                         }
                                     },
-                                    "desc": "compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%] eg. [{\"coinbase\": 10, \"percent\": 10},..]"
+                                    "desc": "pairs of height - coinbase percent"
                                 },
                                 "coinbasedecaypercent": {
                                     "type": "uint",
@@ -2968,7 +2968,7 @@
                                     }
                                 }
                             },
-                            "desc": "compared with previous decay cycle, coinbase increasing ratio(%), range [0 - 100] means decay to [0% - 100%] eg. [{\"coinbase\": 10, \"percent\": 10},..]",
+                            "desc": "pairs of height - coinbase percent",
                             "required": false
                         },
                         "coinbasedecaypercent": {
