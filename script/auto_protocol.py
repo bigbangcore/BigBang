@@ -902,9 +902,10 @@ def Help_cpp(config, w, scope):
                 arr_type = decode_nested_array(cpp_type)
                 sub_params(container, 'array', arr_type, p, subclass, next_indent)
             else:
-                one_param(container, p.sub_key, p.sub_type, p.sub_desc, True, next_indent, has_dot=False)
                 if not is_pod(p.sub_type):
                     sub_params(container, 'object', cpp_type, p, subclass, next_indent)
+                else:
+                    one_param(container, p.sub_key, p.sub_type, p.sub_desc, True, next_indent, has_dot=False)
 
             container.append((indent + ']\n', None))
 
