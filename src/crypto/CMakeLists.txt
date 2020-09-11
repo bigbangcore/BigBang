@@ -57,7 +57,8 @@ set(sources
     ${pow_hash}
 )
 
-set(CMAKE_C_FLAGS "-msse2 -maes")
+#comment the following line to pass building on arm64 platform hosted on huawei ECS
+#set(CMAKE_C_FLAGS "-msse2 -maes")
 
 add_library(crypto ${sources})
 
