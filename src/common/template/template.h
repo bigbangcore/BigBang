@@ -23,35 +23,6 @@ class CSpendableTemplate
 
 class CSendToRecordedTemplate
 {
-public:
-    static void RecordDest(const CDestination& sendToDelegate, const CDestination& sendToOwner,
-                           const std::vector<uint8>& vchPreSigIn, std::vector<uint8>& vchSigOut)
-    {
-        vchSigOut.clear();
-        xengine::CODataStream ods(vchSigOut, CDestination::DESTINATION_SIZE * 2 + vchPreSigIn.size());
-        ods << sendToDelegate << sendToOwner;
-        ods.Push(&vchPreSigIn[0], vchPreSigIn.size());
-    }
-
-    static bool ParseDest(const std::vector<uint8>& vchSigIn,
-                          CDestination& sendToDelegateOut, CDestination& sendToOwnerOut,
-                          std::vector<uint8>& vchSubSigOut)
-    {
-        xengine::CIDataStream is(vchSigIn);
-        try
-        {
-            is >> sendToDelegateOut >> sendToOwnerOut;
-            vchSubSigOut.assign(vchSigIn.begin() + (CDestination::DESTINATION_SIZE * 2), vchSigIn.end());
-        }
-        catch (std::exception& e)
-        {
-            xengine::StdError(__PRETTY_FUNCTION__, e.what());
-            return false;
-        }
-        return true;
-    }
-
-    virtual bool GetDelegateOwnerDestination(CDestination& destDelegateOut, CDestination& destOwnerOut) const = 0;
 };
 
 class CLockedCoinTemplate
@@ -71,8 +42,26 @@ enum TemplateType
     TEMPLATE_EXCHANGE,
     TEMPLATE_VOTE,
     TEMPLATE_PAYMENT,
+    TEMPLATE_DEXORDER,
+    TEMPLATE_DEXMATCH,
     TEMPLATE_MAX
 };
+
+enum DexOrderCoinPairType
+{
+    COINPAIR_MIN,
+    COINPAIR_BBC_MKF,
+    COINPAIR_MAX
+};
+
+struct CCoinPairType
+{
+    int nType;
+    std::string strName;
+};
+
+const CCoinPairType* GetCoinPairByType(int nTypeIn);
+const CCoinPairType* GetCoinPairByName(std::string strNameIn);
 
 class CTemplate;
 typedef boost::shared_ptr<CTemplate> CTemplatePtr;
@@ -128,11 +117,10 @@ public:
     // Return dest is destIn recorded or not.
     static bool IsDestInRecorded(const CDestination& dest);
 
-    // Return delegate address.
-    static bool ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn, CDestination& destInDelegateOut, CDestination& sendToDelegateOut);
-
     // Return dest limits coin on transaction or not.
     static bool IsLockedCoin(const CDestination& dest);
+
+    static bool VerifyDestRecorded(const CTransaction& tx, std::vector<uint8>& vchSigOut);
 
 public:
     // Deconstructor

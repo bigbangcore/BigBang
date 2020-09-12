@@ -88,6 +88,9 @@ uint256 CryptoHash(const void* msg, std::size_t len);
 uint256 CryptoHash(const uint256& h1, const uint256& h2);
 uint256 CryptoPowHash(const void* msg, size_t len);
 
+// SHA256
+uint256 CryptoSHA256(const void* msg, size_t len);
+
 // Sign & verify
 struct CCryptoKey
 {

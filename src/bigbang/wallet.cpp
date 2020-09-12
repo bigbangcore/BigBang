@@ -569,36 +569,7 @@ bool CWallet::GetBalance(const CDestination& dest, const uint256& hashFork, int 
 bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, const vector<uint8>& vchSendToData, const int32 nForkHeight, bool& fCompleted)
 {
     vector<uint8> vchSig;
-    CDestination sendToDelegate;
-    CDestination sendToOwner;
-    bool fDestInRecorded = false;
     CTemplateId tid;
-    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_VOTE)
-    {
-        if (!vchSendToData.empty())
-        {
-            CTemplatePtr tempPtr = CTemplate::Import(vchSendToData);
-            if (tempPtr != nullptr && tempPtr->GetTemplateId() == tid)
-            {
-                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
-            }
-        }
-        if (sendToDelegate.IsNull() || sendToOwner.IsNull())
-        {
-            CTemplatePtr tempPtr = GetTemplate(tid);
-            if (tempPtr != nullptr)
-            {
-                boost::dynamic_pointer_cast<CSendToRecordedTemplate>(tempPtr)->GetDelegateOwnerDestination(sendToDelegate, sendToOwner);
-            }
-            if (sendToDelegate.IsNull() || sendToOwner.IsNull())
-            {
-                StdError("CWallet", "SignTransaction: sendTo does not load template, sendTo: %s, txid: %s",
-                         CAddress(tx.sendTo).ToString().c_str(), tx.GetHash().GetHex().c_str());
-                return false;
-            }
-        }
-        fDestInRecorded = true;
-    }
     if (destIn.GetTemplateId(tid) && tid.GetType() == TEMPLATE_PAYMENT)
     {
         CTemplatePtr tempPtr = GetTemplate(tid);
@@ -655,19 +626,10 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
         }
     }
 
-    if (fDestInRecorded && !tx.vchSig.empty())
+    if (!CTemplate::VerifyDestRecorded(tx, vchSig))
     {
-        CDestination sendToDelegateTmp;
-        CDestination sendToOwnerTmp;
-        if (!CSendToRecordedTemplate::ParseDest(tx.vchSig, sendToDelegateTmp, sendToOwnerTmp, vchSig))
-        {
-            Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
-            return false;
-        }
-    }
-    else
-    {
-        vchSig = tx.vchSig;
+        Error("SignTransaction: Parse dest fail, txid: %s", tx.GetHash().GetHex().c_str());
+        return false;
     }
 
     set<crypto::CPubKey> setSignedKey;
@@ -683,9 +645,17 @@ bool CWallet::SignTransaction(const CDestination& destIn, CTransaction& tx, cons
 
     UpdateAutoLock(setSignedKey);
 
-    if (fDestInRecorded)
+    vector<uint8> vchDestData;
+    if (!GetDestRecorded(tx, vchSendToData, vchDestData))
     {
-        CSendToRecordedTemplate::RecordDest(sendToDelegate, sendToOwner, vchSig, tx.vchSig);
+        Error("SignTransaction: GetDestRecorded fail, destIn: %s, txid: %s",
+              destIn.ToString().c_str(), tx.GetHash().GetHex().c_str());
+        return false;
+    }
+    if (!vchDestData.empty())
+    {
+        tx.vchSig = move(vchDestData);
+        tx.vchSig.insert(tx.vchSig.end(), vchSig.begin(), vchSig.end());
     }
     else
     {
@@ -1032,6 +1002,31 @@ bool CWallet::InspectWalletTx(int nCheckDepth)
         return false;
     }
 
+    return true;
+}
+
+bool CWallet::GetDestRecorded(const CTransaction& tx, const vector<uint8>& vchSendToData, vector<uint8>& vchDestData)
+{
+    if (tx.sendTo.IsTemplate() && CTemplate::IsDestInRecorded(tx.sendTo))
+    {
+        CTemplateId tid = tx.sendTo.GetTemplateId();
+        if (!vchSendToData.empty())
+        {
+            CTemplatePtr tempPtr = CTemplate::Import(vchSendToData);
+            if (tempPtr != nullptr && tempPtr->GetTemplateId() == tid)
+            {
+                vchDestData = tempPtr->GetTemplateData();
+                return true;
+            }
+        }
+        CTemplatePtr tempPtr = GetTemplate(tid);
+        if (tempPtr != nullptr)
+        {
+            vchDestData = tempPtr->GetTemplateData();
+            return true;
+        }
+        return false;
+    }
     return true;
 }
 

@@ -51,6 +51,65 @@ bool CTemplateVote::GetDelegateOwnerDestination(CDestination& destDelegateOut, C
     return true;
 }
 
+bool CTemplateVote::ParseDelegateDest(const CDestination& destIn, const CDestination& sendTo, const std::vector<uint8>& vchSigIn,
+                                      CDestination& destInDelegateOut, CDestination& sendToDelegateOut)
+{
+    std::vector<uint8> vchSubSigOut;
+    bool fSendToVoteTemplate = false;
+    CTemplateId tid;
+    if (sendTo.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            sendToDelegateOut = sendTo;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            auto ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, vchSigIn);
+            if (ptr == nullptr)
+            {
+                return false;
+            }
+            auto vote = boost::dynamic_pointer_cast<CTemplateVote>(ptr);
+
+            CDestination destOwnerTemp;
+            vote->GetDelegateOwnerDestination(sendToDelegateOut, destOwnerTemp);
+
+            CTransaction tx;
+            std::set<CDestination> setSubDest;
+            if (!vote->GetSignDestination(tx, vchSigIn, setSubDest, vchSubSigOut))
+            {
+                return false;
+            }
+
+            fSendToVoteTemplate = true;
+        }
+    }
+
+    if (destIn.GetTemplateId(tid))
+    {
+        if (tid.GetType() == TEMPLATE_DELEGATE)
+        {
+            destInDelegateOut = destIn;
+        }
+        else if (tid.GetType() == TEMPLATE_VOTE)
+        {
+            if (!fSendToVoteTemplate)
+            {
+                vchSubSigOut = vchSigIn;
+            }
+            auto ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, vchSubSigOut);
+            if (ptr == nullptr)
+            {
+                return false;
+            }
+            CDestination destOwnerTemp;
+            boost::dynamic_pointer_cast<CTemplateVote>(ptr)->GetDelegateOwnerDestination(destInDelegateOut, destOwnerTemp);
+        }
+    }
+    return true;
+}
+
 bool CTemplateVote::ValidateParam() const
 {
     CTemplateId tid;

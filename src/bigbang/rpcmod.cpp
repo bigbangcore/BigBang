@@ -1660,7 +1660,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }
@@ -1697,7 +1697,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         {
             CTemplateId tid = from.GetTemplateId();
             uint16 nType = tid.GetType();
-            if (nType != TEMPLATE_EXCHANGE)
+            if (nType != TEMPLATE_EXCHANGE && nType != TEMPLATE_DEXMATCH)
             {
                 throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from address,must be a template address");
             }
@@ -1707,9 +1707,18 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             }
             vector<unsigned char> vsm = ParseHexString(spParam->strSign_M);
             vector<unsigned char> vss = ParseHexString(spParam->strSign_S);
-            txNew.vchSig.clear();
-            CODataStream ds(txNew.vchSig);
-            ds << vsm << vss << hashFork << pService->GetForkHeight(hashFork);
+            if (nType == TEMPLATE_EXCHANGE)
+            {
+                txNew.vchSig.clear();
+                CODataStream ds(txNew.vchSig);
+                ds << vsm << vss << hashFork << pService->GetForkHeight(hashFork);
+            }
+            else
+            {
+                txNew.vchData.clear();
+                CODataStream ds(txNew.vchData);
+                ds << vsm << vss;
+            }
         }
         else
         {
@@ -1811,7 +1820,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }

@@ -10,6 +10,7 @@
 #include "../bigbang/address.h"
 #include "delegatecomm.h"
 #include "template/template.h"
+#include "template/vote.h"
 #include "util.h"
 
 using namespace std;
@@ -2401,7 +2402,7 @@ bool CBlockBase::VerifyDelegateVote(const uint256& hash, CBlockEx& block, int64 
         CDestination destInDelegateTemplate;
         CDestination sendToDelegateTemplate;
         CTxContxt& txContxt = block.vTxContxt[i];
-        if (!CTemplate::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
+        if (!CTemplateVote::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
         {
             StdLog("CBlockBase", "Verify delegate vote: parse delegate dest fail, destIn: %s, sendTo: %s, block: %s, txid: %s",
                    CAddress(txContxt.destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str(), hash.GetHex().c_str(), tx.GetHash().GetHex().c_str());

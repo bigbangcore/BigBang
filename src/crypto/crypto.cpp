@@ -121,6 +121,16 @@ uint256 CryptoPowHash(const void* msg, size_t len)
 }
 
 //////////////////////////////
+// SHA256
+
+uint256 CryptoSHA256(const void* msg, size_t len)
+{
+    uint256 hash;
+    crypto_hash_sha256((uint8*)&hash, (const uint8*)msg, len);
+    return hash;
+}
+
+//////////////////////////////
 // Sign & verify
 
 uint256 CryptoMakeNewKey(CCryptoKey& key)

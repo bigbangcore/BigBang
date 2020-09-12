@@ -48,9 +48,10 @@ protected:
     Errno Debug(const Errno& err, const char* pszFunc, const char* pszFormat, ...);
     bool CheckBlockSignature(const CBlock& block);
     Errno ValidateVacantBlock(const CBlock& block);
-    bool VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSigOut);
     Errno VerifyCertTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
     Errno VerifyVoteTx(const CTransaction& tx, const CDestination& destIn, const uint256& fork);
+    Errno VerifyDexOrderTx(const CTransaction& tx, const CDestination& destIn, int64 nValueIn, int nHeight);
+    Errno VerifyDexMatchTx(const CTransaction& tx, int64 nValueIn, int nHeight);
 
 protected:
     uint256 hashGenesisBlock;

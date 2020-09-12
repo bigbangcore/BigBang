@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "event.h"
 #include "template/delegate.h"
+#include "template/vote.h"
 
 using namespace std;
 using namespace xengine;
@@ -449,7 +450,7 @@ bool CService::GetVotes(const CDestination& destDelegate, int64& nVotes, string&
         }
         CDestination destDelegateTemplateOut;
         CDestination destOwnerOut;
-        boost::dynamic_pointer_cast<CSendToRecordedTemplate>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
+        boost::dynamic_pointer_cast<CTemplateVote>(ptr)->GetDelegateOwnerDestination(destDelegateTemplateOut, destOwnerOut);
         if (destDelegateTemplateOut.IsNull())
         {
             strFailCause = "Vote template address not imported";

@@ -4,6 +4,8 @@
 
 #include "checkrepair.h"
 
+#include "../common/template/vote.h"
+
 using namespace std;
 using namespace xengine;
 using namespace boost::filesystem;
@@ -458,7 +460,7 @@ bool CCheckDelegateDB::UpdateDelegate(const uint256& hashBlock, CBlockEx& block,
         CDestination destInDelegateTemplate;
         CDestination sendToDelegateTemplate;
         CTxContxt& txContxt = block.vTxContxt[i];
-        if (!CTemplate::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
+        if (!CTemplateVote::ParseDelegateDest(txContxt.destIn, tx.sendTo, tx.vchSig, destInDelegateTemplate, sendToDelegateTemplate))
         {
             StdLog("check", "Update delegate vote: parse delegate dest fail, destIn: %s, sendTo: %s, block: %s, txid: %s",
                    CAddress(txContxt.destIn).ToString().c_str(), CAddress(tx.sendTo).ToString().c_str(), hashBlock.GetHex().c_str(), tx.GetHash().GetHex().c_str());

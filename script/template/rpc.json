@@ -210,6 +210,100 @@
                     }
                 }
             },
+            "dexorder": {
+                "type": "object",
+                "desc": "a dex order template",
+                "condition": "type=dexorder",
+                "content": {
+                    "seller_address": {
+                        "type": "string",
+                        "desc": "seller address"
+                    },
+                    "coinpair": {
+                        "type": "string",
+                        "desc": "coin pair"
+                    },
+                    "price": {
+                        "type": "double",
+                        "desc": "price"
+                    },
+                    "fee": {
+                        "type": "double",
+                        "desc": "fee"
+                    },
+                    "secret_hash": {
+                        "type": "string",
+                        "desc": "secret hash"
+                    },
+                    "secret_enc": {
+                        "type": "string",
+                        "desc": "secret encryption"
+                    },
+                    "valid_height": {
+                        "type": "int",
+                        "desc": "valid height"
+                    },
+                    "match_address": {
+                        "type": "string",
+                        "desc": "match address"
+                    },
+                    "deal_address": {
+                        "type": "string",
+                        "desc": "deal address"
+                    }
+                }
+            },
+            "dexmatch": {
+                "type": "object",
+                "desc": "a dex match template",
+                "condition": "type=dexmatch",
+                "content": {
+                    "match_address": {
+                        "type": "string",
+                        "desc": "match address"
+                    },
+                    "match_amount": {
+                        "type": "double",
+                        "desc": "match amount"
+                    },
+                    "fee": {
+                        "type": "double",
+                        "desc": "fee"
+                    },
+                    "seller_order_address": {
+                        "type": "string",
+                        "desc": "seller order address"
+                    },
+                    "seller_address": {
+                        "type": "string",
+                        "desc": "seller address"
+                    },
+                    "seller_deal_address": {
+                        "type": "string",
+                        "desc": "seller deal address"
+                    },
+                    "seller_valid_height": {
+                        "type": "int",
+                        "desc": "seller valid height"
+                    },
+                    "buyer_order_address": {
+                        "type": "string",
+                        "desc": "buyer order address"
+                    },
+                    "buyer_address": {
+                        "type": "string",
+                        "desc": "buyer address"
+                    },
+                    "buyer_secret_hash": {
+                        "type": "string",
+                        "desc": "buyer secret hash"
+                    },
+                    "buyer_valid_height": {
+                        "type": "int",
+                        "desc": "buyer valid height"
+                    }
+                }
+            },
             "synctx": {
                 "type": "bool",
                 "desc": "sync tx or not",
@@ -369,6 +463,100 @@
                     "pledge": {
                         "type": "int",
                         "desc": "pledge"
+                    }
+                }
+            },
+            "dexorder": {
+                "type": "object",
+                "desc": "a dex order template",
+                "condition": "type=dexorder",
+                "content": {
+                    "seller_address": {
+                        "type": "string",
+                        "desc": "seller address"
+                    },
+                    "coinpair": {
+                        "type": "string",
+                        "desc": "coin pair"
+                    },
+                    "price": {
+                        "type": "double",
+                        "desc": "price"
+                    },
+                    "fee": {
+                        "type": "double",
+                        "desc": "fee"
+                    },
+                    "secret_hash": {
+                        "type": "string",
+                        "desc": "secret hash"
+                    },
+                    "secret_enc": {
+                        "type": "string",
+                        "desc": "secret encryption"
+                    },
+                    "valid_height": {
+                        "type": "int",
+                        "desc": "valid height"
+                    },
+                    "match_address": {
+                        "type": "string",
+                        "desc": "match address"
+                    },
+                    "deal_address": {
+                        "type": "string",
+                        "desc": "deal address"
+                    }
+                }
+            },
+            "dexmatch": {
+                "type": "object",
+                "desc": "a dex match template",
+                "condition": "type=dexmatch",
+                "content": {
+                    "match_address": {
+                        "type": "string",
+                        "desc": "match address"
+                    },
+                    "match_amount": {
+                        "type": "double",
+                        "desc": "match amount"
+                    },
+                    "fee": {
+                        "type": "double",
+                        "desc": "fee"
+                    },
+                    "seller_order_address": {
+                        "type": "string",
+                        "desc": "seller order address"
+                    },
+                    "seller_address": {
+                        "type": "string",
+                        "desc": "seller address"
+                    },
+                    "seller_deal_address": {
+                        "type": "string",
+                        "desc": "seller deal address"
+                    },
+                    "seller_valid_height": {
+                        "type": "int",
+                        "desc": "seller valid height"
+                    },
+                    "buyer_order_address": {
+                        "type": "string",
+                        "desc": "buyer order address"
+                    },
+                    "buyer_address": {
+                        "type": "string",
+                        "desc": "buyer address"
+                    },
+                    "buyer_secret_hash": {
+                        "type": "string",
+                        "desc": "buyer secret hash"
+                    },
+                    "buyer_valid_height": {
+                        "type": "int",
+                        "desc": "buyer valid height"
                     }
                 }
             },
@@ -3082,9 +3270,7 @@
                 "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0.01\"}\n"
             }
         ],
-        "error": [
-            
-        ]
+        "error": []
     },
     "listunspent": {
         "type": "command",
