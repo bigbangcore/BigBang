@@ -2365,9 +2365,14 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     if (spParam->strForktype == "defi")
     {
         profile.nForkType = FORK_TYPE_DEFI;
-        if (nMintReward > 0)
+        if (profile.nMintReward != 0)
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork mint Reward must be zero");
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork mint reward must be zero");
+        }
+
+        if (profile.nHalveCycle != 0)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "DeFi fork mint halvecycle must be zero");
         }
 
         if (hashParent != pCoreProtocol->GetGenesisBlockHash())

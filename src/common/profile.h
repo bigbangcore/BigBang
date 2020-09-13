@@ -56,7 +56,7 @@ public:
     uint8 nStakeRewardPercent;                      // stake reward ratio(%), range [0 - 100] means [0% - 100%]
     uint8 nPromotionRewardPercent;                  // promotion reward ratio(%), range [0 - 100] means [0% - 100%]
     uint64 nStakeMinToken;                          // the minimum token on address can participate stake reward, range [0, MAX_TOKEN]
-    std::map<int64, uint32> mapPromotionTokenTimes; // In promotion computation, less than [key] amount should multiply [value].
+    std::map<int64, uint32> mapPromotionTokenTimes; // In promotion computation, less than or equal to [key] amount should multiply [value].
 
     CDeFiProfile()
     {
