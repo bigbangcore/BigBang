@@ -1054,7 +1054,7 @@
                                             }
                                         }
                                     },
-                                    "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]"
+                                    "desc": "in promotion computation, less than or equal to [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]"
                                 }
                             }
                         }
@@ -3027,7 +3027,7 @@
                                     }
                                 }
                             },
-                            "desc": "in promotion computation, less than [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]",
+                            "desc": "in promotion computation, less than or equal to [key] amount should multiply [value] eg. [{\"key\": 10, \"value\": 5},...]",
                             "required": false
                         }
                     }
