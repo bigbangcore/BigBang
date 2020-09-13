@@ -31,19 +31,25 @@ public:
     virtual int64 LockedCoin(const CDestination& destTo, const int32 nForkHeight) const = 0;
 };
 
+enum TNS_PARAM
+{
+    TNS_DEX_MIN_SECT_HEIGHT = 2,
+    TNS_DEX_MAX_SECT_HEIGHT = 1440
+};
+
 enum TemplateType
 {
-    TEMPLATE_MIN,
-    TEMPLATE_WEIGHTED,
-    TEMPLATE_MULTISIG,
-    TEMPLATE_FORK,
-    TEMPLATE_PROOF,
-    TEMPLATE_DELEGATE,
-    TEMPLATE_EXCHANGE,
-    TEMPLATE_VOTE,
-    TEMPLATE_PAYMENT,
-    TEMPLATE_DEXORDER,
-    TEMPLATE_DEXMATCH,
+    TEMPLATE_MIN = 0,
+    TEMPLATE_WEIGHTED = 1,
+    TEMPLATE_MULTISIG = 2,
+    TEMPLATE_FORK = 3,
+    TEMPLATE_PROOF = 4,
+    TEMPLATE_DELEGATE = 5,
+    TEMPLATE_EXCHANGE = 6,
+    TEMPLATE_VOTE = 7,
+    TEMPLATE_PAYMENT = 8,
+    TEMPLATE_DEXORDER = 9,
+    TEMPLATE_DEXMATCH = 10,
     TEMPLATE_MAX
 };
 
@@ -146,7 +152,7 @@ public:
                           const std::vector<uint8>& vchPreSig, std::vector<uint8>& vchSig, bool& fCompleted) const;
 
     // Build transaction signature by concrete template.
-    virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
+    virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
 
     // Convert params of template to json object

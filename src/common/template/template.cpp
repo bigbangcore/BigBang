@@ -275,7 +275,7 @@ bool CTemplate::VerifyDestRecorded(const CTransaction& tx, vector<uint8>& vchSig
                 return false;
             }
             set<CDestination> setSubDest;
-            if (!ptr->GetSignDestination(tx, tx.vchSig, setSubDest, vchSigOut))
+            if (!ptr->GetSignDestination(tx, uint256(), 0, tx.vchSig, setSubDest, vchSigOut))
             {
                 return false;
             }
@@ -318,7 +318,7 @@ vector<uint8> CTemplate::Export() const
     return vchTemplate;
 }
 
-bool CTemplate::GetSignDestination(const CTransaction& tx, const vector<uint8>& vchSig,
+bool CTemplate::GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const vector<uint8>& vchSig,
                                    set<CDestination>& setSubDest, vector<uint8>& vchSubSig) const
 {
     if (!vchSig.empty())

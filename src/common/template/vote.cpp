@@ -26,10 +26,10 @@ CTemplateVote* CTemplateVote::clone() const
     return new CTemplateVote(*this);
 }
 
-bool CTemplateVote::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
+bool CTemplateVote::GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                        std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
+    if (!CTemplate::GetSignDestination(tx, hashFork, nHeight, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
@@ -77,7 +77,7 @@ bool CTemplateVote::ParseDelegateDest(const CDestination& destIn, const CDestina
 
             CTransaction tx;
             std::set<CDestination> setSubDest;
-            if (!vote->GetSignDestination(tx, vchSigIn, setSubDest, vchSubSigOut))
+            if (!vote->GetSignDestination(tx, uint256(), 0, vchSigIn, setSubDest, vchSubSigOut))
             {
                 return false;
             }

@@ -19,17 +19,19 @@ static const int64 COIN = 1000000;
 // CTemplateDexOrder
 
 CTemplateDexOrder::CTemplateDexOrder(const CDestination& destSellerIn, int nCoinPairIn,
-                                     double dPriceIn, double dFeeIn, const uint256& hashSecretIn, const uint256& hashEncryptionIn,
-                                     int nValidHeightIn, const CDestination& destMatchIn, const CDestination& destDealIn)
-  : destSeller(destSellerIn),
+                                     double dPriceIn, double dFeeIn, const uint256& hashSecretIn, const std::vector<uint256>& vHashEncryptionIn,
+                                     int nValidHeightIn, int nSectHeightIn, const std::vector<CDestination>& vDestMatchIn, const std::vector<CDestination>& vDestDealIn)
+  : CTemplate(TEMPLATE_DEXORDER),
+    destSeller(destSellerIn),
     nCoinPair(nCoinPairIn),
     dPrice(dPriceIn),
     dFee(dFeeIn),
     hashSecret(hashSecretIn),
-    hashEncryption(hashEncryptionIn),
+    vHashEncryption(vHashEncryptionIn),
     nValidHeight(nValidHeightIn),
-    destMatch(destMatchIn),
-    destDeal(destDealIn)
+    nSectHeight(nSectHeightIn),
+    vDestMatch(vDestMatchIn),
+    vDestDeal(vDestDealIn)
 {
 }
 
@@ -38,23 +40,28 @@ CTemplateDexOrder* CTemplateDexOrder::clone() const
     return new CTemplateDexOrder(*this);
 }
 
-bool CTemplateDexOrder::GetSignDestination(const CTransaction& tx, const vector<uint8>& vchSig,
+bool CTemplateDexOrder::GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const vector<uint8>& vchSig,
                                            set<CDestination>& setSubDest, vector<uint8>& vchSubSig) const
 {
-    if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
+    if (!CTemplate::GetSignDestination(tx, hashFork, nHeight, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
     setSubDest.clear();
-    CTemplateId tid;
-    if (tx.sendTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DEXMATCH)
+    if (nHeight < nValidHeight)
     {
-        setSubDest.insert(destMatch);
+        int nStartHeight = nValidHeight - nSectHeight * vDestMatch.size();
+        for (int i = 0; i < vDestMatch.size(); ++i)
+        {
+            if (nHeight < nStartHeight + nSectHeight * (i + 1))
+            {
+                setSubDest.insert(vDestMatch[i]);
+                return true;
+            }
+        }
+        return false;
     }
-    else
-    {
-        setSubDest.insert(destSeller);
-    }
+    setSubDest.insert(destSeller);
     return true;
 }
 
@@ -69,10 +76,24 @@ void CTemplateDexOrder::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
     obj.dexorder.dPrice = dPrice;
     obj.dexorder.dFee = dFee;
     obj.dexorder.strSecret_Hash = hashSecret.GetHex();
-    obj.dexorder.strSecret_Enc = hashEncryption.GetHex();
+
+    for (const auto& hash : vHashEncryption)
+    {
+        obj.dexorder.vecSecret_Enc.push_back(hash.GetHex());
+    }
+
     obj.dexorder.nValid_Height = nValidHeight;
-    obj.dexorder.strMatch_Address = (destInstance = destMatch).ToString();
-    obj.dexorder.strDeal_Address = (destInstance = destDeal).ToString();
+    obj.dexorder.nSect_Height = nSectHeight;
+
+    for (const auto& dest : vDestMatch)
+    {
+        obj.dexorder.vecMatch_Address.push_back((destInstance = dest).ToString());
+    }
+
+    for (const auto& dest : vDestDeal)
+    {
+        obj.dexorder.vecDeal_Address.push_back((destInstance = dest).ToString());
+    }
 }
 
 bool CTemplateDexOrder::ValidateParam() const
@@ -97,7 +118,7 @@ bool CTemplateDexOrder::ValidateParam() const
     {
         return false;
     }
-    if (hashEncryption == 0)
+    if (vHashEncryption.empty())
     {
         return false;
     }
@@ -105,11 +126,36 @@ bool CTemplateDexOrder::ValidateParam() const
     {
         return false;
     }
-    if (!IsTxSpendable(destMatch))
+    if (nSectHeight < TNS_DEX_MIN_SECT_HEIGHT || nSectHeight > TNS_DEX_MAX_SECT_HEIGHT)
     {
         return false;
     }
-    if (!IsTxSpendable(destDeal))
+
+    if (vDestMatch.empty())
+    {
+        return false;
+    }
+    for (const auto& dest : vDestMatch)
+    {
+        if (!IsTxSpendable(dest))
+        {
+            return false;
+        }
+    }
+
+    if (vDestDeal.empty())
+    {
+        return false;
+    }
+    for (const auto& dest : vDestDeal)
+    {
+        if (!IsTxSpendable(dest))
+        {
+            return false;
+        }
+    }
+
+    if (vHashEncryption.size() != vDestDeal.size())
     {
         return false;
     }
@@ -121,7 +167,7 @@ bool CTemplateDexOrder::SetTemplateData(const std::vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> destSeller >> nCoinPair >> dPrice >> dFee >> hashSecret >> hashEncryption >> nValidHeight >> destMatch >> destDeal;
+        is >> destSeller >> nCoinPair >> dPrice >> dFee >> hashSecret >> vHashEncryption >> nValidHeight >> nSectHeight >> vDestMatch >> vDestDeal;
     }
     catch (exception& e)
     {
@@ -162,24 +208,36 @@ bool CTemplateDexOrder::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
         return false;
     }
 
-    if (hashEncryption.SetHex(obj.dexorder.strSecret_Enc) != obj.dexorder.strSecret_Enc.size())
+    for (const auto& strHash : obj.dexorder.vecSecret_Enc)
     {
-        return false;
+        uint256 hash;
+        if (hash.SetHex(strHash) != strHash.size())
+        {
+            return false;
+        }
+        vHashEncryption.push_back(hash);
     }
 
     nValidHeight = obj.dexorder.nValid_Height;
+    nSectHeight = obj.dexorder.nSect_Height;
 
-    if (!destInstance.ParseString(obj.dexorder.strMatch_Address))
+    for (const auto& strDest : obj.dexorder.vecMatch_Address)
     {
-        return false;
+        if (!destInstance.ParseString(strDest))
+        {
+            return false;
+        }
+        vDestMatch.push_back(destInstance);
     }
-    destMatch = destInstance;
 
-    if (!destInstance.ParseString(obj.dexorder.strDeal_Address))
+    for (const auto& strDest : obj.dexorder.vecDeal_Address)
     {
-        return false;
+        if (!destInstance.ParseString(strDest))
+        {
+            return false;
+        }
+        vDestDeal.push_back(destInstance);
     }
-    destDeal = destInstance;
     return true;
 }
 
@@ -187,16 +245,23 @@ void CTemplateDexOrder::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << destSeller << nCoinPair << dPrice << dFee << hashSecret << hashEncryption << nValidHeight << destMatch << destDeal;
+    os << destSeller << nCoinPair << dPrice << dFee << hashSecret << vHashEncryption << nValidHeight << nSectHeight << vDestMatch << vDestDeal;
 }
 
 bool CTemplateDexOrder::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    CTemplateId tid;
-    if (destTo.GetTemplateId(tid) && tid.GetType() == TEMPLATE_DEXMATCH)
+    if (nForkHeight < nValidHeight)
     {
-        return destMatch.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+        int nStartHeight = nValidHeight - nSectHeight * vDestMatch.size();
+        for (int i = 0; i < vDestMatch.size(); ++i)
+        {
+            if (nForkHeight < nStartHeight + nSectHeight * (i + 1))
+            {
+                return vDestMatch[i].VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+            }
+        }
+        return false;
     }
     return destSeller.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

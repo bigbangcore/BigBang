@@ -20,15 +20,17 @@ static const int64 COIN = 1000000;
 
 CTemplateDexMatch::CTemplateDexMatch(const CDestination& destMatchIn, int64 nMatchAmountIn, double dFeeIn,
                                      const CDestination& destSellerOrderIn, const CDestination& destSellerIn,
-                                     const CDestination& destSellerDealIn, int nSellerValidHeightIn, const CDestination& destBuyerOrderIn,
-                                     const CDestination& destBuyerIn, const uint256& hashBuyerSecretIn, int nBuyerValidHeightIn)
-  : destMatch(destMatchIn),
+                                     const std::vector<CDestination> vDestSellerDealIn, int nSellerValidHeightIn, int nSellerSectHeightIn,
+                                     const CDestination& destBuyerOrderIn, const CDestination& destBuyerIn, const uint256& hashBuyerSecretIn, int nBuyerValidHeightIn)
+  : CTemplate(TEMPLATE_DEXMATCH),
+    destMatch(destMatchIn),
     nMatchAmount(nMatchAmountIn),
     dFee(dFeeIn),
     destSellerOrder(destSellerOrderIn),
     destSeller(destSellerIn),
-    destSellerDeal(destSellerDealIn),
+    vDestSellerDeal(vDestSellerDealIn),
     nSellerValidHeight(nSellerValidHeightIn),
+    nSellerSectHeight(nSellerSectHeightIn),
     destBuyerOrder(destBuyerOrderIn),
     destBuyer(destBuyerIn),
     hashBuyerSecret(hashBuyerSecretIn),
@@ -41,22 +43,28 @@ CTemplateDexMatch* CTemplateDexMatch::clone() const
     return new CTemplateDexMatch(*this);
 }
 
-bool CTemplateDexMatch::GetSignDestination(const CTransaction& tx, const vector<uint8>& vchSig,
+bool CTemplateDexMatch::GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const vector<uint8>& vchSig,
                                            set<CDestination>& setSubDest, vector<uint8>& vchSubSig) const
 {
-    if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
+    if (!CTemplate::GetSignDestination(tx, hashFork, nHeight, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }
     setSubDest.clear();
-    if (tx.sendTo == destMatch || tx.sendTo == destSellerDeal || tx.sendTo == destBuyer)
+    if (nHeight < nSellerValidHeight)
     {
-        setSubDest.insert(destSellerDeal);
+        int nStartHeight = nSellerValidHeight - nSellerSectHeight * vDestSellerDeal.size();
+        for (int i = 0; i < vDestSellerDeal.size(); ++i)
+        {
+            if (nHeight < nStartHeight + nSellerSectHeight * (i + 1))
+            {
+                setSubDest.insert(vDestSellerDeal[i]);
+                return true;
+            }
+        }
+        return false;
     }
-    else
-    {
-        setSubDest.insert(destSeller);
-    }
+    setSubDest.insert(destSeller);
     return true;
 }
 
@@ -68,8 +76,14 @@ void CTemplateDexMatch::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
 
     obj.dexmatch.strSeller_Order_Address = (destInstance = destSellerOrder).ToString();
     obj.dexmatch.strSeller_Address = (destInstance = destSeller).ToString();
-    obj.dexmatch.strSeller_Deal_Address = (destInstance = destSellerDeal).ToString();
+
+    for (const auto& dest : vDestSellerDeal)
+    {
+        obj.dexmatch.vecSeller_Deal_Address.push_back((destInstance = dest).ToString());
+    }
+
     obj.dexmatch.nSeller_Valid_Height = nSellerValidHeight;
+    obj.dexmatch.nSeller_Sect_Height = nSellerSectHeight;
 
     obj.dexmatch.strBuyer_Order_Address = (destInstance = destBuyerOrder).ToString();
     obj.dexmatch.strBuyer_Address = (destInstance = destBuyer).ToString();
@@ -99,11 +113,22 @@ bool CTemplateDexMatch::ValidateParam() const
     {
         return false;
     }
-    if (!IsTxSpendable(destSellerDeal))
+    if (vDestSellerDeal.empty())
     {
         return false;
     }
+    for (const auto& dest : vDestSellerDeal)
+    {
+        if (!IsTxSpendable(dest))
+        {
+            return false;
+        }
+    }
     if (nSellerValidHeight <= 0)
+    {
+        return false;
+    }
+    if (nSellerSectHeight < TNS_DEX_MIN_SECT_HEIGHT || nSellerSectHeight > TNS_DEX_MAX_SECT_HEIGHT)
     {
         return false;
     }
@@ -131,7 +156,7 @@ bool CTemplateDexMatch::SetTemplateData(const vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> destMatch >> nMatchAmount >> dFee >> destSellerOrder >> destSeller >> destSellerDeal >> nSellerValidHeight >> destBuyerOrder >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
+        is >> destMatch >> nMatchAmount >> dFee >> destSellerOrder >> destSeller >> vDestSellerDeal >> nSellerValidHeight >> nSellerSectHeight >> destBuyerOrder >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
     }
     catch (exception& e)
     {
@@ -169,13 +194,17 @@ bool CTemplateDexMatch::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
     destSeller = destInstance;
 
-    if (!destInstance.ParseString(obj.dexmatch.strSeller_Deal_Address))
+    for (const auto& strDest : obj.dexmatch.vecSeller_Deal_Address)
     {
-        return false;
+        if (!destInstance.ParseString(strDest))
+        {
+            return false;
+        }
+        vDestSellerDeal.push_back(destInstance);
     }
-    destSellerDeal = destInstance;
 
     nSellerValidHeight = obj.dexmatch.nSeller_Valid_Height;
+    nSellerSectHeight = obj.dexmatch.nSeller_Sect_Height;
 
     if (!destInstance.ParseString(obj.dexmatch.strBuyer_Order_Address))
     {
@@ -201,15 +230,23 @@ void CTemplateDexMatch::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << destMatch << nMatchAmount << dFee << destSellerOrder << destSeller << destSellerDeal << nSellerValidHeight << destBuyerOrder << destBuyer << hashBuyerSecret << nBuyerValidHeight;
+    os << destMatch << nMatchAmount << dFee << destSellerOrder << destSeller << vDestSellerDeal << nSellerValidHeight << nSellerSectHeight << destBuyerOrder << destBuyer << hashBuyerSecret << nBuyerValidHeight;
 }
 
 bool CTemplateDexMatch::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
                                           const vector<uint8>& vchSig, const int32 nForkHeight, bool& fCompleted) const
 {
-    if (destTo == destMatch || destTo == destSellerDeal || destTo == destBuyer)
+    if (nForkHeight < nSellerValidHeight)
     {
-        return destSellerDeal.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+        int nStartHeight = nSellerValidHeight - nSellerSectHeight * vDestSellerDeal.size();
+        for (int i = 0; i < vDestSellerDeal.size(); ++i)
+        {
+            if (nForkHeight < nStartHeight + nSellerSectHeight * (i + 1))
+            {
+                return vDestSellerDeal[i].VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
+            }
+        }
+        return false;
     }
     return destSeller.VerifyTxSignature(hash, nType, hashAnchor, destTo, vchSig, nForkHeight, fCompleted);
 }

@@ -30,10 +30,10 @@ CTemplateFork* CTemplateFork::clone() const
     return new CTemplateFork(*this);
 }
 
-bool CTemplateFork::GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
+bool CTemplateFork::GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                        std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const
 {
-    if (!CTemplate::GetSignDestination(tx, vchSig, setSubDest, vchSubSig))
+    if (!CTemplate::GetSignDestination(tx, hashFork, nHeight, vchSig, setSubDest, vchSubSig))
     {
         return false;
     }

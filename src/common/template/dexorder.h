@@ -11,10 +11,10 @@ class CTemplateDexOrder : virtual public CTemplate, virtual public CSendToRecord
 {
 public:
     CTemplateDexOrder(const CDestination& destSellerIn = CDestination(), int nCoinPairIn = 0,
-                      double dPriceIn = 0.0, double dFeeIn = 0.0, const uint256& hashSecretIn = uint256(), const uint256& hashEncryptionIn = uint256(),
-                      int nValidHeightIn = 0, const CDestination& destMatchIn = CDestination(), const CDestination& destDealIn = CDestination());
+                      double dPriceIn = 0.0, double dFeeIn = 0.0, const uint256& hashSecretIn = uint256(), const std::vector<uint256>& vHashEncryptionIn = std::vector<uint256>(),
+                      int nValidHeightIn = 0, int nSectHeight = 0, const std::vector<CDestination>& vDestMatchIn = std::vector<CDestination>(), const std::vector<CDestination>& vDestDealIn = std::vector<CDestination>());
     virtual CTemplateDexOrder* clone() const;
-    virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
+    virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
 
@@ -32,10 +32,11 @@ public:
     double dPrice;
     double dFee;
     uint256 hashSecret;
-    uint256 hashEncryption;
+    std::vector<uint256> vHashEncryption;
     int nValidHeight;
-    CDestination destMatch;
-    CDestination destDeal;
+    int nSectHeight;
+    std::vector<CDestination> vDestMatch;
+    std::vector<CDestination> vDestDeal;
 };
 
 #endif // COMMON_TEMPLATE_DEXORDER_H

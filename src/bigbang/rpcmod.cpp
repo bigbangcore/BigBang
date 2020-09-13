@@ -285,6 +285,8 @@ CRPCMod::CRPCMod()
         //
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
+        ("makesha256", &CRPCMod::RPCMakeSha256)
+        //
         ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
@@ -1717,7 +1719,9 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
             {
                 txNew.vchData.clear();
                 CODataStream ds(txNew.vchData);
-                ds << vsm << vss;
+                vector<unsigned char> vDataHead;
+                vDataHead.resize(21);
+                ds << vDataHead << vsm << vss;
             }
         }
         else
@@ -2546,6 +2550,17 @@ CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)
     int64 nTxFee = CalcMinTxFee(ParseHexString(spParam->strHexdata).size(), NEW_MIN_TX_FEE);
     auto spResult = MakeCGetTransactionFeeResultPtr();
     spResult->dTxfee = ValueFromAmount(nTxFee);
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCMakeSha256(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CMakeSha256Param>(param);
+    vector<unsigned char> vData = ParseHexString(spParam->strHexdata);
+    uint256 hash = crypto::CryptoSHA256(&(vData[0]), vData.size());
+
+    auto spResult = MakeCMakeSha256ResultPtr();
+    spResult->strResult = hash.GetHex();
     return spResult;
 }
 

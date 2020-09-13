@@ -24,15 +24,14 @@ public:
     virtual CTemplatePayment* clone() const;
     virtual void GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const;
 
-
-    virtual bool GetSignDestination(const CTransaction& tx, const std::vector<uint8>& vchSig,
+    virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
 
     bool VerifyTransaction(const CTransaction& tx,
-                            uint32 height,
-                            std::multimap<int64, CDestination> &mapVotes,
-                            const uint256 &nAgreement,
-                            int64 nValueIn);
+                           uint32 height,
+                           std::multimap<int64, CDestination>& mapVotes,
+                           const uint256& nAgreement,
+                           int64 nValueIn);
 
 protected:
     virtual bool ValidateParam() const;
@@ -50,7 +49,7 @@ public:
     uint64 m_pledge;
     uint32 m_height_end;
     static const int SafeHeight = 30;
-    static const int DataLen =  sizeof(m_business.prefix) + sizeof(m_business.data) + sizeof(m_customer.prefix) + sizeof(m_customer.data) + sizeof(m_height_exec) + sizeof(m_amount) + sizeof(m_pledge) + sizeof(m_height_end);
+    static const int DataLen = sizeof(m_business.prefix) + sizeof(m_business.data) + sizeof(m_customer.prefix) + sizeof(m_customer.data) + sizeof(m_height_exec) + sizeof(m_amount) + sizeof(m_pledge) + sizeof(m_height_end);
 };
 
 #endif

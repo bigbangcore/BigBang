@@ -233,23 +233,45 @@
                     },
                     "secret_hash": {
                         "type": "string",
-                        "desc": "secret hash"
+                        "desc": "sha256 hash"
                     },
                     "secret_enc": {
-                        "type": "string",
-                        "desc": "secret encryption"
+                        "type": "array",
+                        "desc": "secret encryption",
+                        "content": {
+                            "hash": {
+                                "type": "string",
+                                "desc": "hash"
+                            }
+                        }
                     },
                     "valid_height": {
                         "type": "int",
                         "desc": "valid height"
                     },
+                    "sect_height": {
+                        "type": "int",
+                        "desc": "match or deal work section height, default: 1000"
+                    },
                     "match_address": {
-                        "type": "string",
-                        "desc": "match address"
+                        "type": "array",
+                        "desc": "match address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     },
                     "deal_address": {
-                        "type": "string",
-                        "desc": "deal address"
+                        "type": "array",
+                        "desc": "deal address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     }
                 }
             },
@@ -279,12 +301,22 @@
                         "desc": "seller address"
                     },
                     "seller_deal_address": {
-                        "type": "string",
-                        "desc": "seller deal address"
+                        "type": "array",
+                        "desc": "seller deal address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     },
                     "seller_valid_height": {
                         "type": "int",
                         "desc": "seller valid height"
+                    },
+                    "seller_sect_height": {
+                        "type": "int",
+                        "desc": "deal work section height, default: 1000"
                     },
                     "buyer_order_address": {
                         "type": "string",
@@ -489,23 +521,45 @@
                     },
                     "secret_hash": {
                         "type": "string",
-                        "desc": "secret hash"
+                        "desc": "sha256 hash"
                     },
                     "secret_enc": {
-                        "type": "string",
-                        "desc": "secret encryption"
+                        "type": "array",
+                        "desc": "secret encryption",
+                        "content": {
+                            "hash": {
+                                "type": "string",
+                                "desc": "hash"
+                            }
+                        }
                     },
                     "valid_height": {
                         "type": "int",
                         "desc": "valid height"
                     },
+                    "sect_height": {
+                        "type": "int",
+                        "desc": "match or deal work section height, default: 1000"
+                    },
                     "match_address": {
-                        "type": "string",
-                        "desc": "match address"
+                        "type": "array",
+                        "desc": "match address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     },
                     "deal_address": {
-                        "type": "string",
-                        "desc": "deal address"
+                        "type": "array",
+                        "desc": "deal address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     }
                 }
             },
@@ -535,12 +589,22 @@
                         "desc": "seller address"
                     },
                     "seller_deal_address": {
-                        "type": "string",
-                        "desc": "seller deal address"
+                        "type": "array",
+                        "desc": "seller deal address",
+                        "content": {
+                            "address": {
+                                "type": "string",
+                                "desc": "address"
+                            }
+                        }
                     },
                     "seller_valid_height": {
                         "type": "int",
                         "desc": "seller valid height"
+                    },
+                    "seller_sect_height": {
+                        "type": "int",
+                        "desc": "deal work section height, default: 1000"
                     },
                     "buyer_order_address": {
                         "type": "string",
@@ -3268,6 +3332,36 @@
             {
                 "request": "curl -d '{\"id\":1,\"method\":\"gettxfee\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"feeda13f124bbc\"}}' http://127.0.0.1:9902",
                 "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0.01\"}\n"
+            }
+        ],
+        "error": []
+    },
+    "makesha256": {
+        "type": "command",
+        "name": "MakeSha256",
+        "desc": "Make sha256",
+        "request": {
+            "type": "object",
+            "content": {
+                "hexdata": {
+                    "type": "string",
+                    "desc": "Hex encoded data"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "Sha256 string"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli makesha256 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
+                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"makesha256\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
             }
         ],
         "error": []
