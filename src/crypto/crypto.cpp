@@ -585,5 +585,100 @@ bool CryptoDecryptSecret(int version, const CCryptoString& passphrase, const CCr
             == 0);
 }
 
+// aes encrypt
+bool CryptoAesMakeKey(const uint256& secret_local, const uint256& pubkey_remote, uint256& key)
+{
+    unsigned char curve25519_secret_local[32];
+    unsigned char curve25519_pubkey_remote[32];
+    if (crypto_sign_ed25519_sk_to_curve25519(curve25519_secret_local, secret_local.begin()) != 0)
+    {
+        return false;
+    }
+    if (crypto_sign_ed25519_pk_to_curve25519(curve25519_pubkey_remote, pubkey_remote.begin()) != 0)
+    {
+        return false;
+    }
+    if (crypto_scalarmult_curve25519(key.begin(), curve25519_secret_local, curve25519_pubkey_remote) != 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+const unsigned char aes_nonce[crypto_aead_aes256gcm_NPUBBYTES] = { 0x58, 0x36, 0x99, 0xaa, 0x63, 0x7c, 0x6e, 0x5e, 0xd6, 0x76, 0x1b, 0xee };
+const unsigned char aes_additional[8] = { 0x42, 0xa6, 0x16, 0x09, 0x63, 0x66, 0x92, 0xe5 };
+
+bool CryptoAesEncrypt(const uint256& secret_local, const uint256& pubkey_remote, const std::vector<uint8>& message, std::vector<uint8>& ciphertext)
+{
+    if (crypto_aead_aes256gcm_is_available() == 0)
+    {
+        return false;
+    }
+
+    uint256 key;
+    if (!CryptoAesMakeKey(secret_local, pubkey_remote, key))
+    {
+        return false;
+    }
+
+    std::vector<uint8> ciphertext_buf;
+    unsigned long long ciphertext_len = 0;
+    ciphertext_buf.reserve(message.size() + crypto_aead_aes256gcm_ABYTES);
+
+    if (crypto_aead_aes256gcm_encrypt(&(ciphertext_buf[0]), &ciphertext_len,
+                                      &(message[0]), message.size(),
+                                      aes_additional, sizeof(aes_additional),
+                                      NULL, aes_nonce, key.begin())
+        != 0)
+    {
+        return false;
+    }
+    if (ciphertext_len < crypto_aead_aes256gcm_ABYTES)
+    {
+        return false;
+    }
+
+    ciphertext.assign(ciphertext_buf.begin(), ciphertext_buf.begin() + ciphertext_len);
+    return true;
+}
+
+bool CryptoAesDecrypt(const uint256& secret_local, const uint256& pubkey_remote, const std::vector<uint8>& ciphertext, std::vector<uint8>& message)
+{
+    if (crypto_aead_aes256gcm_is_available() == 0)
+    {
+        return false;
+    }
+    if (ciphertext.size() < crypto_aead_aes256gcm_ABYTES)
+    {
+        return false;
+    }
+
+    uint256 key;
+    if (!CryptoAesMakeKey(secret_local, pubkey_remote, key))
+    {
+        return false;
+    }
+
+    std::vector<uint8> decrypted_buf;
+    unsigned long long decrypted_len = 0;
+    decrypted_buf.reserve(ciphertext.size());
+
+    if (crypto_aead_aes256gcm_decrypt(&(decrypted_buf[0]), &decrypted_len, NULL,
+                                      &(ciphertext[0]), ciphertext.size(),
+                                      aes_additional, sizeof(aes_additional),
+                                      aes_nonce, key.begin())
+        != 0)
+    {
+        return false;
+    }
+    if (decrypted_len <= 0)
+    {
+        return false;
+    }
+
+    message.assign(decrypted_buf.begin(), decrypted_buf.begin() + decrypted_len);
+    return true;
+}
+
 } // namespace crypto
 } // namespace bigbang

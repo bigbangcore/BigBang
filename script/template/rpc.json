@@ -3366,6 +3366,82 @@
         ],
         "error": []
     },
+    "aesencrypt": {
+        "type": "command",
+        "name": "AesEncrypt",
+        "desc": "aes encrypt",
+        "request": {
+            "type": "object",
+            "content": {
+                "localaddress": {
+                    "type": "string",
+                    "desc": "local address"
+                },
+                "remoteaddress": {
+                    "type": "string",
+                    "desc": "remote address"
+                },
+                "message": {
+                    "type": "string",
+                    "desc": "message"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "ciphertext"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli aesencrypt 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
+                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"aesencrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
+            }
+        ],
+        "error": []
+    },
+    "aesdecrypt": {
+        "type": "command",
+        "name": "AesDecrypt",
+        "desc": "aes decrypt",
+        "request": {
+            "type": "object",
+            "content": {
+                "localaddress": {
+                    "type": "string",
+                    "desc": "local address"
+                },
+                "remoteaddress": {
+                    "type": "string",
+                    "desc": "remote address"
+                },
+                "ciphertext": {
+                    "type": "string",
+                    "desc": "ciphertext"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "message"
+        },
+        "example": [
+            {
+                "request": "bigbang-cli aesdecrypt 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
+                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"aesdecrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
+            }
+        ],
+        "error": []
+    },
     "listunspent": {
         "type": "command",
         "name": "ListUnspent",

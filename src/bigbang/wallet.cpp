@@ -437,6 +437,52 @@ bool CWallet::Sign(const crypto::CPubKey& pubkey, const uint256& hash, vector<ui
     return ret;
 }
 
+bool CWallet::AesEncrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext)
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
+
+    auto it = mapKeyStore.find(pubkeyLocal);
+    if (it == mapKeyStore.end())
+    {
+        StdError("CWallet", "Aes encrypt: find privkey fail, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    if (!it->second.key.IsPrivKey())
+    {
+        StdError("CWallet", "Aes encrypt: can't encrypt by non-privkey, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    if (!it->second.key.AesEncrypt(pubkeyRemote, vMessage, vCiphertext))
+    {
+        StdError("CWallet", "Aes encrypt: encrypt fail, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CWallet::AesDecrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage)
+{
+    boost::shared_lock<boost::shared_mutex> rlock(rwKeyStore);
+
+    auto it = mapKeyStore.find(pubkeyLocal);
+    if (it == mapKeyStore.end())
+    {
+        StdError("CWallet", "Aes decrypt: find privkey fail, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    if (!it->second.key.IsPrivKey())
+    {
+        StdError("CWallet", "Aes decrypt: can't decrypt by non-privkey, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    if (!it->second.key.AesDecrypt(pubkeyRemote, vCiphertext, vMessage))
+    {
+        StdError("CWallet", "Aes decrypt: decrypt fail, pubkey: %s", pubkeyLocal.GetHex().c_str());
+        return false;
+    }
+    return true;
+}
+
 bool CWallet::LoadTemplate(CTemplatePtr ptr)
 {
     if (ptr != nullptr)

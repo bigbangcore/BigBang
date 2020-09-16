@@ -599,7 +599,7 @@ Errno CCoreProtocol::VerifyBlockTx(const CTransaction& tx, const CTxContxt& txCo
     if (destIn.IsTemplate())
     {
         uint16 nDestInTemplateType = destIn.GetTemplateId().GetType();
-        if (nDestInTemplateType == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+        if (nDestInTemplateType == TEMPLATE_VOTE || (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE))
         {
             if (VerifyVoteTx(tx, destIn, fork) != OK)
             {
@@ -735,7 +735,7 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const vector<CTxO
     if (destIn.IsTemplate())
     {
         uint16 nDestInTemplateType = destIn.GetTemplateId().GetType();
-        if (nDestInTemplateType == TEMPLATE_VOTE || tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE)
+        if (nDestInTemplateType == TEMPLATE_VOTE || (tx.sendTo.IsTemplate() && tx.sendTo.GetTemplateId().GetType() == TEMPLATE_VOTE))
         {
             if (VerifyVoteTx(tx, destIn, fork) != OK)
             {

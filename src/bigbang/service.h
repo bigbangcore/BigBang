@@ -77,6 +77,8 @@ public:
     bool ResynchronizeWalletTx() override;
     bool SignOfflineTransaction(const CDestination& destIn, CTransaction& tx, bool& fCompleted) override;
     Errno SendOfflineSignedTransaction(CTransaction& tx) override;
+    bool AesEncrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext) override;
+    bool AesDecrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage) override;
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                  uint256& hashPrev, uint32& nPrevTime, int& nAlgo, int& nBits,

@@ -53,6 +53,8 @@ public:
     bool MultiSignDefect(const std::set<CPubKey>& setPubKey, const uint256& seed,
                          const uint256& hash, std::vector<uint8>& vchSig) const;
     bool MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, std::vector<uint8>& vchSig) const;
+    bool AesEncrypt(const CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext) const;
+    bool AesDecrypt(const CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage) const;
     bool Encrypt(const CCryptoString& strPassphrase,
                  const CCryptoString& strCurrentPassphrase = "");
     void Lock();

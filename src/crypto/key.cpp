@@ -230,6 +230,24 @@ bool CKey::MultiSign(const std::set<CPubKey>& setPubKey, const uint256& hash, st
     return false;
 }
 
+bool CKey::AesEncrypt(const CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext) const
+{
+    if (!IsNull() && !IsLocked())
+    {
+        return CryptoAesEncrypt(pCryptoKey->secret, pubkeyRemote, vMessage, vCiphertext);
+    }
+    return false;
+}
+
+bool CKey::AesDecrypt(const CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage) const
+{
+    if (!IsNull() && !IsLocked())
+    {
+        return CryptoAesDecrypt(pCryptoKey->secret, pubkeyRemote, vCiphertext, vMessage);
+    }
+    return false;
+}
+
 bool CKey::Encrypt(const CCryptoString& strPassphrase,
                    const CCryptoString& strCurrentPassphrase)
 {

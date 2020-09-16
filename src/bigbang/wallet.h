@@ -144,6 +144,8 @@ public:
     bool Unlock(const crypto::CPubKey& pubkey, const crypto::CCryptoString& strPassphrase, int64 nTimeout) override;
     void AutoLock(uint32 nTimerId, const crypto::CPubKey& pubkey);
     bool Sign(const crypto::CPubKey& pubkey, const uint256& hash, std::vector<uint8>& vchSig) override;
+    bool AesEncrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext) override;
+    bool AesDecrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage) override;
     /* Template */
     bool LoadTemplate(CTemplatePtr ptr);
     void GetTemplateIds(std::set<CTemplateId>& setTemplateId) const override;
@@ -272,6 +274,14 @@ public:
     }
     virtual bool Sign(const crypto::CPubKey& pubkey, const uint256& hash,
                       std::vector<uint8>& vchSig) override
+    {
+        return false;
+    }
+    virtual bool AesEncrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext)
+    {
+        return false;
+    }
+    virtual bool AesDecrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage)
     {
         return false;
     }

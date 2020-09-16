@@ -287,6 +287,10 @@ CRPCMod::CRPCMod()
         //
         ("makesha256", &CRPCMod::RPCMakeSha256)
         //
+        ("aesencrypt", &CRPCMod::RPCAesEncrypt)
+        //
+        ("aesdecrypt", &CRPCMod::RPCAesDecrypt)
+        //
         ("listunspent", &CRPCMod::RPCListUnspent)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
@@ -2561,6 +2565,84 @@ CRPCResultPtr CRPCMod::RPCMakeSha256(rpc::CRPCParamPtr param)
 
     auto spResult = MakeCMakeSha256ResultPtr();
     spResult->strResult = hash.GetHex();
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCAesEncrypt(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CAesEncryptParam>(param);
+
+    CAddress addressLocal(spParam->strLocaladdress);
+    if (addressLocal.IsNull() || !addressLocal.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid local address");
+    }
+
+    CAddress addressRemote(spParam->strRemoteaddress);
+    if (addressRemote.IsNull() || !addressRemote.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid remote address");
+    }
+
+    crypto::CPubKey pubkeyLocal;
+    addressLocal.GetPubKey(pubkeyLocal);
+
+    crypto::CPubKey pubkeyRemote;
+    addressRemote.GetPubKey(pubkeyRemote);
+
+    vector<uint8> vMessage = ParseHexString(spParam->strMessage);
+    if (vMessage.empty())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid message");
+    }
+
+    vector<uint8> vCiphertext;
+    if (!pService->AesEncrypt(pubkeyLocal, pubkeyRemote, vMessage, vCiphertext))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Encrypt fail");
+    }
+
+    auto spResult = MakeCAesEncryptResultPtr();
+    spResult->strResult = ToHexString(vCiphertext);
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCAesDecrypt(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CAesDecryptParam>(param);
+
+    CAddress addressLocal(spParam->strLocaladdress);
+    if (addressLocal.IsNull() || !addressLocal.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid local address");
+    }
+
+    CAddress addressRemote(spParam->strRemoteaddress);
+    if (addressRemote.IsNull() || !addressRemote.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid remote address");
+    }
+
+    crypto::CPubKey pubkeyLocal;
+    addressLocal.GetPubKey(pubkeyLocal);
+
+    crypto::CPubKey pubkeyRemote;
+    addressRemote.GetPubKey(pubkeyRemote);
+
+    vector<uint8> vCiphertext = ParseHexString(spParam->strCiphertext);
+    if (vCiphertext.empty())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid ciphertext");
+    }
+
+    vector<uint8> vMessage;
+    if (!pService->AesDecrypt(pubkeyLocal, pubkeyRemote, vCiphertext, vMessage))
+    {
+        throw CRPCException(RPC_WALLET_ERROR, "Decrypt fail");
+    }
+
+    auto spResult = MakeCAesDecryptResultPtr();
+    spResult->strResult = ToHexString(vMessage);
     return spResult;
 }
 

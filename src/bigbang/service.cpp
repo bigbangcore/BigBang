@@ -714,6 +714,16 @@ Errno CService::SendOfflineSignedTransaction(CTransaction& tx)
     return pDispatcher->AddNewTx(tx, 0);
 }
 
+bool CService::AesEncrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vMessage, std::vector<uint8>& vCiphertext)
+{
+    return pWallet->AesEncrypt(pubkeyLocal, pubkeyRemote, vMessage, vCiphertext);
+}
+
+bool CService::AesDecrypt(const crypto::CPubKey& pubkeyLocal, const crypto::CPubKey& pubkeyRemote, const std::vector<uint8>& vCiphertext, std::vector<uint8>& vMessage)
+{
+    return pWallet->AesDecrypt(pubkeyLocal, pubkeyRemote, vCiphertext, vMessage);
+}
+
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                        uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
                        int& nBits, const CTemplateMintPtr& templMint)
