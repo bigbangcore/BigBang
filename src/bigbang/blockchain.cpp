@@ -2070,13 +2070,12 @@ list<CDeFiReward> CBlockChain::GetDeFiReward(const uint256& forkid, const uint25
         }
 
         Debug("SHT GetDeFiReward section: %s, idxByReward size: %u, it == idxByReward.end(): %d, listReward size: %u, nMax: %d",
-                section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
+              section.ToString().c_str(), idxByReward.size(), it == idxByReward.end(), listReward.size(), nMax);
         for (; it != idxByReward.end() && (nMax < 0 || listReward.size() < nMax); it++)
         {
             listReward.push_back(*it);
         }
     }
-    
 
     Debug("SHT GetDeFiReward end, forkid: %s, prev: %s, reward size: %u", forkid.ToString().c_str(), hashPrev.ToString().c_str(), listReward.size());
     return listReward;
@@ -2121,11 +2120,12 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
     {
         CBlockEx block;
         cntrBlock.Retrieve(pIndexLast, block);
-        if (!block.vtx.empty() && block.vtx.back().nType == CTransaction::TX_DEFI_REWARD)
+        const CTransaction& lastTx = block.vtx.back();
+        if (!block.vtx.empty() && lastTx.nType == CTransaction::TX_DEFI_REWARD)
         {
-            nLastSection = block.vtx.back().hashAnchor;
-            lastReward.dest = block.vtx.back().sendTo;
-            lastReward.nReward = block.vtx.back().nAmount;
+            nLastSection = lastTx.hashAnchor;
+            lastReward.dest = lastTx.sendTo;
+            lastReward.nReward = lastTx.nAmount + lastTx.nTxFee;
             Debug("SHT GetDeFiSectionList nLastSection nLastSection: %s", nLastSection.ToString().c_str());
 
             CBlockIndex* pIndexLastSection = nullptr;
@@ -2177,7 +2177,6 @@ list<uint256> CBlockChain::GetDeFiSectionList(const uint256& forkid, const CBloc
             Debug("SHT GetDeFiSectionList add fork section, fork: %s, section: %s", forkid.ToString().c_str(), section.ToString().c_str());
         }
     }
-    
 
     Debug("SHT GetDeFiSectionList end, prev: %s", pIndexPrev->GetBlockHash().ToString().c_str());
     return listSection;
