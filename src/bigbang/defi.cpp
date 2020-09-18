@@ -525,7 +525,7 @@ map<CDestination, int64> CDeFiForkReward::ComputePromotionReward(const int64 nRe
         return true;
     });
 
-    // StdDebug("CDeFiForkReward", "SHT ComputePromotionReward total power: %ld", nTotal);
+    //StdDebug("CDeFiForkReward", "SHT ComputePromotionReward total power: %ld", nTotal);
     // reward
     if (nTotal > 0)
     {

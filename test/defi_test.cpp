@@ -573,7 +573,7 @@ BOOST_AUTO_TEST_CASE(reward2)
         { B, 100 * COIN },
     };
     std::cout << "nReward " << nReward << std::endl;
-    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, (nReward / 2), balance);
+    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, (nReward), balance);
     BOOST_CHECK(reward.size() == 1);
     auto it = reward.begin();
     
@@ -581,7 +581,7 @@ BOOST_AUTO_TEST_CASE(reward2)
     // 各个地址的排名相加 1
     // nReward = 925925925
     // 1 / 1 * nReward * 50%
-    BOOST_CHECK(it->first == B && it->second == (nReward / 2));
+    BOOST_CHECK(it->first == B && it->second == (nReward));
 
     balance = map<CDestination, int64>{
         { A, 0 },
@@ -591,24 +591,24 @@ BOOST_AUTO_TEST_CASE(reward2)
         { a221, 105 * COIN },        // rank 4
         { a222, 100 * COIN },        // rank 1
     };
-    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, nReward / 2, balance);
+    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, nReward, balance);
     BOOST_CHECK(reward.size() == 5);
     it = reward.find(a1);
     // 1 / 12 * nReward 
-    BOOST_CHECK(it != reward.end() && it->second == (77160493 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (77160493));
     it = reward.find(a11);
     // 5 / 12 * nReward 
-    BOOST_CHECK(it != reward.end() && it->second == (385802468 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (385802468));
     it = reward.find(a111);
     // 1 / 12 * nReward 
-    BOOST_CHECK(it != reward.end() && it->second == (77160493 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (77160493));
     it = reward.find(a221);
     // 4 / 12 * nReward 
-    BOOST_CHECK(it != reward.end() && it->second == (308641975 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (308641975));
 
     it = reward.find(a222);
     // 1 / 12 * nReward 
-    BOOST_CHECK(it != reward.end() && it->second == (77160493 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (77160493));
     
 
     // test promotion reward
@@ -631,64 +631,64 @@ BOOST_AUTO_TEST_CASE(reward2)
         { C, 19568998 * COIN },
     };
 
-    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, (nReward / 2), balance);
+    reward = r.ComputeStakeReward(profile.defi.nStakeMinToken, (nReward), balance);
     BOOST_CHECK(reward.size() == 14);
 
     // 3 / 98 * nReward 
     it = reward.find(A);
-    BOOST_CHECK(it != reward.end() && it->second == (28344671 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (28344671));
 
     // 10 / 98 * nReward 
     it = reward.find(a1);
-    BOOST_CHECK(it != reward.end() && it->second == (94482237 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (94482237));
 
     // 10 / 98 * nReward 
     it = reward.find(a11);
-    BOOST_CHECK(it != reward.end() && it->second == (94482237 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (94482237));
 
     // 10 / 98 * nReward 
     it = reward.find(a111);
-    BOOST_CHECK(it != reward.end() && it->second == (94482237 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (94482237));
 
     // 7 / 98 * nReward 
     it = reward.find(a22);
-    BOOST_CHECK(it != reward.end() && it->second == (66137566 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (66137566));
 
     // 8 / 98 * nReward 
     it = reward.find(a221);
-    BOOST_CHECK(it != reward.end() && it->second == (75585789 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (75585789));
 
     // 1 / 98 * nReward 
     it = reward.find(a222);
-    BOOST_CHECK(it != reward.end() && it->second == (9448223 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (9448223));
 
     // 13 / 98 * nReward 
     it = reward.find(a3);
-    BOOST_CHECK(it != reward.end() && it->second == (122826908 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (122826908));
 
     // 3 / 98 * nReward 
     it = reward.find(B);
-    BOOST_CHECK(it != reward.end() && it->second == (28344671 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (28344671));
 
     // 3 / 98 * nReward 
     it = reward.find(b1);
-    BOOST_CHECK(it != reward.end() && it->second == (28344671 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (28344671));
 
     // 6 / 98 * nReward 
     it = reward.find(b2);
-    BOOST_CHECK(it != reward.end() && it->second == (56689342 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (56689342));
 
     // 1 / 98 * nReward 
     it = reward.find(b3);
-    BOOST_CHECK(it != reward.end() && it->second == (9448223 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (9448223));
 
     // 9 / 98 * nReward 
     it = reward.find(b4);
-    BOOST_CHECK(it != reward.end() && it->second == (85034013 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (85034013));
 
     // 14 / 98 * nReward 
     it = reward.find(C);
-    BOOST_CHECK(it != reward.end() && it->second == (132275132 / 2));
+    BOOST_CHECK(it != reward.end() && it->second == (132275132));
 
     map<CDestination, CAddrInfo> mapAddress;
     mapAddress = map<CDestination, CAddrInfo>{
@@ -713,24 +713,34 @@ BOOST_AUTO_TEST_CASE(reward2)
 
     BOOST_CHECK(reward.size() == 6);
     
-    // 
+    // 515102 / 816312 * nReward
     it = reward.find(A);
-    BOOST_CHECK(it != reward.end() && it->second == 3039845494);
+    BOOST_CHECK(it != reward.end() && it->second == 584269612);
+    
+    // 58 / 816312 * nReward
     it = reward.find(a1);
-    BOOST_CHECK(it != reward.end() && it->second == 342283);
+    BOOST_CHECK(it != reward.end() && it->second == 65788);
+    
+    // 46 / 816312 * nReward
     it = reward.find(a11);
-    BOOST_CHECK(it != reward.end() && it->second == 271466);
+    BOOST_CHECK(it != reward.end() && it->second == 52176);
+    
+    // 43 / 816312 * nReward
     it = reward.find(a2);
-    BOOST_CHECK(it != reward.end() && it->second == 253762);
+    BOOST_CHECK(it != reward.end() && it->second == 48774);
+    
+    // 50026 / 816312 * nReward
     it = reward.find(a22);
-    BOOST_CHECK(it != reward.end() && it->second == 295225626);
+    BOOST_CHECK(it != reward.end() && it->second == 56743463);
+    
+    // 251037 / 816312 * nReward
     it = reward.find(B);
-    BOOST_CHECK(it != reward.end() && it->second == 1481480742);
+    BOOST_CHECK(it != reward.end() && it->second == 284746109);
 
     // test all reward
     nReward = r.GetSectionReward(forkid, uint256(2939, uint224(0)));
     CDeFiRelationGraph relationReward;
-    reward = r.ComputePromotionReward(nReward / 2, balance, profile.defi.mapPromotionTokenTimes, relationReward);
+    reward = r.ComputePromotionReward(nReward, balance, profile.defi.mapPromotionTokenTimes, relationReward);
     for (auto& x : reward)
     {
         cout << "promotion reward, destination: " << CAddress(x.first).ToString() << ", reward: " << x.second << endl;
