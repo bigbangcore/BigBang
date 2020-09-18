@@ -2499,18 +2499,22 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
 
         for (int i = 0; i < spParam->defi.vecMappromotiontokentimes.size(); i++)
         {
-            const int64 key = spParam->defi.vecMappromotiontokentimes.at(i).nKey;
-            if (key <= 0 || key > ValueFromAmount(MAX_MONEY))
+            const int64 nToken = spParam->defi.vecMappromotiontokentimes.at(i).nToken;
+            if (nToken <= 0 || nToken > ValueFromAmount(MAX_MONEY))
             {
-                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param key of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
+                throw CRPCException(RPC_INVALID_PARAMETER, (string("DeFi param token of mappromotiontokentimes should be (0, ") + to_string(ValueFromAmount(MAX_MONEY)) + "]").c_str());
             }
-            const uint64 value = spParam->defi.vecMappromotiontokentimes.at(i).nValue;
-            if (value == 0)
+            const uint32 nTimes = spParam->defi.vecMappromotiontokentimes.at(i).nTimes;
+            if (nTimes == 0)
             {
-                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param value of mappromotiontokentimes is equal 0");
+                throw CRPCException(RPC_INVALID_PARAMETER, "DeFi param times of mappromotiontokentimes is equal 0");
             }
-            profile.defi.mapPromotionTokenTimes.insert(std::make_pair(key, value));
+            profile.defi.mapPromotionTokenTimes.insert(std::make_pair(nToken, nTimes));
         }
+    }
+    else
+    {
+        profile.nForkType = FORK_TYPE_COMMON;
     }
 
     CBlock block;
