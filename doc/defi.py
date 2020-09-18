@@ -471,6 +471,11 @@ if __name__ == "__main__":
     for result in output:
         height = result['height']
         reward = result['reward']
+        # remove 0 reward
+        for addr in reward.keys():
+            if reward[addr] == 0:
+                del(reward[addr])
+
         print('Checking height [{}]...'.format(height))
 
         if ((height - mint_height) % reward_cycle != 0):
@@ -532,9 +537,11 @@ if __name__ == "__main__":
 
                     # check the reward of address correct or not
                     if tx['sendto'] in reward:
-                        if reward[tx['sendto']] != tx['amount'] + tx['txfee']:
-                            print('ERROR: addr reward error in height, addr: {}, height: {} should be: {}, actrual: {}'.format(
-                                tx['sendto'], height, reward[tx['sendto']], tx['amount'] + tx['txfee']))
+                        should_reward = reward[tx['sendto']]
+                        actrual_reward = tx['amount'] + tx['txfee']
+                        if abs(should_reward - actrual_reward) >= 0.000001:
+                            print('ERROR: addr reward error in height, addr: {}, height: {} should be: {:.6f}, actrual: {:.6f}'.format(
+                                tx['sendto'], height, should_reward, actrual_reward))
                             error = True
                         del(reward[tx['sendto']])
 
