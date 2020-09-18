@@ -12,11 +12,11 @@
                 "coinbasetype": 1,
                 "mapcoinbasepercent": [
                     {
-                        "height": 259210,
+                        "height": 259200,
                         "percent": 10
                     },
                     {
-                        "height": 777610,
+                        "height": 777600,
                         "percent": 8
                     }
                 ],
@@ -70,7 +70,6 @@
             "1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm": 8568998
         },
         "relation": {
-            "1f1nj5gjgrcz45g317s1y4tk18bbm89jdtzd41m9s0t14tp2ngkz4cg0x": "1pmj5p47zhqepwa9vfezkecxkerckhrks31pan5fh24vs78s6cbkrqnxp",
             "1thcbm7h2bnyb247wknsvnfsxxd7gw12m2bg5d5gdrmzqmxz93s7k6pvy": "1xftkpw9afcgrfac4v3xa9bgb1zsh03bd59npwtyjrqjbtqepr6anrany",
             "15n2eszyzk3qm7y04es5fr5fxa3hpbdqqnp1470rmnbmkhpp66mq55qeb": "1xftkpw9afcgrfac4v3xa9bgb1zsh03bd59npwtyjrqjbtqepr6anrany",
             "1espce7qwvy94qcanecfr7c65fgsjbr1g407ab00p44a65de0mm1mtrqn": "1xftkpw9afcgrfac4v3xa9bgb1zsh03bd59npwtyjrqjbtqepr6anrany",
@@ -90,22 +89,22 @@
         {
             "height":15,
             "reward": {
-                "1ykdy1dtjw810t8g4ymjqfkkr8yj7m5mr6g20595yhssvr2gva56n2rdn": 11027057114,
-                "1xnassszea7qevgn44hhg5fqswe78jn95gjd1mx184zr753yt0myfmfxf": 1701864459,
-                "1nkz90d8jxzcw2rs21tmfxcvpewx7vrz2s0fr033wjm77fchsbzqy7ygb": 1701619455,
-                "1g9pgwqpcbz3x9czsvtjhc3ed0b24vmyrj5k6zfbh1g82ma67qax55dqy": 1700680272,
-                "1cem1035c3f7x58808yqge07z8fb72m3czfmzj23hmaxs477tt2ph9yrp": 877932,
-                "16br4z57ys0dbgxzesvfhtxrpaq3w3j3bsqgdmkrvye06exg9e74ertx8": 0 ,
-                "123zbs56t8q5qn6sjchtvhcxc1ngq5v7jvst6hd2nq7hdtfmr691rd6mb": 2211858537,
-                "1pqmm5nj6qpy436qcytshjra24bhvsysjv6k2xswfzma6w1scwyye25r9": 1360544217,
-                "12z4t8dzgzmnh3zg1m0b4s2yean8w74cyv0fgrdm7dpq6hbnrq2w0gdwk": 170068027,
-                "1h1tn0dcf7cz44cfypmwqjkm7jvxznrdab2ycn0wcyc9q8983fq3akt40": 2210884353,
-                "1xftkpw9afcgrfac4v3xa9bgb1zsh03bd59npwtyjrqjbtqepr6anrany": 5635634063,
-                "1thcbm7h2bnyb247wknsvnfsxxd7gw12m2bg5d5gdrmzqmxz93s7k6pvy": 510204081,
-                "15n2eszyzk3qm7y04es5fr5fxa3hpbdqqnp1470rmnbmkhpp66mq55qeb": 1020408163,
-                "1espce7qwvy94qcanecfr7c65fgsjbr1g407ab00p44a65de0mm1mtrqn": 170068027,
-                "1mbv5et5sx6x1jejgfh214ze1vryg60n8j6tz30czgzmm3rr461jn0nwm": 1530612244,
-                "1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm": 2380952382
+                "1ykdy1dtjw810t8g4ymjqfkkr8yj7m5mr6g20595yhssvr2gva56n2rdn": 11027.057113,
+                "1xnassszea7qevgn44hhg5fqswe78jn95gjd1mx184zr753yt0myfmfxf": 1701.864459,
+                "1nkz90d8jxzcw2rs21tmfxcvpewx7vrz2s0fr033wjm77fchsbzqy7ygb": 1701.619455,
+                "1g9pgwqpcbz3x9czsvtjhc3ed0b24vmyrj5k6zfbh1g82ma67qax55dqy": 1700.680272,
+                "1cem1035c3f7x58808yqge07z8fb72m3czfmzj23hmaxs477tt2ph9yrp": 0.877932,
+                "16br4z57ys0dbgxzesvfhtxrpaq3w3j3bsqgdmkrvye06exg9e74ertx8": 0,
+                "123zbs56t8q5qn6sjchtvhcxc1ngq5v7jvst6hd2nq7hdtfmr691rd6mb": 2211.858537,
+                "1pqmm5nj6qpy436qcytshjra24bhvsysjv6k2xswfzma6w1scwyye25r9": 1360.544217,
+                "12z4t8dzgzmnh3zg1m0b4s2yean8w74cyv0fgrdm7dpq6hbnrq2w0gdwk": 170.068027,
+                "1h1tn0dcf7cz44cfypmwqjkm7jvxznrdab2ycn0wcyc9q8983fq3akt40": 2210.884353,
+                "1xftkpw9afcgrfac4v3xa9bgb1zsh03bd59npwtyjrqjbtqepr6anrany": 5635.634063,
+                "1thcbm7h2bnyb247wknsvnfsxxd7gw12m2bg5d5gdrmzqmxz93s7k6pvy": 510.204081,
+                "15n2eszyzk3qm7y04es5fr5fxa3hpbdqqnp1470rmnbmkhpp66mq55qeb": 1020.408163,
+                "1espce7qwvy94qcanecfr7c65fgsjbr1g407ab00p44a65de0mm1mtrqn": 170.068027,
+                "1mbv5et5sx6x1jejgfh214ze1vryg60n8j6tz30czgzmm3rr461jn0nwm": 1530.612244,
+                "1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm": 2380.95238
             }
         }
     ]
