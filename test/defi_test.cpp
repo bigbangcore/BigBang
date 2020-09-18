@@ -712,6 +712,8 @@ BOOST_AUTO_TEST_CASE(reward2)
     reward = r.ComputePromotionReward(nReward, balance, profile.defi.mapPromotionTokenTimes, relation);
 
     BOOST_CHECK(reward.size() == 6);
+    
+    // 
     it = reward.find(A);
     BOOST_CHECK(it != reward.end() && it->second == 3039845494);
     it = reward.find(a1);
