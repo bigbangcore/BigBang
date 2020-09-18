@@ -12,12 +12,12 @@
                 "coinbasetype": 1,
                 "mapcoinbasepercent": [
                     {
-                        "height": 50,
+                        "height": 259210,
                         "percent": 10
                     },
                     {
-                        "height": 100,
-                        "percent": 7
+                        "height": 777610,
+                        "percent": 8
                     }
                 ],
                 "stakerewardpercent": 50,
