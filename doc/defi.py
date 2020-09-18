@@ -11,7 +11,7 @@ rpcurl = 'http://127.0.0.1:9902'
 
 genesis_privkey = '9df809804369829983150491d1086b99f6493356f91ccc080e661a76a976a4ee'
 genesis_addr = '1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm'
-dpos_privkey = 'fe8455584d820639d140dad74d2644d742616ae2433e61c0423ec350c2226b78'
+dpos_privkey = '9f1e445c2a8e74fabbb7c53e31323b2316112990078cbd8d27b2cd7100a1648d'
 dpos_pubkey = 'fe8455584d820639d140dad74d2644d742616ae2433e61c0423ec350c2226b78'
 password = '123'
 
@@ -20,11 +20,11 @@ password = '123'
 def call(body):
     req = requests.post(rpcurl, json=body)
 
-    # print('DEBUG: request: {}'.format(body))
-    # print('DEBUG: response: {}'.format(req.content))
+    print('DEBUG: request: {}'.format(body))
+    print('DEBUG: response: {}'.format(req.content))
 
     resp = json.loads(req.content.decode('utf-8'))
-    return resp.get('result'), resp.get('ERROR')
+    return resp.get('result'), resp.get('error')
 
 
 # RPC: makekeypair
@@ -188,6 +188,7 @@ def makeorigin(prev, owner, amount, name, symbol, reward, halvecycle, forktype=N
         # print('makeorigin success, forkid: {}, data: {}'.format(forkid, data))
         return forkid, data
     else:
+        print(error)
         raise Exception('makeorgin error: {}'.format(error))
 
 
@@ -422,13 +423,13 @@ if __name__ == "__main__":
 
     # check address in 'stake', 'relation' of input and output
     for addr in addrset:
-        if addr not in pubkey_addrset:
+        if (addr != genesis_addr) and (addr not in pubkey_addrset):
             raise Exception(
                 'no privkey of address in "stake" or "relation". address:', addr)
 
     for result in output:
         for r in result['reward']:
-            if r not in pubkey_addrset:
+            if (r != genesis_addr) and (r not in pubkey_addrset):
                 raise Exception(
                     'no privkey of address in "reward". address:', r)
 

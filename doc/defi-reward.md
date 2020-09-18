@@ -18,7 +18,7 @@ CAddress b1("1thcbm7h2bnyb247wknsvnfsxxd7gw12m2bg5d5gdrmzqmxz93s7k6pvy");       
 CAddress b2("15n2eszyzk3qm7y04es5fr5fxa3hpbdqqnp1470rmnbmkhpp66mq55qeb");        11000               // rank 6
 CAddress b3("1espce7qwvy94qcanecfr7c65fgsjbr1g407ab00p44a65de0mm1mtrqn");        5000                // rank 1
 CAddress b4("1mbv5et5sx6x1jejgfh214ze1vryg60n8j6tz30czgzmm3rr461jn0nwm");        50000               // rank 9
-CAddress C("1mwxyqkvdd4xm8py7gtv13j9rxzs8d7k2hgsjy1s4b0znkd04ryzpa56z");         19568998            // rank 14
+CAddress C("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");         8568998            // rank 14
                                                                                                     // total = 3 + 10*3 + 7 + 8 + 1 + 13 + 3 * 2 + 6 + 1 + 9 + 14
 ```
 
@@ -40,7 +40,7 @@ CAddress b1("1thcbm7h2bnyb247wknsvnfsxxd7gw12m2bg5d5gdrmzqmxz93s7k6pvy");       
 CAddress b2("15n2eszyzk3qm7y04es5fr5fxa3hpbdqqnp1470rmnbmkhpp66mq55qeb");        11000               // rank 6
 CAddress b3("1espce7qwvy94qcanecfr7c65fgsjbr1g407ab00p44a65de0mm1mtrqn");        5000                // rank 1
 CAddress b4("1mbv5et5sx6x1jejgfh214ze1vryg60n8j6tz30czgzmm3rr461jn0nwm");        50000               // rank 9
-CAddress C("1mwxyqkvdd4xm8py7gtv13j9rxzs8d7k2hgsjy1s4b0znkd04ryzpa56z");         19568998            // rank 14
+CAddress C("1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm");         8568998            // rank 14
 ```
 
 ## 推广奖励
