@@ -2560,11 +2560,23 @@ CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)
 CRPCResultPtr CRPCMod::RPCMakeSha256(rpc::CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CMakeSha256Param>(param);
-    vector<unsigned char> vData = ParseHexString(spParam->strHexdata);
+    vector<unsigned char> vData;
+    if (spParam->strHexdata.IsValid())
+    {
+        vData = ParseHexString(spParam->strHexdata);
+    }
+    else
+    {
+        uint256 u;
+        crypto::CryptoGetRand256(u);
+        vData.assign(u.begin(), u.end());
+    }
+
     uint256 hash = crypto::CryptoSHA256(&(vData[0]), vData.size());
 
     auto spResult = MakeCMakeSha256ResultPtr();
-    spResult->strResult = hash.GetHex();
+    spResult->strHexdata = ToHexString(vData);
+    spResult->strSha256 = hash.GetHex();
     return spResult;
 }
 

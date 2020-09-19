@@ -3345,18 +3345,29 @@
             "content": {
                 "hexdata": {
                     "type": "string",
-                    "desc": "Hex encoded data"
+                    "desc": "Hex encoded data",
+                    "required": false,
+                    "opt": "h"
                 }
             }
         },
         "response": {
-            "type": "string",
+            "type": "object",
             "name": "result",
-            "desc": "Sha256 string"
+            "content": {
+                "hexdata": {
+                    "type": "string",
+                    "desc": "Hex encoded data"
+                },
+                "sha256": {
+                    "type": "string",
+                    "desc": "Sha256 string"
+                }
+            }
         },
         "example": [
             {
-                "request": "bigbang-cli makesha256 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
+                "request": "bigbang-cli makesha256 -h=54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
                 "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
             },
             {
