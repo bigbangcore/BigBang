@@ -67,6 +67,13 @@
 1）撮合模板地址B  ->  挂单地址A，比例：99.8%
 2）撮合模板地址B  ->  撮合地址，比例：0.1%
 3）撮合模板地址B  ->  跨链交易地址B，比例：0.1%
+
+转帐数量计算：
+a）转帐给买方地址的amount计算：撮合数量*(1-费率)-0.03
+b）转帐给撮合方地址的amount计算：撮合数量*(1-费率/2)-0.03
+c）转帐给跨链交易方地址的amount计算：(撮合数量 - 撮合数量*(1-费率) - 撮合数量*(1-费率/2))  - 0.03     （即：剩余数量-0.03）
+
+交易费率必须为0.03
 ```
 
 # 测试方法：
@@ -218,13 +225,18 @@ sendfrom 21403n4wfgd81gf94sc2s5n4y52whda32he1fxn76q127b08jhhjznx1h 218080ca3kqnp
 解锁跨链交易者地址：
 unlockkey 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 123
 转帐给买方地址：
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 12 1 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.67 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 转帐给撮合方地址：
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.5 0.5 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.12 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 转帐给跨链交易方地址：
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.5 0.5 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.12 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 
-注：转帐数量及费率为自定义，实际需要跨链交易程序精准计算。
+转帐数量计算：
+a）转帐给买方地址的amount计算：撮合数量*(1-费率)-0.03
+b）转帐给撮合方地址的amount计算：撮合数量*(1-费率/2)-0.03
+c）转帐给跨链交易方地址的amount计算：(撮合数量 - 撮合数量*(1-费率) - 撮合数量*(1-费率/2))  - 0.03     （即：剩余数量-0.03）
+
+交易费率必须为0.03
 ```
 
 ## 七、例：
@@ -247,7 +259,7 @@ unlockkey 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 123
 sendfrom 21403n4wfgd81gf94sc2s5n4y52whda32he1fxn76q127b08jhhjznx1h 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 15
 
 unlockkey 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 123
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 12 1 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.5 0.5 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
-sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.5 0.5 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.67 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.12 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 218080ca3kqnpx6npgves3h71dxw5ka940sxpba40spjx43dazc6egx27 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.12 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 ```

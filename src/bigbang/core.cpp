@@ -1292,7 +1292,7 @@ Errno CCoreProtocol::VerifyDexOrderTx(const CTransaction& tx, const CDestination
         }
         if (objMatch->nMatchAmount != tx.nAmount)
         {
-            Log("Verify dexorder tx: nMatchAmount error, match nMatchAmount: %lu, tx amount: %lu, tx: %s",
+            Log("Verify dexorder tx: nAmount error, match nMatchAmount: %lu, tx amount: %lu, tx: %s",
                 objMatch->nMatchAmount, tx.nAmount, tx.GetHash().GetHex().c_str());
             return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
@@ -1333,56 +1333,68 @@ Errno CCoreProtocol::VerifyDexMatchTx(const CTransaction& tx, int64 nValueIn, in
     {
         if (tx.sendTo == objMatch->destBuyer)
         {
-            /*if (nValueIn != objMatch->nMatchAmount)
+            int64 nBuyerAmount = (int64)(objMatch->nMatchAmount * (1 - objMatch->dFee));
+            if (nValueIn != objMatch->nMatchAmount)
             {
                 Log("Verify dex match tx: Send buyer nValueIn error, nValueIn: %lu, nMatchAmount: %lu, tx: %s",
                     nValueIn, objMatch->nMatchAmount, tx.GetHash().GetHex().c_str());
                 return ERR_TRANSACTION_SIGNATURE_INVALID;
             }
-            if (tx.nAmount != (int64)(objMatch->nMatchAmount * (1 - objMatch->dFee)))
+            if (tx.nAmount != (nBuyerAmount - 30000))
             {
-                Log("Verify dex match tx: Send buyer tx nAmount error, nAmount: %lu, Need amount: %lu, nMatchAmount: %lu, dFee: %f, tx: %s",
-                    tx.nAmount, (int64)(objMatch->nMatchAmount * (1 - objMatch->dFee)),
-                    objMatch->nMatchAmount, objMatch->dFee, tx.GetHash().GetHex().c_str());
+                Log("Verify dex match tx: Send buyer tx nAmount error, nAmount: %lu, need amount: %lu, nMatchAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
+                    tx.nAmount, nBuyerAmount - 30000, objMatch->nMatchAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
                 return ERR_TRANSACTION_SIGNATURE_INVALID;
-            }*/
+            }
         }
         else if (tx.sendTo == objMatch->destMatch)
         {
-            /*if (nValueIn <= objMatch->nMatchAmount * objMatch->dFee + tx.nTxFee)
+            int64 nBuyerAmount = (int64)(objMatch->nMatchAmount * (1 - objMatch->dFee));
+            int64 nRewardAmount = (int64)(objMatch->nMatchAmount * (objMatch->dFee / 2));
+            if (nValueIn != (objMatch->nMatchAmount - nBuyerAmount))
             {
-                Log("Verify dex match tx: Send match nValueIn error, nValueIn: %lu, Need amount: %lu, nMatchAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
-                    nValueIn, objMatch->nMatchAmount * objMatch->dFee + tx.nTxFee,
-                    objMatch->nMatchAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
+                Log("Verify dex match tx: Send match nValueIn error, nValueIn: %lu, need amount: %lu, nMatchAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
+                    nValueIn, objMatch->nMatchAmount - nBuyerAmount, objMatch->nMatchAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
                 return ERR_TRANSACTION_SIGNATURE_INVALID;
             }
-            if (tx.nAmount != (int64)(objMatch->nMatchAmount * (objMatch->dFee / 2)))
+            if (tx.nAmount != (nRewardAmount - 30000))
             {
-                Log("Verify dex match tx: Send match tx nAmount error, nAmount: %lu, nMatchAmount: %lu, dFee: %f, tx: %s",
-                    tx.nAmount, objMatch->nMatchAmount, objMatch->dFee, tx.GetHash().GetHex().c_str());
-                return ERR_TRANSACTION_SIGNATURE_INVALID;
-            }*/
-        }
-        else if (tx.sendTo == objMatch->vDestSellerDeal[0])
-        {
-            /*if (nValueIn <= objMatch->nMatchAmount * (objMatch->dFee / 2) + tx.nTxFee)
-            {
-                Log("Verify dex match tx: Send deal nValueIn error, nValueIn: %lu, Need amount: %lu, nMatchAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
-                    nValueIn, objMatch->nMatchAmount * (objMatch->dFee / 2) + tx.nTxFee,
-                    objMatch->nMatchAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
+                Log("Verify dex match tx: Send match tx nAmount error, nAmount: %lu, need amount: %lu, nMatchAmount: %lu, nRewardAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
+                    tx.nAmount, nRewardAmount - 30000, objMatch->nMatchAmount, nRewardAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
                 return ERR_TRANSACTION_SIGNATURE_INVALID;
             }
-            if (tx.nAmount != (int64)(objMatch->nMatchAmount * (objMatch->dFee / 2)))
-            {
-                Log("Verify dex match tx: Send deal tx nAmount error, nAmount: %lu, nMatchAmount: %lu, dFee: %f, tx: %s",
-                    tx.nAmount, objMatch->nMatchAmount, objMatch->dFee, tx.GetHash().GetHex().c_str());
-                return ERR_TRANSACTION_SIGNATURE_INVALID;
-            }*/
         }
         else
         {
-            Log("Verify dex match tx: sendTo error, tx: %s", tx.GetHash().GetHex().c_str());
-            return ERR_TRANSACTION_SIGNATURE_INVALID;
+            set<CDestination> setSubDest;
+            vector<uint8> vchSubSig;
+            if (!objMatch->GetSignDestination(tx, uint256(), nHeight, tx.vchSig, setSubDest, vchSubSig))
+            {
+                Log("Verify dex match tx: GetSignDestination fail, tx: %s", tx.GetHash().GetHex().c_str());
+                return ERR_TRANSACTION_SIGNATURE_INVALID;
+            }
+            if (tx.sendTo == *setSubDest.begin())
+            {
+                int64 nBuyerAmount = (int64)(objMatch->nMatchAmount * (1 - objMatch->dFee));
+                int64 nRewardAmount = (int64)(objMatch->nMatchAmount * (objMatch->dFee / 2));
+                if (nValueIn != (objMatch->nMatchAmount - nBuyerAmount - nRewardAmount))
+                {
+                    Log("Verify dex match tx: Send deal nValueIn error, nValueIn: %lu, need amount: %lu, nMatchAmount: %lu, nRewardAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
+                        nValueIn, objMatch->nMatchAmount - nBuyerAmount - nRewardAmount, objMatch->nMatchAmount, nRewardAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
+                    return ERR_TRANSACTION_SIGNATURE_INVALID;
+                }
+                if (tx.nAmount != (nValueIn - 30000))
+                {
+                    Log("Verify dex match tx: Send deal tx nAmount error, nAmount: %lu, need amount: %lu, nMatchAmount: %lu, nRewardAmount: %lu, dFee: %f, nTxFee: %lu, tx: %s",
+                        tx.nAmount, nValueIn - 30000, objMatch->nMatchAmount, nRewardAmount, objMatch->dFee, tx.nTxFee, tx.GetHash().GetHex().c_str());
+                    return ERR_TRANSACTION_SIGNATURE_INVALID;
+                }
+            }
+            else
+            {
+                Log("Verify dex match tx: sendTo error, tx: %s", tx.GetHash().GetHex().c_str());
+                return ERR_TRANSACTION_SIGNATURE_INVALID;
+            }
         }
 
         vector<uint8> vms;
