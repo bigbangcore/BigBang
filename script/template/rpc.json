@@ -3367,12 +3367,12 @@
         },
         "example": [
             {
-                "request": "bigbang-cli makesha256 -h=54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
-                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+                "request": "bigbang-cli makesha256",
+                "response": "{\"hexdata\" : \"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e\", \"sha256\" : \"5e2ab85020823529d3ee2d8c4c41af4d10c205aa8cb45b139d0e7054e73c11d4\"}"
             },
             {
                 "request": "curl -d '{\"id\":1,\"method\":\"makesha256\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"hexdata\" : \"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e\", \"sha256\" : \"5e2ab85020823529d3ee2d8c4c41af4d10c205aa8cb45b139d0e7054e73c11d4\"}}\n"
             }
         ],
         "error": []
@@ -3405,15 +3405,20 @@
         },
         "example": [
             {
-                "request": "bigbang-cli aesencrypt 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
-                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+                "request": "bigbang-cli aesencrypt 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn 381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e",
+                "response": "06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c"
             },
             {
-                "request": "curl -d '{\"id\":1,\"method\":\"aesencrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
+                "request": "curl -d '{\"id\":1,\"method\":\"aesencrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"localaddress\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"remoteaddress\":\"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn\",\"message\":\"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c\"}\n"
             }
         ],
-        "error": []
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid local address.\"}",
+            "{\"code\":-6,\"message\":\"Invalid remote address.\"}",
+            "{\"code\":-6,\"message\":\"Invalid message.\"}",
+            "{\"code\":-401,\"message\":\"Encrypt fail.\"}"
+        ]
     },
     "aesdecrypt": {
         "type": "command",
@@ -3443,15 +3448,20 @@
         },
         "example": [
             {
-                "request": "bigbang-cli aesdecrypt 54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99",
-                "response": "807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7"
+                "request": "bigbang-cli aesdecrypt 1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c",
+                "response": "381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e"
             },
             {
-                "request": "curl -d '{\"id\":1,\"method\":\"aesdecrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"hexdata\":\"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99\"}}' http://127.0.0.1:9902",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"807a5db54889eda34d15922f5bb3cf19d8051ebc3520d6102f65d092176902f7\"}\n"
+                "request": "curl -d '{\"id\":1,\"method\":\"aesdecrypt\",\"jsonrpc\":\"2.0\",\"params\":{\"localaddress\":\"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn\",\"remoteaddress\":\"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm\",\"ciphertext\":\"06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c\"}}' http://127.0.0.1:9902",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e\"}\n"
             }
         ],
-        "error": []
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid local address.\"}",
+            "{\"code\":-6,\"message\":\"Invalid remote address.\"}",
+            "{\"code\":-6,\"message\":\"Invalid ciphertext.\"}",
+            "{\"code\":-401,\"message\":\"Decrypt fail.\"}"
+        ]
     },
     "listunspent": {
         "type": "command",
