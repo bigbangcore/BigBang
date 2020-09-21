@@ -706,28 +706,36 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
             displayProfile.fEnclosed = profile.IsEnclosed();
             displayProfile.strOwner = CAddress(profile.destOwner).ToString();
             displayProfile.strForktype = profile.nForkType == FORK_TYPE_DEFI ? "defi" : "common";
-            displayProfile.defi.nMintheight = profile.defi.nMintHeight;
-            displayProfile.defi.dMaxsupply = ValueFromAmount(profile.defi.nMaxSupply);
-            displayProfile.defi.nCoinbasetype = profile.defi.nCoinbaseType;
-            displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
-            displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
-            displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
-            displayProfile.defi.nPromotionrewardpercent = profile.defi.nPromotionRewardPercent;
-            displayProfile.defi.nRewardcycle = profile.defi.nRewardCycle;
-            displayProfile.defi.dStakemintoken = ValueFromAmount(profile.defi.nStakeMinToken);
-            displayProfile.defi.nStakerewardpercent = profile.defi.nStakeRewardPercent;
-            displayProfile.defi.nSupplycycle = profile.defi.nSupplyCycle;
-
-            for (const auto& kv : profile.defi.mapPromotionTokenTimes)
+            if (profile.nForkType == FORK_TYPE_DEFI)
             {
-                CListForkResult::CProfile::CDefi::CMappromotiontokentimes promotiontokentimes(kv.first, kv.second);
-                displayProfile.defi.vecMappromotiontokentimes.push_back(promotiontokentimes);
+                displayProfile.strForktype = "defi";
+                displayProfile.defi.nMintheight = profile.defi.nMintHeight;
+                displayProfile.defi.dMaxsupply = ValueFromAmount(profile.defi.nMaxSupply);
+                displayProfile.defi.nCoinbasetype = profile.defi.nCoinbaseType;
+                displayProfile.defi.nDecaycycle = profile.defi.nDecayCycle;
+                displayProfile.defi.nCoinbasedecaypercent = profile.defi.nCoinbaseDecayPercent;
+                displayProfile.defi.nInitcoinbasepercent = profile.defi.nInitCoinbasePercent;
+                displayProfile.defi.nPromotionrewardpercent = profile.defi.nPromotionRewardPercent;
+                displayProfile.defi.nRewardcycle = profile.defi.nRewardCycle;
+                displayProfile.defi.dStakemintoken = ValueFromAmount(profile.defi.nStakeMinToken);
+                displayProfile.defi.nStakerewardpercent = profile.defi.nStakeRewardPercent;
+                displayProfile.defi.nSupplycycle = profile.defi.nSupplyCycle;
+
+                for (const auto& kv : profile.defi.mapPromotionTokenTimes)
+                {
+                    CListForkResult::CProfile::CDefi::CMappromotiontokentimes promotiontokentimes(kv.first, kv.second);
+                    displayProfile.defi.vecMappromotiontokentimes.push_back(promotiontokentimes);
+                }
+
+                for (const auto& kv : profile.defi.mapCoinbasePercent)
+                {
+                    CListForkResult::CProfile::CDefi::CMapcoinbasepercent coinbasepercent(kv.first, kv.second);
+                    displayProfile.defi.vecMapcoinbasepercent.push_back(coinbasepercent);
+                }
             }
-
-            for (const auto& kv : profile.defi.mapCoinbasePercent)
+            else
             {
-                CListForkResult::CProfile::CDefi::CMapcoinbasepercent coinbasepercent(kv.first, kv.second);
-                displayProfile.defi.vecMapcoinbasepercent.push_back(coinbasepercent);
+                displayProfile.strForktype = "common";
             }
 
             spResult->vecProfile.push_back(displayProfile);
