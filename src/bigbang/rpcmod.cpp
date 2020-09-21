@@ -690,9 +690,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     for (size_t i = 0; i < vFork.size(); i++)
     {
         CProfile& profile = vFork[i].second;
-        //auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
-        //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
-        if (pForkManager->IsAllowed(vFork[i].first))
+        if (spParam->fAll || pForkManager->IsAllowed(vFork[i].first))
         {
             CListForkResult::CProfile displayProfile;
             displayProfile.strFork = vFork[i].first.GetHex();
