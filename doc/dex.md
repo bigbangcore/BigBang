@@ -185,9 +185,9 @@ addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9
 挂单模板地址：21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5
 
 
-2）生成跨链交易模板地址：
+2）生成撮合模板地址：
 
-跨链交易模板地址字段信息：
+撮合模板地址字段信息：
 "match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd",
 "match_amount": 15,
 "fee": 0.002,
@@ -201,10 +201,10 @@ addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9
 "buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5",
 "buyer_valid_height":320
 
-添加跨链交易模板地址命令：
+添加撮合模板地址命令：
 addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd","match_amount": 15,"fee": 0.002,"seller_order_address": "21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5","seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],"seller_valid_height": 300,"seller_sect_height": 10,"buyer_order_address":"214066gfxcx75vmnk63dennhx55pzac42qwbrkadd7bzxmw72s2177eb3","buyer_address": "1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47","buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5","buyer_valid_height":320}'
 
-跨链交易模板地址：21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9
+撮合模板地址：21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9
 ```
 
 ## 六、交易：
