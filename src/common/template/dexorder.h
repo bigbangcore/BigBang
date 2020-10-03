@@ -10,8 +10,8 @@
 class CTemplateDexOrder : virtual public CTemplate, virtual public CSendToRecordedTemplate
 {
 public:
-    CTemplateDexOrder(const CDestination& destSellerIn = CDestination(), int nCoinPairIn = 0,
-                      double dPriceIn = 0.0, double dFeeIn = 0.0, const uint256& hashSecretIn = uint256(), const std::vector<uint256>& vHashEncryptionIn = std::vector<uint256>(),
+    CTemplateDexOrder(const CDestination& destSellerIn = CDestination(), const std::vector<char> vCoinPairIn = std::vector<char>(),
+                      double dPriceIn = 0.0, double dFeeIn = 0.0, const uint256& hashSecretIn = uint256(), const std::vector<std::vector<uint8>>& vSecretEncIn = std::vector<std::vector<uint8>>(),
                       int nValidHeightIn = 0, int nSectHeight = 0, const std::vector<CDestination>& vDestMatchIn = std::vector<CDestination>(), const std::vector<CDestination>& vDestDealIn = std::vector<CDestination>());
     virtual CTemplateDexOrder* clone() const;
     virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
@@ -28,11 +28,11 @@ protected:
 
 public:
     CDestination destSeller;
-    int nCoinPair;
+    std::vector<char> vCoinPair;
     double dPrice;
     double dFee;
     uint256 hashSecret;
-    std::vector<uint256> vHashEncryption;
+    std::vector<std::vector<uint8>> vSecretEnc;
     int nValidHeight;
     int nSectHeight;
     std::vector<CDestination> vDestMatch;

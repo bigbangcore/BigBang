@@ -18,16 +18,16 @@ static const int64 COIN = 1000000;
 //////////////////////////////
 // CTemplateDexOrder
 
-CTemplateDexOrder::CTemplateDexOrder(const CDestination& destSellerIn, int nCoinPairIn,
-                                     double dPriceIn, double dFeeIn, const uint256& hashSecretIn, const std::vector<uint256>& vHashEncryptionIn,
+CTemplateDexOrder::CTemplateDexOrder(const CDestination& destSellerIn, const std::vector<char> vCoinPairIn,
+                                     double dPriceIn, double dFeeIn, const uint256& hashSecretIn, const std::vector<std::vector<uint8>>& vSecretEncIn,
                                      int nValidHeightIn, int nSectHeightIn, const std::vector<CDestination>& vDestMatchIn, const std::vector<CDestination>& vDestDealIn)
   : CTemplate(TEMPLATE_DEXORDER),
     destSeller(destSellerIn),
-    nCoinPair(nCoinPairIn),
+    vCoinPair(vCoinPairIn),
     dPrice(dPriceIn),
     dFee(dFeeIn),
     hashSecret(hashSecretIn),
-    vHashEncryption(vHashEncryptionIn),
+    vSecretEnc(vSecretEncIn),
     nValidHeight(nValidHeightIn),
     nSectHeight(nSectHeightIn),
     vDestMatch(vDestMatchIn),
@@ -68,18 +68,19 @@ bool CTemplateDexOrder::GetSignDestination(const CTransaction& tx, const uint256
 void CTemplateDexOrder::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CDestination&& destInstance) const
 {
     obj.dexorder.strSeller_Address = (destInstance = destSeller).ToString();
-    const CCoinPairType* pCoinPair = GetCoinPairByType(nCoinPair);
-    if (pCoinPair)
+    if (!vCoinPair.empty())
     {
-        obj.dexorder.strCoinpair = pCoinPair->strName;
+        std::string strCoinPairTemp;
+        strCoinPairTemp.assign(&(vCoinPair[0]), vCoinPair.size());
+        obj.dexorder.strCoinpair = strCoinPairTemp;
     }
     obj.dexorder.dPrice = dPrice;
     obj.dexorder.dFee = dFee;
     obj.dexorder.strSecret_Hash = hashSecret.GetHex();
 
-    for (const auto& hash : vHashEncryption)
+    for (const auto& vEnc : vSecretEnc)
     {
-        obj.dexorder.vecSecret_Enc.push_back(hash.GetHex());
+        obj.dexorder.vecSecret_Enc.push_back(ToHexString(vEnc));
     }
 
     obj.dexorder.nValid_Height = nValidHeight;
@@ -102,7 +103,7 @@ bool CTemplateDexOrder::ValidateParam() const
     {
         return false;
     }
-    if (GetCoinPairByType(nCoinPair) == nullptr)
+    if (vCoinPair.empty())
     {
         return false;
     }
@@ -118,9 +119,16 @@ bool CTemplateDexOrder::ValidateParam() const
     {
         return false;
     }
-    if (vHashEncryption.empty())
+    if (vSecretEnc.empty())
     {
         return false;
+    }
+    for (const auto& vEnc : vSecretEnc)
+    {
+        if (vEnc.empty())
+        {
+            return false;
+        }
     }
     if (nValidHeight <= 0)
     {
@@ -155,7 +163,7 @@ bool CTemplateDexOrder::ValidateParam() const
         }
     }
 
-    if (vHashEncryption.size() != vDestDeal.size())
+    if (vSecretEnc.size() != vDestDeal.size())
     {
         return false;
     }
@@ -167,7 +175,7 @@ bool CTemplateDexOrder::SetTemplateData(const std::vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> destSeller >> nCoinPair >> dPrice >> dFee >> hashSecret >> vHashEncryption >> nValidHeight >> nSectHeight >> vDestMatch >> vDestDeal;
+        is >> destSeller >> vCoinPair >> dPrice >> dFee >> hashSecret >> vSecretEnc >> nValidHeight >> nSectHeight >> vDestMatch >> vDestDeal;
     }
     catch (exception& e)
     {
@@ -190,15 +198,11 @@ bool CTemplateDexOrder::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
     destSeller = destInstance;
 
-    string strCoinPair;
-    boost::to_lower_copy(back_inserter(strCoinPair), obj.dexorder.strCoinpair.c_str());
-
-    const CCoinPairType* pCoinPair = GetCoinPairByName(strCoinPair);
-    if (pCoinPair == nullptr)
+    if (obj.dexorder.strCoinpair.empty())
     {
         return false;
     }
-    nCoinPair = pCoinPair->nType;
+    vCoinPair.assign(obj.dexorder.strCoinpair.c_str(), obj.dexorder.strCoinpair.c_str() + obj.dexorder.strCoinpair.size());
 
     dPrice = obj.dexorder.dPrice;
     dFee = obj.dexorder.dFee;
@@ -207,15 +211,14 @@ bool CTemplateDexOrder::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     {
         return false;
     }
-
-    for (const auto& strHash : obj.dexorder.vecSecret_Enc)
+    
+    for (const auto& strEnc : obj.dexorder.vecSecret_Enc)
     {
-        uint256 hash;
-        if (hash.SetHex(strHash) != strHash.size())
+        if (strEnc.empty())
         {
             return false;
         }
-        vHashEncryption.push_back(hash);
+        vSecretEnc.push_back(ParseHexString(strEnc));
     }
 
     nValidHeight = obj.dexorder.nValid_Height;
@@ -245,7 +248,7 @@ void CTemplateDexOrder::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << destSeller << nCoinPair << dPrice << dFee << hashSecret << vHashEncryption << nValidHeight << nSectHeight << vDestMatch << vDestDeal;
+    os << destSeller << vCoinPair << dPrice << dFee << hashSecret << vSecretEnc << nValidHeight << nSectHeight << vDestMatch << vDestDeal;
 }
 
 bool CTemplateDexOrder::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,

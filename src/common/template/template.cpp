@@ -74,33 +74,6 @@ const CTypeInfo* GetTypeInfoByName(std::string strNameIn)
 }
 
 //////////////////////////////
-// CCoinPairType
-
-using CCoinPairSet = boost::multi_index_container<
-    CCoinPairType,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<boost::multi_index::member<CCoinPairType, int, &CCoinPairType::nType>>,
-        boost::multi_index::ordered_unique<boost::multi_index::member<CCoinPairType, std::string, &CCoinPairType::strName>>>>;
-
-static const CCoinPairSet setCoinPair = {
-    { COINPAIR_BBC_MKF, "bbc/mkf" },
-};
-
-const CCoinPairType* GetCoinPairByType(int nTypeIn)
-{
-    const auto& idxType = setCoinPair.get<0>();
-    auto it = idxType.find(nTypeIn);
-    return (it == idxType.end()) ? nullptr : &(*it);
-}
-
-const CCoinPairType* GetCoinPairByName(std::string strNameIn)
-{
-    const auto& idxName = setCoinPair.get<1>();
-    auto it = idxName.find(strNameIn);
-    return (it == idxName.end()) ? nullptr : &(*it);
-}
-
-//////////////////////////////
 // CTemplate
 
 const CTemplatePtr CTemplate::CreateTemplatePtr(CTemplate* ptr)

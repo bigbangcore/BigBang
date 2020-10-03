@@ -8,7 +8,7 @@
 3）价格：指本方的一个TOKEN兑换对方的多少TOKEN；
 4）费率：指给撮合者和跨链交易者的奖励的费率，交易数量剩于费率即为奖励数量，由撮合者和跨链交易者平分，缺省费率为0.2%；
 5）秘密hash：是挂单者随机生成原HASH，经过sha256计算得到的秘密hash；
-6）原HASH加密数据表：原HASH是计算秘密HASH的原始数据，该参数的用途是将原HASH传递给跨链交易者，为了安全，需要加密存储在模板参数中，加密方法：使用跨链交易者的公钥加密，而跨链交易者使用自已的私钥解密，即可得到原HASH，存储顺序与跨链交易者地址表的存储顺序一至；
+6）原HASH加密数据表：原HASH是计算秘密HASH的原始数据，该参数的用途是将原HASH传递给跨链交易者，为了安全，需要加密存储在模板参数中，加密方法：使用挂单者的私钥和跨链交易者的公钥加密，而跨链交易者则使用自已的私钥和挂单者的公钥解密，即可得到原HASH，存储顺序与跨链交易者地址表的存储顺序一至；
 7）有效高度：在该高度以下，挂单者无法从该模板地址转出TOKEN，而撮合者可以完成撮合操作，即从该模板地址转到撮合模板地址；到达这个高度之后，挂单者可以从该地址转出所有TOKEN，并且撮合者将无法撮合，即无法从该模板地址转出TOKEN；
 8）撮合或跨链处理的高度段：撮合或跨链交易可以有多个地址，各个地址按顺序完成撮合或交易，每个地址有一个完成工作的高度段，该参数配置一个地址完成工作的段高度；高度段计算从有效高度开始向下计算，最后一个地址的处理高度为：有效高度-高度段，至有效高度，前一个地址的处理高度依次向下计算；
 9）撮合者地址表：挂单者指定的撮合者的地址表（或随机分配的），可以有多个撮合者，按高度段顺序撮合，第一高度段由第一个撮合者撮合，过了第一高度段还未撮合，则由第二个撮合者撮合，如此类推；撮合高度段缺省为1000个高度；
@@ -35,10 +35,10 @@
 ```
 1）秘密HASH由挂单者生成；
 2）挂单者随机生成一个HASH，该HASH为原HASH，挂单者使用sha256计算原HASH，得到秘密HASH；
-3）挂单者选择跨链交易者，使用跨链交易者的公钥，加密原HASH，得到加密数据，该加密数据用于跨链交易者使用；
+3）挂单者选择跨链交易者，使用挂单者的私钥和跨链交易者的公钥，加密原HASH，得到加密数据，该加密数据用于跨链交易者使用；
 4）挂单者将秘密HASH和原HASH加密数据放在挂单模板地址参数中，用于后面的较验；
 5）挂单表中的原HASH加密字段可能有多个原HASH加密数据，每一个加密HASH对应一个跨链交易者的加密，而加密顺序与跨链交易者字段中的跨链交易者的顺序一致，即一一对应跨链交易者的加密；
-6）跨链交易者使用自已的私钥解密原HASH加密数据，得到挂单者生成的原HASH；
+6）跨链交易者使用自已的私钥和挂单者的公钥解密原HASH加密数据，得到挂单者生成的原HASH；
 7）秘密HASH较验：将原HASH经过sha256计算得到的HASH，和秘密HASH比对来完成较验；
 ```
 
@@ -182,7 +182,7 @@ aesencrypt 1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn 1f2b2n3asbm
 添加挂单模板地址命令：
 addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","coinpair":"bbc/mkf","price":10,"fee": 0.002,"secret_hash":"41f73534701f620ee8f48ecd61bb422fa9243ccc6ddda5e806f5858121c47268","secret_enc": ["42f30c39231e1a518e437df6a71e26535ef65f852fb879157bf9903b7d8065edc66eacec81eaef841c1052978b01340e"],"valid_height": 300,"sect_height": 10,"match_address": ["15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd"],"deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"]}'
 
-挂单模板地址：21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5
+挂单模板地址：21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2
 
 
 2）生成撮合模板地址：
@@ -191,7 +191,7 @@ addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9
 "match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd",
 "match_amount": 15,
 "fee": 0.002,
-"seller_order_address": "21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5",
+"seller_order_address": "21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2",
 "seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn",
 "seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],
 "seller_valid_height": 300,
@@ -202,9 +202,9 @@ addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9
 "buyer_valid_height":320
 
 添加撮合模板地址命令：
-addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd","match_amount": 15,"fee": 0.002,"seller_order_address": "21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5","seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],"seller_valid_height": 300,"seller_sect_height": 10,"buyer_order_address":"214066gfxcx75vmnk63dennhx55pzac42qwbrkadd7bzxmw72s2177eb3","buyer_address": "1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47","buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5","buyer_valid_height":320}'
+addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd","match_amount": 15,"fee": 0.002,"seller_order_address": "21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2","seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],"seller_valid_height": 300,"seller_sect_height": 10,"buyer_order_address":"214066gfxcx75vmnk63dennhx55pzac42qwbrkadd7bzxmw72s2177eb3","buyer_address": "1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47","buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5","buyer_valid_height":320}'
 
-撮合模板地址：21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9
+撮合模板地址：2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29
 ```
 
 ## 六、交易：
@@ -213,7 +213,7 @@ addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf
 解锁地址：
 unlockkey 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 123
 向挂单模板地址转帐：
-sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5 100
+sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2 100
 
 注：任何地址向挂单模板地址转帐都可以，帐转数量为需要交易的数量，但可能只有部分数量完成交易。
 
@@ -221,17 +221,17 @@ sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 21402e7hszzt1
 解锁撮合者地址：
 unlockkey 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 123
 转帐给撮合模板地址：
-sendfrom 21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 15
+sendfrom 21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 15
 
 3）产生跨链交易：由跨链交易者产生交易，从撮合模板地址向买方地址转帐。
 解锁跨链交易者地址：
 unlockkey 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 123
 转帐给买方地址：
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.88018 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.88018 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 转帐给撮合方地址：
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 转帐给跨链交易方地址：
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 
 转帐数量计算：
 a）转帐给买方地址的amount计算：(撮合数量-0.03*3)*(1-费率)
@@ -243,9 +243,8 @@ c）转帐给跨链交易方地址的amount计算：撮合数量 - ((撮合数�
 交易顺序（必须）：转帐给买方地址、转帐给撮合方地址、转帐给跨链交易方地址
 ```
 
-## 七、例：
+## 七、所有命令集合：
 ```
-所有命令集合：
 importprivkey 9df809804369829983150491d1086b99f6493356f91ccc080e661a76a976a4ee 123
 importprivkey 12d00e8b46fbdc54cbf7f47f98a98bb3ea4843131f7ed2ffc11ad07405ca4f33 123
 importprivkey 2c2bd21229865dc051f246492203ee09eea60d96ffb56073032a28b763eae667 123
@@ -254,16 +253,16 @@ importprivkey 43ff83b7063a3a3ff6b8c5a2d43ce14fdcfeec7b754ee83345ae7280e1a8c85d 1
 
 addnewtemplate dexorder '{"seller_address":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","coinpair":"bbc/mkf","price":10,"fee": 0.002,"secret_hash":"41f73534701f620ee8f48ecd61bb422fa9243ccc6ddda5e806f5858121c47268","secret_enc": ["42f30c39231e1a518e437df6a71e26535ef65f852fb879157bf9903b7d8065edc66eacec81eaef841c1052978b01340e"],"valid_height": 300,"sect_height": 10,"match_address": ["15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd"],"deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"]}'
 
-addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd","match_amount": 15,"fee": 0.002,"seller_order_address": "21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5","seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],"seller_valid_height": 300,"seller_sect_height": 10,"buyer_order_address":"214066gfxcx75vmnk63dennhx55pzac42qwbrkadd7bzxmw72s2177eb3","buyer_address": "1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47","buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5","buyer_valid_height":320}'
+addnewtemplate dexmatch '{"match_address": "15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd","match_amount": 15,"fee": 0.002,"seller_order_address": "21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2","seller_address": "1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","seller_deal_address": ["1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb"],"seller_valid_height": 300,"seller_sect_height": 10,"buyer_order_address":"214066gfxcx75vmnk63dennhx55pzac42qwbrkadd7bzxmw72s2177eb3","buyer_address": "1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47","buyer_secret_hash":"dfa313257be0216a498d2eb6e5a1939eb6168d4a9e3356cc20fb957d030b1ac5","buyer_valid_height":320}'
 
 unlockkey 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 123
-sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5 100
+sendfrom 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2 100
 
 unlockkey 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 123
-sendfrom 21402e7hszzt1jheq3tmhvw1h1npm4c5rqc4qhkep08aeqbm5czpaerj5 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 15
+sendfrom 21407kd17eztqkpnhcsw986prwxdxe5mj9208xz5m8ye5z27hxt2xq2x2 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 15
 
 unlockkey 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 123
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.88018 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
-sendfrom 21802xgxyqnajgdb481cvge2vax8c8f2jwp2sqwgjw8y878q64t2rswz9 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 1njqk8wmenyvqs4cz7d8b9pjc6tsdhxtzza050a2n02eqpfcr22ggqg47 14.88018 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 15cx56x0gtv44bkt21yryg4m6nn81wtc7gkf6c9vwpvq1cgmm8jm7m5kd 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
+sendfrom 2180d8cwj2h3wdznth7ay5vx0x7ysv0jz4kjvxbyv5mr5c441fb6gjm29 1f2b2n3asbm2rb99fk1c4wp069d0z91enxdz8kmqmq7f0w8tzw64hdevb 0.01491 0.03 -sm=b6103658b60234ade25b7389a08514b6803dff9c636dff92ef0edaa0f37e2eef -ss=6836ba9b8f40f968888a7376f657f97c53cfa8db02872e0f1daf8376cb80b1e7
 ```

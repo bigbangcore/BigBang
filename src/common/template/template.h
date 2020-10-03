@@ -55,22 +55,6 @@ enum TemplateType
     TEMPLATE_MAX
 };
 
-enum DexOrderCoinPairType
-{
-    COINPAIR_MIN,
-    COINPAIR_BBC_MKF,
-    COINPAIR_MAX
-};
-
-struct CCoinPairType
-{
-    int nType;
-    std::string strName;
-};
-
-const CCoinPairType* GetCoinPairByType(int nTypeIn);
-const CCoinPairType* GetCoinPairByName(std::string strNameIn);
-
 class CTemplate;
 typedef boost::shared_ptr<CTemplate> CTemplatePtr;
 
