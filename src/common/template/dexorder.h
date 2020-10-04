@@ -11,7 +11,7 @@ class CTemplateDexOrder : virtual public CTemplate, virtual public CSendToRecord
 {
 public:
     CTemplateDexOrder(const CDestination& destSellerIn = CDestination(), const std::vector<char> vCoinPairIn = std::vector<char>(),
-                      double dPriceIn = 0.0, double dFeeIn = 0.0, const uint256& hashSecretIn = uint256(), const std::vector<std::vector<uint8>>& vSecretEncIn = std::vector<std::vector<uint8>>(),
+                      int64 nPriceIn = 0, int64 nFeeIn = 0, const uint256& hashSecretIn = uint256(), const std::vector<std::vector<uint8>>& vSecretEncIn = std::vector<std::vector<uint8>>(),
                       int nValidHeightIn = 0, int nSectHeight = 0, const std::vector<CDestination>& vDestMatchIn = std::vector<CDestination>(), const std::vector<CDestination>& vDestDealIn = std::vector<CDestination>());
     virtual CTemplateDexOrder* clone() const;
     virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
@@ -29,8 +29,8 @@ protected:
 public:
     CDestination destSeller;
     std::vector<char> vCoinPair;
-    double dPrice;
-    double dFee;
+    int64 nPrice;
+    int64 nFee;
     uint256 hashSecret;
     std::vector<std::vector<uint8>> vSecretEnc;
     int nValidHeight;

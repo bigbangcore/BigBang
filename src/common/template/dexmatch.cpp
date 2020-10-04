@@ -18,14 +18,14 @@ static const int64 COIN = 1000000;
 //////////////////////////////
 // CTemplateDexMatch
 
-CTemplateDexMatch::CTemplateDexMatch(const CDestination& destMatchIn, int64 nMatchAmountIn, double dFeeIn,
+CTemplateDexMatch::CTemplateDexMatch(const CDestination& destMatchIn, int64 nMatchAmountIn, int64 nFeeIn,
                                      const CDestination& destSellerOrderIn, const CDestination& destSellerIn,
                                      const std::vector<CDestination> vDestSellerDealIn, int nSellerValidHeightIn, int nSellerSectHeightIn,
                                      const CDestination& destBuyerOrderIn, const CDestination& destBuyerIn, const uint256& hashBuyerSecretIn, int nBuyerValidHeightIn)
   : CTemplate(TEMPLATE_DEXMATCH),
     destMatch(destMatchIn),
     nMatchAmount(nMatchAmountIn),
-    dFee(dFeeIn),
+    nFee(nFeeIn),
     destSellerOrder(destSellerOrderIn),
     destSeller(destSellerIn),
     vDestSellerDeal(vDestSellerDealIn),
@@ -72,7 +72,7 @@ void CTemplateDexMatch::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
 {
     obj.dexmatch.strMatch_Address = (destInstance = destMatch).ToString();
     obj.dexmatch.dMatch_Amount = (double)nMatchAmount / COIN;
-    obj.dexmatch.dFee = dFee;
+    obj.dexmatch.dFee = DoubleFromInt64(nFee);
 
     obj.dexmatch.strSeller_Order_Address = (destInstance = destSellerOrder).ToString();
     obj.dexmatch.strSeller_Address = (destInstance = destSeller).ToString();
@@ -101,7 +101,7 @@ bool CTemplateDexMatch::ValidateParam() const
     {
         return false;
     }
-    if (dFee <= 0.0)
+    if (nFee <= 0 || nFee >= DOUBLE_PRECISION)
     {
         return false;
     }
@@ -156,7 +156,7 @@ bool CTemplateDexMatch::SetTemplateData(const vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> destMatch >> nMatchAmount >> dFee >> destSellerOrder >> destSeller >> vDestSellerDeal >> nSellerValidHeight >> nSellerSectHeight >> destBuyerOrder >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
+        is >> destMatch >> nMatchAmount >> nFee >> destSellerOrder >> destSeller >> vDestSellerDeal >> nSellerValidHeight >> nSellerSectHeight >> destBuyerOrder >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
     }
     catch (exception& e)
     {
@@ -179,8 +179,8 @@ bool CTemplateDexMatch::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     }
     destMatch = destInstance;
 
-    nMatchAmount = obj.dexmatch.dMatch_Amount * COIN;
-    dFee = obj.dexmatch.dFee;
+    nMatchAmount = (int64)(obj.dexmatch.dMatch_Amount * COIN + 0.5);
+    nFee = Int64FromDouble(obj.dexmatch.dFee);
 
     if (!destInstance.ParseString(obj.dexmatch.strSeller_Order_Address))
     {
@@ -230,7 +230,7 @@ void CTemplateDexMatch::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << destMatch << nMatchAmount << dFee << destSellerOrder << destSeller << vDestSellerDeal << nSellerValidHeight << nSellerSectHeight << destBuyerOrder << destBuyer << hashBuyerSecret << nBuyerValidHeight;
+    os << destMatch << nMatchAmount << nFee << destSellerOrder << destSeller << vDestSellerDeal << nSellerValidHeight << nSellerSectHeight << destBuyerOrder << destBuyer << hashBuyerSecret << nBuyerValidHeight;
 }
 
 bool CTemplateDexMatch::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,
