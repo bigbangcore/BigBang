@@ -12,8 +12,8 @@ class CTemplateDexMatch : virtual public CTemplate, virtual public CSendToRecord
 public:
     CTemplateDexMatch(const CDestination& destMatchIn = CDestination(), int64 nMatchAmountIn = 0, int64 nFeeIn = 0,
                       const CDestination& destSellerOrderIn = CDestination(), const CDestination& destSellerIn = CDestination(),
-                      const std::vector<CDestination> vDestSellerDealIn = std::vector<CDestination>(), int nSellerValidHeightIn = 0, int nSellerSectHeightIn = 0,
-                      const CDestination& destBuyerOrderIn = CDestination(), const CDestination& destBuyerIn = CDestination(), const uint256& hashBuyerSecretIn = uint256(), int nBuyerValidHeightIn = 0);
+                      const std::vector<CDestination>& vDestSellerDealIn = std::vector<CDestination>(), int nSellerValidHeightIn = 0, int nSellerSectHeightIn = 0,
+                      const std::vector<uint8>& vDestBuyerOrderIn = std::vector<uint8>(), const CDestination& destBuyerIn = CDestination(), const uint256& hashBuyerSecretIn = uint256(), int nBuyerValidHeightIn = 0);
     virtual CTemplateDexMatch* clone() const;
     virtual bool GetSignDestination(const CTransaction& tx, const uint256& hashFork, int nHeight, const std::vector<uint8>& vchSig,
                                     std::set<CDestination>& setSubDest, std::vector<uint8>& vchSubSig) const;
@@ -38,7 +38,7 @@ public:
     int nSellerValidHeight;
     int nSellerSectHeight;
 
-    CDestination destBuyerOrder;
+    std::vector<uint8> vDestBuyerOrder;
     CDestination destBuyer;
     uint256 hashBuyerSecret;
     int nBuyerValidHeight;
