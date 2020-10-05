@@ -21,7 +21,7 @@ static const int64 COIN = 1000000;
 CTemplateDexMatch::CTemplateDexMatch(const CDestination& destMatchIn, int64 nMatchAmountIn, int64 nFeeIn,
                                      const CDestination& destSellerOrderIn, const CDestination& destSellerIn,
                                      const std::vector<CDestination>& vDestSellerDealIn, int nSellerValidHeightIn, int nSellerSectHeightIn,
-                                     const std::vector<uint8>& vDestBuyerOrderIn, const CDestination& destBuyerIn, const uint256& hashBuyerSecretIn, int nBuyerValidHeightIn)
+                                     const CDestination& destBuyerIn, const uint256& hashBuyerSecretIn, int nBuyerValidHeightIn)
   : CTemplate(TEMPLATE_DEXMATCH),
     destMatch(destMatchIn),
     nMatchAmount(nMatchAmountIn),
@@ -31,7 +31,6 @@ CTemplateDexMatch::CTemplateDexMatch(const CDestination& destMatchIn, int64 nMat
     vDestSellerDeal(vDestSellerDealIn),
     nSellerValidHeight(nSellerValidHeightIn),
     nSellerSectHeight(nSellerSectHeightIn),
-    vDestBuyerOrder(vDestBuyerOrderIn),
     destBuyer(destBuyerIn),
     hashBuyerSecret(hashBuyerSecretIn),
     nBuyerValidHeight(nBuyerValidHeightIn)
@@ -85,7 +84,6 @@ void CTemplateDexMatch::GetTemplateData(bigbang::rpc::CTemplateResponse& obj, CD
     obj.dexmatch.nSeller_Valid_Height = nSellerValidHeight;
     obj.dexmatch.nSeller_Sect_Height = nSellerSectHeight;
 
-    obj.dexmatch.strBuyer_Order_Address = ToHexString(vDestBuyerOrder);
     obj.dexmatch.strBuyer_Address = (destInstance = destBuyer).ToString();
     obj.dexmatch.strBuyer_Secret_Hash = hashBuyerSecret.GetHex();
     obj.dexmatch.nBuyer_Valid_Height = nBuyerValidHeight;
@@ -152,7 +150,7 @@ bool CTemplateDexMatch::SetTemplateData(const vector<uint8>& vchDataIn)
     CIDataStream is(vchDataIn);
     try
     {
-        is >> destMatch >> nMatchAmount >> nFee >> destSellerOrder >> destSeller >> vDestSellerDeal >> nSellerValidHeight >> nSellerSectHeight >> vDestBuyerOrder >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
+        is >> destMatch >> nMatchAmount >> nFee >> destSellerOrder >> destSeller >> vDestSellerDeal >> nSellerValidHeight >> nSellerSectHeight >> destBuyer >> hashBuyerSecret >> nBuyerValidHeight;
     }
     catch (exception& e)
     {
@@ -202,8 +200,6 @@ bool CTemplateDexMatch::SetTemplateData(const bigbang::rpc::CTemplateRequest& ob
     nSellerValidHeight = obj.dexmatch.nSeller_Valid_Height;
     nSellerSectHeight = obj.dexmatch.nSeller_Sect_Height;
 
-    vDestBuyerOrder = ParseHexString(obj.dexmatch.strBuyer_Order_Address);
-
     if (!destInstance.ParseString(obj.dexmatch.strBuyer_Address))
     {
         return false;
@@ -222,7 +218,7 @@ void CTemplateDexMatch::BuildTemplateData()
 {
     vchData.clear();
     CODataStream os(vchData);
-    os << destMatch << nMatchAmount << nFee << destSellerOrder << destSeller << vDestSellerDeal << nSellerValidHeight << nSellerSectHeight << vDestBuyerOrder << destBuyer << hashBuyerSecret << nBuyerValidHeight;
+    os << destMatch << nMatchAmount << nFee << destSellerOrder << destSeller << vDestSellerDeal << nSellerValidHeight << nSellerSectHeight << destBuyer << hashBuyerSecret << nBuyerValidHeight;
 }
 
 bool CTemplateDexMatch::VerifyTxSignature(const uint256& hash, const uint16 nType, const uint256& hashAnchor, const CDestination& destTo,

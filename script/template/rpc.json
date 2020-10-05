@@ -318,10 +318,6 @@
                         "type": "int",
                         "desc": "deal work section height, default: 1000"
                     },
-                    "buyer_order_address": {
-                        "type": "string",
-                        "desc": "buyer order address"
-                    },
                     "buyer_address": {
                         "type": "string",
                         "desc": "buyer address"
@@ -605,10 +601,6 @@
                     "seller_sect_height": {
                         "type": "int",
                         "desc": "deal work section height, default: 1000"
-                    },
-                    "buyer_order_address": {
-                        "type": "string",
-                        "desc": "buyer order address"
                     },
                     "buyer_address": {
                         "type": "string",
