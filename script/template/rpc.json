@@ -231,47 +231,21 @@
                         "type": "double",
                         "desc": "fee"
                     },
-                    "secret_hash": {
+                    "recv_address": {
                         "type": "string",
-                        "desc": "sha256 hash"
-                    },
-                    "secret_enc": {
-                        "type": "array",
-                        "desc": "secret encryption",
-                        "content": {
-                            "hash": {
-                                "type": "string",
-                                "desc": "hash"
-                            }
-                        }
+                        "desc": "receive address"
                     },
                     "valid_height": {
                         "type": "int",
                         "desc": "valid height"
                     },
-                    "sect_height": {
-                        "type": "int",
-                        "desc": "match or deal work section height, default: 1000"
-                    },
                     "match_address": {
-                        "type": "array",
-                        "desc": "match address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "match address"
                     },
                     "deal_address": {
-                        "type": "array",
-                        "desc": "deal address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "deal address"
                     }
                 }
             },
@@ -284,6 +258,10 @@
                         "type": "string",
                         "desc": "match address"
                     },
+                    "coinpair": {
+                        "type": "string",
+                        "desc": "coin pair"
+                    },
                     "match_amount": {
                         "type": "double",
                         "desc": "match amount"
@@ -291,6 +269,14 @@
                     "fee": {
                         "type": "double",
                         "desc": "fee"
+                    },
+                    "secret_hash": {
+                        "type": "string",
+                        "desc": "sha256 hash"
+                    },
+                    "secret_enc": {
+                        "type": "string",
+                        "desc": "secret encryption"
                     },
                     "seller_order_address": {
                         "type": "string",
@@ -301,22 +287,12 @@
                         "desc": "seller address"
                     },
                     "seller_deal_address": {
-                        "type": "array",
-                        "desc": "seller deal address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "seller deal address"
                     },
                     "seller_valid_height": {
                         "type": "int",
                         "desc": "seller valid height"
-                    },
-                    "seller_sect_height": {
-                        "type": "int",
-                        "desc": "deal work section height, default: 1000"
                     },
                     "buyer_address": {
                         "type": "string",
@@ -515,47 +491,21 @@
                         "type": "double",
                         "desc": "fee"
                     },
-                    "secret_hash": {
+                    "recv_address": {
                         "type": "string",
-                        "desc": "sha256 hash"
-                    },
-                    "secret_enc": {
-                        "type": "array",
-                        "desc": "secret encryption",
-                        "content": {
-                            "hash": {
-                                "type": "string",
-                                "desc": "hash"
-                            }
-                        }
+                        "desc": "receive address"
                     },
                     "valid_height": {
                         "type": "int",
                         "desc": "valid height"
                     },
-                    "sect_height": {
-                        "type": "int",
-                        "desc": "match or deal work section height, default: 1000"
-                    },
                     "match_address": {
-                        "type": "array",
-                        "desc": "match address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "match address"
                     },
                     "deal_address": {
-                        "type": "array",
-                        "desc": "deal address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "deal address"
                     }
                 }
             },
@@ -568,6 +518,10 @@
                         "type": "string",
                         "desc": "match address"
                     },
+                    "coinpair": {
+                        "type": "string",
+                        "desc": "coin pair"
+                    },
                     "match_amount": {
                         "type": "double",
                         "desc": "match amount"
@@ -575,6 +529,14 @@
                     "fee": {
                         "type": "double",
                         "desc": "fee"
+                    },
+                    "secret_hash": {
+                        "type": "string",
+                        "desc": "sha256 hash"
+                    },
+                    "secret_enc": {
+                        "type": "string",
+                        "desc": "secret encryption"
                     },
                     "seller_order_address": {
                         "type": "string",
@@ -585,22 +547,12 @@
                         "desc": "seller address"
                     },
                     "seller_deal_address": {
-                        "type": "array",
-                        "desc": "seller deal address",
-                        "content": {
-                            "address": {
-                                "type": "string",
-                                "desc": "address"
-                            }
-                        }
+                        "type": "string",
+                        "desc": "seller deal address"
                     },
                     "seller_valid_height": {
                         "type": "int",
                         "desc": "seller valid height"
-                    },
-                    "seller_sect_height": {
-                        "type": "int",
-                        "desc": "deal work section height, default: 1000"
                     },
                     "buyer_address": {
                         "type": "string",

@@ -1265,29 +1265,15 @@ Errno CCoreProtocol::VerifyDexOrderTx(const CTransaction& tx, const CDestination
             Log("Verify dexorder tx: destSeller error, tx: %s", tx.GetHash().GetHex().c_str());
             return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
-        if (objMatch->vDestSellerDeal.size() != objOrder->vDestDeal.size())
+        if (objMatch->destSellerDeal != objOrder->destDeal)
         {
-            Log("Verify dexorder tx: vDestSellerDeal error, tx: %s", tx.GetHash().GetHex().c_str());
+            Log("Verify dexorder tx: destSellerDeal error, tx: %s", tx.GetHash().GetHex().c_str());
             return ERR_TRANSACTION_SIGNATURE_INVALID;
-        }
-        for (int i = 0; i < objMatch->vDestSellerDeal.size(); ++i)
-        {
-            if (objMatch->vDestSellerDeal[i] != objOrder->vDestDeal[i])
-            {
-                Log("Verify dexorder tx: vDestSellerDeal error2, tx: %s", tx.GetHash().GetHex().c_str());
-                return ERR_TRANSACTION_SIGNATURE_INVALID;
-            }
         }
         if (objMatch->nSellerValidHeight != objOrder->nValidHeight)
         {
             Log("Verify dexorder tx: nSellerValidHeight error, match nSellerValidHeight: %d, order nValidHeight: %d, tx: %s",
                 objMatch->nSellerValidHeight, objOrder->nValidHeight, tx.GetHash().GetHex().c_str());
-            return ERR_TRANSACTION_SIGNATURE_INVALID;
-        }
-        if (objMatch->nSellerSectHeight != objOrder->nSectHeight)
-        {
-            Log("Verify dexorder tx: nSellerSectHeight error, match nSellerSectHeight: %d, order nSectHeight: %d, tx: %s",
-                objMatch->nSellerSectHeight, objOrder->nSectHeight, tx.GetHash().GetHex().c_str());
             return ERR_TRANSACTION_SIGNATURE_INVALID;
         }
         if ((tx.nAmount != objMatch->nMatchAmount) || (tx.nAmount < (TNS_DEX_MIN_TX_FEE * 3 + TNS_DEX_MIN_MATCH_AMOUNT)))
