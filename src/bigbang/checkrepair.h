@@ -41,7 +41,7 @@ public:
     }
 
 public:
-    CTransaction tx;
+    const CTransaction& tx;
     CTxContxt txContxt;
     CTxIndex txIndex;
     uint256 hashAtFork;
@@ -49,10 +49,6 @@ public:
 
 class CCheckTxOut : public CTxOut
 {
-public:
-    uint256 txidSpent;
-    CDestination destSpent;
-
 public:
     CCheckTxOut() {}
     CCheckTxOut(const CDestination destToIn, int64 nAmountIn, uint32 nTxTimeIn, uint32 nLockUntilIn)
@@ -64,37 +60,13 @@ public:
     CCheckTxOut(const CTxOut& txOut)
       : CTxOut(txOut) {}
 
-    bool IsSpent()
-    {
-        return (txidSpent != 0);
-    }
-    void SetUnspent()
-    {
-        txidSpent = 0;
-        destSpent.SetNull();
-    }
-    void SetSpent(const uint256& txidSpentIn, const CDestination& destSpentIn)
-    {
-        txidSpent = txidSpentIn;
-        destSpent = destSpentIn;
-    }
-
     friend bool operator==(const CCheckTxOut& a, const CCheckTxOut& b)
     {
-        return (a.txidSpent == b.txidSpent && a.destSpent == b.destSpent && a.destTo == b.destTo && a.nAmount == b.nAmount && a.nTxTime == b.nTxTime && a.nLockUntil == b.nLockUntil);
+        return (a.destTo == b.destTo && a.nAmount == b.nAmount && a.nTxTime == b.nTxTime && a.nLockUntil == b.nLockUntil);
     }
     friend bool operator!=(const CCheckTxOut& a, const CCheckTxOut& b)
     {
-        return !(a.txidSpent == b.txidSpent && a.destSpent == b.destSpent && a.destTo == b.destTo && a.nAmount == b.nAmount && a.nTxTime == b.nTxTime && a.nLockUntil == b.nLockUntil);
-    }
-
-protected:
-    template <typename O>
-    void Serialize(xengine::CStream& s, O& opt)
-    {
-        CTxOut::Serialize(s, opt);
-        s.Serialize(txidSpent, opt);
-        s.Serialize(destSpent, opt);
+        return !(a.destTo == b.destTo && a.nAmount == b.nAmount && a.nTxTime == b.nTxTime && a.nLockUntil == b.nLockUntil);
     }
 };
 
