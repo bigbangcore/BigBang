@@ -93,6 +93,14 @@ void CRPCClient::HandleHalt()
     pClient = nullptr;
     if (thrDispatch.IsRunning())
     {
+#ifdef _WIN32
+        DWORD out;
+        INPUT_RECORD input;
+        input.EventType = KEY_EVENT;
+        input.Event.KeyEvent.wRepeatCount = 1;
+        input.Event.KeyEvent.uChar.AsciiChar = '\0';
+        WriteConsoleInput(GetStdHandle(STD_INPUT_HANDLE), &input, 1, &out);
+#endif
         CancelCommand();
         thrDispatch.Interrupt();
     }
@@ -269,6 +277,9 @@ void CRPCClient::LaunchConsole()
     timeval timeout;
     while (isConsoleRunning)
     {
+#ifdef _WIN32
+        rl_callback_read_char();
+#else
         FD_ZERO(&fs);
         FD_SET(STDIN_FILENO, &fs);
 
@@ -294,6 +305,7 @@ void CRPCClient::LaunchConsole()
         {
             rl_callback_read_char();
         }
+#endif
     }
 
     LeaveLoop();
@@ -388,14 +400,14 @@ void CRPCClient::ConsoleHandleLine(const string& strLine)
             {
                 CConfig config;
 
-                char* argv[vCommand.size() + 1];
+                vector<char*> argv(vCommand.size() + 1);
                 argv[0] = const_cast<char*>("bigbang-cli");
                 for (int i = 0; i < vCommand.size(); ++i)
                 {
                     argv[i + 1] = const_cast<char*>(vCommand[i].c_str());
                 }
 
-                if (!config.Load(vCommand.size() + 1, argv, "", "") || !config.PostLoad())
+                if (!config.Load(vCommand.size() + 1, &argv[0], "", "") || !config.PostLoad())
                 {
                     return;
                 }

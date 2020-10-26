@@ -8,6 +8,9 @@
 #include <openssl/rand.h>
 
 using namespace std;
+#if BOOST_VERSION >= 106000
+using namespace boost::placeholders;
+#endif
 using boost::asio::ip::tcp;
 
 namespace xengine

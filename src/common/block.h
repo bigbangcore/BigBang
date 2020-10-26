@@ -103,9 +103,9 @@ public:
         ss << nVersion << nType << nTimeStamp << hashPrev << vchProof;
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
-    int64 GetBlockTime() const
+    uint32 GetBlockTime() const
     {
-        return (int64)nTimeStamp;
+        return nTimeStamp;
     }
     uint32 GetBlockHeight() const
     {
@@ -148,12 +148,12 @@ public:
         vMerkleTree.clear();
         for (const CTransaction& tx : vtx)
             vMerkleTree.push_back(tx.GetHash());
-        int j = 0;
-        for (int nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
+        size_t j = 0;
+        for (size_t nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
         {
-            for (int i = 0; i < nSize; i += 2)
+            for (size_t i = 0; i < nSize; i += 2)
             {
-                int i2 = std::min(i + 1, nSize - 1);
+                size_t i2 = std::min(i + 1, nSize - 1);
                 vMerkleTree.push_back(bigbang::crypto::CryptoHash(vMerkleTree[j + i], vMerkleTree[j + i2]));
             }
             j += nSize;
@@ -311,9 +311,9 @@ public:
     {
         return nHeight;
     }
-    int64 GetBlockTime() const
+    uint32 GetBlockTime() const
     {
-        return (int64)nTimeStamp;
+        return nTimeStamp;
     }
     uint256 GetOriginHash() const
     {

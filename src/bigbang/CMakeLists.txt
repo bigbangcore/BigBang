@@ -12,8 +12,13 @@ set(auto_files
     ${CMAKE_CURRENT_BINARY_DIR}/mode/auto_config.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/mode/auto_config.h
 )
+if(MSVC)
+    set(PYTHON_PATH "python.exe")
+else()
+    set(PYTHON_PATH "python")
+endif()
 add_custom_command(OUTPUT ${auto_files}
-    COMMAND "${CMAKE_SOURCE_DIR}/script/generator.py" "'mode'" "'${CMAKE_CURRENT_BINARY_DIR}'"
+    COMMAND "${PYTHON_PATH}" "\"${CMAKE_SOURCE_DIR}/script/generator.py\"" "\"mode\"" "\"${CMAKE_CURRENT_BINARY_DIR}\""
     DEPENDS "${CMAKE_SOURCE_DIR}/script/template/rpc.json"
             "${CMAKE_SOURCE_DIR}/script/template/options.json"
             "${CMAKE_SOURCE_DIR}/script/template/mode.json"
@@ -128,17 +133,19 @@ target_link_libraries(libbigbang
     common
 )
 
-# create symbol link
-set(exec_link bigbang-cli bigbang-server bigbang-miner)
-foreach(link ${exec_link})
-    add_custom_command(TARGET bigbang POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink bigbang ${link}
-    )
-endforeach()
+if(UNIX)
+    # create symbol link
+    set(exec_link bigbang-cli bigbang-server bigbang-miner)
+    foreach(link ${exec_link})
+        add_custom_command(TARGET bigbang POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink bigbang ${link}
+        )
+    endforeach()
 
-# install to path
-foreach(link bigbang ${exec_link})
-    install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${link}"
-        DESTINATION bin
-    )
-endforeach()
+    # install to path
+    foreach(link bigbang ${exec_link})
+        install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${link}"
+            DESTINATION bin
+        )
+    endforeach()
+endif()

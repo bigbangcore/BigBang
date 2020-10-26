@@ -28,7 +28,7 @@ namespace bigbang
 {
 
 CConfig::CConfig()
-  : emMode(EModeType::ERROR), pImpl(nullptr) {}
+  : emMode(EModeType::MODE_ERROR), pImpl(nullptr) {}
 
 CConfig::~CConfig()
 {
@@ -56,15 +56,15 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     int ignoreCmd = 0;
     if (exec == "bigbang-server")
     {
-        emMode = EModeType::SERVER;
+        emMode = EModeType::MODE_SERVER;
     }
     else if (exec == "bigbang-miner")
     {
-        emMode = EModeType::MINER;
+        emMode = EModeType::MODE_MINER;
     }
     else if (exec == "bigbang-cli")
     {
-        emMode = EModeType::CONSOLE;
+        emMode = EModeType::MODE_CONSOLE;
 
         if (vecCmd.size() > 0)
         {
@@ -75,7 +75,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     {
         if (cmd == "server" || cmd == "")
         {
-            emMode = EModeType::SERVER;
+            emMode = EModeType::MODE_SERVER;
 
             if (cmd == "server")
             {
@@ -84,12 +84,12 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
         }
         else if (cmd == "miner")
         {
-            emMode = EModeType::MINER;
+            emMode = EModeType::MODE_MINER;
             ignoreCmd = 1;
         }
         else
         {
-            emMode = EModeType::CONSOLE;
+            emMode = EModeType::MODE_CONSOLE;
             if (cmd == "console")
             {
                 ignoreCmd = 1;
@@ -102,7 +102,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
         }
     }
 
-    if (emMode == EModeType::ERROR)
+    if (emMode == EModeType::MODE_ERROR)
     {
         return false;
     }

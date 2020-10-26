@@ -6,7 +6,6 @@
 
 #include <iostream>
 #include <sodium.h>
-#include <sys/mman.h>
 
 #include "curve25519/curve25519.h"
 #include "util.h"

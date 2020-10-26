@@ -59,7 +59,7 @@ bool CTxPoolData::Remove()
 
 bool CTxPoolData::Save(const vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
 {
-    FILE* fp = fopen(pathTxPoolFile.c_str(), "w");
+    FILE* fp = fopen(pathTxPoolFile.string().c_str(), "w");
     if (fp == nullptr)
     {
         return false;
@@ -73,7 +73,7 @@ bool CTxPoolData::Save(const vector<pair<uint256, pair<uint256, CAssembledTx>>>&
 
     try
     {
-        CFileStream fs(pathTxPoolFile.c_str());
+        CFileStream fs(pathTxPoolFile.string().c_str());
         fs << vTx;
     }
     catch (std::exception& e)
@@ -96,7 +96,7 @@ bool CTxPoolData::Load(vector<pair<uint256, pair<uint256, CAssembledTx>>>& vTx)
 
     try
     {
-        CFileStream fs(pathTxPoolFile.c_str());
+        CFileStream fs(pathTxPoolFile.string().c_str());
         fs >> vTx;
     }
     catch (std::exception& e)
@@ -121,7 +121,7 @@ bool CTxPoolData::LoadCheck(vector<pair<uint256, pair<uint256, CAssembledTx>>>& 
 
     try
     {
-        CFileStream fs(pathTxPoolFile.c_str());
+        CFileStream fs(pathTxPoolFile.string().c_str());
         fs >> vTx;
     }
     catch (std::exception& e)

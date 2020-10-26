@@ -1,14 +1,14 @@
 {
-    "EModeType::SERVER": {
-        "usage": "bigbang-server (OPTIONS)",
-        "desc": "Run bigbang server"
-    },
-    "EModeType::CONSOLE": {
-        "usage": "bigbang-cli (OPTIONS) COMMAND",
-        "desc": "Run bigbang RPC client"
-    },
-    "EModeType::MINER": {
-        "usage": "bigbang-miner (OPTIONS)",
-        "desc": "Run bigbang miner"
-    }
+  "EModeType::MODE_SERVER": {
+    "usage": "bigbang-server (OPTIONS)",
+    "desc": "Run bigbang server"
+  },
+  "EModeType::MODE_CONSOLE": {
+    "usage": "bigbang-cli (OPTIONS) COMMAND",
+    "desc": "Run bigbang RPC client"
+  },
+  "EModeType::MODE_MINER": {
+    "usage": "bigbang-miner (OPTIONS)",
+    "desc": "Run bigbang miner"
+  }
 }

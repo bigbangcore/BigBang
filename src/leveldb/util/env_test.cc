@@ -15,19 +15,13 @@
 namespace leveldb {
 
 static const int kDelayMicros = 100000;
-static const int kReadOnlyFileLimit = 4;
-static const int kMMapLimit = 4;
 
 class EnvTest {
  public:
+  EnvTest() : env_(Env::Default()) {}
+
   Env* env_;
-  EnvTest() : env_(Env::Default()) { }
 };
-
-static void SetBool(void* ptr) {
-  reinterpret_cast<port::AtomicPointer*>(ptr)->NoBarrier_Store(ptr);
-}
-
 
 TEST(EnvTest, ReadWrite) {
   Random rnd(test::RandomSeed());
@@ -77,50 +71,77 @@ TEST(EnvTest, ReadWrite) {
 }
 
 TEST(EnvTest, RunImmediately) {
-  port::AtomicPointer called(nullptr);
-  env_->Schedule(&SetBool, &called);
-  env_->SleepForMicroseconds(kDelayMicros);
-  ASSERT_TRUE(called.NoBarrier_Load() != nullptr);
-}
+  struct RunState {
+    port::Mutex mu;
+    port::CondVar cvar{&mu};
+    bool called = false;
 
-TEST(EnvTest, RunMany) {
-  port::AtomicPointer last_id(nullptr);
-
-  struct CB {
-    port::AtomicPointer* last_id_ptr;   // Pointer to shared slot
-    uintptr_t id;             // Order# for the execution of this callback
-
-    CB(port::AtomicPointer* p, int i) : last_id_ptr(p), id(i) { }
-
-    static void Run(void* v) {
-      CB* cb = reinterpret_cast<CB*>(v);
-      void* cur = cb->last_id_ptr->NoBarrier_Load();
-      ASSERT_EQ(cb->id-1, reinterpret_cast<uintptr_t>(cur));
-      cb->last_id_ptr->Release_Store(reinterpret_cast<void*>(cb->id));
+    static void Run(void* arg) {
+      RunState* state = reinterpret_cast<RunState*>(arg);
+      MutexLock l(&state->mu);
+      ASSERT_EQ(state->called, false);
+      state->called = true;
+      state->cvar.Signal();
     }
   };
 
-  // Schedule in different order than start time
-  CB cb1(&last_id, 1);
-  CB cb2(&last_id, 2);
-  CB cb3(&last_id, 3);
-  CB cb4(&last_id, 4);
-  env_->Schedule(&CB::Run, &cb1);
-  env_->Schedule(&CB::Run, &cb2);
-  env_->Schedule(&CB::Run, &cb3);
-  env_->Schedule(&CB::Run, &cb4);
+  RunState state;
+  env_->Schedule(&RunState::Run, &state);
 
-  env_->SleepForMicroseconds(kDelayMicros);
-  void* cur = last_id.Acquire_Load();
-  ASSERT_EQ(4, reinterpret_cast<uintptr_t>(cur));
+  MutexLock l(&state.mu);
+  while (!state.called) {
+    state.cvar.Wait();
+  }
+}
+
+TEST(EnvTest, RunMany) {
+  struct RunState {
+    port::Mutex mu;
+    port::CondVar cvar{&mu};
+    int last_id = 0;
+  };
+
+  struct Callback {
+    RunState* state_;  // Pointer to shared state.
+    const int id_;  // Order# for the execution of this callback.
+
+    Callback(RunState* s, int id) : state_(s), id_(id) {}
+
+    static void Run(void* arg) {
+      Callback* callback = reinterpret_cast<Callback*>(arg);
+      RunState* state = callback->state_;
+
+      MutexLock l(&state->mu);
+      ASSERT_EQ(state->last_id, callback->id_ - 1);
+      state->last_id = callback->id_;
+      state->cvar.Signal();
+    }
+  };
+
+  RunState state;
+  Callback callback1(&state, 1);
+  Callback callback2(&state, 2);
+  Callback callback3(&state, 3);
+  Callback callback4(&state, 4);
+  env_->Schedule(&Callback::Run, &callback1);
+  env_->Schedule(&Callback::Run, &callback2);
+  env_->Schedule(&Callback::Run, &callback3);
+  env_->Schedule(&Callback::Run, &callback4);
+
+  MutexLock l(&state.mu);
+  while (state.last_id != 4) {
+    state.cvar.Wait();
+  }
 }
 
 struct State {
   port::Mutex mu;
+  port::CondVar cvar{&mu};
+
   int val GUARDED_BY(mu);
   int num_running GUARDED_BY(mu);
 
-  State(int val, int num_running) : val(val), num_running(num_running) { }
+  State(int val, int num_running) : val(val), num_running(num_running) {}
 };
 
 static void ThreadBody(void* arg) {
@@ -128,6 +149,7 @@ static void ThreadBody(void* arg) {
   s->mu.Lock();
   s->val += 1;
   s->num_running -= 1;
+  s->cvar.Signal();
   s->mu.Unlock();
 }
 
@@ -136,17 +158,11 @@ TEST(EnvTest, StartThread) {
   for (int i = 0; i < 3; i++) {
     env_->StartThread(&ThreadBody, &state);
   }
-  while (true) {
-    state.mu.Lock();
-    int num = state.num_running;
-    state.mu.Unlock();
-    if (num == 0) {
-      break;
-    }
-    env_->SleepForMicroseconds(kDelayMicros);
-  }
 
   MutexLock l(&state.mu);
+  while (state.num_running != 0) {
+    state.cvar.Wait();
+  }
   ASSERT_EQ(state.val, 3);
 }
 
@@ -159,8 +175,8 @@ TEST(EnvTest, TestOpenNonExistentFile) {
   ASSERT_TRUE(!env_->FileExists(non_existent_file));
 
   RandomAccessFile* random_access_file;
-  Status status = env_->NewRandomAccessFile(
-      non_existent_file, &random_access_file);
+  Status status =
+      env_->NewRandomAccessFile(non_existent_file, &random_access_file);
   ASSERT_TRUE(status.IsNotFound());
 
   SequentialFile* sequential_file;
@@ -218,6 +234,4 @@ TEST(EnvTest, ReopenAppendableFile) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) {
-  return leveldb::test::RunAllTests();
-}
+int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }

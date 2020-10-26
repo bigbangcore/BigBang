@@ -8,27 +8,25 @@
 #define STORAGE_LEVELDB_DB_FILENAME_H_
 
 #include <stdint.h>
+
 #include <string>
 
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
-
 #include "port/port.h"
 
-namespace leveldb
-{
+namespace leveldb {
 
 class Env;
 
-enum FileType
-{
-    kLogFile,
-    kDBLockFile,
-    kTableFile,
-    kDescriptorFile,
-    kCurrentFile,
-    kTempFile,
-    kInfoLogFile // Either the current one, or an old one
+enum FileType {
+  kLogFile,
+  kDBLockFile,
+  kTableFile,
+  kDescriptorFile,
+  kCurrentFile,
+  kTempFile,
+  kInfoLogFile  // Either the current one, or an old one
 };
 
 // Return the name of the log file with the specified number
@@ -73,8 +71,7 @@ std::string OldInfoLogFileName(const std::string& dbname);
 // If filename is a leveldb file, store the type of the file in *type.
 // The number encoded in the filename is stored in *number.  If the
 // filename was successfully parsed, returns true.  Else return false.
-bool ParseFileName(const std::string& filename,
-                   uint64_t* number,
+bool ParseFileName(const std::string& filename, uint64_t* number,
                    FileType* type);
 
 // Make the CURRENT file point to the descriptor file with the
@@ -82,6 +79,6 @@ bool ParseFileName(const std::string& filename,
 Status SetCurrentFile(Env* env, const std::string& dbname,
                       uint64_t descriptor_number);
 
-} // namespace leveldb
+}  // namespace leveldb
 
-#endif // STORAGE_LEVELDB_DB_FILENAME_H_
+#endif  // STORAGE_LEVELDB_DB_FILENAME_H_

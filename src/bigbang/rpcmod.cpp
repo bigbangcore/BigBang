@@ -579,7 +579,7 @@ CRPCResultPtr CRPCMod::RPCHelp(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CHelpParam>(param);
     string command = spParam->strCommand;
-    return MakeCHelpResultPtr(RPCHelpInfo(EModeType::CONSOLE, command));
+    return MakeCHelpResultPtr(RPCHelpInfo(EModeType::MODE_CONSOLE, command));
 }
 
 CRPCResultPtr CRPCMod::RPCStop(CRPCParamPtr param)

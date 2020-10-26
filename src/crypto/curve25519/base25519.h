@@ -8,17 +8,29 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef __SIZEOF_INT128__
+#define DEFINED_INT128
+using uint128_t = __uint128_t;
+using int128_t = __int128_t;
+#else
+#undef DEFINED_INT128
+#endif
+
 namespace curve25519
 {
+// print hex(b[0, size - 1])
+void Print(const void* p, size_t size, const char* prefix = "");
 // print hex(b[0, 31])
 void Print32(const void* p, const char* prefix = "");
+// n[0, 15] = 0
+void Zero16(void* b);
 // n[0, 31] = 0
 void Zero32(void* b);
 // n[0, 63] = 0
 void Zero64(void* b);
 // dest[0, 31] = src[0, 31]
 void Copy32(void* dest, const void* src);
-// dest[0, 23] = 0, dest[24, 31] = u64
+// dest[0, 7] = u64, dest[8, 31] = u64
 void Copy32(void* dest, const uint64_t u64);
 
 // if uint(lhs[0, 31]) > uint(rhs[0, 31]), return 1
@@ -38,7 +50,7 @@ void ReduceSigned32(void* output, const void* n, const void* prime);
 bool IsZero32(const void* n);
 // return n[0, 31] == 1
 bool IsOne32(const void* n);
-// return n[0] & 1 == 1
+// return n[0] & 1 == 0
 bool IsEven(const void* n);
 
 // uint(n[0, 31]) /= 2
@@ -57,6 +69,13 @@ uint32_t Sub32(void* output, const void* n1, const void* n2);
 // output must be initialed by 0.
 // output[i*16, i*16+7] is 64-bits product, [i*16+8, i*16+15] is carry, 0 <= i < 8
 void Mul32(void* output, const void* n1, const void* n2);
+
+// output[0, 15] = n1[0, 7] * n2[0, 7]
+void Multiply8_8(void* output, const void* n1, const void* n2);
+// output[0, 31] = n1[0, 15] * n2[0, 7]
+void Multiply16_8(void* output, const void* n1, const void* n2);
+// output[0, 63] = n1[0, 31] * n2[0, 31]
+void Multiply32_32(void* output, const void* n1, const void* n2);
 
 } // namespace curve25519
 

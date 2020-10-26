@@ -431,15 +431,18 @@ template <typename T, typename A>
 inline CStream& CStream::Serialize(const std::vector<T, A>& t, ObjectType&, SaveType&)
 {
     *this << CVarInt(t.size());
-    if (boost::is_fundamental<T>::value)
+    if (t.size() > 0)
     {
-        Write((char*)&t[0], sizeof(T) * t.size());
-    }
-    else
-    {
-        for (uint64 i = 0; i < t.size(); i++)
+        if (boost::is_fundamental<T>::value)
         {
-            *this << t[i];
+            Write((char*)&t[0], sizeof(T) * t.size());
+        }
+        else
+        {
+            for (uint64 i = 0; i < t.size(); i++)
+            {
+                *this << t[i];
+            }
         }
     }
     return (*this);
@@ -449,15 +452,18 @@ template <typename T, typename A>
 inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, SaveType&)
 {
     *this << CVarInt(t.size());
-    if (boost::is_fundamental<T>::value)
+    if (t.size() > 0)
     {
-        Write((char*)&t[0], sizeof(T) * t.size());
-    }
-    else
-    {
-        for (uint64 i = 0; i < t.size(); i++)
+        if (boost::is_fundamental<T>::value)
         {
-            *this << t[i];
+            Write((char*)&t[0], sizeof(T) * t.size());
+        }
+        else
+        {
+            for (uint64 i = 0; i < t.size(); i++)
+            {
+                *this << t[i];
+            }
         }
     }
     return (*this);
@@ -472,29 +478,32 @@ inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, LoadType&)
     *this >> var;
 
     // prevent huge & bad length
-    if (boost::is_fundamental<T>::value)
+    if (var.nValue > 0)
     {
-        size_t length = sizeof(T) * var.nValue;
-        if (GetSize() < length)
+        if (boost::is_fundamental<T>::value)
         {
-            throw std::runtime_error((std::string("stream read size error. left size: ") + std::to_string(GetSize()) + " < read size: " + std::to_string(length)).c_str());
-        }
+            size_t length = sizeof(T) * var.nValue;
+            if (GetSize() < length)
+            {
+                throw std::runtime_error((std::string("stream read size error. left size: ") + std::to_string(GetSize()) + " < read size: " + std::to_string(length)).c_str());
+            }
 
-        t.resize(var.nValue);
-        Read((char*)&t[0], length);
-    }
-    else
-    {
-        std::list<T> l;
-        for (uint64 i = 0; i < var.nValue; i++)
+            t.resize(var.nValue);
+            Read((char*)&t[0], length);
+        }
+        else
         {
-            T data;
-            *this >> data;
-            l.push_back(std::move(data));
-        }
+            std::list<T> l;
+            for (uint64 i = 0; i < var.nValue; i++)
+            {
+                T data;
+                *this >> data;
+                l.push_back(std::move(data));
+            }
 
-        t.reserve(var.nValue);
-        t.insert(t.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
+            t.reserve(var.nValue);
+            t.insert(t.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
+        }
     }
 
     return (*this);
@@ -505,15 +514,18 @@ inline CStream& CStream::Serialize(const std::vector<T, A>& t, ObjectType&, std:
 {
     CVarInt var(t.size());
     serSize += GetSerializeSize(var);
-    if (boost::is_fundamental<T>::value)
+    if (t.size() > 0)
     {
-        serSize += sizeof(T) * t.size();
-    }
-    else
-    {
-        for (uint64 i = 0; i < t.size(); i++)
+        if (boost::is_fundamental<T>::value)
         {
-            serSize += GetSerializeSize(t[i]);
+            serSize += sizeof(T) * t.size();
+        }
+        else
+        {
+            for (uint64 i = 0; i < t.size(); i++)
+            {
+                serSize += GetSerializeSize(t[i]);
+            }
         }
     }
     return (*this);
@@ -524,15 +536,18 @@ inline CStream& CStream::Serialize(std::vector<T, A>& t, ObjectType&, std::size_
 {
     CVarInt var(t.size());
     serSize += GetSerializeSize(var);
-    if (boost::is_fundamental<T>::value)
+    if (t.size() > 0)
     {
-        serSize += sizeof(T) * t.size();
-    }
-    else
-    {
-        for (uint64 i = 0; i < t.size(); i++)
+        if (boost::is_fundamental<T>::value)
         {
-            serSize += GetSerializeSize(t[i]);
+            serSize += sizeof(T) * t.size();
+        }
+        else
+        {
+            for (uint64 i = 0; i < t.size(); i++)
+            {
+                serSize += GetSerializeSize(t[i]);
+            }
         }
     }
     return (*this);

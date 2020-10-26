@@ -12,10 +12,8 @@
 
 #include "port/thread_annotations.h"
 
-namespace leveldb
-{
-namespace port
-{
+namespace leveldb {
+namespace port {
 
 // TODO(jorlow): Many of these belong more in the environment class rather than
 //               here. We should try moving them and see if it affects perf.
@@ -27,75 +25,41 @@ static const bool kLittleEndian = true /* or some other expression */;
 // ------------------ Threading -------------------
 
 // A Mutex represents an exclusive lock.
-class LOCKABLE Mutex
-{
-public:
-    Mutex();
-    ~Mutex();
+class LOCKABLE Mutex {
+ public:
+  Mutex();
+  ~Mutex();
 
-    // Lock the mutex.  Waits until other lockers have exited.
-    // Will deadlock if the mutex is already locked by this thread.
-    void Lock() EXCLUSIVE_LOCK_FUNCTION();
+  // Lock the mutex.  Waits until other lockers have exited.
+  // Will deadlock if the mutex is already locked by this thread.
+  void Lock() EXCLUSIVE_LOCK_FUNCTION();
 
-    // Unlock the mutex.
-    // REQUIRES: This mutex was locked by this thread.
-    void Unlock() UNLOCK_FUNCTION();
+  // Unlock the mutex.
+  // REQUIRES: This mutex was locked by this thread.
+  void Unlock() UNLOCK_FUNCTION();
 
-    // Optionally crash if this thread does not hold this mutex.
-    // The implementation must be fast, especially if NDEBUG is
-    // defined.  The implementation is allowed to skip all checks.
-    void AssertHeld() ASSERT_EXCLUSIVE_LOCK();
+  // Optionally crash if this thread does not hold this mutex.
+  // The implementation must be fast, especially if NDEBUG is
+  // defined.  The implementation is allowed to skip all checks.
+  void AssertHeld() ASSERT_EXCLUSIVE_LOCK();
 };
 
-class CondVar
-{
-public:
-    explicit CondVar(Mutex* mu);
-    ~CondVar();
+class CondVar {
+ public:
+  explicit CondVar(Mutex* mu);
+  ~CondVar();
 
-    // Atomically release *mu and block on this condition variable until
-    // either a call to SignalAll(), or a call to Signal() that picks
-    // this thread to wakeup.
-    // REQUIRES: this thread holds *mu
-    void Wait();
+  // Atomically release *mu and block on this condition variable until
+  // either a call to SignalAll(), or a call to Signal() that picks
+  // this thread to wakeup.
+  // REQUIRES: this thread holds *mu
+  void Wait();
 
-    // If there are some threads waiting, wake up at least one of them.
-    void Signal();
+  // If there are some threads waiting, wake up at least one of them.
+  void Signal();
 
-    // Wake up all waiting threads.
-    void SignallAll();
-};
-
-// A type that holds a pointer that can be read or written atomically
-// (i.e., without word-tearing.)
-class AtomicPointer
-{
-private:
-    intptr_t rep_;
-
-public:
-    // Initialize to arbitrary value
-    AtomicPointer();
-
-    // Initialize to hold v
-    explicit AtomicPointer(void* v)
-      : rep_(v) {}
-
-    // Read and return the stored pointer with the guarantee that no
-    // later memory access (read or write) by this thread can be
-    // reordered ahead of this read.
-    void* Acquire_Load() const;
-
-    // Set v as the stored pointer with the guarantee that no earlier
-    // memory access (read or write) by this thread can be reordered
-    // after this store.
-    void Release_Store(void* v);
-
-    // Read the stored pointer with no ordering guarantees.
-    void* NoBarrier_Load() const;
-
-    // Set va as the stored pointer with no ordering guarantees.
-    void NoBarrier_Store(void* v);
+  // Wake up all waiting threads.
+  void SignallAll();
 };
 
 // ------------------ Compression -------------------
@@ -134,7 +98,7 @@ bool GetHeapProfile(void (*func)(void*, const char*, int), void* arg);
 // the newly extended CRC value (which may also be zero).
 uint32_t AcceleratedCRC32C(uint32_t crc, const char* buf, size_t size);
 
-} // namespace port
-} // namespace leveldb
+}  // namespace port
+}  // namespace leveldb
 
-#endif // STORAGE_LEVELDB_PORT_PORT_EXAMPLE_H_
+#endif  // STORAGE_LEVELDB_PORT_PORT_EXAMPLE_H_

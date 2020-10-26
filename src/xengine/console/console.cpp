@@ -10,7 +10,7 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <io.h>
 #endif
 
@@ -29,7 +29,7 @@ CConsole::CConsole(const string& ownKeyIn, const string& strPromptIn)
   : IBase(ownKeyIn),
     thrConsole(ownKeyIn, boost::bind(&CConsole::ConsoleThreadFunc, this)), strPrompt(strPromptIn),
     ioStrand(ioService),
-#ifdef WIN32
+#ifdef _WIN32
     inStream(ioService, GetStdHandle(STD_INPUT_HANDLE))
 #else
     inStream(ioService, ::dup(STDIN_FILENO))
@@ -146,7 +146,7 @@ void CConsole::ReadlineCallback(char* line)
 
 void CConsole::WaitForChars()
 {
-#ifdef WIN32
+#ifdef _WIN32
     // TODO: Just to be compilable. It works incorrect.
     inStream.async_read_some(boost::asio::mutable_buffer(), boost::bind(&CConsole::HandleRead, this,
                                                                         boost::asio::placeholders::error,

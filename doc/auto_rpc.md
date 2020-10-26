@@ -391,7 +391,7 @@ One param is a object, key is name and value is attributes.
 In script/template/mode.json, there define help info of modes.
 ```json
 {
-    "EModeType::SERVER": {                      // EModeType in src/mode/mode_type.h
+    "EModeType::MODE_SERVER": {                      // EModeType in src/mode/mode_type.h
         "usage": "bigbang-server (OPTIONS)", // usage info
         "desc": "Run bigbang server"         // desc info
     },

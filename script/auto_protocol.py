@@ -1116,7 +1116,7 @@ def RPCHelp_cpp(w):
         usage, desc = modes[mode]
         w.write('if (type == ' + mode + ')\n')
         indent = brace_begin(w, indent)
-        if mode != 'EModeType::CONSOLE':
+        if mode != 'EModeType::MODE_CONSOLE':
             write_usage(usage, w, indent)
             write_desc(desc, w, indent)
             write_options(w, indent)

@@ -59,7 +59,7 @@ bool CDelegateVoteSave::Remove()
 
 bool CDelegateVoteSave::Save(const delegate::CDelegate& delegate)
 {
-    FILE* fp = fopen(pathDelegateVoteFile.c_str(), "w");
+    FILE* fp = fopen(pathDelegateVoteFile.string().c_str(), "w");
     if (fp == nullptr)
     {
         return false;
@@ -73,7 +73,7 @@ bool CDelegateVoteSave::Save(const delegate::CDelegate& delegate)
 
     try
     {
-        CFileStream fs(pathDelegateVoteFile.c_str());
+        CFileStream fs(pathDelegateVoteFile.string().c_str());
         fs << delegate;
     }
     catch (std::exception& e)
@@ -96,7 +96,7 @@ bool CDelegateVoteSave::Load(delegate::CDelegate& delegate)
 
     try
     {
-        CFileStream fs(pathDelegateVoteFile.c_str());
+        CFileStream fs(pathDelegateVoteFile.string().c_str());
         fs >> delegate;
     }
     catch (std::exception& e)

@@ -11,7 +11,7 @@
 #include "base/base.h"
 #include "netio/ioproc.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 typedef boost::asio::windows::stream_handle stream_desc;
 #else
 typedef boost::asio::posix::stream_descriptor stream_desc;
