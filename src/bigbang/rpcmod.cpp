@@ -692,9 +692,7 @@ CRPCResultPtr CRPCMod::RPCListFork(CRPCParamPtr param)
     for (size_t i = 0; i < vFork.size(); i++)
     {
         CProfile& profile = vFork[i].second;
-        //auto c = std::count(pForkManager->ForkConfig()->vFork.begin(), pForkManager->ForkConfig()->vFork.end(), vFork[i].first.GetHex());
-        //if (pForkManager->ForkConfig()->fAllowAnyFork || vFork[i].first == pCoreProtocol->GetGenesisBlockHash() || c > 0)
-        if (pForkManager->IsAllowed(vFork[i].first))
+        if (spParam->fAll || pForkManager->IsAllowed(vFork[i].first))
         {
             spResult->vecProfile.push_back({ vFork[i].first.GetHex(), profile.strName, profile.strSymbol,
                                              (double)(profile.nAmount) / COIN, (double)(profile.nMintReward) / COIN, (uint64)(profile.nHalveCycle),
@@ -1660,7 +1658,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }
@@ -1811,7 +1809,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     }
     if (nAmount == -1)
     {
-        if(balance.nAvailable <= nTxFee)
+        if (balance.nAvailable <= nTxFee)
         {
             throw CRPCException(RPC_WALLET_ERROR, "Your amount not enough for txfee");
         }
