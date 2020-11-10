@@ -420,7 +420,7 @@ bool CNetChannel::SubmitCachePowBlock(const CConsensusParam& consParam)
         {
             CSchedule& sched = GetSchedule(hashFork); // Resolve unsubscribefork errors
             const uint256& hashBlock = chash.first;
-            if (chash.second == 1)
+            if (chash.second == CSchedule::CACHE_POW_BLOCK_TYPE_REMOTE)
             {
                 uint64 nNonceSender = 0;
                 CBlock* pBlock = sched.GetBlock(hashBlock, nNonceSender);
@@ -768,39 +768,50 @@ bool CNetChannel::HandleEvent(network::CEventPeerInv& eventInv)
                 }
                 else if (inv.nType == network::CInv::MSG_BLOCK)
                 {
-                    uint256 hashLocationFork;
-                    int nLocationHeight;
-                    uint256 hashLocationNext;
-                    if (!pBlockChain->GetBlockLocation(inv.nHash, hashLocationFork, nLocationHeight, hashLocationNext))
+                    do
                     {
                         uint32 nBlockHeight = CBlock::GetBlockHeightByHash(inv.nHash);
+
+                        if (hashFork == pCoreProtocol->GetGenesisBlockHash()
+                            && sched.CheckCachePowBlockState(inv.nHash))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, cache block existed, height: %d, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), nBlockHeight, inv.nHash.GetHex().c_str());
+                            nBlockInvExistCount++;
+                            break;
+                        }
+
+                        uint256 hashLocationFork;
+                        int nLocationHeight;
+                        uint256 hashLocationNext;
+                        if (pBlockChain->GetBlockLocation(inv.nHash, hashLocationFork, nLocationHeight, hashLocationNext))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, block existed, height: %d, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), nLocationHeight, inv.nHash.GetHex().c_str());
+                            sched.SetLocatorInvBlockHash(nNonce, nLocationHeight, inv.nHash, hashLocationNext);
+                            nBlockInvExistCount++;
+                            break;
+                        }
+
                         if (nBlockHeight > (nLastBlockHeight + CSchedule::MAX_PEER_BLOCK_INV_COUNT / 2))
                         {
                             StdTrace("NetChannel", "CEventPeerInv: peer: %s, block height too high, last height: %d, block height: %d, block hash: %s ",
                                      GetPeerAddressInfo(nNonce).c_str(), nLastBlockHeight, nBlockHeight, inv.nHash.GetHex().c_str());
+                            break;
+                        }
+
+                        if (sched.AddNewInv(inv, nNonce))
+                        {
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv success, height: %d, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), nBlockHeight, inv.nHash.GetHex().c_str());
+                            nBlockInvAddCount++;
                         }
                         else
                         {
-                            if (sched.AddNewInv(inv, nNonce))
-                            {
-                                StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv success, height: %d, block hash: %s ",
-                                         GetPeerAddressInfo(nNonce).c_str(), nBlockHeight, inv.nHash.GetHex().c_str());
-                                nBlockInvAddCount++;
-                            }
-                            else
-                            {
-                                StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv fail, block hash: %s ",
-                                         GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
-                            }
+                            StdTrace("NetChannel", "CEventPeerInv: peer: %s, add block inv fail, block hash: %s ",
+                                     GetPeerAddressInfo(nNonce).c_str(), inv.nHash.GetHex().c_str());
                         }
-                    }
-                    else
-                    {
-                        StdTrace("NetChannel", "CEventPeerInv: peer: %s, block existed, height: %d, block hash: %s ",
-                                 GetPeerAddressInfo(nNonce).c_str(), nLocationHeight, inv.nHash.GetHex().c_str());
-                        sched.SetLocatorInvBlockHash(nNonce, nLocationHeight, inv.nHash, hashLocationNext);
-                        nBlockInvExistCount++;
-                    }
+                    } while (0);
                 }
             }
             if (!vTxHash.empty())
@@ -1632,7 +1643,7 @@ void CNetChannel::AddNewBlock(const uint256& hashFork, const uint256& hash, CSch
 
                 if (pBlock->IsPrimary())
                 {
-                    sched.GetNextRefBlock(hashBlock, vRefNextBlock);
+                    GetNextRefBlock(hashBlock, vRefNextBlock);
                 }
 
                 {
@@ -1806,6 +1817,9 @@ void CNetChannel::AddRefNextBlock(const vector<pair<uint256, uint256>>& vRefNext
         if (setHash.find(hashNextBlock) == setHash.end())
         {
             setHash.insert(hashNextBlock);
+
+            StdDebug("NetChannel", "AddRefNextBlock: fork: %s, block: %s",
+                     hashNextFork.GetHex().c_str(), hashNextBlock.GetHex().c_str());
 
             try
             {
@@ -2127,6 +2141,17 @@ void CNetChannel::InnerSubmitCachePowBlock()
             fContinue = SubmitCachePowBlock(consParam);
         }
     } while (fContinue);
+}
+
+void CNetChannel::GetNextRefBlock(const uint256& hashRefBlock, vector<pair<uint256, uint256>>& vNext)
+{
+    for (auto it = mapSched.begin(); it != mapSched.end(); ++it)
+    {
+        if (it->first != pCoreProtocol->GetGenesisBlockHash())
+        {
+            it->second.GetNextRefBlock(hashRefBlock, vNext);
+        }
+    }
 }
 
 } // namespace bigbang
