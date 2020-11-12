@@ -21,6 +21,8 @@ BOOST_AUTO_TEST_CASE(format)
     strVersion = FormatVersion(nVersion);
     BOOST_CHECK(strVersion == "10.66.0");
 
+    //
+
     // case 2
     nVersion = 1;
     strVersion = FormatVersion(nVersion);
