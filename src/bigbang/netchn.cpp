@@ -1044,6 +1044,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
             }
 
             // recved forked block before last checkpoint need drop it and do not report DDoS
+            /*
             if (block.IsSubsidiary())
             {
                 auto checkpoint = pBlockChain->UpperBoundCheckPoint(hashFork, nBlockHeight);
@@ -1052,7 +1053,7 @@ bool CNetChannel::HandleEvent(network::CEventPeerBlock& eventBlock)
                     sched.SetDelayedClear(network::CInv(network::CInv::MSG_BLOCK, hash), CSchedule::MAX_SUB_BLOCK_DELAYED_TIME);
                     return true;
                 }
-            }
+            }*/
         }
 
         if (hashFork != pCoreProtocol->GetGenesisBlockHash() && !pBlockChain->IsVacantBlockBeforeCreatedForkHeight(hashFork, block))
